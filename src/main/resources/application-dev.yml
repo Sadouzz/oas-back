@@ -1,0 +1,22 @@
+spring:
+    application:
+        name: facturation
+    datasource:
+        url: jdbc:postgresql://localhost:5432/oasrefont-db
+        username: postgres
+        password: 1551
+        driver-class-name: org.postgresql.Driver
+        jpa.database-platform: org.hibernate.dialect.PostgreSQLDialect
+    jpa:
+        hibernate:
+            ddl-auto: update
+        show-sql: true 
+
+
+app:
+    jwt:
+        secret: C61BMHzFjZzIUR71kLPyplShf8DcooJScNhAsBxXbAh
+        expiration: 3600000
+
+server:
+    port: 9090
