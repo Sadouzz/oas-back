@@ -9,7 +9,7 @@ import sn.oas.facturation.auth.dto.LoginRequest;
 import sn.oas.facturation.auth.dto.RegisterRequest;
 import sn.oas.facturation.auth.service.AuthService;
 
-// @RestController
+@RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {

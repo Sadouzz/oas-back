@@ -24,11 +24,6 @@ public class AuthTokenFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-                String path = request.getServletPath();
-                if (path.equals("/")) {
-                    filterChain.doFilter(request, response);
-                    return;
-                }   
         String jwt = parseJwt(request);
         if (jwt != null && jwtUtil.validateJwtToken(jwt)) {
             String email = jwtUtil.getUsernameFromToken(jwt);
