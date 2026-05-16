@@ -16,7 +16,6 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @SuperBuilder
-@Data
 @EqualsAndHashCode(callSuper = true)
 @AllArgsConstructor
 public class Agent extends User{
