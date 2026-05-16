@@ -3,6 +3,7 @@ package sn.oas.facturation.auth.service;
 import sn.oas.facturation.auth.data.entity.User;
 import sn.oas.facturation.auth.dto.CreateUserResponse;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface UserService {
@@ -17,4 +18,5 @@ public interface UserService {
     User updateUser(Long id, sn.oas.facturation.auth.dto.UserUpdateRequest request);
     void archiveUser(Long id);
     void deleteUser(Long id);
+    List<User> searchUsers(String keyword);
 }

@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sn.oas.facturation.auth.dto.RegisterRequest;
 import sn.oas.facturation.auth.dto.UserUpdateRequest;
+import sn.oas.facturation.auth.data.entity.User;
 import sn.oas.facturation.auth.service.AuthService;
 import sn.oas.facturation.auth.service.UserService;
 
@@ -17,8 +18,22 @@ public class UserManagementController {
     private final AuthService authService;
 
     @GetMapping
-    public ResponseEntity<?> listUsers() {
+    public ResponseEntity<?> listUsers(@RequestParam(required = false) String keyword) {
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            return ResponseEntity.ok(userService.searchUsers(keyword));
+        }
         return ResponseEntity.ok(userService.findAll());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getUserById(@PathVariable Long id) {
+        try {
+            User user = userService.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+            return ResponseEntity.ok(user);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @PostMapping("/create")
