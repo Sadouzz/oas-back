@@ -7,6 +7,8 @@ import sn.oas.facturation.auth.data.entity.ConnectionHistory;
 import sn.oas.facturation.auth.repository.ConnectionHistoryRepository;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import org.springframework.data.domain.Sort;
 
 @RequiredArgsConstructor
 @Service
@@ -30,5 +32,10 @@ public class ConnectionHistoryServiceImpl implements ConnectionHistoryService{
             ip = request.getRemoteAddr();
         }
         return ip;
+    }
+
+    @Override
+    public List<ConnectionHistory> getAllConnectionHistory() {
+        return connectionHistoryRepository.findAll(Sort.by(Sort.Direction.DESC, "timestamp"));
     }
 }

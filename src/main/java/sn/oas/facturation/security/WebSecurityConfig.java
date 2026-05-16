@@ -73,7 +73,7 @@ public class WebSecurityConfig {
                     "/swagger-ui/**",
                     "/v3/api-docs/**"
                 ).permitAll()
-                    .requestMatchers("/api/admin/users/**").hasRole("SUPER_AGENT")
+                    .requestMatchers("/api/admin/users/**", "/api/admin/connection-history/**").hasRole("SUPER_AGENT")
 
                 .anyRequest().authenticated()
             );
