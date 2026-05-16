@@ -2,6 +2,8 @@ package sn.oas.facturation.auth.data.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
+import sn.oas.facturation.auth.data.enums.Role;
 import sn.oas.facturation.auth.data.enums.TypeUser;
 
 import org.springframework.security.core.GrantedAuthority;
@@ -13,7 +15,9 @@ import java.util.List;
 @Entity
 @Table(name = "users")
 @Data
-@Builder
+@SuperBuilder
+@DiscriminatorColumn(name = "type")
+@Inheritance(strategy = InheritanceType.JOINED)
 @NoArgsConstructor
 @AllArgsConstructor
 
@@ -42,22 +46,17 @@ public class User implements UserDetails {
     private String email;
 
     @Column(nullable = false)
-    private String password;          // Hash bcrypt
+    private String password;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(name = "type", nullable = false, insertable = false, updatable = false)
     private TypeUser type;
 
     // ── UserDetails ──────────────────────────────────────────
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + type.name()));
-    }
-
-    @Override
-    public String getUsername() {
-        return email;                  // Email utilisé comme username
+        return List.of();
     }
 
     @Override

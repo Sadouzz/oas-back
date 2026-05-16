@@ -8,7 +8,10 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import sn.oas.facturation.auth.data.entity.Agent;
+import sn.oas.facturation.auth.data.entity.Client;
 import sn.oas.facturation.auth.data.entity.User;
+import sn.oas.facturation.auth.data.enums.TypeUser;
 import sn.oas.facturation.auth.dto.AuthResponse;
 import sn.oas.facturation.auth.dto.LoginRequest;
 import sn.oas.facturation.auth.dto.RegisterRequest;
@@ -20,14 +23,14 @@ import sn.oas.facturation.security.JwtUtil;
 public class AuthServiceImpl implements AuthService {
 
     private final AuthenticationManager authenticationManager;
-    private final UserRepository userRepository;
+    private final UserService userService;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
 
     @Override
     public AuthResponse login(LoginRequest request) {
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.email(), request.password())
+                new UsernamePasswordAuthenticationToken(request.username(), request.password())
         );
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         String token = jwtUtil.generateToken(userDetails.getUsername());
@@ -40,19 +43,39 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void register(RegisterRequest request) {
-        if (userRepository.existsByEmail(request.email())) {
-            throw new IllegalArgumentException("Email already in use: " + request.email());
+        if (userService.existsByUsername(request.username())) {
+            throw new IllegalArgumentException("Username already in use: " + request.username());
         }
-        User user = User.builder()
-                .matricule(request.matricule())
-                .phone(request.phone())
-                .username(request.login())
-                .firstName(request.firstName())
-                .lastName(request.lastName())
-                .email(request.email())
-                .password(passwordEncoder.encode(request.password()))
-                .type(request.type())
-                .build();
-        userRepository.save(user);
+        User user;
+
+        if (request.type() == TypeUser.AGENT)
+        {
+            user = Agent.builder()
+                    .matricule(request.matricule())
+                    .phone(request.phone())
+                    .username(request.username())
+                    .firstName(request.firstName())
+                    .lastName(request.lastName())
+                    .email(request.email())
+                    .password(passwordEncoder.encode(request.password()))
+                    .type(request.type())
+                    .role(request.role())
+                    .build();
+        } else if (request.type() == TypeUser.CLIENT) {
+            user = Client.builder()
+                    .matricule(request.matricule())
+                    .phone(request.phone())
+                    .username(request.username())
+                    .firstName(request.firstName())
+                    .lastName(request.lastName())
+                    .email(request.email())
+                    .password(passwordEncoder.encode(request.password()))
+                    .type(request.type())
+                    .build();
+        }
+        else {
+            throw new IllegalArgumentException("Type d'utilisateur non reconnu");
+        }
+        userService.saveUser(user);
     }
 }

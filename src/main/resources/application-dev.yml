@@ -2,9 +2,9 @@ spring:
     application:
         name: facturation
     datasource:
-        url: jdbc:postgresql://localhost:5432/oasrefont-db
-        username: postgres
-        password: 1551
+        url: ${DATABASE_URL}
+        username: ${DATABASE_HOSTNAME}
+        password: ${DATABSE_PASSWORD}
         driver-class-name: org.postgresql.Driver
         jpa.database-platform: org.hibernate.dialect.PostgreSQLDialect
     jpa:
@@ -15,7 +15,7 @@ spring:
 
 app:
     jwt:
-        secret: C61BMHzFjZzIUR71kLPyplShf8DcooJScNhAsBxXbAh
+        secret: ${JWT_SECRET}
         expiration: 3600000
 
 server:
