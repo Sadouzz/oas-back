@@ -13,9 +13,9 @@ import java.time.LocalDateTime;
 public class ConnectionHistoryServiceImpl implements ConnectionHistoryService{
     private final ConnectionHistoryRepository connectionHistoryRepository;
     @Override
-    public void saveConnectionLog(String email, String ip, String status) {
+    public void saveConnectionLog(String username, String ip, String status) {
         ConnectionHistory log = ConnectionHistory.builder()
-                .email(email)
+                .username(username)
                 .ipAddress(ip)
                 .status(status)
                 .timestamp(LocalDateTime.now())

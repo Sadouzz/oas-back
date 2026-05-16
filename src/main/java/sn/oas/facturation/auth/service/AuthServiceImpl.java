@@ -47,6 +47,7 @@ public class AuthServiceImpl implements AuthService {
                     .map(GrantedAuthority::getAuthority)
                     .findFirst()
                     .orElse("ROLE_USER");
+            connectionHistoryService.saveConnectionLog(request.username(), ip, "SUCCESS");
             return AuthResponse.of(token, userDetails.getUsername(), role);
         } catch (AuthenticationException e) {
             connectionHistoryService.saveConnectionLog(request.username(), ip, "FAILED");
