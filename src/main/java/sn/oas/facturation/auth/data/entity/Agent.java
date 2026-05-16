@@ -15,6 +15,7 @@ import java.util.List;
 @Table(name = "agents")
 @NoArgsConstructor
 @SuperBuilder
+@Data
 @EqualsAndHashCode(callSuper = true)
 @AllArgsConstructor
 public class Agent extends User{
