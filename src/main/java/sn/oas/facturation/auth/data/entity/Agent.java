@@ -13,6 +13,7 @@ import java.util.List;
 @Entity
 @DiscriminatorValue("AGENT")
 @Table(name = "agents")
+@Data
 @NoArgsConstructor
 @SuperBuilder
 @Data

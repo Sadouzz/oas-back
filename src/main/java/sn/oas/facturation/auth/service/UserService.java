@@ -12,4 +12,9 @@ public interface UserService {
     boolean existsByEmail(String email);
     Optional<User> findByUsernameOrEmail(String username, String email);
     CreateUserResponse saveUser(User user);
+    java.util.List<User> findAll();
+    Optional<User> findById(Long id);
+    User updateUser(Long id, sn.oas.facturation.auth.dto.UserUpdateRequest request);
+    void archiveUser(Long id);
+    void deleteUser(Long id);
 }

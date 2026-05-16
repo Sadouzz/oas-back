@@ -6,9 +6,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.oas.facturation.auth.data.entity.User;
+import sn.oas.facturation.auth.data.entity.Agent;
 import sn.oas.facturation.auth.dto.CreateUserResponse;
+import sn.oas.facturation.auth.dto.UserUpdateRequest;
 import sn.oas.facturation.auth.repository.UserRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -23,6 +26,53 @@ public class UserServiceImpl implements UserService{
         userRepository.save(user);
         return new CreateUserResponse(user.getUsername());
     }
+
+    @Override
+    public List<User> findAll() {
+        return userRepository.findAll();
+    }
+
+    @Override
+    public Optional<User> findById(Long id) {
+        return userRepository.findById(id);
+    }
+
+    @Transactional
+    @Override
+    public User updateUser(Long id, UserUpdateRequest request) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+
+        if (request.phone() != null) user.setPhone(request.phone());
+        if (request.firstName() != null) user.setFirstName(request.firstName());
+        if (request.lastName() != null) user.setLastName(request.lastName());
+        if (request.email() != null) user.setEmail(request.email());
+
+        if (user instanceof Agent agent && request.role() != null) {
+            agent.setRole(request.role());
+        }
+
+        return userRepository.save(user);
+    }
+
+    @Transactional
+    @Override
+    public void archiveUser(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+        user.setEnabled(false);
+        userRepository.save(user);
+    }
+
+    @Transactional
+    @Override
+    public void deleteUser(Long id) {
+        if (!userRepository.existsById(id)) {
+            throw new RuntimeException("Utilisateur non trouvé");
+        }
+        userRepository.deleteById(id);
+    }
+
     @Override
     public Optional<User> findByUsername(String username) {
         return userRepository.findByUsername(username);

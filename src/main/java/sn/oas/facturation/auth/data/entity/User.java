@@ -52,6 +52,10 @@ public class User implements UserDetails {
     @Column(name = "type", nullable = false, insertable = false, updatable = false)
     private TypeUser type;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean enabled = true;
+
     // ── UserDetails ──────────────────────────────────────────
 
     @Override
@@ -69,5 +73,5 @@ public class User implements UserDetails {
     public boolean isCredentialsNonExpired() { return true; }
 
     @Override
-    public boolean isEnabled()            { return true; }
+    public boolean isEnabled()            { return this.enabled; }
 }
