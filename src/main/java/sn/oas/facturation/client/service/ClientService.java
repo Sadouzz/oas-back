@@ -15,4 +15,5 @@ public interface ClientService {
     void unarchiveClient(Long id);
     void deleteClient(Long id);
     List<Client> searchClients(String keyword);
+    List<Client> getRecentClients();
 }

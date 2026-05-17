@@ -106,4 +106,9 @@ public class ClientServiceImpl implements ClientService {
     public List<Client> searchClients(String keyword) {
         return clientRepository.searchClients(keyword);
     }
+
+    @Override
+    public List<Client> getRecentClients() {
+        return clientRepository.findTop5ByOrderByCreatedAtDesc();
+    }
 }

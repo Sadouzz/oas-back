@@ -25,6 +25,11 @@ public class ClientController {
         return ResponseEntity.ok(clientService.getAllClients());
     }
 
+    @GetMapping("/recent")
+    public ResponseEntity<?> getRecentClients() {
+        return ResponseEntity.ok(clientService.getRecentClients());
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<?> getClientById(@PathVariable Long id) {
         try {
