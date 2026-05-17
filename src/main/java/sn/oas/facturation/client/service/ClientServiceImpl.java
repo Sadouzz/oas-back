@@ -9,6 +9,7 @@ import sn.oas.facturation.auth.data.enums.TypeUser;
 import sn.oas.facturation.auth.dto.RegisterRequest;
 import sn.oas.facturation.auth.dto.UserUpdateRequest;
 import sn.oas.facturation.auth.repository.UserRepository;
+import sn.oas.facturation.auth.service.UserService;
 import sn.oas.facturation.client.repository.ClientRepository;
 
 import java.util.List;
@@ -18,6 +19,7 @@ import java.util.List;
 public class ClientServiceImpl implements ClientService {
 
     private final ClientRepository clientRepository;
+    private final UserService userService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -32,6 +34,7 @@ public class ClientServiceImpl implements ClientService {
                 .orElseThrow(() -> new RuntimeException("Client non trouvé"));
     }
 
+    /*
     @Transactional
     @Override
     public Client createClient(RegisterRequest request) {
@@ -56,6 +59,7 @@ public class ClientServiceImpl implements ClientService {
 
         return clientRepository.save(client);
     }
+    */
 
     @Transactional
     @Override
@@ -82,10 +86,24 @@ public class ClientServiceImpl implements ClientService {
 
     @Transactional
     @Override
+    public void unarchiveClient(Long id) {
+        Client client = clientRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Client non trouvé"));
+        client.setEnabled(true);
+        clientRepository.save(client);
+    }
+
+    @Transactional
+    @Override
     public void deleteClient(Long id) {
         if (!clientRepository.existsById(id)) {
             throw new RuntimeException("Client non trouvé");
         }
         clientRepository.deleteById(id);
+    }
+
+    @Override
+    public List<Client> searchClients(String keyword) {
+        return clientRepository.searchClients(keyword);
     }
 }

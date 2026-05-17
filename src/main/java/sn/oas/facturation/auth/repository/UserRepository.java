@@ -1,5 +1,6 @@
 package sn.oas.facturation.auth.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -23,5 +24,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
             "LOWER(u.matricule) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(u.phone) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%'))")
-    java.util.List<User> searchUsers(@Param("keyword") String keyword);
+    List<User> searchUsers(@Param("keyword") String keyword);
 }

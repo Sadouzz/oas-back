@@ -2,6 +2,7 @@ package sn.oas.facturation.auth.service;
 
 import sn.oas.facturation.auth.data.entity.User;
 import sn.oas.facturation.auth.dto.CreateUserResponse;
+import sn.oas.facturation.auth.dto.UserUpdateRequest;
 
 import java.util.List;
 import java.util.Optional;
@@ -13,10 +14,11 @@ public interface UserService {
     boolean existsByEmail(String email);
     Optional<User> findByUsernameOrEmail(String username, String email);
     CreateUserResponse saveUser(User user);
-    java.util.List<User> findAll();
+    List<User> getAllUsers();
     Optional<User> findById(Long id);
-    User updateUser(Long id, sn.oas.facturation.auth.dto.UserUpdateRequest request);
+    User updateUser(Long id, UserUpdateRequest request);
     void archiveUser(Long id);
+    void unarchiveUser(Long id);
     void deleteUser(Long id);
     List<User> searchUsers(String keyword);
 }

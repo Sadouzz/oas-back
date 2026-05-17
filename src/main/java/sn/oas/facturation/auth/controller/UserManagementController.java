@@ -22,7 +22,7 @@ public class UserManagementController {
         if (keyword != null && !keyword.trim().isEmpty()) {
             return ResponseEntity.ok(userService.searchUsers(keyword));
         }
-        return ResponseEntity.ok(userService.findAll());
+        return ResponseEntity.ok(userService.getAllUsers());
     }
 
     @GetMapping("/{id}")
@@ -60,6 +60,16 @@ public class UserManagementController {
         try {
             userService.archiveUser(id);
             return ResponseEntity.ok("Utilisateur archivé avec succès !");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PatchMapping("/{id}/unarchive")
+    public ResponseEntity<?> unarchiveUser(@PathVariable Long id) {
+        try {
+            userService.unarchiveUser(id);
+            return ResponseEntity.ok("Utilisateur désarchivé avec succès !");
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

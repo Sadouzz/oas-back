@@ -18,7 +18,10 @@ public class ClientController {
     private final ClientService clientService;
 
     @GetMapping
-    public ResponseEntity<List<Client>> getClients() {
+    public ResponseEntity<?> listClients(@RequestParam(required = false) String keyword) {
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            return ResponseEntity.ok(clientService.searchClients(keyword));
+        }
         return ResponseEntity.ok(clientService.getAllClients());
     }
 
@@ -31,7 +34,7 @@ public class ClientController {
         }
     }
 
-    @PostMapping("/create")
+    /*@PostMapping("/create")
     public ResponseEntity<?> createClient(@RequestBody RegisterRequest request) {
         try {
             Client client = clientService.createClient(request);
@@ -39,7 +42,7 @@ public class ClientController {
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
-    }
+    }*/
 
     @PutMapping("/{id}")
     public ResponseEntity<?> updateClient(@PathVariable Long id, @RequestBody UserUpdateRequest request) {
@@ -56,6 +59,16 @@ public class ClientController {
         try {
             clientService.archiveClient(id);
             return ResponseEntity.ok("Client archivé avec succès !");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PatchMapping("/{id}/unarchive")
+    public ResponseEntity<?> unarchiveClient(@PathVariable Long id) {
+        try {
+            clientService.unarchiveClient(id);
+            return ResponseEntity.ok("Client désarchivé avec succès !");
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

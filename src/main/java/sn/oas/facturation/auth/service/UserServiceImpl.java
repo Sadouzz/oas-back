@@ -28,7 +28,7 @@ public class UserServiceImpl implements UserService{
     }
 
     @Override
-    public List<User> findAll() {
+    public List<User> getAllUsers() {
         return userRepository.findAll();
     }
 
@@ -61,6 +61,15 @@ public class UserServiceImpl implements UserService{
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
         user.setEnabled(false);
+        userRepository.save(user);
+    }
+
+    @Transactional
+    @Override
+    public void unarchiveUser(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+        user.setEnabled(true);
         userRepository.save(user);
     }
 
