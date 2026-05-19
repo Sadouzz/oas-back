@@ -1,0 +1,28 @@
+package sn.oas.facturation.main_doeuvre.data.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+import sn.oas.facturation.main_doeuvre.data.enums.CategorieMainDoeuvre;
+
+@Entity
+@Table(name = "main_doeuvre")
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class MainDoeuvre {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private Double prix;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private CategorieMainDoeuvre categorie;
+
+    @Column(name = "nbre_heure", nullable = false)
+    private Integer nbreHeure;
+}
