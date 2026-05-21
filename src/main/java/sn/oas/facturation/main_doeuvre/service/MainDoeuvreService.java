@@ -7,12 +7,9 @@ import java.util.List;
 
 public interface MainDoeuvreService {
     List<MainDoeuvre> getAllMainDoeuvres();
-
     MainDoeuvre getMainDoeuvreById(Long id);
-
     MainDoeuvre createMainDoeuvre(MainDoeuvreRequest request);
-
     MainDoeuvre updateMainDoeuvre(Long id, MainDoeuvreRequest request);
-
     void deleteMainDoeuvre(Long id);
+    MainDoeuvre archiveMainDoeuvre(Long id, boolean archived);
 }

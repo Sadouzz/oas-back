@@ -25,4 +25,8 @@ public class MainDoeuvre {
 
     @Column(name = "nbre_heure", nullable = false)
     private Integer nbreHeure;
+
+    @Column(name = "is_archived", nullable = false)
+    private Boolean isArchived = false;
+
 }

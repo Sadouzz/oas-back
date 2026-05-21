@@ -7,7 +7,6 @@ import org.springframework.web.bind.annotation.*;
 import sn.oas.facturation.main_doeuvre.data.entity.MainDoeuvre;
 import sn.oas.facturation.main_doeuvre.dto.MainDoeuvreRequest;
 import sn.oas.facturation.main_doeuvre.service.MainDoeuvreService;
-
 import java.util.List;
 
 @RestController
@@ -16,11 +15,6 @@ import java.util.List;
 public class MainDoeuvreController {
 
     private final MainDoeuvreService mainDoeuvreService;
-
-    @GetMapping("/test")
-        public ResponseEntity<String> test() {
-            return ResponseEntity.ok("OK");
-        }
 
     @GetMapping
     public ResponseEntity<List<MainDoeuvre>> getAllMainDoeuvres() {
@@ -48,5 +42,11 @@ public class MainDoeuvreController {
     public ResponseEntity<Void> deleteMainDoeuvre(@PathVariable Long id) {
         mainDoeuvreService.deleteMainDoeuvre(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/archive")
+    public ResponseEntity<MainDoeuvre> archiveMainDoeuvre(@PathVariable Long id,
+        @RequestParam boolean archived) {
+        return ResponseEntity.ok(mainDoeuvreService.archiveMainDoeuvre(id, archived));
     }
 }

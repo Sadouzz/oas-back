@@ -33,6 +33,7 @@ public class MainDoeuvreServiceImpl implements MainDoeuvreService {
                 .prix(request.prix())
                 .categorie(request.categorie())
                 .nbreHeure(request.nbreHeure())
+                .isArchived(request.isArchived() != null ? request.isArchived() : false)
                 .build();
         return mainDoeuvreRepository.save(mainDoeuvre);
     }
@@ -52,7 +53,19 @@ public class MainDoeuvreServiceImpl implements MainDoeuvreService {
         if (request.nbreHeure() != null) {
             mainDoeuvre.setNbreHeure(request.nbreHeure());
         }
+        if (request.isArchived() != null) {
+            mainDoeuvre.setIsArchived(request.isArchived());
+        }
 
+        return mainDoeuvreRepository.save(mainDoeuvre);
+    }
+
+    @Transactional
+    @Override
+    public MainDoeuvre archiveMainDoeuvre(Long id, boolean archived) {
+        MainDoeuvre mainDoeuvre = mainDoeuvreRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Main d'oeuvre non trouvée"));
+        mainDoeuvre.setIsArchived(archived);
         return mainDoeuvreRepository.save(mainDoeuvre);
     }
 
