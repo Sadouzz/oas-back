@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: facturation 
+  profiles:
+    active: ${SPRING_ACTIVE_PROFILE:dev}

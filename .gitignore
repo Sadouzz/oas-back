@@ -5,6 +5,7 @@ target/
 !**/src/test/**/target/
 .env
 
+/test-client-react/
 ### STS ###
 .apt_generated
 .classpath
