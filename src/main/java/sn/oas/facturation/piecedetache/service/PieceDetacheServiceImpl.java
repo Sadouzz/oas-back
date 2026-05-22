@@ -73,32 +73,14 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
             piece.setNumeroDeSerie(request.numeroDeSerie());
         }
 
-        if (request.reference() != null) {
-            piece.setReference(request.reference());
-        }
-        if (request.categorie() != null) {
-            piece.setCategorie(request.categorie());
-        }
-        if (request.pourcentage() != null) {
-            piece.setPourcentage(request.pourcentage());
-        }
-        if (request.statut() != null) {
-            piece.setStatut(request.statut());
-        }
+        if (request.reference() != null) piece.setReference(request.reference());
+        if (request.categorie() != null) piece.setCategorie(request.categorie());
+        if (request.pourcentage() != null) piece.setPourcentage(request.pourcentage());
+        if (request.statut() != null) piece.setStatut(request.statut());
 
         if (piece instanceof PDP pdp) {
-            if (request.qteReelle() != null) {
-                pdp.setQteReelle(request.qteReelle());
-            }
-            if (request.stockAtelier() != null) {
-                pdp.setStockAtelier(request.stockAtelier());
-            }
-            if (request.stockMagasin() != null) {
-                pdp.setStockMagasin(request.stockMagasin());
-            }
-            if (request.prixGros() != null) {
-                pdp.setPrixGros(request.prixGros());
-            }
+            if (request.prix() != null) pdp.setPrix(request.prix());
+            if (request.seuilMinimum() != null) pdp.setSeuilMinimum(request.seuilMinimum());
         }
 
         return pieceDetacheRepository.save(piece);
@@ -130,9 +112,8 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
             throw new IllegalArgumentException("Le pourcentage est obligatoire");
         }
         if (request.type() == TypePiece.PDP) {
-            if (request.qteReelle() == null || request.stockAtelier() == null
-                    || request.stockMagasin() == null || request.prixGros() == null) {
-                throw new IllegalArgumentException("Les champs stock et prix sont obligatoires pour une PDP");
+            if (request.stockMagasin() == null || request.prix() == null) {
+                throw new IllegalArgumentException("Le stock magasin et le prix sont obligatoires pour une PDP");
             }
         }
     }
@@ -141,17 +122,21 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
         StatutPiece statut = request.statut() != null ? request.statut() : StatutPiece.ACTIF;
 
         return switch (request.type()) {
-            case PDP -> PDP.builder()
-                    .numeroDeSerie(request.numeroDeSerie())
-                    .reference(request.reference())
-                    .categorie(request.categorie())
-                    .pourcentage(request.pourcentage())
-                    .statut(statut)
-                    .qteReelle(request.qteReelle())
-                    .stockAtelier(request.stockAtelier())
-                    .stockMagasin(request.stockMagasin())
-                    .prixGros(request.prixGros())
-                    .build();
+            case PDP -> {
+                int stockMagasin = request.stockMagasin();
+                yield PDP.builder()
+                        .numeroDeSerie(request.numeroDeSerie())
+                        .reference(request.reference())
+                        .categorie(request.categorie())
+                        .pourcentage(request.pourcentage())
+                        .statut(statut)
+                        .stockAtelier(0)
+                        .stockMagasin(stockMagasin)
+                        .qteReelle(stockMagasin)
+                        .prix(request.prix())
+                        .seuilMinimum(request.seuilMinimum())
+                        .build();
+            }
             case PDG -> PDG.builder()
                     .numeroDeSerie(request.numeroDeSerie())
                     .reference(request.reference())

@@ -20,5 +20,6 @@ public class PDP extends PieceDetache {
     private Integer qteReelle;
     private Integer stockAtelier;
     private Integer stockMagasin;
-    private Double prixGros;
+    private Double prix;
+    private Integer seuilMinimum;
 }
