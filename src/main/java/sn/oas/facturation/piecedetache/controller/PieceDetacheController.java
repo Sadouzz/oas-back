@@ -1,5 +1,9 @@
 package sn.oas.facturation.piecedetache.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -11,6 +15,7 @@ import sn.oas.facturation.piecedetache.service.PieceDetacheService;
 
 import java.util.List;
 
+@Tag(name = "Pièces détachées", description = "CRUD des pièces détachées (PDP, PDG, PDS)")
 @RestController
 @RequestMapping("/api/pieces-detachees")
 @RequiredArgsConstructor
@@ -18,6 +23,8 @@ public class PieceDetacheController {
 
     private final PieceDetacheService pieceDetacheService;
 
+    @Operation(summary = "Lister les pièces", description = "Retourne toutes les pièces. Filtrable par statut, type ou mot-clé.")
+    @ApiResponse(responseCode = "200", description = "Liste retournée avec succès")
     @GetMapping
     public ResponseEntity<List<PieceDetache>> list(
             @RequestParam(required = false) StatutPiece statut,
@@ -36,6 +43,11 @@ public class PieceDetacheController {
         return ResponseEntity.ok(pieceDetacheService.getAllPieces());
     }
 
+    @Operation(summary = "Obtenir une pièce par ID")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Pièce trouvée"),
+            @ApiResponse(responseCode = "400", description = "Pièce introuvable")
+    })
     @GetMapping("/{id}")
     public ResponseEntity<?> getById(@PathVariable Long id) {
         try {
@@ -45,6 +57,11 @@ public class PieceDetacheController {
         }
     }
 
+    @Operation(summary = "Créer une pièce détachée", description = "Crée une PDP, PDG ou PDS. Le stock magasin et le prix sont obligatoires pour une PDP.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Pièce créée avec succès"),
+            @ApiResponse(responseCode = "400", description = "Données invalides ou numéro de série déjà existant")
+    })
     @PostMapping("/create")
     public ResponseEntity<?> create(@RequestBody PieceDetacheRequest request) {
         try {
@@ -54,6 +71,11 @@ public class PieceDetacheController {
         }
     }
 
+    @Operation(summary = "Mettre à jour une pièce", description = "Met à jour les informations d'une pièce. Les stocks ne sont pas modifiables via cet endpoint.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Pièce mise à jour"),
+            @ApiResponse(responseCode = "400", description = "Données invalides ou pièce introuvable")
+    })
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable Long id, @RequestBody PieceDetacheRequest request) {
         try {
@@ -63,6 +85,11 @@ public class PieceDetacheController {
         }
     }
 
+    @Operation(summary = "Supprimer une pièce détachée")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Pièce supprimée"),
+            @ApiResponse(responseCode = "400", description = "Pièce introuvable")
+    })
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id) {
         try {
