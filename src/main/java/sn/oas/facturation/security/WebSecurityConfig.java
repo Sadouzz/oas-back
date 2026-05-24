@@ -30,6 +30,7 @@ public class WebSecurityConfig {
 
     @Value("${app.cors.allowed-origins}")
     private List<String> allowedOrigins;
+//    private String[] allowedOrigins;
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
@@ -44,6 +45,7 @@ public class WebSecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
+//        config.setAllowedOrigins(List.of(allowedOrigins));
         config.setAllowedOrigins(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
@@ -71,6 +73,8 @@ public class WebSecurityConfig {
                     "/",
                     "/api/auth/**",
                     "/swagger-ui/**",
+                    "/swagger-ui.html",
+                    "/v3/api-docs",
                     "/v3/api-docs/**"
                 ).permitAll()
                     .requestMatchers("/api/admin/users/**", "/api/admin/connection-history/**").hasRole("SUPER_AGENT")
