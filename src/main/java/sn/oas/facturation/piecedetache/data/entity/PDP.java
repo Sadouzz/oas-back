@@ -21,4 +21,11 @@ public class PDP extends PieceDetache {
     private Integer stockAtelier;
     private Integer stockMagasin;
     private Double prixGros;
+
+    /** Quantité totale = stock atelier + stock magasin (calculée par le système). */
+    public void recalculerQteReelle() {
+        if (stockAtelier != null && stockMagasin != null) {
+            this.qteReelle = stockAtelier + stockMagasin;
+        }
+    }
 }

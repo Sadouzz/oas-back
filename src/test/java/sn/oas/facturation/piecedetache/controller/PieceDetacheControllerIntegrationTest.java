@@ -36,7 +36,6 @@ class PieceDetacheControllerIntegrationTest {
                                   "categorie": "Freinage",
                                   "pourcentage": 12.5,
                                   "statut": "ACTIF",
-                                  "qteReelle": 100,
                                   "stockAtelier": 10,
                                   "stockMagasin": 50,
                                   "prixGros": 2500.0
@@ -44,7 +43,7 @@ class PieceDetacheControllerIntegrationTest {
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.numeroDeSerie").value("SN-PDP-TEST-001"))
-                .andExpect(jsonPath("$.qteReelle").value(100))
+                .andExpect(jsonPath("$.qteReelle").value(60))
                 .andExpect(jsonPath("$.type").value("PDP"));
     }
 

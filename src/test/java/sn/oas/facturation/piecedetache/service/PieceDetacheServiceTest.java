@@ -6,6 +6,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import sn.oas.facturation.piecedetache.data.entity.PDG;
+import sn.oas.facturation.piecedetache.data.entity.PDP;
 import sn.oas.facturation.piecedetache.data.enums.StatutPiece;
 import sn.oas.facturation.piecedetache.data.enums.TypePiece;
 import sn.oas.facturation.piecedetache.dto.PieceDetacheRequest;
@@ -35,7 +36,7 @@ class PieceDetacheServiceTest {
                 "Moteur",
                 10.0,
                 StatutPiece.ACTIF,
-                null, null, null, null
+                null, null, null
         );
 
         when(pieceDetacheRepository.existsByNumeroDeSerie("SN-PDG-001")).thenReturn(false);
@@ -61,13 +62,37 @@ class PieceDetacheServiceTest {
                 "Carrosserie",
                 5.0,
                 StatutPiece.ACTIF,
-                null, null, null, null
+                null, null, null
         );
 
         when(pieceDetacheRepository.existsByNumeroDeSerie("SN-DUP")).thenReturn(true);
 
         assertThrows(IllegalArgumentException.class, () -> pieceDetacheService.create(request));
         verify(pieceDetacheRepository, never()).save(any());
+    }
+
+    @Test
+    void create_pdp_calculatesQteReelleFromStocks() {
+        PieceDetacheRequest request = new PieceDetacheRequest(
+                TypePiece.PDP,
+                "SN-PDP-002",
+                "REF-002",
+                "Freinage",
+                10.0,
+                StatutPiece.ACTIF,
+                10,
+                50,
+                2500.0
+        );
+
+        when(pieceDetacheRepository.existsByNumeroDeSerie("SN-PDP-002")).thenReturn(false);
+        when(pieceDetacheRepository.save(any(PDP.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        PDP result = (PDP) pieceDetacheService.create(request);
+
+        assertEquals(60, result.getQteReelle());
+        assertEquals(10, result.getStockAtelier());
+        assertEquals(50, result.getStockMagasin());
     }
 
     @Test

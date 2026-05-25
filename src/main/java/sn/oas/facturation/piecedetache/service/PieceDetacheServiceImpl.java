@@ -87,9 +87,6 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
         }
 
         if (piece instanceof PDP pdp) {
-            if (request.qteReelle() != null) {
-                pdp.setQteReelle(request.qteReelle());
-            }
             if (request.stockAtelier() != null) {
                 pdp.setStockAtelier(request.stockAtelier());
             }
@@ -99,6 +96,7 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
             if (request.prixGros() != null) {
                 pdp.setPrixGros(request.prixGros());
             }
+            pdp.recalculerQteReelle();
         }
 
         return pieceDetacheRepository.save(piece);
@@ -130,9 +128,12 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
             throw new IllegalArgumentException("Le pourcentage est obligatoire");
         }
         if (request.type() == TypePiece.PDP) {
-            if (request.qteReelle() == null || request.stockAtelier() == null
-                    || request.stockMagasin() == null || request.prixGros() == null) {
-                throw new IllegalArgumentException("Les champs stock et prix sont obligatoires pour une PDP");
+            if (request.stockAtelier() == null || request.stockMagasin() == null || request.prixGros() == null) {
+                throw new IllegalArgumentException(
+                        "Les stocks atelier/magasin et le prix gros sont obligatoires pour une PDP");
+            }
+            if (request.stockAtelier() < 0 || request.stockMagasin() < 0) {
+                throw new IllegalArgumentException("Les stocks ne peuvent pas être négatifs");
             }
         }
     }
@@ -141,17 +142,20 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
         StatutPiece statut = request.statut() != null ? request.statut() : StatutPiece.ACTIF;
 
         return switch (request.type()) {
-            case PDP -> PDP.builder()
-                    .numeroDeSerie(request.numeroDeSerie())
-                    .reference(request.reference())
-                    .categorie(request.categorie())
-                    .pourcentage(request.pourcentage())
-                    .statut(statut)
-                    .qteReelle(request.qteReelle())
-                    .stockAtelier(request.stockAtelier())
-                    .stockMagasin(request.stockMagasin())
-                    .prixGros(request.prixGros())
-                    .build();
+            case PDP -> {
+                PDP pdp = PDP.builder()
+                        .numeroDeSerie(request.numeroDeSerie())
+                        .reference(request.reference())
+                        .categorie(request.categorie())
+                        .pourcentage(request.pourcentage())
+                        .statut(statut)
+                        .stockAtelier(request.stockAtelier())
+                        .stockMagasin(request.stockMagasin())
+                        .prixGros(request.prixGros())
+                        .build();
+                pdp.recalculerQteReelle();
+                yield pdp;
+            }
             case PDG -> PDG.builder()
                     .numeroDeSerie(request.numeroDeSerie())
                     .reference(request.reference())

@@ -10,7 +10,6 @@ public record PieceDetacheRequest(
         String categorie,
         Double pourcentage,
         StatutPiece statut,
-        Integer qteReelle,
         Integer stockAtelier,
         Integer stockMagasin,
         Double prixGros
