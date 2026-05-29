@@ -1,8 +1,13 @@
 package sn.oas.facturation.vehicule.data.entity;
 
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.*;
 import lombok.*;
 import sn.oas.facturation.auth.data.entity.Client;
+import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
 
 @Entity
 @Table(name = "vehicules")
@@ -39,6 +44,10 @@ public class Vehicule {
     @Column(name = "created_at", nullable = false, updatable = false)
     @Builder.Default
     private java.time.LocalDateTime createdAt = java.time.LocalDateTime.now();
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "vehicule", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<FicheAtelier> fichesAtelier;
 
     @PrePersist
     protected void onCreate() {
