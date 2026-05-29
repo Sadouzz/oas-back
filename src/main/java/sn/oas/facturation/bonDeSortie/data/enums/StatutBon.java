@@ -1,4 +1,4 @@
-package sn.oas.facturation.piecedetache.data.enums;
+package sn.oas.facturation.bonDeSortie.data.enums;
 
 public enum StatutBon {
     EN_ATTENTE,

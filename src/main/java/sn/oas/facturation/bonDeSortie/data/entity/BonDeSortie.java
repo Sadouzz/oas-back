@@ -1,4 +1,4 @@
-package sn.oas.facturation.piecedetache.data.entity;
+package sn.oas.facturation.bonDeSortie.data.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -7,12 +7,16 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import sn.oas.facturation.auth.data.entity.Agent;
 import sn.oas.facturation.auth.data.entity.Client;
-import sn.oas.facturation.piecedetache.data.enums.StatutBon;
+import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
+import sn.oas.facturation.main_doeuvre.data.entity.MainDoeuvre;
+import sn.oas.facturation.bonDeSortie.data.enums.StatutBon;
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
 @Table(name = "bons_de_sortie")
@@ -58,9 +62,19 @@ public class BonDeSortie {
     @JoinColumn(name = "agent_validateur_id")
     private Agent agentValidateur;
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "fiche_atelier_id", nullable = false, unique = true)
+    @JsonIgnoreProperties("bonDeSortie") // Ignore le champ "bonDeSortie" qui est DANS la "FicheAtelier"
+    private FicheAtelier ficheAtelier;
+
     @OneToMany(mappedBy = "bonDeSortie", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    private List<LigneBonDeSortie> lignes = new ArrayList<>();
+    private List<LigneBonDeSortiePiece> lignesBonDeSortiePieces = new ArrayList<>();
+    
+    @OneToMany(mappedBy = "bonDeSortie", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<LigneBonDeSortieMainDoeuvre> lignesBonDeSortieMainDoeuvres = new ArrayList<>();
+    
 
     @PrePersist
     protected void onCreate() {

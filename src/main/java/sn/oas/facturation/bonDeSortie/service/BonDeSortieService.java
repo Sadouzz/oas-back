@@ -1,8 +1,8 @@
-package sn.oas.facturation.piecedetache.service;
+package sn.oas.facturation.bonDeSortie.service;
 
-import sn.oas.facturation.piecedetache.data.entity.BonDeSortie;
-import sn.oas.facturation.piecedetache.data.enums.StatutBon;
-import sn.oas.facturation.piecedetache.dto.BonDeSortieRequest;
+import sn.oas.facturation.bonDeSortie.data.entity.BonDeSortie;
+import sn.oas.facturation.bonDeSortie.data.enums.StatutBon;
+import sn.oas.facturation.bonDeSortie.dto.BonDeSortieRequest;
 
 import java.util.List;
 

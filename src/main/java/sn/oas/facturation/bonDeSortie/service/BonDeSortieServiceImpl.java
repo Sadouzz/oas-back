@@ -1,4 +1,4 @@
-package sn.oas.facturation.piecedetache.service;
+package sn.oas.facturation.bonDeSortie.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -9,16 +9,20 @@ import sn.oas.facturation.auth.data.entity.Agent;
 import sn.oas.facturation.auth.data.entity.Client;
 import sn.oas.facturation.auth.data.entity.User;
 import sn.oas.facturation.auth.repository.UserRepository;
-import sn.oas.facturation.piecedetache.data.entity.BonDeSortie;
-import sn.oas.facturation.piecedetache.data.entity.LigneBonDeSortie;
+import sn.oas.facturation.bonDeSortie.data.entity.BonDeSortie;
+import sn.oas.facturation.bonDeSortie.data.entity.LigneBonDeSortiePiece;
+import sn.oas.facturation.bonDeSortie.data.entity.LigneBonDeSortieMainDoeuvre;
+import sn.oas.facturation.main_doeuvre.data.entity.MainDoeuvre;
+import sn.oas.facturation.main_doeuvre.repository.MainDoeuvreRepository;
 import sn.oas.facturation.piecedetache.data.entity.PDP;
 import sn.oas.facturation.piecedetache.data.entity.PieceDetache;
 import sn.oas.facturation.piecedetache.data.entity.StockMouvement;
-import sn.oas.facturation.piecedetache.data.enums.StatutBon;
+import sn.oas.facturation.bonDeSortie.data.enums.StatutBon;
 import sn.oas.facturation.piecedetache.data.enums.TypeMouvement;
-import sn.oas.facturation.piecedetache.dto.BonDeSortieRequest;
-import sn.oas.facturation.piecedetache.dto.LigneBonDeSortieRequest;
-import sn.oas.facturation.piecedetache.repository.BonDeSortieRepository;
+import sn.oas.facturation.bonDeSortie.dto.BonDeSortieRequest;
+import sn.oas.facturation.bonDeSortie.dto.LignePieceRequest;
+import sn.oas.facturation.bonDeSortie.dto.LigneMainDoeuvreRequest;
+import sn.oas.facturation.bonDeSortie.repository.BonDeSortieRepository;
 import sn.oas.facturation.piecedetache.repository.PieceDetacheRepository;
 import sn.oas.facturation.piecedetache.repository.StockMouvementRepository;
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
@@ -37,6 +41,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
     private final StockMouvementRepository stockMouvementRepository;
     private final VehiculeRepository vehiculeRepository;
     private final UserRepository userRepository;
+    private final MainDoeuvreRepository mainDoeuvreRepository;
 
     @Transactional
     @Override
@@ -59,18 +64,36 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                 .remarque(request.remarque())
                 .build();
 
-        for (LigneBonDeSortieRequest ligneReq : request.lignes()) {
-            PDP pdp = getPDP(ligneReq.pieceId());
-            if (ligneReq.quantite() == null || ligneReq.quantite() <= 0) {
-                throw new IllegalArgumentException(
-                        "La quantité doit être supérieure à zéro pour la pièce id=" + ligneReq.pieceId());
+        if (request.lignesPieces() != null) {
+            for (LignePieceRequest ligneReq : request.lignesPieces()) {
+                PDP pdp = getPDP(ligneReq.pieceId());
+                if (ligneReq.quantite() == null || ligneReq.quantite() <= 0) {
+                    throw new IllegalArgumentException(
+                            "La quantité doit être supérieure à zéro pour la pièce id=" + ligneReq.pieceId());
+                }
+                LigneBonDeSortiePiece ligne = LigneBonDeSortiePiece.builder()
+                        .bonDeSortie(bon)
+                        .piece(pdp)
+                        .quantite(ligneReq.quantite())
+                        .build();
+                bon.getLignesBonDeSortiePieces().add(ligne);
             }
-            LigneBonDeSortie ligne = LigneBonDeSortie.builder()
-                    .bonDeSortie(bon)
-                    .piece(pdp)
-                    .quantite(ligneReq.quantite())
-                    .build();
-            bon.getLignes().add(ligne);
+        }
+
+        if (request.lignesMainDoeuvres() != null) {
+            for (LigneMainDoeuvreRequest ligneReq : request.lignesMainDoeuvres()) {
+                MainDoeuvre mainDoeuvre = getMainDoeuvre(ligneReq.mainDoeuvreId());
+                if (ligneReq.quantite() == null || ligneReq.quantite() <= 0) {
+                    throw new IllegalArgumentException(
+                            "La quantité doit être supérieure à zéro pour la main d'oeuvre id=" + ligneReq.mainDoeuvreId());
+                }
+                LigneBonDeSortieMainDoeuvre ligne = LigneBonDeSortieMainDoeuvre.builder()
+                        .bonDeSortie(bon)
+                        .mainDoeuvre(mainDoeuvre)
+                        .quantite(ligneReq.quantite())
+                        .build();
+                bon.getLignesBonDeSortieMainDoeuvres().add(ligne);
+            }
         }
 
         return bonDeSortieRepository.save(bon);
@@ -86,7 +109,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
             throw new IllegalStateException("Le bon de sortie " + bon.getReference() + " est déjà validé");
         }
 
-        for (LigneBonDeSortie ligne : bon.getLignes()) {
+        for (LigneBonDeSortiePiece ligne : bon.getLignesBonDeSortiePieces()) {
             PDP pdp = ligne.getPiece();
             int quantite = ligne.getQuantite();
 
@@ -161,8 +184,10 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
         if (request.vehiculeId() == null) {
             throw new IllegalArgumentException("Le véhicule est obligatoire");
         }
-        if (request.lignes() == null || request.lignes().isEmpty()) {
-            throw new IllegalArgumentException("Le bon de sortie doit contenir au moins une pièce");
+        boolean hasPieces = request.lignesPieces() != null && !request.lignesPieces().isEmpty();
+        boolean hasMainDoeuvre = request.lignesMainDoeuvres() != null && !request.lignesMainDoeuvres().isEmpty();
+        if (!hasPieces && !hasMainDoeuvre) {
+            throw new IllegalArgumentException("Le bon de sortie doit contenir au moins une pièce ou une main d'œuvre");
         }
     }
 
@@ -199,5 +224,10 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
             throw new IllegalStateException("Cette opération requiert un compte Agent");
         }
         return agent;
+    }
+
+    private MainDoeuvre getMainDoeuvre(Long mainDoeuvreId) {
+        return mainDoeuvreRepository.findById(mainDoeuvreId)
+                .orElseThrow(() -> new RuntimeException("Main d'œuvre introuvable avec l'id : " + mainDoeuvreId));
     }
 }

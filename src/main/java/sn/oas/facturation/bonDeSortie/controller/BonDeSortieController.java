@@ -1,4 +1,4 @@
-package sn.oas.facturation.piecedetache.controller;
+package sn.oas.facturation.bonDeSortie.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -7,10 +7,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import sn.oas.facturation.piecedetache.data.entity.BonDeSortie;
-import sn.oas.facturation.piecedetache.data.enums.StatutBon;
-import sn.oas.facturation.piecedetache.dto.BonDeSortieRequest;
-import sn.oas.facturation.piecedetache.service.BonDeSortieService;
+
+import sn.oas.facturation.bonDeSortie.data.entity.BonDeSortie;
+import sn.oas.facturation.bonDeSortie.data.enums.StatutBon;
+import sn.oas.facturation.bonDeSortie.dto.BonDeSortieRequest;
+import sn.oas.facturation.bonDeSortie.service.BonDeSortieService;
 
 import java.util.List;
 

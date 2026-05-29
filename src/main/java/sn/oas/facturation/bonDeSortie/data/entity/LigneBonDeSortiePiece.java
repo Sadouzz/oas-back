@@ -1,4 +1,4 @@
-package sn.oas.facturation.piecedetache.data.entity;
+package sn.oas.facturation.bonDeSortie.data.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
@@ -6,14 +6,15 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import sn.oas.facturation.piecedetache.data.entity.PDP;
 
 @Entity
-@Table(name = "lignes_bon_de_sortie")
+@Table(name = "lignes_bon_de_sortie_piece")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class LigneBonDeSortie {
+public class LigneBonDeSortiePiece {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,4 +31,9 @@ public class LigneBonDeSortie {
 
     @Column(nullable = false)
     private Integer quantite;
+    
+    @Column(nullable = false)
+    private Integer prix;
+
+    
 }

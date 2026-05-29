@@ -1,11 +1,12 @@
-package sn.oas.facturation.piecedetache.repository;
+package sn.oas.facturation.bonDeSortie.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import sn.oas.facturation.piecedetache.data.entity.BonDeSortie;
-import sn.oas.facturation.piecedetache.data.enums.StatutBon;
+
+import sn.oas.facturation.bonDeSortie.data.entity.BonDeSortie;
+import sn.oas.facturation.bonDeSortie.data.enums.StatutBon;
 
 import java.util.List;
 import java.util.Optional;

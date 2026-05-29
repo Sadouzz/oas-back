@@ -11,6 +11,8 @@ import sn.oas.facturation.piecedetache.data.enums.StatutPiece;
 import sn.oas.facturation.piecedetache.data.enums.TypePiece;
 import sn.oas.facturation.piecedetache.dto.PieceDetacheRequest;
 import sn.oas.facturation.piecedetache.repository.PieceDetacheRepository;
+import sn.oas.facturation.garage.data.entity.Garage;
+import sn.oas.facturation.garage.repository.GarageRepository;
 
 import java.util.List;
 
@@ -19,6 +21,7 @@ import java.util.List;
 public class PieceDetacheServiceImpl implements PieceDetacheService {
 
     private final PieceDetacheRepository pieceDetacheRepository;
+    private final GarageRepository garageRepository;
 
     @Override
     public List<PieceDetache> getAllPieces() {
@@ -57,6 +60,11 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
 
         PieceDetache piece = buildPieceFromRequest(request);
         piece.setType(request.type());
+        
+        Garage garage = garageRepository.findById(request.garageId())
+                .orElseThrow(() -> new RuntimeException("Garage non trouvé"));
+        piece.setGarage(garage);
+        
         return pieceDetacheRepository.save(piece);
     }
 
@@ -81,6 +89,12 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
         if (piece instanceof PDP pdp) {
             if (request.prix() != null) pdp.setPrix(request.prix());
             if (request.seuilMinimum() != null) pdp.setSeuilMinimum(request.seuilMinimum());
+        }
+
+        if (request.garageId() != null) {
+            Garage garage = garageRepository.findById(request.garageId())
+                    .orElseThrow(() -> new RuntimeException("Garage non trouvé"));
+            piece.setGarage(garage);
         }
 
         return pieceDetacheRepository.save(piece);
@@ -115,6 +129,9 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
             if (request.stockMagasin() == null || request.prix() == null) {
                 throw new IllegalArgumentException("Le stock magasin et le prix sont obligatoires pour une PDP");
             }
+        }
+        if (request.garageId() == null) {
+            throw new IllegalArgumentException("Le garage est obligatoire");
         }
     }
 

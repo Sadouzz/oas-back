@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+import sn.oas.facturation.garage.data.entity.Garage;
 import sn.oas.facturation.piecedetache.data.enums.StatutPiece;
 import sn.oas.facturation.piecedetache.data.enums.TypePiece;
 
@@ -46,6 +47,10 @@ public abstract class PieceDetache {
     @Column(name = "created_at", nullable = false, updatable = false)
     @lombok.Builder.Default
     private java.time.LocalDateTime createdAt = java.time.LocalDateTime.now();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "garage_id", nullable = false)
+    private Garage garage;
 
     @PrePersist
     protected void onCreate() {

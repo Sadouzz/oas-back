@@ -5,6 +5,7 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 import sn.oas.facturation.auth.data.enums.Role;
 import sn.oas.facturation.auth.data.enums.TypeUser;
+import sn.oas.facturation.garage.data.entity.Garage;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -61,7 +62,7 @@ public class User implements UserDetails {
     private java.time.LocalDateTime createdAt = java.time.LocalDateTime.now();
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_atelier", nullable = true) // Set to false if a User MUST have a Garage
+    @JoinColumn(name = "garage_id", nullable = true) // Set to false if a User MUST have a Garage
     private Garage garage;
 
     @PrePersist
