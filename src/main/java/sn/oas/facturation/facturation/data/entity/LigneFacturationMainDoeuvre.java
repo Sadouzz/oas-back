@@ -1,4 +1,4 @@
-package sn.oas.facturation.bonDeSortie.data.entity;
+package sn.oas.facturation.facturation.data.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -8,38 +8,38 @@ import lombok.NoArgsConstructor;
 import sn.oas.facturation.main_doeuvre.data.entity.MainDoeuvre;
 
 @Entity
-@Table(name = "lignes_bon_de_sortie_main_doeuvre")
+@Table(name = "lignes_facturation_main_doeuvre")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class LigneBonDeSortieMainDoeuvre {
+public class LigneFacturationMainDoeuvre {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "bon_de_sortie_id", nullable = false)
-    private BonDeSortie bonDeSortie;
+    @JoinColumn(name = "facturation_id", nullable = false)
+    private Facturation facturation;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "main_doeuvre_id", nullable = false)
     private MainDoeuvre mainDoeuvre;
 
     @Column(nullable = false)
-    private Integer quantite;
+    private Integer nbreHeure;
     
     @Column(nullable = false)
-    private Integer prix;
+    private Integer tarifHoraire;
 
     @PrePersist
     protected void onCreate() {
-        if (this.quantite == null) {
-            this.quantite = 1;
+        if (this.nbreHeure == null) {
+            this.nbreHeure = 1;
         }
-        if (this.prix == null) {
-            this.prix = 0;
+        if (this.tarifHoraire == null) {
+            this.tarifHoraire = 0;
         }
     }
 }
