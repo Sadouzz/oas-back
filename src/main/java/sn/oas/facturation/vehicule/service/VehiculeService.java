@@ -4,6 +4,7 @@ import sn.oas.facturation.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.vehicule.dto.VehiculeRequest;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface VehiculeService {
     List<Vehicule> getAllVehicules();

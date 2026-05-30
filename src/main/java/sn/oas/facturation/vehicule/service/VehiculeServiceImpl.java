@@ -10,6 +10,7 @@ import sn.oas.facturation.vehicule.dto.VehiculeRequest;
 import sn.oas.facturation.vehicule.repository.VehiculeRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -26,7 +27,7 @@ public class VehiculeServiceImpl implements VehiculeService {
     @Override
     public Vehicule getVehiculeById(Long id) {
         return vehiculeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Véhicule non trouvé"));
+                .orElseThrow(() -> new RuntimeException("Véhicule introuvable avec l'id : " + id));
     }
 
     @Transactional

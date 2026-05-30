@@ -1,5 +1,6 @@
 package sn.oas.facturation.auth.service;
 
+import sn.oas.facturation.auth.data.entity.Client;
 import sn.oas.facturation.auth.data.entity.User;
 import sn.oas.facturation.auth.dto.CreateUserResponse;
 import sn.oas.facturation.auth.dto.UserUpdateRequest;
@@ -14,6 +15,7 @@ public interface UserService {
     boolean existsByEmail(String email);
     Optional<User> findByUsernameOrEmail(String username, String email);
     CreateUserResponse saveUser(User user);
+    Client getClientById(Long clientId);
     List<User> getAllUsers();
     Optional<User> findById(Long id);
     User updateUser(Long id, UserUpdateRequest request);

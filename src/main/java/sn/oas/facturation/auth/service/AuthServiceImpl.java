@@ -8,6 +8,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -32,6 +33,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+    private final UserRepository userRepository;
 
     @Override
     public AuthResponse login(LoginRequest request) {
@@ -91,5 +93,18 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalArgumentException("Type d'utilisateur non reconnu");
         }
         userService.saveUser(user);
+    }
+
+    @Override
+    public Agent getAgentConnecte() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        User user = userRepository.findByUsername(username)
+                .or(() -> userRepository.findByEmail(username))
+                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+        if (!(user instanceof Agent agent)) {
+            throw new IllegalStateException("Cette opération requiert un compte Agent");
+        }
+        return agent;
     }
 }

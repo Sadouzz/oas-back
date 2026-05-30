@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.oas.facturation.auth.data.entity.User;
 import sn.oas.facturation.auth.data.entity.Agent;
+import sn.oas.facturation.auth.data.entity.Client;
 import sn.oas.facturation.auth.dto.CreateUserResponse;
 import sn.oas.facturation.auth.dto.UserUpdateRequest;
 import sn.oas.facturation.auth.repository.UserRepository;
@@ -110,5 +111,15 @@ public class UserServiceImpl implements UserService{
     @Override
     public List<User> searchUsers(String keyword) {
         return userRepository.searchUsers(keyword);
+    }
+
+    @Override
+    public Client getClientById(Long clientId) {
+        User user = userRepository.findById(clientId)
+                .orElseThrow(() -> new RuntimeException("Client introuvable avec l'id : " + clientId));
+        if (!(user instanceof Client client)) {
+            throw new IllegalArgumentException("L'utilisateur id=" + clientId + " n'est pas un client");
+        }
+        return client;
     }
 }
