@@ -63,8 +63,6 @@ public class FicheAtelier {
     @JsonIgnoreProperties("ficheAtelier") // Ignore le champ "ficheAtelier" qui est DANS le "BonDeSortie"
     private BonDeSortie bonDeSortie;
 
-    // ─────────────────────────────────────────────────────────
-
     @PrePersist
     protected void onCreate() {
         if (this.dateCreation == null) {
