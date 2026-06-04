@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
 import sn.oas.facturation.garage.data.entity.Garage;
+import sn.oas.facturation.shared.GarageEntityListener;
+import sn.oas.facturation.shared.entity.GarageAware;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,7 +16,8 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Mecanicien {
+@EntityListeners(GarageEntityListener.class)
+public class Mecanicien implements GarageAware {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

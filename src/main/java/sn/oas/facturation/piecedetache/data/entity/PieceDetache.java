@@ -8,6 +8,8 @@ import lombok.experimental.SuperBuilder;
 import sn.oas.facturation.garage.data.entity.Garage;
 import sn.oas.facturation.piecedetache.data.enums.StatutPiece;
 import sn.oas.facturation.piecedetache.data.enums.TypePiece;
+import sn.oas.facturation.shared.GarageEntityListener;
+import sn.oas.facturation.shared.entity.GarageAware;
 
 @Entity
 @Table(name = "pieces_detachees")
@@ -17,7 +19,8 @@ import sn.oas.facturation.piecedetache.data.enums.TypePiece;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public abstract class PieceDetache {
+@EntityListeners(GarageEntityListener.class)
+public abstract class PieceDetache implements GarageAware {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

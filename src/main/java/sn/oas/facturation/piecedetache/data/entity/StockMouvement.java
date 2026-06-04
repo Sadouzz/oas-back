@@ -6,7 +6,10 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import sn.oas.facturation.auth.data.entity.Agent;
+import sn.oas.facturation.garage.data.entity.Garage;
 import sn.oas.facturation.piecedetache.data.enums.TypeMouvement;
+import sn.oas.facturation.shared.GarageEntityListener;
+import sn.oas.facturation.shared.entity.GarageAware;
 
 import java.time.LocalDateTime;
 
@@ -16,7 +19,8 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class StockMouvement {
+@EntityListeners(GarageEntityListener.class)
+public class StockMouvement implements GarageAware {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -53,6 +57,10 @@ public class StockMouvement {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "agent_id", nullable = false)
     private Agent agent;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "garage_id", nullable = true)
+    private Garage garage;
 
     @PrePersist
     protected void onCreate() {

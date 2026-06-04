@@ -1,7 +1,10 @@
 package sn.oas.facturation.ficheAtelier.data.entity;
 
 import sn.oas.facturation.bonDeSortie.data.entity.BonDeSortie;
+import sn.oas.facturation.garage.data.entity.Garage;
 import sn.oas.facturation.mecanicien.data.entity.Mecanicien;
+import sn.oas.facturation.shared.GarageEntityListener;
+import sn.oas.facturation.shared.entity.GarageAware;
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
 import jakarta.persistence.*;
 import lombok.*;
@@ -17,7 +20,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class FicheAtelier {
+@EntityListeners(GarageEntityListener.class)
+public class FicheAtelier implements GarageAware {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -62,6 +66,10 @@ public class FicheAtelier {
     @OneToOne(mappedBy = "ficheAtelier", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnoreProperties("ficheAtelier") // Ignore le champ "ficheAtelier" qui est DANS le "BonDeSortie"
     private BonDeSortie bonDeSortie;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "garage_id", nullable = true)
+    private Garage garage;
 
     // ─────────────────────────────────────────────────────────
 

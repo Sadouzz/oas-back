@@ -3,7 +3,10 @@ package sn.oas.facturation.main_doeuvre.data.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import sn.oas.facturation.bonDeSortie.data.entity.BonDeSortie;
+import sn.oas.facturation.garage.data.entity.Garage;
 import sn.oas.facturation.main_doeuvre.data.enums.CategorieMainDoeuvre;
+import sn.oas.facturation.shared.GarageEntityListener;
+import sn.oas.facturation.shared.entity.GarageAware;
 
 @Entity
 @Table(name = "main_doeuvre")
@@ -11,7 +14,8 @@ import sn.oas.facturation.main_doeuvre.data.enums.CategorieMainDoeuvre;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class MainDoeuvre {
+@EntityListeners(GarageEntityListener.class)
+public class MainDoeuvre implements GarageAware {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -31,8 +35,12 @@ public class MainDoeuvre {
     private Boolean isArchived = false;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "bon_de_sortie_id", nullable = false)
+    @JoinColumn(name = "bon_de_sortie_id", nullable = true)
     private BonDeSortie bonDeSortie;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "garage_id", nullable = true)
+    private Garage garage;
 
     @PrePersist
     protected void onCreate() {

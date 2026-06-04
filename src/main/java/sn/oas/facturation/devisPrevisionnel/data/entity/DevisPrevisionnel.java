@@ -7,6 +7,7 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -21,6 +22,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import sn.oas.facturation.auth.data.entity.Agent;
 import sn.oas.facturation.auth.data.entity.Client;
+import sn.oas.facturation.garage.data.entity.Garage;
+import sn.oas.facturation.shared.GarageEntityListener;
+import sn.oas.facturation.shared.entity.GarageAware;
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
 
 @Entity
@@ -29,7 +33,8 @@ import sn.oas.facturation.vehicule.data.entity.Vehicule;
 @AllArgsConstructor
 @Builder
 @Table(name = "devis_previsionnels")
-public class DevisPrevisionnel {
+@EntityListeners(GarageEntityListener.class)
+public class DevisPrevisionnel implements GarageAware {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -59,6 +64,10 @@ public class DevisPrevisionnel {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id", nullable = false)
     private Client client;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "garage_id", nullable = true)
+    private Garage garage;
 
     @PrePersist
     protected void onCreate() {
