@@ -5,11 +5,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
-import sn.oas.facturation.garage.data.entity.Garage;
 import sn.oas.facturation.piecedetache.data.enums.StatutPiece;
 import sn.oas.facturation.piecedetache.data.enums.TypePiece;
-import sn.oas.facturation.shared.GarageEntityListener;
-import sn.oas.facturation.shared.entity.GarageAware;
+
 
 @Entity
 @Table(name = "pieces_detachees")
@@ -19,8 +17,7 @@ import sn.oas.facturation.shared.entity.GarageAware;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-@EntityListeners(GarageEntityListener.class)
-public abstract class PieceDetache implements GarageAware {
+public abstract class PieceDetache {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -50,10 +47,6 @@ public abstract class PieceDetache implements GarageAware {
     @Column(name = "created_at", nullable = false, updatable = false)
     @lombok.Builder.Default
     private java.time.LocalDateTime createdAt = java.time.LocalDateTime.now();
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "garage_id", nullable = false)
-    private Garage garage;
 
     @PrePersist
     protected void onCreate() {

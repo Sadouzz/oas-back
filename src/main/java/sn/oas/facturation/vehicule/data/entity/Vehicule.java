@@ -9,9 +9,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import sn.oas.facturation.auth.data.entity.Client;
 import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
-import sn.oas.facturation.garage.data.entity.Garage;
-import sn.oas.facturation.shared.GarageEntityListener;
-import sn.oas.facturation.shared.entity.GarageAware;
+
 
 @Entity
 @Table(name = "vehicules")
@@ -19,8 +17,7 @@ import sn.oas.facturation.shared.entity.GarageAware;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@EntityListeners(GarageEntityListener.class)
-public class Vehicule implements GarageAware {
+public class Vehicule {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -36,7 +33,8 @@ public class Vehicule implements GarageAware {
 
     @Column(nullable = false)
     private String marque;
-
+    
+    @Column(nullable = false)
     private Double kilometrage;
 
     @Column(name = "numero_chassis", unique = true)
@@ -55,9 +53,7 @@ public class Vehicule implements GarageAware {
     @JsonIgnoreProperties("vehicule")
     private List<FicheAtelier> fichesAtelier;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "garage_id", nullable = true)
-    private Garage garage;
+
 
     @PrePersist
     protected void onCreate() {

@@ -2,9 +2,7 @@ package sn.oas.facturation.fournisseur.data.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import sn.oas.facturation.garage.data.entity.Garage;
-import sn.oas.facturation.shared.GarageEntityListener;
-import sn.oas.facturation.shared.entity.GarageAware;
+
 
 @Entity
 @Getter
@@ -12,8 +10,7 @@ import sn.oas.facturation.shared.entity.GarageAware;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@EntityListeners(GarageEntityListener.class)
-public class Fournisseur implements GarageAware {
+public class Fournisseur {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -23,7 +20,5 @@ public class Fournisseur implements GarageAware {
     private String prenom;
     private boolean archived = false;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "garage_id", nullable = true)
-    private Garage garage;
+
 }

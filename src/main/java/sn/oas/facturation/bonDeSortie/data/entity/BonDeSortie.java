@@ -8,11 +8,9 @@ import lombok.NoArgsConstructor;
 import sn.oas.facturation.auth.data.entity.Agent;
 import sn.oas.facturation.auth.data.entity.Client;
 import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
-import sn.oas.facturation.garage.data.entity.Garage;
 import sn.oas.facturation.main_doeuvre.data.entity.MainDoeuvre;
 import sn.oas.facturation.bonDeSortie.data.enums.StatutBon;
-import sn.oas.facturation.shared.GarageEntityListener;
-import sn.oas.facturation.shared.entity.GarageAware;
+
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
 
 import java.time.LocalDateTime;
@@ -27,8 +25,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@EntityListeners(GarageEntityListener.class)
-public class BonDeSortie implements GarageAware {
+public class BonDeSortie {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -79,9 +76,7 @@ public class BonDeSortie implements GarageAware {
     @Builder.Default
     private List<LigneBonDeSortieMainDoeuvre> lignesBonDeSortieMainDoeuvres = new ArrayList<>();
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "garage_id", nullable = true)
-    private Garage garage;
+
     
 
     @PrePersist

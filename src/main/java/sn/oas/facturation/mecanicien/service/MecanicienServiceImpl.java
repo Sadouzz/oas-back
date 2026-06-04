@@ -8,15 +8,13 @@ import sn.oas.facturation.mecanicien.repository.MecanicienRepository;
 
 import java.util.List;
 import java.util.Optional;
-import sn.oas.facturation.garage.data.entity.Garage;
-import sn.oas.facturation.garage.repository.GarageRepository;
 
 @Service
 @RequiredArgsConstructor
 public class MecanicienServiceImpl implements MecanicienService {
 
     private final MecanicienRepository mecanicienRepository;
-    private final GarageRepository garageRepository;
+
 
     @Override
     public List<Mecanicien> getAllMecaniciens() {
@@ -30,12 +28,11 @@ public class MecanicienServiceImpl implements MecanicienService {
 
     @Override
     public Mecanicien createMecanicien(MecanicienRequest request) {
-        Garage garage = garageRepository.findById(request.getGarageId())
-                .orElseThrow(() -> new RuntimeException("Garage non trouvé"));
+
 
         Mecanicien mecanicien = Mecanicien.builder()
                 .nom(request.getNom())
-                .garage(garage)
+
                 .build();
         return mecanicienRepository.save(mecanicien);
     }
@@ -46,11 +43,7 @@ public class MecanicienServiceImpl implements MecanicienService {
                 .orElseThrow(() -> new RuntimeException("Mécanicien non trouvé"));
         mecanicien.setNom(request.getNom());
         
-        if (request.getGarageId() != null) {
-            Garage garage = garageRepository.findById(request.getGarageId())
-                    .orElseThrow(() -> new RuntimeException("Garage non trouvé"));
-            mecanicien.setGarage(garage);
-        }
+
         
         return mecanicienRepository.save(mecanicien);
     }

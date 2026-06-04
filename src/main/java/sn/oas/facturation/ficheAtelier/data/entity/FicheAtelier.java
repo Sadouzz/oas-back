@@ -1,10 +1,8 @@
 package sn.oas.facturation.ficheAtelier.data.entity;
 
 import sn.oas.facturation.bonDeSortie.data.entity.BonDeSortie;
-import sn.oas.facturation.garage.data.entity.Garage;
 import sn.oas.facturation.mecanicien.data.entity.Mecanicien;
-import sn.oas.facturation.shared.GarageEntityListener;
-import sn.oas.facturation.shared.entity.GarageAware;
+
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
 import jakarta.persistence.*;
 import lombok.*;
@@ -20,8 +18,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@EntityListeners(GarageEntityListener.class)
-public class FicheAtelier implements GarageAware {
+public class FicheAtelier {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -67,11 +64,7 @@ public class FicheAtelier implements GarageAware {
     @JsonIgnoreProperties("ficheAtelier") // Ignore le champ "ficheAtelier" qui est DANS le "BonDeSortie"
     private BonDeSortie bonDeSortie;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "garage_id", nullable = true)
-    private Garage garage;
 
-    // ─────────────────────────────────────────────────────────
 
     @PrePersist
     protected void onCreate() {

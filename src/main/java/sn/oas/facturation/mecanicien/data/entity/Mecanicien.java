@@ -3,9 +3,7 @@ package sn.oas.facturation.mecanicien.data.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
-import sn.oas.facturation.garage.data.entity.Garage;
-import sn.oas.facturation.shared.GarageEntityListener;
-import sn.oas.facturation.shared.entity.GarageAware;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,8 +14,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@EntityListeners(GarageEntityListener.class)
-public class Mecanicien implements GarageAware {
+public class Mecanicien {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,10 +30,6 @@ public class Mecanicien implements GarageAware {
     @ManyToMany(mappedBy = "mecaniciens", fetch = FetchType.LAZY)
     @Builder.Default
     private List<FicheAtelier> fichesAtelier = new ArrayList<>();
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "garage_id", nullable = false)
-    private Garage garage;
 
     @PrePersist
     protected void onCreate() {

@@ -14,6 +14,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.SequenceGenerator;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,9 +24,9 @@ import lombok.experimental.SuperBuilder;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import sn.oas.facturation.garage.data.entity.Garage;
-import sn.oas.facturation.shared.GarageEntityListener;
-import sn.oas.facturation.shared.entity.GarageAware;
+
+import sn.oas.facturation.auth.data.entity.Agent;
+
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -38,11 +39,11 @@ import java.util.List;
 @AllArgsConstructor
 @SuperBuilder
 @Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
-@EntityListeners(GarageEntityListener.class)
-public abstract class Facturation implements GarageAware {
+public abstract class Facturation {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "facturation_seq")
+    @SequenceGenerator(name = "facturation_seq", sequenceName = "facturation_seq", allocationSize = 1)
     private Long id;
 
     @Column(nullable = false)
@@ -59,12 +60,19 @@ public abstract class Facturation implements GarageAware {
     @Column(nullable = false)
     private BigDecimal montantTotal;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "agent_id")
+    private Agent agent; // Agent qui a créé la facture
+
     //@Column(nullable = false)
     //private String statut; // Vous pouvez remplacer String par une Enum (ex: StatutFacturation)
 
     @Column(columnDefinition = "TEXT", nullable = true)
     private String remarque;
 
+    @Column(nullable = false)
+    private Double kilometrage;
+    
     @OneToMany(mappedBy = "facturation", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<LigneFacturationPiece> lignesFacturationPieces = new ArrayList<>();
@@ -73,9 +81,7 @@ public abstract class Facturation implements GarageAware {
     @Builder.Default
     private List<LigneFacturationMainDoeuvre> lignesFacturationMainDoeuvres = new ArrayList<>();
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "garage_id", nullable = true)
-    private Garage garage;
+
 
     @PrePersist
     protected void onCreate() {
