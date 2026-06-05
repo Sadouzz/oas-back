@@ -1,7 +1,10 @@
 package sn.oas.facturation.piecedetache.data.entity;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
@@ -41,17 +44,17 @@ public abstract class PieceDetache {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    @lombok.Builder.Default
+    @Builder.Default
     private StatutPiece statut = StatutPiece.ACTIF;
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    @lombok.Builder.Default
-    private java.time.LocalDateTime createdAt = java.time.LocalDateTime.now();
+    @Builder.Default
+    private LocalDateTime createdAt = LocalDateTime.now();
 
     @PrePersist
     protected void onCreate() {
         if (this.createdAt == null) {
-            this.createdAt = java.time.LocalDateTime.now();
+            this.createdAt = LocalDateTime.now();
         }
         if (this.statut == null) {
             this.statut = StatutPiece.ACTIF;
