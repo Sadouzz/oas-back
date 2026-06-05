@@ -18,8 +18,6 @@ public class BonDeLivraisonCreateRequest {
 
     private String remarque;
 
-    private Long garageId;
-
     @Valid
     private List<LigneFacturationPieceRequest> lignesPieces;
 

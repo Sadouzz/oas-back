@@ -12,6 +12,5 @@ public record PieceDetacheRequest(
         StatutPiece statut,
         Integer stockMagasin,
         Double prix,
-        Integer seuilMinimum,
-        Long garageId
+        Integer seuilMinimum
 ) {}

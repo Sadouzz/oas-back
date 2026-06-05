@@ -30,9 +30,6 @@ public class BonDeLivraisonResponse {
     private Long bonDeCommandeId;
     private String bonDeCommandeNumero;
     
-    private Long garageId;
-    private String garageNom;
-
     private List<LigneFacturationPieceResponse> lignesPieces;
     private List<LigneFacturationMainDoeuvreResponse> lignesMainDoeuvres;
 }

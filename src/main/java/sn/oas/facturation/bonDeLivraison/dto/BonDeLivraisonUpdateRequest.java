@@ -18,8 +18,6 @@ public class BonDeLivraisonUpdateRequest {
 
     private String remarque;
 
-    private Long garageId;
-
     private Boolean paye;
 
     @Valid
