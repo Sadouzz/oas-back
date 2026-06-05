@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 import sn.oas.facturation.auth.data.entity.Agent;
 import sn.oas.facturation.auth.data.entity.Client;
 import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
-import sn.oas.facturation.main_doeuvre.data.entity.MainDoeuvre;
 import sn.oas.facturation.bonDeSortie.data.enums.StatutBon;
 
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
@@ -64,7 +63,7 @@ public class BonDeSortie {
     private Agent agentValidateur;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fiche_atelier_id", nullable = false, unique = true)
+    @JoinColumn(name = "fiche_atelier_id", nullable = true, unique = true)
     @JsonIgnoreProperties("bonDeSortie") // Ignore le champ "bonDeSortie" qui est DANS la "FicheAtelier"
     private FicheAtelier ficheAtelier;
 
