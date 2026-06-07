@@ -30,6 +30,14 @@ public class ConnectionHistoryServiceImpl implements ConnectionHistoryService{
         String ip = request.getHeader("X-Forwarded-For");
         if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
             ip = request.getRemoteAddr();
+        } else {
+            // X-Forwarded-For peut contenir plusieurs IPs (ex: "client, proxy1, proxy2")
+            ip = ip.split(",")[0].trim();
+        }
+        
+        // Convertir l'adresse IPv6 localhost en IPv4
+        if ("0:0:0:0:0:0:0:1".equals(ip)) {
+            ip = "127.0.0.1";
         }
         return ip;
     }

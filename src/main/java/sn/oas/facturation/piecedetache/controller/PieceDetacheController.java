@@ -32,7 +32,7 @@ public class PieceDetacheController {
             @RequestParam(required = false) String keyword) {
 
         if (keyword != null && !keyword.trim().isEmpty()) {
-            return ResponseEntity.ok(pieceDetacheService.search(keyword.trim()));
+            return ResponseEntity.ok(pieceDetacheService.searchPieces(keyword.trim()));
         }
         if (statut != null) {
             return ResponseEntity.ok(pieceDetacheService.filterByStatut(statut));

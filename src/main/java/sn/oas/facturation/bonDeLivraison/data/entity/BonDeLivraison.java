@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
-import sn.oas.facturation.bonDeCommande.data.entity.BonDeCommande;
+
 import sn.oas.facturation.facturation.data.entity.FactureTTC;
 
 @Entity
@@ -17,10 +17,6 @@ import sn.oas.facturation.facturation.data.entity.FactureTTC;
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 public class BonDeLivraison extends FactureTTC {
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "bon_de_commande_id", nullable = true)
-    private BonDeCommande bonDeCommande;
 
     @Column(nullable = false)
     private Boolean paye;

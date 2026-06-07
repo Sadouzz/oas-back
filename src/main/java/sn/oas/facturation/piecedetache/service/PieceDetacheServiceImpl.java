@@ -37,8 +37,8 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
     }
 
     @Override
-    public List<PieceDetache> search(String keyword) {
-        return pieceDetacheRepository.search(keyword);
+    public List<PieceDetache> searchPieces(String keyword) {
+        return pieceDetacheRepository.searchPieces(keyword);
     }
 
     @Override

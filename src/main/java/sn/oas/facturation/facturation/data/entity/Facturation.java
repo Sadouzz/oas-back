@@ -26,6 +26,11 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import sn.oas.facturation.auth.data.entity.Agent;
+import sn.oas.facturation.bonDeCommande.data.entity.BonDeCommande;
+import sn.oas.facturation.facturation.data.enums.StatutFacturation;
+import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.EnumType;
 
 
 import java.math.BigDecimal;
@@ -64,8 +69,18 @@ public abstract class Facturation {
     @JoinColumn(name = "agent_id")
     private Agent agent; // Agent qui a créé la facture
 
-    //@Column(nullable = false)
-    //private String statut; // Vous pouvez remplacer String par une Enum (ex: StatutFacturation)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "bon_de_commande_id")
+    private BonDeCommande bonDeCommande;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "fiche_atelier_id")
+    private FicheAtelier ficheAtelier;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private StatutFacturation statut = StatutFacturation.EN_ATTENTE;
 
     @Column(columnDefinition = "TEXT", nullable = true)
     private String remarque;
@@ -86,10 +101,10 @@ public abstract class Facturation {
     @PrePersist
     protected void onCreate() {
         if (this.dateCreation == null) {
-            this.dateCreation = java.time.LocalDateTime.now();
+            this.dateCreation = LocalDateTime.now();
         }
         if (this.dateModification == null) {
-            this.dateModification = java.time.LocalDateTime.now();
+            this.dateModification = LocalDateTime.now();
         }
     }
 }

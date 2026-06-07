@@ -16,6 +16,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.hibernate.annotations.CreationTimestamp;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
@@ -34,6 +36,7 @@ public class BonDeSortie {
     private String reference;
 
     @Column(nullable = false, updatable = false)
+    @CreationTimestamp
     private LocalDateTime date;
 
     @Enumerated(EnumType.STRING)

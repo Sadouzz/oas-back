@@ -1,6 +1,10 @@
 package sn.oas.facturation.vehicule.data.entity;
 
+import java.time.LocalDateTime;
 import java.util.List;
+
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -47,7 +51,13 @@ public class Vehicule {
 
     @Column(name = "created_at", nullable = false, updatable = false)
     @Builder.Default
-    private java.time.LocalDateTime createdAt = java.time.LocalDateTime.now();
+    @CreationTimestamp
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    @Column(name = "update_at", nullable = false)
+    @Builder.Default
+    @UpdateTimestamp
+    private LocalDateTime updatedAt = LocalDateTime.now();
 
     @OneToMany(mappedBy = "vehicule", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnoreProperties("vehicule")
@@ -58,7 +68,10 @@ public class Vehicule {
     @PrePersist
     protected void onCreate() {
         if (this.createdAt == null) {
-            this.createdAt = java.time.LocalDateTime.now();
+            this.createdAt = LocalDateTime.now();
+        }
+        if (this.updatedAt == null) {
+            this.updatedAt = LocalDateTime.now();
         }
     }
 }

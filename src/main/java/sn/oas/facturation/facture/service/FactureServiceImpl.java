@@ -163,7 +163,7 @@ public class FactureServiceImpl implements FactureService {
                 }
 
                 for (LigneFacturationMainDoeuvre ligne : f.getLignesFacturationMainDoeuvres()) {
-                    String cat = ligne.getMainDoeuvre() != null ? ligne.getMainDoeuvre().getCategorie().name() : "N/A";
+                    String cat = ligne.getMainDoeuvre() != null ? ligne.getMainDoeuvre().getCategorie().getNom() : "N/A";
                     tableMo.addCell(new Phrase(cat, fontTexte));
                     tableMo.addCell(new Phrase(String.valueOf(ligne.getNbreHeure()), fontTexte));
                     tableMo.addCell(new Phrase(String.valueOf(ligne.getTarifHoraire()), fontTexte));
@@ -235,7 +235,7 @@ public class FactureServiceImpl implements FactureService {
                         .map(lm -> LigneFacturationMainDoeuvreResponse.builder()
                                 .id(lm.getId())
                                 .mainDoeuvreId(lm.getMainDoeuvre() != null ? lm.getMainDoeuvre().getId() : null)
-                                .descriptionMainDoeuvre(lm.getMainDoeuvre() != null ? lm.getMainDoeuvre().getCategorie().name() : null)
+                                .descriptionMainDoeuvre(lm.getMainDoeuvre() != null ? lm.getMainDoeuvre().getCategorie().getNom() : null)
                                 .nbreHeure(lm.getNbreHeure())
                                 .tarifHoraire(lm.getTarifHoraire())
                                 .montantTotal(lm.getNbreHeure() * lm.getTarifHoraire())

@@ -328,7 +328,7 @@ public class BonDeLivraisonServiceImpl implements BonDeLivraisonService {
                 }
 
                 for (LigneFacturationMainDoeuvre ligne : bl.getLignesFacturationMainDoeuvres()) {
-                    String cat = ligne.getMainDoeuvre() != null ? ligne.getMainDoeuvre().getCategorie().name() : "N/A";
+                    String cat = ligne.getMainDoeuvre() != null ? ligne.getMainDoeuvre().getCategorie().getNom() : "N/A";
                     tableMo.addCell(new Phrase(cat, fontTexte));
                     tableMo.addCell(new Phrase(String.valueOf(ligne.getNbreHeure()), fontTexte));
                     tableMo.addCell(new Phrase(String.valueOf(ligne.getTarifHoraire()), fontTexte));
@@ -390,7 +390,7 @@ public class BonDeLivraisonServiceImpl implements BonDeLivraisonService {
                 .lignesMainDoeuvres(bl.getLignesFacturationMainDoeuvres().stream().map(ligne -> LigneFacturationMainDoeuvreResponse.builder()
                         .id(ligne.getId())
                         .mainDoeuvreId(ligne.getMainDoeuvre() != null ? ligne.getMainDoeuvre().getId() : null)
-                        .descriptionMainDoeuvre(ligne.getMainDoeuvre() != null ? ligne.getMainDoeuvre().getCategorie().name() : null)
+                        .descriptionMainDoeuvre(ligne.getMainDoeuvre() != null ? ligne.getMainDoeuvre().getCategorie().getNom() : null)
                         .nbreHeure(ligne.getNbreHeure())
                         .tarifHoraire(ligne.getTarifHoraire())
                         .montantTotal(ligne.getNbreHeure() * ligne.getTarifHoraire())

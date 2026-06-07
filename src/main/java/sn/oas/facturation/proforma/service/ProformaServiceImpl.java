@@ -165,16 +165,16 @@ public class ProformaServiceImpl implements ProformaService {
                 .dateCreation(LocalDateTime.now())
                 .dateModification(LocalDateTime.now())
                 .agent(authService.getAgentConnecte())
-                .client(client)
-                .vehicule(vehicule)
+                // .client(client)
+                // .vehicule(vehicule)
                 .kilometrage(request.getKilometrage())
                 .remarque(request.getRemarque())
-                .numeroBonDeCommande(request.getNumeroBonDeCommande())
+                // .numeroBonDeCommande(request.getNumeroBonDeCommande())
                 .montantHT(BigDecimal.ZERO)
                 .montantTVA(BigDecimal.ZERO)
                 .montantTTC(BigDecimal.ZERO)
                 .montantTimbre(BigDecimal.ZERO)
-                .montantAutre(BigDecimal.ZERO)
+                // .montantAutre(BigDecimal.ZERO)
                 .montantTotal(BigDecimal.ZERO)
                 .lignesFacturationPieces(lignesPieces)
                 .lignesFacturationMainDoeuvres(lignesMainDoeuvres)
@@ -222,7 +222,7 @@ public class ProformaServiceImpl implements ProformaService {
         BigDecimal timbre = request.getMontantTimbre() != null ? request.getMontantTimbre() : BigDecimal.valueOf(100);
         BigDecimal autre = request.getMontantAutre() != null ? request.getMontantAutre() : BigDecimal.ZERO;
         proforma.setMontantTimbre(timbre);
-        proforma.setMontantAutre(autre);
+        // proforma.setMontantAutre(autre);
         proforma.setMontantTotal(proforma.getMontantTTC().add(timbre).add(autre));
 
         Proforma saved = proformaRepository.save(proforma);
@@ -236,27 +236,17 @@ public class ProformaServiceImpl implements ProformaService {
         Proforma proforma = proformaRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Proforma non trouvé avec l'id : " + id));
 
-        if (request.getClientId() != null) {
-            Client client = clientRepository.findById(request.getClientId())
-                    .orElseThrow(() -> new IllegalArgumentException("Client non trouvé avec l'id : " + request.getClientId()));
-            proforma.setClient(client);
+        Vehicule vehicule = null;
+        if (proforma.getFicheAtelier() != null) {
+            vehicule = proforma.getFicheAtelier().getVehicule();
         }
-
-        if (request.getVehiculeId() != null) {
-            Vehicule vehicule = vehiculeRepository.findById(request.getVehiculeId())
-                    .orElseThrow(() -> new IllegalArgumentException("Véhicule non trouvé avec l'id : " + request.getVehiculeId()));
-            proforma.setVehicule(vehicule);
+        
+        if (vehicule != null) {
+            if (request.getImmatriculation() != null) vehicule.setImmatriculation(request.getImmatriculation());
+            if (request.getMarque() != null) vehicule.setMarque(request.getMarque());
+            if (request.getModele() != null) vehicule.setModele(request.getModele());
+            if (request.getNumeroChassis() != null) vehicule.setNumeroChassis(request.getNumeroChassis());
         }
-
-        if (!proforma.getVehicule().getClient().getId().equals(proforma.getClient().getId())) {
-            throw new IllegalArgumentException("Le véhicule sélectionné n'appartient pas au client sélectionné.");
-        }
-
-        Vehicule vehicule = proforma.getVehicule();
-        if (request.getImmatriculation() != null) vehicule.setImmatriculation(request.getImmatriculation());
-        if (request.getMarque() != null) vehicule.setMarque(request.getMarque());
-        if (request.getModele() != null) vehicule.setModele(request.getModele());
-        if (request.getNumeroChassis() != null) vehicule.setNumeroChassis(request.getNumeroChassis());
 
         if (request.getAnnee() != null) {
             int currentYear = java.time.Year.now().getValue();
@@ -278,9 +268,9 @@ public class ProformaServiceImpl implements ProformaService {
             proforma.setKilometrage(request.getKilometrage());
         }
 
-        vehiculeRepository.save(vehicule);
+        if (vehicule != null) vehiculeRepository.save(vehicule);
 
-        if (request.getNumeroBonDeCommande() != null) proforma.setNumeroBonDeCommande(request.getNumeroBonDeCommande());
+        // if (request.getNumeroBonDeCommande() != null) proforma.setNumeroBonDeCommande(request.getNumeroBonDeCommande());
         if (request.getRemarque() != null) proforma.setRemarque(request.getRemarque());
 
         if (request.getLignesPieces() != null || request.getLignesMainDoeuvres() != null) {
@@ -347,9 +337,10 @@ public class ProformaServiceImpl implements ProformaService {
         proforma.setMontantTTC(montantHT.add(tva));
 
         if (request.getMontantTimbre() != null) proforma.setMontantTimbre(request.getMontantTimbre());
-        if (request.getMontantAutre() != null) proforma.setMontantAutre(request.getMontantAutre());
+        // if (request.getMontantAutre() != null) proforma.setMontantAutre(request.getMontantAutre());
 
-        proforma.setMontantTotal(proforma.getMontantTTC().add(proforma.getMontantTimbre()).add(proforma.getMontantAutre()));
+        BigDecimal autre = request.getMontantAutre() != null ? request.getMontantAutre() : BigDecimal.ZERO;
+        proforma.setMontantTotal(proforma.getMontantTTC().add(proforma.getMontantTimbre()).add(autre));
         proforma.setDateModification(LocalDateTime.now());
 
         return mapToResponse(proformaRepository.save(proforma));
@@ -424,16 +415,16 @@ public class ProformaServiceImpl implements ProformaService {
             if (p.getAgent() != null) {
                 document.add(new Paragraph("Agent : " + p.getAgent().getFirstName() + " " + p.getAgent().getLastName(), fontTexte));
             }
-            if (p.getClient() != null) {
-                document.add(new Paragraph("Client : " + p.getClient().getFirstName() + " " + p.getClient().getLastName(), fontTexte));
-            }
-            if (p.getVehicule() != null) {
-                Vehicule v = p.getVehicule();
+            if (p.getFicheAtelier() != null && p.getFicheAtelier().getVehicule() != null) {
+                Vehicule v = p.getFicheAtelier().getVehicule();
+                if (v.getClient() != null) {
+                    document.add(new Paragraph("Client : " + v.getClient().getFirstName() + " " + v.getClient().getLastName(), fontTexte));
+                }
                 document.add(new Paragraph("Véhicule : " + v.getMarque() + " " + v.getModele() + " (Immat: " + v.getImmatriculation() + ", Année: " + v.getAnnee() + ")", fontTexte));
             }
             document.add(new Paragraph("Kilométrage : " + p.getKilometrage(), fontTexte));
-            if (p.getNumeroBonDeCommande() != null) {
-                document.add(new Paragraph("Réf. Bon de Commande : " + p.getNumeroBonDeCommande(), fontTexte));
+            if (p.getBonDeCommande() != null && p.getBonDeCommande().getNumero() != null) {
+                document.add(new Paragraph("Réf. Bon de Commande : " + p.getBonDeCommande().getNumero(), fontTexte));
             }
             document.add(new Paragraph("Remarque : " + (p.getRemarque() != null ? p.getRemarque() : ""), fontTexte));
             
@@ -483,7 +474,7 @@ public class ProformaServiceImpl implements ProformaService {
                 }
 
                 for (LigneFacturationMainDoeuvre ligne : p.getLignesFacturationMainDoeuvres()) {
-                    String cat = ligne.getMainDoeuvre() != null ? ligne.getMainDoeuvre().getCategorie().name() : "N/A";
+                    String cat = ligne.getMainDoeuvre() != null ? ligne.getMainDoeuvre().getCategorie().getNom() : "N/A";
                     tableMo.addCell(new Phrase(cat, fontTexte));
                     tableMo.addCell(new Phrase(String.valueOf(ligne.getNbreHeure()), fontTexte));
                     tableMo.addCell(new Phrase(String.valueOf(ligne.getTarifHoraire()), fontTexte));
@@ -496,9 +487,9 @@ public class ProformaServiceImpl implements ProformaService {
             document.add(new Paragraph("Montant HT : " + p.getMontantHT(), fontSousTitre));
             document.add(new Paragraph("TVA : " + p.getMontantTVA(), fontTexte));
             document.add(new Paragraph("Timbre : " + p.getMontantTimbre(), fontTexte));
-            if (p.getMontantAutre() != null && p.getMontantAutre().compareTo(BigDecimal.ZERO) > 0) {
-                document.add(new Paragraph("Autre : " + p.getMontantAutre(), fontTexte));
-            }
+            // if (p.getMontantAutre() != null && p.getMontantAutre().compareTo(BigDecimal.ZERO) > 0) {
+            //    document.add(new Paragraph("Autre : " + p.getMontantAutre(), fontTexte));
+            // }
             document.add(new Paragraph("Montant TTC : " + p.getMontantTTC(), fontSousTitre));
             
             Paragraph total = new Paragraph("Montant Total : " + p.getMontantTotal(), fontTitre);
@@ -528,16 +519,16 @@ public class ProformaServiceImpl implements ProformaService {
                 .dateCreation(LocalDateTime.now())
                 .dateModification(LocalDateTime.now())
                 .agent(authService.getAgentConnecte())
-                .client(proforma.getClient())
-                .vehicule(proforma.getVehicule())
+                .client(proforma.getFicheAtelier() != null ? proforma.getFicheAtelier().getVehicule().getClient() : null)
+                .vehicule(proforma.getFicheAtelier() != null ? proforma.getFicheAtelier().getVehicule() : null)
                 .kilometrage(proforma.getKilometrage())
                 .remarque(proforma.getRemarque())
-                .numeroBonDeCommande(proforma.getNumeroBonDeCommande())
+                .numeroBonDeCommande(proforma.getBonDeCommande() != null ? proforma.getBonDeCommande().getNumero() : null)
                 .montantHT(proforma.getMontantHT())
                 .montantTVA(proforma.getMontantTVA())
                 .montantTTC(proforma.getMontantTTC())
                 .montantTimbre(proforma.getMontantTimbre())
-                .montantAutre(proforma.getMontantAutre())
+                // .montantAutre(proforma.getMontantAutre())
                 .montantTotal(proforma.getMontantTotal())
                 .lignesFacturationPieces(new ArrayList<>())
                 .lignesFacturationMainDoeuvres(new ArrayList<>())
@@ -575,21 +566,21 @@ public class ProformaServiceImpl implements ProformaService {
                 .montantTVA(p.getMontantTVA())
                 .montantTTC(p.getMontantTTC())
                 .montantTimbre(p.getMontantTimbre())
-                .montantAutre(p.getMontantAutre())
+                .montantAutre(BigDecimal.ZERO)
                 .montantTotal(p.getMontantTotal())
                 .agentId(p.getAgent() != null ? p.getAgent().getId() : null)
                 .agentNom(p.getAgent() != null ? p.getAgent().getFirstName() + " " + p.getAgent().getLastName() : null)
                 .remarque(p.getRemarque())
                 .kilometrage(p.getKilometrage())
-                .clientId(p.getClient() != null ? p.getClient().getId() : null)
-                .clientNom(p.getClient() != null ? p.getClient().getFirstName() + " " + p.getClient().getLastName() : null)
-                .vehiculeId(p.getVehicule() != null ? p.getVehicule().getId() : null)
-                .immatriculation(p.getVehicule() != null ? p.getVehicule().getImmatriculation() : null)
-                .numeroChassis(p.getVehicule() != null ? p.getVehicule().getNumeroChassis() : null)
-                .marque(p.getVehicule() != null ? p.getVehicule().getMarque() : null)
-                .modele(p.getVehicule() != null ? p.getVehicule().getModele() : null)
-                .annee(p.getVehicule() != null ? p.getVehicule().getAnnee() : null)
-                .numeroBonDeCommande(p.getNumeroBonDeCommande())
+                .clientId(p.getFicheAtelier() != null && p.getFicheAtelier().getVehicule() != null ? p.getFicheAtelier().getVehicule().getClient().getId() : null)
+                .clientNom(p.getFicheAtelier() != null && p.getFicheAtelier().getVehicule() != null ? p.getFicheAtelier().getVehicule().getClient().getFirstName() + " " + p.getFicheAtelier().getVehicule().getClient().getLastName() : null)
+                .vehiculeId(p.getFicheAtelier() != null && p.getFicheAtelier().getVehicule() != null ? p.getFicheAtelier().getVehicule().getId() : null)
+                .immatriculation(p.getFicheAtelier() != null && p.getFicheAtelier().getVehicule() != null ? p.getFicheAtelier().getVehicule().getImmatriculation() : null)
+                .numeroChassis(p.getFicheAtelier() != null && p.getFicheAtelier().getVehicule() != null ? p.getFicheAtelier().getVehicule().getNumeroChassis() : null)
+                .marque(p.getFicheAtelier() != null && p.getFicheAtelier().getVehicule() != null ? p.getFicheAtelier().getVehicule().getMarque() : null)
+                .modele(p.getFicheAtelier() != null && p.getFicheAtelier().getVehicule() != null ? p.getFicheAtelier().getVehicule().getModele() : null)
+                .annee(p.getFicheAtelier() != null && p.getFicheAtelier().getVehicule() != null ? p.getFicheAtelier().getVehicule().getAnnee() : null)
+                .numeroBonDeCommande(p.getBonDeCommande() != null ? p.getBonDeCommande().getNumero() : null)
                 .lignesPieces(p.getLignesFacturationPieces() == null ? List.of() : p.getLignesFacturationPieces().stream()
                         .map(lp -> LigneFacturationPieceResponse.builder()
                                 .id(lp.getId())
@@ -604,7 +595,7 @@ public class ProformaServiceImpl implements ProformaService {
                         .map(lm -> LigneFacturationMainDoeuvreResponse.builder()
                                 .id(lm.getId())
                                 .mainDoeuvreId(lm.getMainDoeuvre() != null ? lm.getMainDoeuvre().getId() : null)
-                                .descriptionMainDoeuvre(lm.getMainDoeuvre() != null ? lm.getMainDoeuvre().getCategorie().name() : null)
+                                .descriptionMainDoeuvre(lm.getMainDoeuvre() != null ? lm.getMainDoeuvre().getCategorie().getNom() : null)
                                 .nbreHeure(lm.getNbreHeure())
                                 .tarifHoraire(lm.getTarifHoraire())
                                 .montantTotal(lm.getNbreHeure() * lm.getTarifHoraire())
@@ -652,7 +643,7 @@ public class ProformaServiceImpl implements ProformaService {
                         .map(lm -> LigneFacturationMainDoeuvreResponse.builder()
                                 .id(lm.getId())
                                 .mainDoeuvreId(lm.getMainDoeuvre() != null ? lm.getMainDoeuvre().getId() : null)
-                                .descriptionMainDoeuvre(lm.getMainDoeuvre() != null ? lm.getMainDoeuvre().getCategorie().name() : null)
+                                .descriptionMainDoeuvre(lm.getMainDoeuvre() != null ? lm.getMainDoeuvre().getCategorie().getNom() : null)
                                 .nbreHeure(lm.getNbreHeure())
                                 .tarifHoraire(lm.getTarifHoraire())
                                 .montantTotal(lm.getNbreHeure() * lm.getTarifHoraire())

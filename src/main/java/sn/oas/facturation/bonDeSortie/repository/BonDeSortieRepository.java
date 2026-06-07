@@ -24,4 +24,14 @@ public interface BonDeSortieRepository extends JpaRepository<BonDeSortie, Long> 
 
     @Query("SELECT COUNT(b) FROM BonDeSortie b WHERE YEAR(b.date) = :year")
     long countByAnnee(@Param("year") int year);
+
+    @Query("SELECT b FROM BonDeSortie b WHERE " +
+            "LOWER(b.reference) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(b.remarque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(b.vehicule.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(b.vehicule.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(b.vehicule.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(b.client.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(b.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    List<BonDeSortie> searchBonsDeSortie(@Param("keyword") String keyword);
 }

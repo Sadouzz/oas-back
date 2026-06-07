@@ -15,23 +15,29 @@ import java.math.BigDecimal;
 @Entity
 @Table(name = "proformas")
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
+// @NoArgsConstructor
+// @AllArgsConstructor
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 public class Proforma extends FactureTTC {
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "client_id", nullable = false)
-    private Client client;
+    /*
+     * @ManyToOne(fetch = FetchType.LAZY)
+     * 
+     * @JoinColumn(name = "client_id", nullable = false)
+     * private Client client;
+     * 
+     * @ManyToOne(fetch = FetchType.LAZY)
+     * 
+     * @JoinColumn(name = "vehicule_id", nullable = false)
+     * private Vehicule vehicule;
+     * 
+     * @Column(name = "numero_bon_de_commande")
+     * private String numeroBonDeCommande;
+     */
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "vehicule_id", nullable = false)
-    private Vehicule vehicule;
-
-    @Column(name = "numero_bon_de_commande")
-    private String numeroBonDeCommande;
-
-    @Column(name = "montant_autre", precision = 15, scale = 2)
-    private BigDecimal montantAutre;
+    /*
+     * @Column(name = "montant_autre", precision = 15, scale = 2)
+     * private BigDecimal montantAutre;
+     */
 }

@@ -7,6 +7,8 @@ import sn.oas.facturation.main_doeuvre.data.entity.MainDoeuvre;
 import sn.oas.facturation.main_doeuvre.dto.MainDoeuvreRequest;
 import sn.oas.facturation.main_doeuvre.repository.MainDoeuvreRepository;
 
+import sn.oas.facturation.main_doeuvre.repository.CategorieMainDoeuvreRepository;
+import sn.oas.facturation.main_doeuvre.data.entity.CategorieMainDoeuvre;
 import java.util.List;
 
 @Service
@@ -14,6 +16,7 @@ import java.util.List;
 public class MainDoeuvreServiceImpl implements MainDoeuvreService {
 
     private final MainDoeuvreRepository mainDoeuvreRepository;
+    private final CategorieMainDoeuvreRepository categorieMainDoeuvreRepository;
 
     @Override
     public List<MainDoeuvre> getAllMainDoeuvres() {
@@ -29,9 +32,12 @@ public class MainDoeuvreServiceImpl implements MainDoeuvreService {
     @Transactional
     @Override
     public MainDoeuvre createMainDoeuvre(MainDoeuvreRequest request) {
+        CategorieMainDoeuvre categorie = categorieMainDoeuvreRepository.findById(request.categorieId())
+                .orElseThrow(() -> new RuntimeException("Catégorie de main d'oeuvre non trouvée"));
+
         MainDoeuvre mainDoeuvre = MainDoeuvre.builder()
                 .prix(request.prix())
-                .categorie(request.categorie())
+                .categorie(categorie)
                 .nbreHeure(request.nbreHeure())
                 .isArchived(request.isArchived() != null ? request.isArchived() : false)
                 .build();
@@ -47,8 +53,10 @@ public class MainDoeuvreServiceImpl implements MainDoeuvreService {
         if (request.prix() != null) {
             mainDoeuvre.setPrix(request.prix());
         }
-        if (request.categorie() != null) {
-            mainDoeuvre.setCategorie(request.categorie());
+        if (request.categorieId() != null) {
+            CategorieMainDoeuvre categorie = categorieMainDoeuvreRepository.findById(request.categorieId())
+                    .orElseThrow(() -> new RuntimeException("Catégorie de main d'oeuvre non trouvée"));
+            mainDoeuvre.setCategorie(categorie);
         }
         if (request.nbreHeure() != null) {
             mainDoeuvre.setNbreHeure(request.nbreHeure());

@@ -1,6 +1,7 @@
 package sn.oas.facturation.ficheAtelier.data.entity;
 
 import sn.oas.facturation.bonDeSortie.data.entity.BonDeSortie;
+import sn.oas.facturation.facturation.data.entity.Facturation;
 import sn.oas.facturation.mecanicien.data.entity.Mecanicien;
 
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
@@ -9,6 +10,9 @@ import lombok.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -39,9 +43,15 @@ public class FicheAtelier {
     @Column(columnDefinition = "TEXT")
     private String listeDefauts;
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     @Builder.Default
+    @CreationTimestamp
     private LocalDateTime dateCreation = LocalDateTime.now();
+
+    @Column(name = "update_at", nullable = false)
+    @Builder.Default
+    @UpdateTimestamp
+    private LocalDateTime updatedAt = LocalDateTime.now();
 
     private LocalDateTime dateSortie;
 
@@ -64,12 +74,17 @@ public class FicheAtelier {
     @JsonIgnoreProperties("ficheAtelier") // Ignore le champ "ficheAtelier" qui est DANS le "BonDeSortie"
     private BonDeSortie bonDeSortie;
 
-
+    @OneToMany(mappedBy = "ficheAtelier", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<Facturation> facturations = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {
         if (this.dateCreation == null) {
             this.dateCreation = LocalDateTime.now();
+        }
+        if (this.updatedAt == null) {
+            this.updatedAt = LocalDateTime.now();
         }
     }
 }

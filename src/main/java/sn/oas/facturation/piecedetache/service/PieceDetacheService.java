@@ -15,7 +15,7 @@ public interface PieceDetacheService {
 
     List<PieceDetache> filterByType(TypePiece type);
 
-    List<PieceDetache> search(String keyword);
+    List<PieceDetache> searchPieces(String keyword);
 
     PieceDetache getById(Long id);
 
