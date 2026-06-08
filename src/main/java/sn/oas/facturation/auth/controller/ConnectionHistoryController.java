@@ -1,5 +1,7 @@
 package sn.oas.facturation.auth.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,11 +15,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/connection-history")
 @RequiredArgsConstructor
+@Tag(name = "Historique de connexion", description = "API pour consulter l'historique des connexions")
 public class ConnectionHistoryController {
 
     private final ConnectionHistoryService connectionHistoryService;
 
     @GetMapping
+    @Operation(summary = "Récupérer l'historique de toutes les connexions")
     public ResponseEntity<List<ConnectionHistory>> getConnectionHistory() {
         return ResponseEntity.ok(connectionHistoryService.getAllConnectionHistory());
     }

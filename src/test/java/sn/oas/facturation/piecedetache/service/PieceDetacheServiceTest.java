@@ -35,7 +35,7 @@ class PieceDetacheServiceTest {
                 "Moteur",
                 10.0,
                 StatutPiece.ACTIF,
-                null, null, null, null
+                null, null, null
         );
 
         when(pieceDetacheRepository.existsByNumeroDeSerie("SN-PDG-001")).thenReturn(false);
@@ -61,7 +61,7 @@ class PieceDetacheServiceTest {
                 "Carrosserie",
                 5.0,
                 StatutPiece.ACTIF,
-                null, null, null, null
+                null, null, null
         );
 
         when(pieceDetacheRepository.existsByNumeroDeSerie("SN-DUP")).thenReturn(true);

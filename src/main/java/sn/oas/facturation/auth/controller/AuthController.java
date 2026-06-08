@@ -1,5 +1,7 @@
 package sn.oas.facturation.auth.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +18,7 @@ import sn.oas.facturation.auth.service.AuthService;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
+@Tag(name = "Authentification", description = "API pour l'authentification et la gestion des mots de passe")
 public class AuthController {
 
     private final AuthService authService;
@@ -23,17 +26,20 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
 
     @PostMapping("/signin")
+    @Operation(summary = "Connexion d'un utilisateur")
     public ResponseEntity<AuthResponse> signin(@RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
     }
 
     @PostMapping("/signup")
+    @Operation(summary = "Inscription d'un nouvel utilisateur")
     public ResponseEntity<Void> signup(@RequestBody RegisterRequest request) {
         authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
 
     @PostMapping("/change-password")
+    @Operation(summary = "Changer le mot de passe d'un utilisateur")
     public ResponseEntity<?> changePassword(@RequestBody ChangePasswordRequest request) {
         User user = userRepository.findByUsername(request.username())
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));

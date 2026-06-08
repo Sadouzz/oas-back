@@ -1,5 +1,7 @@
 package sn.oas.facturation.client.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,11 +15,13 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/clients")
 @RequiredArgsConstructor
+@Tag(name = "Clients", description = "API pour la gestion des clients")
 public class ClientController {
 
     private final ClientService clientService;
 
     @GetMapping
+    @Operation(summary = "Lister tous les clients ou rechercher par mot-clé")
     public ResponseEntity<?> listClients(@RequestParam(required = false) String keyword) {
         if (keyword != null && !keyword.trim().isEmpty()) {
             return ResponseEntity.ok(clientService.searchClients(keyword));
@@ -26,11 +30,13 @@ public class ClientController {
     }
 
     @GetMapping("/recent")
+    @Operation(summary = "Récupérer les clients récents")
     public ResponseEntity<?> getRecentClients() {
         return ResponseEntity.ok(clientService.getRecentClients());
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Récupérer un client par son ID")
     public ResponseEntity<?> getClientById(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(clientService.getClientById(id));
@@ -50,6 +56,7 @@ public class ClientController {
     }*/
 
     @PutMapping("/{id}")
+    @Operation(summary = "Mettre à jour un client")
     public ResponseEntity<?> updateClient(@PathVariable Long id, @RequestBody UserUpdateRequest request) {
         try {
             Client client = clientService.updateClient(id, request);
@@ -60,6 +67,7 @@ public class ClientController {
     }
 
     @PatchMapping("/{id}/archive")
+    @Operation(summary = "Archiver un client")
     public ResponseEntity<?> archiveClient(@PathVariable Long id) {
         try {
             clientService.archiveClient(id);
@@ -70,6 +78,7 @@ public class ClientController {
     }
 
     @PatchMapping("/{id}/unarchive")
+    @Operation(summary = "Désarchiver un client")
     public ResponseEntity<?> unarchiveClient(@PathVariable Long id) {
         try {
             clientService.unarchiveClient(id);
@@ -80,6 +89,7 @@ public class ClientController {
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "Supprimer un client")
     public ResponseEntity<?> deleteClient(@PathVariable Long id) {
         try {
             clientService.deleteClient(id);

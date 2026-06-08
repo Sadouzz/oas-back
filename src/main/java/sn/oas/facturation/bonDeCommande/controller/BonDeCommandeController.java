@@ -1,5 +1,7 @@
 package sn.oas.facturation.bonDeCommande.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -18,62 +20,74 @@ import java.util.List;
 @RequestMapping("/api/bons-de-commande")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*", maxAge = 3600)
+@Tag(name = "Bons de commande", description = "API pour la gestion des bons de commande")
 public class BonDeCommandeController {
 
     private final BonDeCommandeService bonDeCommandeService;
 
     @PostMapping
+    @Operation(summary = "Créer un nouveau bon de commande")
     public ResponseEntity<BonDeCommandeResponse> create(@Valid @RequestBody BonDeCommandeCreateRequest request) {
         return new ResponseEntity<>(bonDeCommandeService.create(request), HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
+    @Operation(summary = "Mettre à jour un bon de commande")
     public ResponseEntity<BonDeCommandeResponse> update(@PathVariable Long id, @Valid @RequestBody BonDeCommandeUpdateRequest request) {
         return ResponseEntity.ok(bonDeCommandeService.update(id, request));
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "Récupérer un bon de commande par son ID")
     public ResponseEntity<BonDeCommandeResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(bonDeCommandeService.getById(id));
     }
 
     @GetMapping
+    @Operation(summary = "Lister tous les bons de commande")
     public ResponseEntity<List<BonDeCommandeResponse>> getAll() {
         return ResponseEntity.ok(bonDeCommandeService.getAll());
     }
 
     @GetMapping("/search")
+    @Operation(summary = "Rechercher des bons de commande")
     public ResponseEntity<List<BonDeCommandeResponse>> search(@RequestParam String keyword) {
         return ResponseEntity.ok(bonDeCommandeService.search(keyword));
     }
 
     @GetMapping("/recent")
+    @Operation(summary = "Récupérer les bons de commande récents")
     public ResponseEntity<List<BonDeCommandeResponse>> getRecentBonDeCommandes() {
         return ResponseEntity.ok(bonDeCommandeService.getRecentBonDeCommandes());
     }
 
     @PostMapping("/{id}/envoyer")
+    @Operation(summary = "Envoyer un bon de commande")
     public ResponseEntity<BonDeCommandeResponse> envoyer(@PathVariable Long id) {
         return ResponseEntity.ok(bonDeCommandeService.envoyer(id));
     }
 
     @PostMapping("/{id}/receptionner")
+    @Operation(summary = "Réceptionner un bon de commande")
     public ResponseEntity<BonDeCommandeResponse> receptionner(@PathVariable Long id) {
         return ResponseEntity.ok(bonDeCommandeService.receptionner(id));
     }
 
     @PostMapping("/{id}/annuler")
+    @Operation(summary = "Annuler un bon de commande")
     public ResponseEntity<BonDeCommandeResponse> annuler(@PathVariable Long id) {
         return ResponseEntity.ok(bonDeCommandeService.annuler(id));
     }
 
     @DeleteMapping("/{id}")
+    @Operation(summary = "Supprimer un bon de commande")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         bonDeCommandeService.delete(id);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{id}/pdf")
+    @Operation(summary = "Générer le PDF d'un bon de commande")
     public ResponseEntity<byte[]> genererPdf(@PathVariable Long id) {
         byte[] pdfBytes = bonDeCommandeService.generatePdf(id);
 
