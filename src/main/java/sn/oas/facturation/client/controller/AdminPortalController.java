@@ -1,0 +1,96 @@
+package sn.oas.facturation.client.controller;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import sn.oas.facturation.auth.data.entity.Agent;
+import sn.oas.facturation.auth.service.AuthService;
+import sn.oas.facturation.messagerie.dto.ClientConversationResponse;
+import sn.oas.facturation.messagerie.dto.MessageRequest;
+import sn.oas.facturation.messagerie.dto.MessageResponse;
+import sn.oas.facturation.messagerie.service.MessageService;
+import sn.oas.facturation.recu.dto.RecuResponse;
+import sn.oas.facturation.recu.service.RecuService;
+import sn.oas.facturation.rendezvous.data.enums.RendezVousStatus;
+import sn.oas.facturation.rendezvous.dto.RendezVousResponse;
+import sn.oas.facturation.rendezvous.service.RendezVousService;
+
+import java.math.BigDecimal;
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/admin/portal")
+@RequiredArgsConstructor
+@Tag(name = "Gestion Portail Client (Backoffice)", description = "APIs d'administration pour la gestion du Portail Client")
+public class AdminPortalController {
+
+    private final RendezVousService rendezvousService;
+    private final RecuService recuService;
+    private final MessageService messageService;
+    private final AuthService authService;
+
+    // --- Rendez-vous ---
+    @GetMapping("/rendezvous")
+    @Operation(summary = "Lister tous les rendez-vous clients")
+    public ResponseEntity<List<RendezVousResponse>> getAllRendezVous() {
+        return ResponseEntity.ok(rendezvousService.getAllRendezVous());
+    }
+
+    @PutMapping("/rendezvous/{id}/statut")
+    @Operation(summary = "Mettre à jour le statut d'un rendez-vous client")
+    public ResponseEntity<?> updateRendezVousStatus(
+            @PathVariable Long id,
+            @RequestParam RendezVousStatus statut,
+            @RequestParam(required = false) String commentaire) {
+        try {
+            return ResponseEntity.ok(rendezvousService.updateRendezVousStatus(id, statut, commentaire));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // --- Paiement & Reçu ---
+    @PostMapping("/factures/{id}/payer")
+    @Operation(summary = "Enregistrer un paiement (total ou partiel) pour une facture")
+    public ResponseEntity<?> registerPayment(
+            @PathVariable Long id,
+            @RequestParam(required = false) BigDecimal montant,
+            @RequestParam String methodePaiement) {
+        try {
+            RecuResponse response = recuService.payerFacture(id, montant, methodePaiement);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // --- Messagerie Dashboard ---
+    @GetMapping("/messages/clients")
+    @Operation(summary = "Lister les conversations actives avec les clients")
+    public ResponseEntity<List<ClientConversationResponse>> getActiveConversations() {
+        return ResponseEntity.ok(messageService.getActiveConversations());
+    }
+
+    @GetMapping("/messages/clients/{clientId}")
+    @Operation(summary = "Récupérer la discussion d'un client spécifique")
+    public ResponseEntity<List<MessageResponse>> getClientMessages(@PathVariable Long clientId) {
+        Agent agent = authService.getAgentConnecte();
+        return ResponseEntity.ok(messageService.getConversationMessages(clientId, agent));
+    }
+
+    @PostMapping("/messages/clients/{clientId}")
+    @Operation(summary = "Envoyer un message de réponse à un client")
+    public ResponseEntity<?> sendReply(
+            @PathVariable Long clientId,
+            @RequestBody MessageRequest request) {
+        try {
+            Agent agent = authService.getAgentConnecte();
+            MessageResponse response = messageService.agentSendMessage(agent, clientId, request);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+}

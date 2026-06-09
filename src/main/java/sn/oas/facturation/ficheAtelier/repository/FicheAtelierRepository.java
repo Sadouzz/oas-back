@@ -22,4 +22,5 @@ public interface FicheAtelierRepository extends JpaRepository<FicheAtelier, Long
             "LOWER(f.vehicule.client.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(f.vehicule.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<FicheAtelier> searchFichesAtelier(@Param("keyword") String keyword);
+    List<FicheAtelier> findByVehiculeClientIdOrderByDateCreationDesc(Long clientId);
 }

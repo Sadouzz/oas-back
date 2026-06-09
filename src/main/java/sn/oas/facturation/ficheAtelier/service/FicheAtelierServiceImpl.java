@@ -3,6 +3,7 @@ package sn.oas.facturation.ficheAtelier.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
+import sn.oas.facturation.ficheAtelier.data.enums.StatutReparation;
 import sn.oas.facturation.ficheAtelier.dto.FicheAtelierRequest;
 import sn.oas.facturation.ficheAtelier.repository.FicheAtelierRepository;
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
@@ -35,6 +36,7 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
                 .listeDefauts(request.getListeDefauts())
                 .dateSortie(request.getDateSortie())
                 .vehicule(vehicule)
+                .statut(request.getStatut() != null ? request.getStatut() : StatutReparation.A_FAIRE)
                 .build();
         return ficheAtelierRepository.save(ficheAtelier);
     }
@@ -59,6 +61,7 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
         if (request.getListeReception() != null) ficheAtelier.setListeReception(request.getListeReception());
         if (request.getListeDefauts() != null) ficheAtelier.setListeDefauts(request.getListeDefauts());
         if (request.getDateSortie() != null) ficheAtelier.setDateSortie(request.getDateSortie());
+        if (request.getStatut() != null) ficheAtelier.setStatut(request.getStatut());
 
         if (request.getVehiculeId() != null) {
             Vehicule vehicule = vehiculeRepository.findById(request.getVehiculeId())

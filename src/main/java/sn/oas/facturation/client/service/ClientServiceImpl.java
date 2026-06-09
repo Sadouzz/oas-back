@@ -1,10 +1,13 @@
 package sn.oas.facturation.client.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.oas.facturation.auth.data.entity.Client;
+import sn.oas.facturation.auth.data.entity.User;
 import sn.oas.facturation.auth.data.enums.TypeUser;
 import sn.oas.facturation.auth.dto.RegisterRequest;
 import sn.oas.facturation.auth.dto.UserUpdateRequest;
@@ -112,5 +115,18 @@ public class ClientServiceImpl implements ClientService {
     public List<Client> getRecentClients() {
 
         return clientRepository.findTop5ByOrderByCreatedAtDesc();
+    }
+
+    @Override
+    public Client getClientConnecte() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        User user = userRepository.findByUsername(username)
+                .or(() -> userRepository.findByEmail(username))
+                .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
+        if (!(user instanceof Client client)) {
+            throw new IllegalStateException("Cette opération requiert un compte Client");
+        }
+        return client;
     }
 }

@@ -16,4 +16,5 @@ public interface ClientService {
     void deleteClient(Long id);
     List<Client> searchClients(String keyword);
     List<Client> getRecentClients();
+    Client getClientConnecte();
 }

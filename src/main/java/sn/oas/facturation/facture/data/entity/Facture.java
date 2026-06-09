@@ -34,4 +34,8 @@ public class Facture extends FactureTTC {
 
     @Column(name = "montant_autre", precision = 15, scale = 2)
     private BigDecimal montantAutre;
+
+    @Column(name = "montant_paye", precision = 15, scale = 2)
+    @lombok.Builder.Default
+    private BigDecimal montantPaye = BigDecimal.ZERO;
 }
