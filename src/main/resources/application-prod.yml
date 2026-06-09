@@ -1,1 +1,36 @@
-spring.application.name=facturation
+spring:
+  application:
+    name: facturation
+  datasource:
+    url: ${DATABASE_URL}
+    username: ${DATABASE_USERNAME:}
+    password: ${DATABASE_PASSWORD:}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration: 3600000
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost}
+
+server:
+  port: 9090
+
+# Actuator & Prometheus monitoring
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    tags:
+      application: facturation
