@@ -32,6 +32,7 @@ public class Mecanicien {
 
     @ManyToMany(mappedBy = "mecaniciens", fetch = FetchType.LAZY)
     @Builder.Default
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private List<FicheAtelier> fichesAtelier = new ArrayList<>();
 
     @PrePersist

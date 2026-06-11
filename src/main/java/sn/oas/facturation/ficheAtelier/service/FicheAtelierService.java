@@ -12,4 +12,6 @@ public interface FicheAtelierService {
     Optional<FicheAtelier> getFicheAtelierById(Long id);
     FicheAtelier updateFicheAtelier(Long id, FicheAtelierRequest request);
     void deleteFicheAtelier(Long id);
+    void assignMecanicien(Long ficheId, Long mecanicienId);
+    void removeMecanicien(Long ficheId, Long mecanicienId);
 }

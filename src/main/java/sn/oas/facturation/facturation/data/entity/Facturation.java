@@ -75,6 +75,7 @@ public abstract class Facturation {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "fiche_atelier_id")
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties("facturations")
     private FicheAtelier ficheAtelier;
 
     @Enumerated(EnumType.STRING)
@@ -90,10 +91,12 @@ public abstract class Facturation {
     
     @OneToMany(mappedBy = "facturation", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties("facturation")
     private List<LigneFacturationPiece> lignesFacturationPieces = new ArrayList<>();
     
     @OneToMany(mappedBy = "facturation", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties("facturation")
     private List<LigneFacturationMainDoeuvre> lignesFacturationMainDoeuvres = new ArrayList<>();
 
 

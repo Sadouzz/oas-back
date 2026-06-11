@@ -7,6 +7,9 @@ import sn.oas.facturation.ficheAtelier.dto.FicheAtelierRequest;
 import sn.oas.facturation.ficheAtelier.repository.FicheAtelierRepository;
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.vehicule.repository.VehiculeRepository;
+import sn.oas.facturation.mecanicien.data.entity.Mecanicien;
+import sn.oas.facturation.mecanicien.repository.MecanicienRepository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,6 +20,7 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
 
     private final FicheAtelierRepository ficheAtelierRepository;
     private final VehiculeRepository vehiculeRepository;
+    private final MecanicienRepository mecanicienRepository;
 
     @Override
     public FicheAtelier createFicheAtelier(FicheAtelierRequest request) {
@@ -74,5 +78,31 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
         FicheAtelier ficheAtelier = ficheAtelierRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
         ficheAtelierRepository.delete(ficheAtelier);
+    }
+
+    @Transactional
+    @Override
+    public void assignMecanicien(Long ficheId, Long mecanicienId) {
+        FicheAtelier fiche = ficheAtelierRepository.findById(ficheId)
+                .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        Mecanicien mecanicien = mecanicienRepository.findById(mecanicienId)
+                .orElseThrow(() -> new RuntimeException("Mécanicien non trouvé"));
+
+        if (!fiche.getMecaniciens().contains(mecanicien)) {
+            fiche.getMecaniciens().add(mecanicien);
+            ficheAtelierRepository.save(fiche);
+        }
+    }
+
+    @Transactional
+    @Override
+    public void removeMecanicien(Long ficheId, Long mecanicienId) {
+        FicheAtelier fiche = ficheAtelierRepository.findById(ficheId)
+                .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        Mecanicien mecanicien = mecanicienRepository.findById(mecanicienId)
+                .orElseThrow(() -> new RuntimeException("Mécanicien non trouvé"));
+
+        fiche.getMecaniciens().remove(mecanicien);
+        ficheAtelierRepository.save(fiche);
     }
 }

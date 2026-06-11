@@ -68,6 +68,7 @@ public class FicheAtelier {
         inverseJoinColumns = @JoinColumn(name = "mecanicien_id")
     )
     @Builder.Default
+    @JsonIgnoreProperties("fichesAtelier")
     private List<Mecanicien> mecaniciens = new ArrayList<>();
 
     @OneToOne(mappedBy = "ficheAtelier", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -76,6 +77,7 @@ public class FicheAtelier {
 
     @OneToMany(mappedBy = "ficheAtelier", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties("ficheAtelier")
     private List<Facturation> facturations = new ArrayList<>();
 
     @PrePersist

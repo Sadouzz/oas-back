@@ -69,4 +69,26 @@ public class FicheAtelierController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    @PostMapping("/{ficheId}/mecaniciens/{mecanicienId}")
+    @Operation(summary = "Assigner un mécanicien à une fiche atelier")
+    public ResponseEntity<?> assignMecanicien(@PathVariable Long ficheId, @PathVariable Long mecanicienId) {
+        try {
+            ficheAtelierService.assignMecanicien(ficheId, mecanicienId);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/{ficheId}/mecaniciens/{mecanicienId}")
+    @Operation(summary = "Retirer un mécanicien d'une fiche atelier")
+    public ResponseEntity<?> removeMecanicien(@PathVariable Long ficheId, @PathVariable Long mecanicienId) {
+        try {
+            ficheAtelierService.removeMecanicien(ficheId, mecanicienId);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }

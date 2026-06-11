@@ -102,6 +102,23 @@ public class ClientServiceImpl implements ClientService {
         clientRepository.deleteById(id);
     }
 
+    @Transactional
+    @Override
+    public void anonymizeClient(Long id) {
+        Client client = clientRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Client non trouvé"));
+
+        client.setFirstName("[Anonymisé]");
+        client.setLastName("[Anonymisé]");
+        client.setEmail("anonyme-" + id + "@supprime.local");
+        client.setPhone("0000000000");
+        client.setUsername("anonyme-" + id);
+        client.setPassword(passwordEncoder.encode(java.util.UUID.randomUUID().toString()));
+        client.setEnabled(false);
+
+        clientRepository.save(client);
+    }
+
     @Override
     public List<Client> searchClients(String keyword) {
 

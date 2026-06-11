@@ -21,6 +21,7 @@ public class LigneFacturationPiece {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "facturation_id", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnoreProperties("lignesFacturationPieces")
     private Facturation facturation;
 
     @ManyToOne(fetch = FetchType.LAZY)

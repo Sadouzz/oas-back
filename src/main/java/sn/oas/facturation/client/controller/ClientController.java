@@ -98,4 +98,15 @@ public class ClientController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    @PatchMapping("/{id}/anonymize")
+    @Operation(summary = "Anonymiser un client pour respecter le RGPD")
+    public ResponseEntity<?> anonymizeClient(@PathVariable Long id) {
+        try {
+            clientService.anonymizeClient(id);
+            return ResponseEntity.ok("Client anonymisé avec succès (RGPD) !");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }
