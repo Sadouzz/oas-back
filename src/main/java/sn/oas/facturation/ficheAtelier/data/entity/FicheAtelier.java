@@ -3,7 +3,7 @@ package sn.oas.facturation.ficheAtelier.data.entity;
 import sn.oas.facturation.bonDeSortie.data.entity.BonDeSortie;
 import sn.oas.facturation.facturation.data.entity.Facturation;
 import sn.oas.facturation.mecanicien.data.entity.Mecanicien;
-
+import sn.oas.facturation.ficheAtelier.data.enums.StatutReparation;
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
 import jakarta.persistence.*;
 import lombok.*;
@@ -55,6 +55,11 @@ public class FicheAtelier {
 
     private LocalDateTime dateSortie;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "statut")
+    @Builder.Default
+    private StatutReparation statut = StatutReparation.A_FAIRE;
+
     // ── Relationship Block ───────────────────────────────────
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -87,6 +92,9 @@ public class FicheAtelier {
         }
         if (this.updatedAt == null) {
             this.updatedAt = LocalDateTime.now();
+        }
+        if (this.statut == null) {
+            this.statut = StatutReparation.A_FAIRE;
         }
     }
 }

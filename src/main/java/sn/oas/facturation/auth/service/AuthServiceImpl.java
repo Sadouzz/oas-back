@@ -21,6 +21,7 @@ import sn.oas.facturation.auth.dto.LoginRequest;
 import sn.oas.facturation.auth.dto.RegisterRequest;
 import sn.oas.facturation.auth.repository.ConnectionHistoryRepository;
 import sn.oas.facturation.auth.repository.UserRepository;
+import sn.oas.facturation.client.repository.ClientRepository;
 import sn.oas.facturation.security.JwtUtil;
 
 @Service
@@ -34,6 +35,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
+    private final ClientRepository clientRepository;
 
     @Override
     public AuthResponse login(LoginRequest request) {
@@ -64,10 +66,27 @@ public class AuthServiceImpl implements AuthService {
         }
         User user;
 
+        String matricule = request.matricule();
+        if (request.type() == TypeUser.CLIENT && (matricule == null || matricule.trim().isEmpty())) {
+            String maxMatricule = clientRepository.findMaxClientMatricule();
+            long nextNumber = 1;
+            if (maxMatricule != null && maxMatricule.startsWith("CLT-")) {
+                try {
+                    String numStr = maxMatricule.substring(4);
+                    nextNumber = Long.parseLong(numStr) + 1;
+                } catch (NumberFormatException e) {
+                    nextNumber = clientRepository.count() + 1;
+                }
+            } else {
+                nextNumber = clientRepository.count() + 1;
+            }
+            matricule = String.format("CLT-%05d", nextNumber);
+        }
+
         if (request.type() == TypeUser.AGENT)
         {
             user = Agent.builder()
-                    .matricule(request.matricule())
+                    .matricule(matricule)
                     .phone(request.phone())
                     .username(request.username())
                     .firstName(request.firstName())
@@ -79,7 +98,7 @@ public class AuthServiceImpl implements AuthService {
                     .build();
         } else if (request.type() == TypeUser.CLIENT) {
             user = Client.builder()
-                    .matricule(request.matricule())
+                    .matricule(matricule)
                     .phone(request.phone())
                     .username(request.username())
                     .firstName(request.firstName())

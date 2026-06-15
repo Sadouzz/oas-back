@@ -18,4 +18,7 @@ public interface ClientRepository extends JpaRepository<Client, Long> {
             "LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<Client> searchClients(@Param("keyword") String keyword);
     List<Client> findTop5ByOrderByCreatedAtDesc();
+
+    @Query("SELECT MAX(c.matricule) FROM Client c WHERE c.matricule LIKE 'CLT-%'")
+    String findMaxClientMatricule();
 }

@@ -1,0 +1,118 @@
+package sn.oas.facturation.rendezvous.service;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import sn.oas.facturation.auth.data.entity.Client;
+import sn.oas.facturation.notification.service.NotificationService;
+import sn.oas.facturation.rendezvous.data.entity.RendezVous;
+import sn.oas.facturation.rendezvous.data.enums.RendezVousStatus;
+import sn.oas.facturation.rendezvous.dto.RendezVousRequest;
+import sn.oas.facturation.rendezvous.dto.RendezVousResponse;
+import sn.oas.facturation.rendezvous.repository.RendezVousRepository;
+import sn.oas.facturation.vehicule.data.entity.Vehicule;
+import sn.oas.facturation.vehicule.repository.VehiculeRepository;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class RendezVousServiceImpl implements RendezVousService {
+
+    private final RendezVousRepository rendezvousRepository;
+    private final VehiculeRepository vehiculeRepository;
+    private final NotificationService notificationService;
+
+    @Transactional
+    @Override
+    public RendezVousResponse bookRendezVous(Client client, RendezVousRequest request) {
+        Vehicule vehicule = null;
+        if (request.vehiculeId() != null) {
+            vehicule = vehiculeRepository.findById(request.vehiculeId())
+                    .orElseThrow(() -> new RuntimeException("Véhicule non trouvé"));
+            if (!vehicule.getClient().getId().equals(client.getId())) {
+                throw new IllegalArgumentException("Le véhicule n'appartient pas au client connecté");
+            }
+        }
+
+        RendezVous rv = RendezVous.builder()
+                .client(client)
+                .vehicule(vehicule)
+                .dateRendezVous(request.dateRendezVous())
+                .motif(request.motif())
+                .statut(RendezVousStatus.EN_ATTENTE)
+                .build();
+
+        rendezvousRepository.save(rv);
+
+        // Notify client
+        notificationService.sendNotification(client, "Rendez-vous enregistré", 
+                "Votre demande de rendez-vous pour le " + request.dateRendezVous() + " a bien été enregistrée et est en attente de confirmation.");
+
+        return RendezVousResponse.of(rv);
+    }
+
+    @Transactional
+    @Override
+    public RendezVousResponse cancelRendezVous(Client client, Long id) {
+        RendezVous rv = rendezvousRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Rendez-vous non trouvé"));
+        if (!rv.getClient().getId().equals(client.getId())) {
+            throw new IllegalArgumentException("Accès non autorisé à ce rendez-vous");
+        }
+        rv.setStatut(RendezVousStatus.ANNULE);
+        rendezvousRepository.save(rv);
+
+        notificationService.sendNotification(client, "Rendez-vous annulé", 
+                "Vous avez annulé votre rendez-vous du " + rv.getDateRendezVous());
+
+        return RendezVousResponse.of(rv);
+    }
+
+    @Override
+    public List<RendezVousResponse> getClientRendezVous(Client client) {
+        return rendezvousRepository.findByClientIdOrderByDateCreationDesc(client.getId())
+                .stream()
+                .map(RendezVousResponse::of)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<RendezVousResponse> getClientRendezVousByStatus(Client client, RendezVousStatus status) {
+        return rendezvousRepository.findByClientIdAndStatutOrderByDateCreationDesc(client.getId(), status)
+                .stream()
+                .map(RendezVousResponse::of)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<RendezVousResponse> getAllRendezVous() {
+        return rendezvousRepository.findAllByOrderByDateCreationDesc()
+                .stream()
+                .map(RendezVousResponse::of)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    @Override
+    public RendezVousResponse updateRendezVousStatus(Long id, RendezVousStatus status, String commentaire) {
+        RendezVous rv = rendezvousRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Rendez-vous non trouvé"));
+        rv.setStatut(status);
+        if (commentaire != null) {
+            rv.setCommentaire(commentaire);
+        }
+        rendezvousRepository.save(rv);
+
+        // Notify client
+        String titre = "Mise à jour du rendez-vous";
+        String message = "Votre rendez-vous du " + rv.getDateRendezVous() + " est maintenant " + status.name() + ".";
+        if (commentaire != null && !commentaire.trim().isEmpty()) {
+            message += " Commentaire : " + commentaire;
+        }
+        notificationService.sendNotification(rv.getClient(), titre, message);
+
+        return RendezVousResponse.of(rv);
+    }
+}

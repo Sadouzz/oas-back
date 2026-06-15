@@ -17,4 +17,5 @@ public interface ClientService {
     void anonymizeClient(Long id);
     List<Client> searchClients(String keyword);
     List<Client> getRecentClients();
+    Client getClientConnecte();
 }

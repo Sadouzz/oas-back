@@ -23,4 +23,5 @@ public interface FactureRepository extends JpaRepository<Facture, Long> {
     List<Facture> searchFactures(@Param("keyword") String keyword);
 
     List<Facture> findTop5ByOrderByDateCreationDesc();
+    List<Facture> findByClientIdOrderByDateCreationDesc(Long clientId);
 }
