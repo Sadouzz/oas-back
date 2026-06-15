@@ -1,21 +1,17 @@
-# ========================
-# Stage 1: Build avec Maven
-# ========================
+# Etape 1: Build avec Maven
 FROM eclipse-temurin:21-jdk AS build
 WORKDIR /app
 
-# Copier les fichiers Maven wrapper et POM en premier (cache des dépendances)
+# Copier les fichiers Maven wrapper et POM en premier
 COPY pom.xml mvnw ./
 COPY .mvn .mvn
 RUN chmod +x mvnw && ./mvnw dependency:go-offline -B
 
-# Copier le code source et builder
+# Copier le code source et build
 COPY src src
 RUN ./mvnw package -DskipTests -B
 
-# ========================
-# Stage 2: Runtime léger
-# ========================
+# Etape 2: Runtime léger
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
@@ -23,5 +19,4 @@ WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 
 EXPOSE 9090
-
 ENTRYPOINT ["java", "-jar", "app.jar"]
