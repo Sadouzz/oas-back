@@ -25,4 +25,5 @@ public interface FicheAtelierRepository extends JpaRepository<FicheAtelier, Long
     List<FicheAtelier> findByVehiculeClientIdOrderByDateCreationDesc(Long clientId);
     List<FicheAtelier> findByVehiculeIdAndStatut(Long vehiculeId, sn.oas.facturation.ficheAtelier.data.enums.StatutReparation statut);
     FicheAtelier findTopByOrderByIdDesc();
+    FicheAtelier findTopByNumeroStartingWithOrderByNumeroDesc(String prefix);
 }

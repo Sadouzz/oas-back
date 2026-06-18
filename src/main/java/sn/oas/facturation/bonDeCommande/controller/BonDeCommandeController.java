@@ -9,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sn.oas.facturation.bonDeCommande.dto.BonDeCommandeCreateRequest;
+import sn.oas.facturation.bonDeCommande.dto.BonDeLivraisonRequest;
 import sn.oas.facturation.bonDeCommande.dto.BonDeCommandeResponse;
 import sn.oas.facturation.bonDeCommande.dto.BonDeCommandeUpdateRequest;
 import sn.oas.facturation.bonDeCommande.service.BonDeCommandeService;
@@ -71,6 +72,22 @@ public class BonDeCommandeController {
     @Operation(summary = "Réceptionner un bon de commande")
     public ResponseEntity<BonDeCommandeResponse> receptionner(@PathVariable Long id) {
         return ResponseEntity.ok(bonDeCommandeService.receptionner(id));
+    }
+
+    @PostMapping("/{id}/receptionner-livraison")
+    @Operation(summary = "Réceptionner un bon de commande avec les quantités du bon de livraison")
+    public ResponseEntity<BonDeCommandeResponse> receptionnerAvecLivraison(
+            @PathVariable Long id,
+            @RequestBody BonDeLivraisonRequest request) {
+        return ResponseEntity.ok(bonDeCommandeService.receptionnerAvecQuantites(id, request));
+    }
+
+    @PostMapping("/{id}/assigner-fournisseur")
+    @Operation(summary = "Assigner un fournisseur à un bon de commande en attente")
+    public ResponseEntity<BonDeCommandeResponse> assignerFournisseur(
+            @PathVariable Long id,
+            @RequestParam Long fournisseurId) {
+        return ResponseEntity.ok(bonDeCommandeService.assignerFournisseur(id, fournisseurId));
     }
 
     @PostMapping("/{id}/annuler")

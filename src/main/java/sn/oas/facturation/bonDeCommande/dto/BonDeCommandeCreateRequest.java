@@ -10,7 +10,6 @@ import java.util.List;
 @Data
 public class BonDeCommandeCreateRequest {
 
-    @NotNull(message = "Le fournisseur est obligatoire")
     private Long fournisseurId;
 
     private Long vehiculeId;

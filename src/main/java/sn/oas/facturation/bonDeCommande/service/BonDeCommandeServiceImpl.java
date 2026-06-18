@@ -12,6 +12,7 @@ import sn.oas.facturation.bonDeCommande.data.entity.BonDeCommande;
 import sn.oas.facturation.bonDeCommande.data.entity.LigneBonDeCommandePiece;
 import sn.oas.facturation.bonDeCommande.data.enums.StatutBonCommande;
 import sn.oas.facturation.bonDeCommande.dto.BonDeCommandeCreateRequest;
+import sn.oas.facturation.bonDeCommande.dto.BonDeLivraisonRequest;
 import sn.oas.facturation.bonDeCommande.dto.BonDeCommandeResponse;
 import sn.oas.facturation.bonDeCommande.dto.BonDeCommandeUpdateRequest;
 import sn.oas.facturation.bonDeCommande.dto.LigneBonDeCommandeRequest;
@@ -19,6 +20,9 @@ import sn.oas.facturation.bonDeCommande.dto.LigneBonDeCommandeResponse;
 import sn.oas.facturation.bonDeCommande.repository.BonDeCommandeRepository;
 import sn.oas.facturation.fournisseur.data.entity.Fournisseur;
 import sn.oas.facturation.fournisseur.repository.FournisseurRepository;
+import sn.oas.facturation.bonDeLivraison.repository.BonDeLivraisonRepository;
+import sn.oas.facturation.bonDeLivraison.data.entity.BonDeLivraison;
+import sn.oas.facturation.facturation.data.entity.LigneFacturationPiece;
 
 import sn.oas.facturation.piecedetache.data.entity.PDG;
 import sn.oas.facturation.piecedetache.data.entity.PDP;
@@ -37,6 +41,9 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import sn.oas.facturation.piecedetache.service.StockService;
+import sn.oas.facturation.piecedetache.dto.EntreeStockRequest;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -48,9 +55,10 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
     private final sn.oas.facturation.ficheAtelier.repository.FicheAtelierRepository ficheAtelierRepository;
     private final sn.oas.facturation.bonDeSortie.service.BonDeSortieService bonDeSortieService;
     private final sn.oas.facturation.proforma.repository.ProformaRepository proformaRepository;
-
     private final PdfGeneratorService pdfGeneratorService;
     private final UserRepository userRepository;
+    private final BonDeLivraisonRepository bonDeLivraisonRepository;
+    private final StockService stockService;
 
     @Override
     @Transactional
@@ -63,8 +71,11 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                 .orElseThrow(() -> new RuntimeException("Agent authentifié non trouvé : " + username));
         Agent agent = (user instanceof Agent a) ? a : null;
 
-        Fournisseur fournisseur = fournisseurRepository.findById(request.getFournisseurId())
-                .orElseThrow(() -> new RuntimeException("Fournisseur non trouvé avec l'id " + request.getFournisseurId()));
+        Fournisseur fournisseur = null;
+        if (request.getFournisseurId() != null) {
+            fournisseur = fournisseurRepository.findById(request.getFournisseurId())
+                    .orElseThrow(() -> new RuntimeException("Fournisseur non trouvé avec l'id " + request.getFournisseurId()));
+        }
 
         Vehicule vehicule = null;
         if (request.getVehiculeId() != null) {
@@ -242,6 +253,10 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
             throw new RuntimeException("Le bon de commande doit être en attente pour être envoyé.");
         }
         
+        if (bonDeCommande.getFournisseur() == null) {
+            throw new RuntimeException("Veuillez d'abord assigner un fournisseur au bon de commande.");
+        }
+        
         bonDeCommande.setStatut(StatutBonCommande.ENVOYE);
         bonDeCommande.setDateModification(LocalDateTime.now());
         return mapToResponse(bonDeCommandeRepository.save(bonDeCommande));
@@ -323,6 +338,142 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
             }
         }
         
+        return mapToResponse(bonDeCommandeRepository.save(bonDeCommande));
+    }
+
+    @Override
+    @Transactional
+    public BonDeCommandeResponse receptionnerAvecQuantites(Long id, BonDeLivraisonRequest request) {
+        BonDeCommande bonDeCommande = bonDeCommandeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Bon de commande non trouvé"));
+        
+        if (bonDeCommande.getStatut() != StatutBonCommande.ENVOYE) {
+            throw new RuntimeException("Le bon de commande doit être envoyé pour être réceptionné.");
+        }
+        
+        bonDeCommande.setStatut(StatutBonCommande.RECU);
+        bonDeCommande.setDateModification(LocalDateTime.now());
+        
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByUsername(username).orElse(null);
+        Agent agent = (user instanceof Agent a) ? a : null;
+
+        BonDeLivraison bonDeLivraison = BonDeLivraison.builder()
+            .numero("BL-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
+            .dateCreation(LocalDateTime.now())
+            .dateModification(LocalDateTime.now())
+            .agent(agent)
+            .bonDeCommande(bonDeCommande)
+            .kilometrage(bonDeCommande.getVehicule() != null && bonDeCommande.getVehicule().getKilometrage() != null ? bonDeCommande.getVehicule().getKilometrage() : 0.0)
+            .paye(false)
+            .lignesFacturationPieces(new ArrayList<>())
+            .lignesFacturationMainDoeuvres(new ArrayList<>())
+            .build();
+        
+        BigDecimal montantHT = BigDecimal.ZERO;
+
+        if (request.getLignes() != null) {
+            for (BonDeLivraisonRequest.LigneLivraison ll : request.getLignes()) {
+                LigneBonDeCommandePiece ligne = bonDeCommande.getLignes().stream()
+                        .filter(l -> l.getId().equals(ll.getLigneId()))
+                        .findFirst()
+                        .orElse(null);
+                if (ligne != null && ll.getQuantiteRecue() != null && ll.getQuantiteRecue() > 0) {
+                    
+                    montantHT = montantHT.add(ligne.getPrixUnitaire().multiply(BigDecimal.valueOf(ll.getQuantiteRecue())));
+
+                    if (ligne.getPieceDetachee() != null) {
+                        PieceDetache piece = ligne.getPieceDetachee();
+                        if (piece instanceof PDP pdp) {
+                            EntreeStockRequest entreeReq = new EntreeStockRequest(
+                                    pdp.getId(),
+                                    ll.getQuantiteRecue(),
+                                    "Réception BC " + bonDeCommande.getNumero()
+                            );
+                            stockService.entree(entreeReq);
+                            
+                            LigneFacturationPiece lfp = LigneFacturationPiece.builder()
+                                    .facturation(bonDeLivraison)
+                                    .piece(pdp)
+                                    .quantite(ll.getQuantiteRecue())
+                                    .prix(ligne.getPrixUnitaire().intValue())
+                                    .build();
+                            bonDeLivraison.getLignesFacturationPieces().add(lfp);
+                        }
+                    }
+                }
+            }
+        }
+        
+        bonDeLivraison.setMontantHT(montantHT);
+        BigDecimal tva = bonDeCommande.getTvaApplicable() ? montantHT.multiply(new BigDecimal("0.18")) : BigDecimal.ZERO;
+        bonDeLivraison.setMontantTVA(tva);
+        bonDeLivraison.setMontantTTC(montantHT.add(tva));
+        bonDeLivraison.setMontantTimbre(BigDecimal.ZERO);
+        bonDeLivraison.setMontantTotal(bonDeLivraison.getMontantTTC().add(bonDeLivraison.getMontantTimbre()));
+        bonDeLivraisonRepository.save(bonDeLivraison);
+        
+        if (bonDeCommande.getVehicule() != null) {
+            List<sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier> fiches = ficheAtelierRepository.findByVehiculeIdAndStatut(
+                    bonDeCommande.getVehicule().getId(), 
+                    sn.oas.facturation.ficheAtelier.data.enums.StatutReparation.EN_ATTENTE_COMMANDE);
+            
+            for (sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier fiche : fiches) {
+                sn.oas.facturation.proforma.data.entity.Proforma proforma = proformaRepository.findByFicheAtelierId(fiche.getId()).orElse(null);
+                if (proforma != null && fiche.getVehicule().getClient() != null) {
+                    List<sn.oas.facturation.bonDeSortie.dto.LignePieceRequest> lignesPieces = new ArrayList<>();
+                    for (sn.oas.facturation.facturation.data.entity.LigneFacturationPiece lp : proforma.getLignesFacturationPieces()) {
+                        PieceDetache piece = pieceDetacheRepository.findById(lp.getPiece().getId()).orElse(null);
+                        if (piece instanceof PDP pdp) {
+                            int stockAtelier = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0;
+                            int stockMagasin = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0;
+                            int manquantAtelier = Math.max(0, lp.getQuantite() - stockAtelier);
+                            int aSortirMagasin = Math.min(manquantAtelier, stockMagasin);
+                            if (aSortirMagasin > 0) {
+                                lignesPieces.add(new sn.oas.facturation.bonDeSortie.dto.LignePieceRequest(pdp.getId(), aSortirMagasin));
+                            }
+                        }
+                    }
+                    List<sn.oas.facturation.bonDeSortie.dto.LigneMainDoeuvreRequest> lignesMO = new ArrayList<>();
+                    for (sn.oas.facturation.facturation.data.entity.LigneFacturationMainDoeuvre lm : proforma.getLignesFacturationMainDoeuvres()) {
+                        lignesMO.add(new sn.oas.facturation.bonDeSortie.dto.LigneMainDoeuvreRequest(lm.getMainDoeuvre().getId(), lm.getNbreHeure()));
+                    }
+                    if (!lignesPieces.isEmpty() || !lignesMO.isEmpty()) {
+                        sn.oas.facturation.bonDeSortie.dto.BonDeSortieRequest bdsRequest = new sn.oas.facturation.bonDeSortie.dto.BonDeSortieRequest(
+                            fiche.getVehicule().getClient().getId(),
+                            fiche.getVehicule().getId(),
+                            lignesPieces, lignesMO,
+                            "Bon de sortie auto suite réception commande"
+                        );
+                        try {
+                            sn.oas.facturation.bonDeSortie.data.entity.BonDeSortie bds = bonDeSortieService.creer(bdsRequest);
+                            bonDeSortieService.valider(bds.getId());
+                        } catch (Exception e) {
+                            log.error("Erreur auto bon de sortie FA-" + fiche.getId(), e);
+                            throw new RuntimeException("Erreur lors de la création automatique du bon de sortie", e);
+                        }
+                    }
+                    fiche.setStatut(sn.oas.facturation.ficheAtelier.data.enums.StatutReparation.EN_COURS);
+                    ficheAtelierRepository.save(fiche);
+                }
+            }
+        }
+        
+        return mapToResponse(bonDeCommandeRepository.save(bonDeCommande));
+    }
+
+    @Override
+    @Transactional
+    public BonDeCommandeResponse assignerFournisseur(Long id, Long fournisseurId) {
+        BonDeCommande bonDeCommande = bonDeCommandeRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Bon de commande non trouvé"));
+        if (bonDeCommande.getStatut() != StatutBonCommande.EN_ATTENTE) {
+            throw new RuntimeException("Le fournisseur ne peut être modifié que sur un bon en attente.");
+        }
+        Fournisseur fournisseur = fournisseurRepository.findById(fournisseurId)
+                .orElseThrow(() -> new RuntimeException("Fournisseur non trouvé"));
+        bonDeCommande.setFournisseur(fournisseur);
+        bonDeCommande.setDateModification(LocalDateTime.now());
         return mapToResponse(bonDeCommandeRepository.save(bonDeCommande));
     }
 

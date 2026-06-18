@@ -22,4 +22,12 @@ public class PDP extends PieceDetache {
     private Integer stockMagasin;
     private Double prix;
     private Integer seuilMinimum;
+
+    @jakarta.persistence.PrePersist
+    @jakarta.persistence.PreUpdate
+    protected void calculateQteReelle() {
+        this.stockAtelier = this.stockAtelier == null ? 0 : this.stockAtelier;
+        this.stockMagasin = this.stockMagasin == null ? 0 : this.stockMagasin;
+        this.qteReelle = this.stockAtelier + this.stockMagasin;
+    }
 }

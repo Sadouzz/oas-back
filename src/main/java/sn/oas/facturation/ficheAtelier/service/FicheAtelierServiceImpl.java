@@ -37,9 +37,18 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
 
         String numero = request.getNumero();
         if (numero == null || numero.trim().isEmpty()) {
-            FicheAtelier derniereFiche = ficheAtelierRepository.findTopByOrderByIdDesc();
-            long nextId = derniereFiche != null ? derniereFiche.getId() + 1 : 1;
-            numero = String.format("FA-%d-%04d", java.time.Year.now().getValue(), nextId);
+            String prefix = String.format("FA-%d-", java.time.Year.now().getValue());
+            FicheAtelier derniereFiche = ficheAtelierRepository.findTopByNumeroStartingWithOrderByNumeroDesc(prefix);
+            long nextId = 1;
+            if (derniereFiche != null && derniereFiche.getNumero() != null && derniereFiche.getNumero().startsWith(prefix)) {
+                try {
+                    String lastSeq = derniereFiche.getNumero().substring(prefix.length());
+                    nextId = Long.parseLong(lastSeq) + 1;
+                } catch (NumberFormatException e) {
+                    nextId = derniereFiche.getId() + 1;
+                }
+            }
+            numero = String.format("%s%04d", prefix, nextId);
         }
 
         FicheAtelier ficheAtelier = FicheAtelier.builder()

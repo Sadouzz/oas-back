@@ -58,7 +58,7 @@ public class BonDeCommande {
         private String observation;
 
         @ManyToOne(fetch = FetchType.LAZY)
-        @JoinColumn(name = "fournisseur_id", nullable = false)
+        @JoinColumn(name = "fournisseur_id")
         private Fournisseur fournisseur;
 
         @ManyToOne(fetch = FetchType.LAZY)

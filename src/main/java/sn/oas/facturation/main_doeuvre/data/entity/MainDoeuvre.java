@@ -28,7 +28,7 @@ public class MainDoeuvre {
     @Column(nullable = false)
     private String description;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "categorie_id")
     private CategorieMainDoeuvre categorie;
 
