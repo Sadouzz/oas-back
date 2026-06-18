@@ -23,4 +23,6 @@ public interface FicheAtelierRepository extends JpaRepository<FicheAtelier, Long
             "LOWER(f.vehicule.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<FicheAtelier> searchFichesAtelier(@Param("keyword") String keyword);
     List<FicheAtelier> findByVehiculeClientIdOrderByDateCreationDesc(Long clientId);
+    List<FicheAtelier> findByVehiculeIdAndStatut(Long vehiculeId, sn.oas.facturation.ficheAtelier.data.enums.StatutReparation statut);
+    FicheAtelier findTopByOrderByIdDesc();
 }

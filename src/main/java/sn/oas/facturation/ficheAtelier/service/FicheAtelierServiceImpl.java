@@ -22,6 +22,8 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     private final FicheAtelierRepository ficheAtelierRepository;
     private final VehiculeRepository vehiculeRepository;
     private final MecanicienRepository mecanicienRepository;
+    private final sn.oas.facturation.proforma.repository.ProformaRepository proformaRepository;
+    private final sn.oas.facturation.piecedetache.repository.PieceDetacheRepository pieceDetacheRepository;
 
     @Override
     public FicheAtelier createFicheAtelier(FicheAtelierRequest request) {
@@ -33,8 +35,15 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
             throw new RuntimeException("L'ID du véhicule est obligatoire");
         }
 
+        String numero = request.getNumero();
+        if (numero == null || numero.trim().isEmpty()) {
+            FicheAtelier derniereFiche = ficheAtelierRepository.findTopByOrderByIdDesc();
+            long nextId = derniereFiche != null ? derniereFiche.getId() + 1 : 1;
+            numero = String.format("FA-%d-%04d", java.time.Year.now().getValue(), nextId);
+        }
+
         FicheAtelier ficheAtelier = FicheAtelier.builder()
-                .numero(request.getNumero())
+                .numero(numero)
                 .descriptionTravaux(request.getDescriptionTravaux())
                 .listeReception(request.getListeReception())
                 .listeDefauts(request.getListeDefauts())
@@ -109,15 +118,34 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
         ficheAtelierRepository.save(fiche);
     }
 
+    @Transactional
     @Override
     public FicheAtelier updateStatut(Long id, String statut) {
         FicheAtelier fiche = ficheAtelierRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        StatutReparation newStatut;
         try {
-            fiche.setStatut(StatutReparation.valueOf(statut));
+            newStatut = StatutReparation.valueOf(statut);
         } catch (IllegalArgumentException e) {
             throw new RuntimeException("Statut invalide : " + statut);
         }
+
+        // Si la réparation se termine, on déduit les pièces du proforma du stock de l'atelier
+        if (newStatut == StatutReparation.TERMINE && fiche.getStatut() != StatutReparation.TERMINE) {
+            proformaRepository.findByFicheAtelierId(id).ifPresent(proforma -> {
+                for (sn.oas.facturation.facturation.data.entity.LigneFacturationPiece lp : proforma.getLignesFacturationPieces()) {
+                    sn.oas.facturation.piecedetache.data.entity.PieceDetache piece = pieceDetacheRepository.findById(lp.getPiece().getId()).orElse(null);
+                    if (piece != null && piece instanceof sn.oas.facturation.piecedetache.data.entity.PDP pdp) {
+                        int currentAtelier = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0;
+                        int quantiteUtilisee = lp.getQuantite();
+                        pdp.setStockAtelier(Math.max(0, currentAtelier - quantiteUtilisee));
+                        pieceDetacheRepository.save(pdp);
+                    }
+                }
+            });
+        }
+
+        fiche.setStatut(newStatut);
         return ficheAtelierRepository.save(fiche);
     }
 }

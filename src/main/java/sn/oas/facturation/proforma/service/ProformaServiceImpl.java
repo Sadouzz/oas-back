@@ -390,9 +390,9 @@ public class ProformaServiceImpl implements ProformaService {
     @Override
     @Transactional(readOnly = true)
     public ProformaResponse getByFicheAtelierId(Long ficheAtelierId) {
-        Proforma proforma = proformaRepository.findByFicheAtelierId(ficheAtelierId)
-                .orElseThrow(() -> new IllegalArgumentException("Proforma non trouvé pour la fiche atelier : " + ficheAtelierId));
-        return mapToResponse(proforma);
+        return proformaRepository.findByFicheAtelierId(ficheAtelierId)
+                .map(this::mapToResponse)
+                .orElse(null);
     }
 
     @Override

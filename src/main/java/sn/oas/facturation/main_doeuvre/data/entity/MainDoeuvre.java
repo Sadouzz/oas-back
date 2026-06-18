@@ -39,6 +39,7 @@ public class MainDoeuvre {
     @Builder.Default
     private Boolean isArchived = false;
 
+    @com.fasterxml.jackson.annotation.JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "bon_de_sortie_id", nullable = true)
     private BonDeSortie bonDeSortie;

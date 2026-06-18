@@ -20,4 +20,16 @@ public class FacturationApplication {
 		SpringApplication.run(FacturationApplication.class, args);
 	}
 
+	@org.springframework.context.annotation.Bean
+	org.springframework.boot.CommandLineRunner cleanupDb(org.springframework.jdbc.core.JdbcTemplate jdbcTemplate) {
+		return args -> {
+			try {
+				jdbcTemplate.execute("ALTER TABLE main_doeuvre DROP COLUMN IF EXISTS categorie CASCADE;");
+				System.out.println("====== DB CLEANUP: Obsolete column 'categorie' dropped successfully ======");
+			} catch (Exception e) {
+				System.out.println("====== DB CLEANUP INFO: " + e.getMessage() + " ======");
+			}
+		};
+	}
+
 }

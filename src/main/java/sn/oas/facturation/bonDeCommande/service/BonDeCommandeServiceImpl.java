@@ -45,6 +45,9 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
     private final FournisseurRepository fournisseurRepository;
     private final VehiculeRepository vehiculeRepository;
     private final PieceDetacheRepository pieceDetacheRepository;
+    private final sn.oas.facturation.ficheAtelier.repository.FicheAtelierRepository ficheAtelierRepository;
+    private final sn.oas.facturation.bonDeSortie.service.BonDeSortieService bonDeSortieService;
+    private final sn.oas.facturation.proforma.repository.ProformaRepository proformaRepository;
 
     private final PdfGeneratorService pdfGeneratorService;
     private final UserRepository userRepository;
@@ -267,6 +270,56 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                     // Les pièces de type PDG (Pièce Détachée Générique) ne gèrent pas le stock ici
                 }
                 pieceDetacheRepository.save(piece);
+            }
+        }
+        
+        // Auto-générer le Bon de Sortie pour la fiche atelier en attente
+        if (bonDeCommande.getVehicule() != null) {
+            List<sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier> fiches = ficheAtelierRepository.findByVehiculeIdAndStatut(
+                    bonDeCommande.getVehicule().getId(), 
+                    sn.oas.facturation.ficheAtelier.data.enums.StatutReparation.EN_ATTENTE_COMMANDE);
+            
+            for (sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier fiche : fiches) {
+                sn.oas.facturation.proforma.data.entity.Proforma proforma = proformaRepository.findByFicheAtelierId(fiche.getId()).orElse(null);
+                if (proforma != null && fiche.getVehicule().getClient() != null) {
+                    List<sn.oas.facturation.bonDeSortie.dto.LignePieceRequest> lignesPieces = new ArrayList<>();
+                    for (sn.oas.facturation.facturation.data.entity.LigneFacturationPiece lp : proforma.getLignesFacturationPieces()) {
+                        PieceDetache piece = pieceDetacheRepository.findById(lp.getPiece().getId()).orElse(null);
+                        if (piece instanceof PDP pdp) {
+                            int stockAtelier = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0;
+                            int stockMagasin = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0;
+                            int manquantAtelier = Math.max(0, lp.getQuantite() - stockAtelier);
+                            int aSortirMagasin = Math.min(manquantAtelier, stockMagasin);
+                            
+                            if (aSortirMagasin > 0) {
+                                lignesPieces.add(new sn.oas.facturation.bonDeSortie.dto.LignePieceRequest(pdp.getId(), aSortirMagasin));
+                            }
+                        }
+                    }
+                    
+                    List<sn.oas.facturation.bonDeSortie.dto.LigneMainDoeuvreRequest> lignesMO = new ArrayList<>();
+                    for (sn.oas.facturation.facturation.data.entity.LigneFacturationMainDoeuvre lm : proforma.getLignesFacturationMainDoeuvres()) {
+                        lignesMO.add(new sn.oas.facturation.bonDeSortie.dto.LigneMainDoeuvreRequest(lm.getMainDoeuvre().getId(), lm.getNbreHeure()));
+                    }
+                    
+                    sn.oas.facturation.bonDeSortie.dto.BonDeSortieRequest bdsRequest = new sn.oas.facturation.bonDeSortie.dto.BonDeSortieRequest(
+                        fiche.getVehicule().getClient().getId(),
+                        fiche.getVehicule().getId(),
+                        lignesPieces,
+                        lignesMO,
+                        "Bon de sortie automatique suite à la réception de commande"
+                    );
+                    
+                    try {
+                        sn.oas.facturation.bonDeSortie.data.entity.BonDeSortie bds = bonDeSortieService.creer(bdsRequest);
+                        bonDeSortieService.valider(bds.getId());
+                        
+                        fiche.setStatut(sn.oas.facturation.ficheAtelier.data.enums.StatutReparation.EN_COURS);
+                        ficheAtelierRepository.save(fiche);
+                    } catch (Exception e) {
+                        log.error("Erreur auto bon de sortie FA-" + fiche.getId(), e);
+                    }
+                }
             }
         }
         

@@ -37,7 +37,9 @@ public class MainDoeuvreServiceImpl implements MainDoeuvreService {
 
         MainDoeuvre mainDoeuvre = MainDoeuvre.builder()
                 .prix(request.prix())
-                .description("Prestation : " + categorie.getNom())
+                .description(request.description() != null && !request.description().trim().isEmpty() 
+                             ? request.description() 
+                             : "Prestation : " + categorie.getNom())
                 .categorie(categorie)
                 .nbreHeure(request.nbreHeure())
                 .isArchived(request.isArchived() != null ? request.isArchived() : false)
@@ -54,10 +56,16 @@ public class MainDoeuvreServiceImpl implements MainDoeuvreService {
         if (request.prix() != null) {
             mainDoeuvre.setPrix(request.prix());
         }
+        if (request.description() != null && !request.description().trim().isEmpty()) {
+            mainDoeuvre.setDescription(request.description());
+        }
         if (request.categorieId() != null) {
             CategorieMainDoeuvre categorie = categorieMainDoeuvreRepository.findById(request.categorieId())
                     .orElseThrow(() -> new RuntimeException("Catégorie de main d'oeuvre non trouvée"));
             mainDoeuvre.setCategorie(categorie);
+            if (request.description() == null || request.description().trim().isEmpty()) {
+                mainDoeuvre.setDescription("Prestation : " + categorie.getNom());
+            }
         }
         if (request.nbreHeure() != null) {
             mainDoeuvre.setNbreHeure(request.nbreHeure());
