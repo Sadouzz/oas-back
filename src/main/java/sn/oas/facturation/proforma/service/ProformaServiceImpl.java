@@ -611,6 +611,7 @@ public class ProformaServiceImpl implements ProformaService {
                 .montantTimbre(p.getMontantTimbre())
                 .montantAutre(BigDecimal.ZERO)
                 .montantTotal(p.getMontantTotal())
+                .statut(p.getStatut() != null ? p.getStatut().name() : null)
                 .agentId(p.getAgent() != null ? p.getAgent().getId() : null)
                 .agentNom(p.getAgent() != null ? p.getAgent().getFirstName() + " " + p.getAgent().getLastName() : null)
                 .remarque(p.getRemarque())

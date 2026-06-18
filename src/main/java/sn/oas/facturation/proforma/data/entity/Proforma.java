@@ -15,8 +15,7 @@ import java.math.BigDecimal;
 @Entity
 @Table(name = "proformas")
 @Data
-// @NoArgsConstructor
-// @AllArgsConstructor
+@NoArgsConstructor
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 public class Proforma extends FactureTTC {

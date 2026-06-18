@@ -60,7 +60,7 @@ public class Vehicule {
     private LocalDateTime updatedAt = LocalDateTime.now();
 
     @OneToMany(mappedBy = "vehicule", cascade = CascadeType.ALL, orphanRemoval = true)
-    @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"vehicule", "mecaniciens", "facturations", "bonDeSortie"})
+    @JsonIgnore
     private List<FicheAtelier> fichesAtelier;
 
 

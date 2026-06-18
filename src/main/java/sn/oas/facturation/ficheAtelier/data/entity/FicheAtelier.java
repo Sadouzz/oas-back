@@ -82,7 +82,7 @@ public class FicheAtelier {
 
     @OneToMany(mappedBy = "ficheAtelier", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    @com.fasterxml.jackson.annotation.JsonIgnoreProperties("ficheAtelier")
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private List<Facturation> facturations = new ArrayList<>();
 
     @PrePersist
