@@ -1,5 +1,6 @@
 package sn.oas.facturation.proforma.service;
 
+import sn.oas.facturation.auth.data.entity.Client;
 import sn.oas.facturation.facture.dto.FactureResponse;
 import sn.oas.facturation.proforma.dto.ProformaCreateRequest;
 import sn.oas.facturation.proforma.dto.ProformaResponse;
@@ -20,4 +21,8 @@ public interface ProformaService {
     ProformaResponse valider(Long id);
     byte[] generatePdf(Long id);
     FactureResponse convertToFacture(Long id);
+
+    List<ProformaResponse> getClientProformas(Client client);
+    ProformaResponse clientValider(Long id, Client client);
+    ProformaResponse clientRefuser(Long id, Client client);
 }

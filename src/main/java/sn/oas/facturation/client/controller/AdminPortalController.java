@@ -51,6 +51,18 @@ public class AdminPortalController {
         }
     }
 
+    @PostMapping("/rendezvous/{id}/valider")
+    @Operation(summary = "Valider un rendez-vous client et créer la fiche d'atelier associée")
+    public ResponseEntity<?> validerRendezVous(
+            @PathVariable Long id,
+            @RequestBody List<Long> mecanicienIds) {
+        try {
+            return ResponseEntity.ok(rendezvousService.validerRendezVous(id, mecanicienIds));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     // --- Paiement & Reçu ---
     @PostMapping("/factures/{id}/payer")
     @Operation(summary = "Enregistrer un paiement (total ou partiel) pour une facture")

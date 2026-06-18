@@ -41,6 +41,7 @@ import sn.oas.facturation.vehicule.repository.VehiculeRepository;
 import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
 import sn.oas.facturation.ficheAtelier.repository.FicheAtelierRepository;
 import sn.oas.facturation.ficheAtelier.data.enums.StatutReparation;
+import sn.oas.facturation.notification.service.NotificationService;
 
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
@@ -64,6 +65,7 @@ public class ProformaServiceImpl implements ProformaService {
     private final MainDoeuvreRepository mainDoeuvreRepository;
     private final FicheAtelierRepository ficheAtelierRepository;
     private final AuthService authService;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -164,11 +166,11 @@ public class ProformaServiceImpl implements ProformaService {
         List<LigneFacturationPiece> lignesPieces = new ArrayList<>();
         List<LigneFacturationMainDoeuvre> lignesMainDoeuvres = new ArrayList<>();
 
-        FicheAtelier ficheAtelier = null;
-        if (request.getFicheAtelierId() != null) {
-            ficheAtelier = ficheAtelierRepository.findById(request.getFicheAtelierId())
-                    .orElseThrow(() -> new IllegalArgumentException("Fiche Atelier non trouvée avec l'id : " + request.getFicheAtelierId()));
+        if (request.getFicheAtelierId() == null) {
+            throw new IllegalArgumentException("La Fiche Atelier est obligatoire pour créer un proforma.");
         }
+        FicheAtelier ficheAtelier = ficheAtelierRepository.findById(request.getFicheAtelierId())
+                .orElseThrow(() -> new IllegalArgumentException("Fiche Atelier non trouvée avec l'id : " + request.getFicheAtelierId()));
 
         Proforma proforma = Proforma.builder()
                 .numero("PR-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
@@ -241,6 +243,15 @@ public class ProformaServiceImpl implements ProformaService {
         if (ficheAtelier != null) {
             ficheAtelier.setStatut(StatutReparation.EN_ATTENTE_PROFORMA);
             ficheAtelierRepository.save(ficheAtelier);
+        }
+
+        // Envoyer une notification au client
+        try {
+            String immatStr = (ficheAtelier != null && ficheAtelier.getVehicule() != null) ? " " + ficheAtelier.getVehicule().getImmatriculation() : "";
+            notificationService.sendNotification(client, "Nouveau proforma",
+                    "Un nouveau proforma " + saved.getNumero() + " a été créé pour votre véhicule" + immatStr + ".");
+        } catch (Exception e) {
+            log.error("Erreur lors de l'envoi de notification de création de proforma", e);
         }
 
         return mapToResponse(saved);
@@ -694,5 +705,64 @@ public class ProformaServiceImpl implements ProformaService {
                                 .build())
                         .collect(Collectors.toList()))
                 .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProformaResponse> getClientProformas(Client client) {
+        log.info("Récupération des proformas pour le client ID: {}", client.getId());
+        return proformaRepository.findByClientId(client.getId()).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public ProformaResponse clientValider(Long id, Client client) {
+        log.info("Validation du proforma ID: {} par le client ID: {}", id, client.getId());
+        Proforma proforma = proformaRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Proforma non trouvé avec l'id : " + id));
+
+        if (proforma.getFicheAtelier() == null ||
+                proforma.getFicheAtelier().getVehicule() == null ||
+                proforma.getFicheAtelier().getVehicule().getClient() == null ||
+                !proforma.getFicheAtelier().getVehicule().getClient().getId().equals(client.getId())) {
+            throw new IllegalArgumentException("Ce proforma ne vous appartient pas.");
+        }
+
+        proforma.setStatut(sn.oas.facturation.facturation.data.enums.StatutFacturation.ACCEPTE);
+        
+        FicheAtelier ficheAtelier = proforma.getFicheAtelier();
+        if (ficheAtelier != null) {
+            ficheAtelier.setStatut(StatutReparation.EN_COURS);
+            ficheAtelierRepository.save(ficheAtelier);
+        }
+
+        return mapToResponse(proformaRepository.save(proforma));
+    }
+
+    @Override
+    @Transactional
+    public ProformaResponse clientRefuser(Long id, Client client) {
+        log.info("Refus du proforma ID: {} par le client ID: {}", id, client.getId());
+        Proforma proforma = proformaRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Proforma non trouvé avec l'id : " + id));
+
+        if (proforma.getFicheAtelier() == null ||
+                proforma.getFicheAtelier().getVehicule() == null ||
+                proforma.getFicheAtelier().getVehicule().getClient() == null ||
+                !proforma.getFicheAtelier().getVehicule().getClient().getId().equals(client.getId())) {
+            throw new IllegalArgumentException("Ce proforma ne vous appartient pas.");
+        }
+
+        proforma.setStatut(sn.oas.facturation.facturation.data.enums.StatutFacturation.REJETE);
+        
+        FicheAtelier ficheAtelier = proforma.getFicheAtelier();
+        if (ficheAtelier != null) {
+            ficheAtelier.setStatut(StatutReparation.A_FAIRE);
+            ficheAtelierRepository.save(ficheAtelier);
+        }
+
+        return mapToResponse(proformaRepository.save(proforma));
     }
 }

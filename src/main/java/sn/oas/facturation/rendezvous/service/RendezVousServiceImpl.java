@@ -12,6 +12,11 @@ import sn.oas.facturation.rendezvous.dto.RendezVousResponse;
 import sn.oas.facturation.rendezvous.repository.RendezVousRepository;
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.vehicule.repository.VehiculeRepository;
+import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
+import sn.oas.facturation.ficheAtelier.repository.FicheAtelierRepository;
+import sn.oas.facturation.ficheAtelier.data.enums.StatutReparation;
+import sn.oas.facturation.mecanicien.data.entity.Mecanicien;
+import sn.oas.facturation.mecanicien.repository.MecanicienRepository;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -23,6 +28,8 @@ public class RendezVousServiceImpl implements RendezVousService {
     private final RendezVousRepository rendezvousRepository;
     private final VehiculeRepository vehiculeRepository;
     private final NotificationService notificationService;
+    private final FicheAtelierRepository ficheAtelierRepository;
+    private final MecanicienRepository mecanicienRepository;
 
     @Transactional
     @Override
@@ -111,6 +118,51 @@ public class RendezVousServiceImpl implements RendezVousService {
         if (commentaire != null && !commentaire.trim().isEmpty()) {
             message += " Commentaire : " + commentaire;
         }
+        notificationService.sendNotification(rv.getClient(), titre, message);
+
+        return RendezVousResponse.of(rv);
+    }
+
+    @Transactional
+    @Override
+    public RendezVousResponse validerRendezVous(Long id, List<Long> mecanicienIds) {
+        RendezVous rv = rendezvousRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Rendez-vous non trouvé"));
+
+        if (rv.getVehicule() == null) {
+            throw new IllegalStateException("Le rendez-vous doit être associé à un véhicule pour être validé et transformé en fiche d'atelier.");
+        }
+
+        if (mecanicienIds == null || mecanicienIds.isEmpty()) {
+            throw new IllegalArgumentException("Au moins un mécanicien doit être assigné pour valider le rendez-vous");
+        }
+
+        // 1. Changer le statut du rendez-vous à CONFIRME
+        rv.setStatut(RendezVousStatus.CONFIRME);
+        rendezvousRepository.save(rv);
+
+        // 2. Récupérer les mécaniciens
+        List<Mecanicien> mecaniciens = mecanicienRepository.findAllById(mecanicienIds);
+        if (mecaniciens.isEmpty()) {
+            throw new IllegalArgumentException("Aucun mécanicien valide trouvé pour les IDs fournis");
+        }
+
+        // 3. Créer la fiche atelier
+        FicheAtelier ficheAtelier = FicheAtelier.builder()
+                .numero("FA-" + java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase())
+                .descriptionTravaux(rv.getMotif())
+                .listeReception("")
+                .listeDefauts("")
+                .vehicule(rv.getVehicule())
+                .mecaniciens(mecaniciens)
+                .statut(StatutReparation.A_FAIRE)
+                .build();
+
+        ficheAtelierRepository.save(ficheAtelier);
+
+        // 4. Notification au client
+        String titre = "Rendez-vous validé";
+        String message = "Votre rendez-vous du " + rv.getDateRendezVous() + " a été validé. Une fiche d'atelier " + ficheAtelier.getNumero() + " a été créée.";
         notificationService.sendNotification(rv.getClient(), titre, message);
 
         return RendezVousResponse.of(rv);

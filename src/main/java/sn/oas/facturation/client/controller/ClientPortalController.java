@@ -16,6 +16,8 @@ import sn.oas.facturation.messagerie.dto.MessageResponse;
 import sn.oas.facturation.messagerie.service.MessageService;
 import sn.oas.facturation.notification.dto.NotificationResponse;
 import sn.oas.facturation.notification.service.NotificationService;
+import sn.oas.facturation.proforma.dto.ProformaResponse;
+import sn.oas.facturation.proforma.service.ProformaService;
 import sn.oas.facturation.recu.dto.RecuResponse;
 import sn.oas.facturation.recu.service.RecuService;
 import sn.oas.facturation.rendezvous.dto.RendezVousRequest;
@@ -41,6 +43,7 @@ public class ClientPortalController {
     private final RecuService recuService;
     private final NotificationService notificationService;
     private final MessageService messageService;
+    private final ProformaService proformaService;
 
     // --- Profil ---
     @GetMapping("/me")
@@ -201,6 +204,36 @@ public class ClientPortalController {
         try {
             Client client = clientService.getClientConnecte();
             return ResponseEntity.ok(messageService.clientSendMessage(client, request));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // --- Proformas Client ---
+    @GetMapping("/proformas")
+    @Operation(summary = "Lister les proformas du client connecté")
+    public ResponseEntity<List<ProformaResponse>> getProformas() {
+        Client client = clientService.getClientConnecte();
+        return ResponseEntity.ok(proformaService.getClientProformas(client));
+    }
+
+    @PutMapping("/proformas/{id}/valider")
+    @Operation(summary = "Valider un proforma par le client connecté")
+    public ResponseEntity<?> validerProforma(@PathVariable Long id) {
+        try {
+            Client client = clientService.getClientConnecte();
+            return ResponseEntity.ok(proformaService.clientValider(id, client));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/proformas/{id}/refuser")
+    @Operation(summary = "Refuser un proforma par le client connecté")
+    public ResponseEntity<?> refuserProforma(@PathVariable Long id) {
+        try {
+            Client client = clientService.getClientConnecte();
+            return ResponseEntity.ok(proformaService.clientRefuser(id, client));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
