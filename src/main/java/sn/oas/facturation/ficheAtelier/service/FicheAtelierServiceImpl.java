@@ -108,4 +108,16 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
         fiche.getMecaniciens().remove(mecanicien);
         ficheAtelierRepository.save(fiche);
     }
+
+    @Override
+    public FicheAtelier updateStatut(Long id, String statut) {
+        FicheAtelier fiche = ficheAtelierRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        try {
+            fiche.setStatut(StatutReparation.valueOf(statut));
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("Statut invalide : " + statut);
+        }
+        return ficheAtelierRepository.save(fiche);
+    }
 }

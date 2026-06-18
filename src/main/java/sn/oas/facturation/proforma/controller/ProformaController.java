@@ -37,10 +37,22 @@ public class ProformaController {
         return ResponseEntity.ok(proformaService.update(id, request));
     }
 
+    @PutMapping("/{id}/valider")
+    @Operation(summary = "Valider un proforma (accord client)")
+    public ResponseEntity<ProformaResponse> valider(@PathVariable Long id) {
+        return ResponseEntity.ok(proformaService.valider(id));
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Récupérer un proforma par son ID")
     public ResponseEntity<ProformaResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(proformaService.getById(id));
+    }
+
+    @GetMapping("/fiche-atelier/{ficheAtelierId}")
+    @Operation(summary = "Récupérer le proforma lié à une fiche atelier")
+    public ResponseEntity<ProformaResponse> getByFicheAtelierId(@PathVariable Long ficheAtelierId) {
+        return ResponseEntity.ok(proformaService.getByFicheAtelierId(ficheAtelierId));
     }
 
     @GetMapping

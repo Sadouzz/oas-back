@@ -48,7 +48,7 @@ public class WebSecurityConfig {
 //        config.setAllowedOrigins(List.of(allowedOrigins));
         config.setAllowedOrigins(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
+        config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);
 
@@ -75,10 +75,11 @@ public class WebSecurityConfig {
                     "/swagger-ui/**",
                     "/swagger-ui.html",
                     "/v3/api-docs",
-                    "/v3/api-docs/**",
-                    "/actuator/**"
+                    "/actuator/**",
+                    "/error"
                 ).permitAll()
-                    .requestMatchers("/api/admin/users/**", "/api/admin/connection-history/**").hasRole("SUPER_AGENT")
+                    .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+                    .requestMatchers("/api/admin/users/**", "/api/admin/connection-history/**").hasAnyAuthority("ROLE_SUPER_AGENT", "SUPER_AGENT")
 
                 .anyRequest().authenticated()
             );

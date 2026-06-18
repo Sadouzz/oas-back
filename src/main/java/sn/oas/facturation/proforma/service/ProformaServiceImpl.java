@@ -38,6 +38,9 @@ import sn.oas.facturation.proforma.dto.ProformaUpdateRequest;
 import sn.oas.facturation.proforma.repository.ProformaRepository;
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.vehicule.repository.VehiculeRepository;
+import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
+import sn.oas.facturation.ficheAtelier.repository.FicheAtelierRepository;
+import sn.oas.facturation.ficheAtelier.data.enums.StatutReparation;
 
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
@@ -59,6 +62,7 @@ public class ProformaServiceImpl implements ProformaService {
     private final VehiculeRepository vehiculeRepository;
     private final PieceDetacheRepository pieceDetacheRepository;
     private final MainDoeuvreRepository mainDoeuvreRepository;
+    private final FicheAtelierRepository ficheAtelierRepository;
     private final AuthService authService;
 
     @Override
@@ -160,6 +164,12 @@ public class ProformaServiceImpl implements ProformaService {
         List<LigneFacturationPiece> lignesPieces = new ArrayList<>();
         List<LigneFacturationMainDoeuvre> lignesMainDoeuvres = new ArrayList<>();
 
+        FicheAtelier ficheAtelier = null;
+        if (request.getFicheAtelierId() != null) {
+            ficheAtelier = ficheAtelierRepository.findById(request.getFicheAtelierId())
+                    .orElseThrow(() -> new IllegalArgumentException("Fiche Atelier non trouvée avec l'id : " + request.getFicheAtelierId()));
+        }
+
         Proforma proforma = Proforma.builder()
                 .numero("PR-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
                 .dateCreation(LocalDateTime.now())
@@ -167,6 +177,7 @@ public class ProformaServiceImpl implements ProformaService {
                 .agent(authService.getAgentConnecte())
                 // .client(client)
                 // .vehicule(vehicule)
+                .ficheAtelier(ficheAtelier)
                 .kilometrage(request.getKilometrage())
                 .remarque(request.getRemarque())
                 // .numeroBonDeCommande(request.getNumeroBonDeCommande())
@@ -226,6 +237,12 @@ public class ProformaServiceImpl implements ProformaService {
         proforma.setMontantTotal(proforma.getMontantTTC().add(timbre).add(autre));
 
         Proforma saved = proformaRepository.save(proforma);
+
+        if (ficheAtelier != null) {
+            ficheAtelier.setStatut(StatutReparation.EN_ATTENTE_PROFORMA);
+            ficheAtelierRepository.save(ficheAtelier);
+        }
+
         return mapToResponse(saved);
     }
 
@@ -372,6 +389,14 @@ public class ProformaServiceImpl implements ProformaService {
 
     @Override
     @Transactional(readOnly = true)
+    public ProformaResponse getByFicheAtelierId(Long ficheAtelierId) {
+        Proforma proforma = proformaRepository.findByFicheAtelierId(ficheAtelierId)
+                .orElseThrow(() -> new IllegalArgumentException("Proforma non trouvé pour la fiche atelier : " + ficheAtelierId));
+        return mapToResponse(proforma);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<ProformaResponse> getRecentProformas() {
         return proformaRepository.findTop5ByOrderByDateCreationDesc().stream()
                 .map(this::mapToResponse)
@@ -385,6 +410,24 @@ public class ProformaServiceImpl implements ProformaService {
             throw new IllegalArgumentException("Proforma non trouvé avec l'id : " + id);
         }
         proformaRepository.deleteById(id);
+    }
+
+    @Override
+    @Transactional
+    public ProformaResponse valider(Long id) {
+        log.info("Validation du proforma id: {}", id);
+        Proforma proforma = proformaRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Proforma non trouvé avec l'id : " + id));
+
+        proforma.setStatut(sn.oas.facturation.facturation.data.enums.StatutFacturation.ACCEPTE);
+        
+        FicheAtelier ficheAtelier = proforma.getFicheAtelier();
+        if (ficheAtelier != null) {
+            ficheAtelier.setStatut(StatutReparation.EN_COURS);
+            ficheAtelierRepository.save(ficheAtelier);
+        }
+
+        return mapToResponse(proformaRepository.save(proforma));
     }
 
     @Override

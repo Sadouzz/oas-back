@@ -18,6 +18,8 @@ public class ProformaCreateRequest {
 
     private Long vehiculeId;
 
+    private Long ficheAtelierId;
+
     @NotNull(message = "Le kilométrage est obligatoire")
     @Min(value = 0, message = "Le kilométrage doit être positif ou nul")
     private Double kilometrage;

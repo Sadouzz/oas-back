@@ -71,10 +71,12 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                     throw new IllegalArgumentException(
                             "La quantité doit être supérieure à zéro pour la pièce id=" + ligneReq.pieceId());
                 }
+                Integer prixPiece = (pdp.getPrix() != null) ? pdp.getPrix().intValue() : 0;
                 LigneBonDeSortiePiece ligne = LigneBonDeSortiePiece.builder()
                         .bonDeSortie(bon)
                         .piece(pdp)
                         .quantite(ligneReq.quantite())
+                        .prix(prixPiece)
                         .build();
                 bon.getLignesBonDeSortiePieces().add(ligne);
             }
@@ -87,10 +89,12 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                     throw new IllegalArgumentException(
                             "La quantité doit être supérieure à zéro pour la main d'oeuvre id=" + ligneReq.mainDoeuvreId());
                 }
+                Integer prixMo = (mainDoeuvre.getPrix() != null) ? mainDoeuvre.getPrix().intValue() : 0;
                 LigneBonDeSortieMainDoeuvre ligne = LigneBonDeSortieMainDoeuvre.builder()
                         .bonDeSortie(bon)
                         .mainDoeuvre(mainDoeuvre)
                         .quantite(ligneReq.quantite())
+                        .prix(prixMo)
                         .build();
                 bon.getLignesBonDeSortieMainDoeuvres().add(ligne);
             }

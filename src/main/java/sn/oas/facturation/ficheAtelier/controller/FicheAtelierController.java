@@ -33,7 +33,7 @@ public class FicheAtelierController {
                     .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
             return ResponseEntity.ok(ficheAtelier);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
         }
     }
 
@@ -44,7 +44,7 @@ public class FicheAtelierController {
             FicheAtelier ficheAtelier = ficheAtelierService.createFicheAtelier(request);
             return ResponseEntity.ok(ficheAtelier);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
         }
     }
 
@@ -55,7 +55,7 @@ public class FicheAtelierController {
             FicheAtelier ficheAtelier = ficheAtelierService.updateFicheAtelier(id, request);
             return ResponseEntity.ok(ficheAtelier);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
         }
     }
 
@@ -64,9 +64,9 @@ public class FicheAtelierController {
     public ResponseEntity<?> deleteFicheAtelier(@PathVariable Long id) {
         try {
             ficheAtelierService.deleteFicheAtelier(id);
-            return ResponseEntity.ok("Fiche Atelier supprimée avec succès !");
+            return ResponseEntity.ok("{\"message\": \"Fiche Atelier supprimée avec succès !\"}");
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
         }
     }
 
@@ -77,7 +77,7 @@ public class FicheAtelierController {
             ficheAtelierService.assignMecanicien(ficheId, mecanicienId);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
         }
     }
 
@@ -88,7 +88,18 @@ public class FicheAtelierController {
             ficheAtelierService.removeMecanicien(ficheId, mecanicienId);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
+    @PatchMapping("/{id}/statut")
+    @Operation(summary = "Mettre à jour le statut d'une fiche atelier")
+    public ResponseEntity<?> updateStatut(@PathVariable Long id, @RequestParam String statut) {
+        try {
+            FicheAtelier fiche = ficheAtelierService.updateStatut(id, statut);
+            return ResponseEntity.ok(fiche);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
         }
     }
 }

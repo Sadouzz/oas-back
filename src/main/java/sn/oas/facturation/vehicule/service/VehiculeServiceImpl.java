@@ -45,7 +45,7 @@ public class VehiculeServiceImpl implements VehiculeService {
                 .annee(request.annee())
                 .modele(request.modele())
                 .marque(request.marque())
-                .kilometrage(request.kilometrage())
+                .kilometrage(request.kilometrage() != null ? request.kilometrage() : 0.0)
                 .numeroChassis(request.numeroChassis())
                 .client(client)
                 .build();

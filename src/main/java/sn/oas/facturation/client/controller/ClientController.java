@@ -12,6 +12,9 @@ import sn.oas.facturation.client.service.ClientService;
 
 import java.util.List;
 
+import sn.oas.facturation.auth.service.AuthService;
+import sn.oas.facturation.auth.data.enums.TypeUser;
+
 @RestController
 @RequestMapping("/api/clients")
 @RequiredArgsConstructor
@@ -19,6 +22,7 @@ import java.util.List;
 public class ClientController {
 
     private final ClientService clientService;
+    private final AuthService authService;
 
     @GetMapping
     @Operation(summary = "Lister tous les clients ou rechercher par mot-clé")
@@ -45,15 +49,21 @@ public class ClientController {
         }
     }
 
-    /*@PostMapping("/create")
+    @PostMapping("/create")
+    @Operation(summary = "Créer un nouveau client")
     public ResponseEntity<?> createClient(@RequestBody RegisterRequest request) {
         try {
-            Client client = clientService.createClient(request);
-            return ResponseEntity.ok(client);
+            RegisterRequest clientReq = new RegisterRequest(
+                    request.matricule(), request.phone(), request.username(),
+                    request.firstName(), request.lastName(), request.email(),
+                    request.password(), TypeUser.CLIENT, null
+            );
+            authService.register(clientReq);
+            return ResponseEntity.ok("{\"message\": \"Client créé avec succès !\"}");
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
         }
-    }*/
+    }
 
     @PutMapping("/{id}")
     @Operation(summary = "Mettre à jour un client")

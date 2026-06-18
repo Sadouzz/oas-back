@@ -104,6 +104,16 @@ public class UserServiceImpl implements UserService{
     }
 
     @Override
+    public boolean existsByPhone(String phone) {
+        return userRepository.existsByPhone(phone);
+    }
+
+    @Override
+    public boolean existsByMatricule(String matricule) {
+        return userRepository.existsByMatricule(matricule);
+    }
+
+    @Override
     public Optional<User> findByUsernameOrEmail(String username, String email) {
         return userRepository.findByUsernameOrEmail(username, email);
     }

@@ -40,7 +40,7 @@ public class VehiculeController {
         try {
             return ResponseEntity.ok(vehiculeService.getVehiculeById(id));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
         }
     }
 
@@ -51,7 +51,7 @@ public class VehiculeController {
             Vehicule vehicule = vehiculeService.createVehicule(request);
             return ResponseEntity.ok(vehicule);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
         }
     }
 
@@ -62,7 +62,7 @@ public class VehiculeController {
             Vehicule vehicule = vehiculeService.updateVehicule(id, request);
             return ResponseEntity.ok(vehicule);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
         }
     }
 
@@ -71,9 +71,9 @@ public class VehiculeController {
     public ResponseEntity<?> deleteVehicule(@PathVariable Long id) {
         try {
             vehiculeService.deleteVehicule(id);
-            return ResponseEntity.ok("Véhicule supprimé avec succès !");
+            return ResponseEntity.ok("{\"message\": \"Véhicule supprimé avec succès !\"}");
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
         }
     }
 

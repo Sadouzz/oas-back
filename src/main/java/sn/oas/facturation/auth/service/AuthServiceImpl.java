@@ -64,23 +64,33 @@ public class AuthServiceImpl implements AuthService {
         if (userService.existsByUsername(request.username())) {
             throw new IllegalArgumentException("Username already in use: " + request.username());
         }
+        if (request.email() != null && !request.email().isEmpty() && userService.existsByEmail(request.email())) {
+            throw new IllegalArgumentException("Email already in use: " + request.email());
+        }
+        if (request.phone() != null && !request.phone().isEmpty() && userService.existsByPhone(request.phone())) {
+            throw new IllegalArgumentException("Phone number already in use: " + request.phone());
+        }
         User user;
 
         String matricule = request.matricule();
-        if (request.type() == TypeUser.CLIENT && (matricule == null || matricule.trim().isEmpty())) {
+        if (request.type() == TypeUser.CLIENT && (matricule == null || matricule.trim().isEmpty() || userService.existsByMatricule(matricule))) {
             String maxMatricule = clientRepository.findMaxClientMatricule();
-            long nextNumber = 1;
+            long nextNumber = clientRepository.count() + 1;
             if (maxMatricule != null && maxMatricule.startsWith("CLT-")) {
                 try {
                     String numStr = maxMatricule.substring(4);
-                    nextNumber = Long.parseLong(numStr) + 1;
-                } catch (NumberFormatException e) {
-                    nextNumber = clientRepository.count() + 1;
-                }
-            } else {
-                nextNumber = clientRepository.count() + 1;
+                    nextNumber = Math.max(nextNumber, Long.parseLong(numStr) + 1);
+                } catch (NumberFormatException ignored) {}
             }
             matricule = String.format("CLT-%05d", nextNumber);
+            while (userService.existsByMatricule(matricule)) {
+                nextNumber++;
+                matricule = String.format("CLT-%05d", nextNumber);
+            }
+        }
+
+        if (matricule != null && userService.existsByMatricule(matricule)) {
+            throw new IllegalArgumentException("Matricule already in use: " + matricule);
         }
 
         if (request.type() == TypeUser.AGENT)

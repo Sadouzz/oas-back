@@ -14,7 +14,10 @@ public interface ProformaService {
     List<ProformaResponse> getAll();
     List<ProformaResponse> search(String keyword);
     List<ProformaResponse> getRecentProformas();
+    ProformaResponse getByFicheAtelierId(Long ficheAtelierId);
     void delete(Long id);
+
+    ProformaResponse valider(Long id);
     byte[] generatePdf(Long id);
     FactureResponse convertToFacture(Long id);
 }

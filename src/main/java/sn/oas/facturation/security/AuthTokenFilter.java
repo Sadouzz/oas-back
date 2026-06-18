@@ -24,6 +24,11 @@ public class AuthTokenFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
+        
+        System.out.println("🔍 Incoming Request: " + request.getMethod() + " " + request.getRequestURI());
+        String headerAuth = request.getHeader("Authorization");
+        System.out.println("🔑 Authorization Header: " + (headerAuth != null ? "PRESENT" : "MISSING"));
+
         String jwt = parseJwt(request);
         if (jwt != null && jwtUtil.validateJwtToken(jwt)) {
             String email = jwtUtil.getUsernameFromToken(jwt);

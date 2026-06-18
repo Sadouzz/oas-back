@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import sn.oas.facturation.proforma.data.entity.Proforma;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ProformaRepository extends JpaRepository<Proforma, Long> {
@@ -23,4 +24,6 @@ public interface ProformaRepository extends JpaRepository<Proforma, Long> {
     List<Proforma> searchProformas(@Param("keyword") String keyword);
 
     List<Proforma> findTop5ByOrderByDateCreationDesc();
+
+    Optional<Proforma> findByFicheAtelierId(Long ficheAtelierId);
 }

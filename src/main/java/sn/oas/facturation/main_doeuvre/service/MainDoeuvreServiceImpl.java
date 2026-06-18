@@ -37,6 +37,7 @@ public class MainDoeuvreServiceImpl implements MainDoeuvreService {
 
         MainDoeuvre mainDoeuvre = MainDoeuvre.builder()
                 .prix(request.prix())
+                .description("Prestation : " + categorie.getNom())
                 .categorie(categorie)
                 .nbreHeure(request.nbreHeure())
                 .isArchived(request.isArchived() != null ? request.isArchived() : false)
