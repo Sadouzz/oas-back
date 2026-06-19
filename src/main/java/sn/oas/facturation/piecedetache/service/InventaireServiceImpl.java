@@ -87,6 +87,7 @@ public class InventaireServiceImpl implements InventaireService {
     private PDP getPDP(Long pieceId) {
         PieceDetache piece = pieceDetacheRepository.findById(pieceId)
                 .orElseThrow(() -> new RuntimeException("Pièce introuvable avec l'id : " + pieceId));
+        piece = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
         if (!(piece instanceof PDP pdp)) {
             throw new IllegalArgumentException("La pièce id=" + pieceId + " n'est pas une PDP");
         }

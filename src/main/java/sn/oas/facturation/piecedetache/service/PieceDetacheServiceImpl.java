@@ -67,6 +67,7 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
     @Override
     public PieceDetache update(Long id, PieceDetacheRequest request) {
         PieceDetache piece = getById(id);
+        piece = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
 
         if (request.numeroDeSerie() != null
                 && !request.numeroDeSerie().equalsIgnoreCase(piece.getNumeroDeSerie())) {

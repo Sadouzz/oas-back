@@ -278,6 +278,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
         for (LigneBonDeCommandePiece ligne : bonDeCommande.getLignes()) {
             PieceDetache piece = ligne.getPieceDetachee();
             if (piece != null) {
+                piece = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
                 if (piece instanceof PDP pdp) {
                     pdp.setQteReelle((pdp.getQteReelle() != null ? pdp.getQteReelle() : 0) + ligne.getQuantite());
                     pdp.setStockMagasin((pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0) + ligne.getQuantite());
@@ -300,6 +301,9 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                     List<sn.oas.facturation.bonDeSortie.dto.LignePieceRequest> lignesPieces = new ArrayList<>();
                     for (sn.oas.facturation.facturation.data.entity.LigneFacturationPiece lp : proforma.getLignesFacturationPieces()) {
                         PieceDetache piece = pieceDetacheRepository.findById(lp.getPiece().getId()).orElse(null);
+                        if (piece != null) {
+                            piece = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
+                        }
                         if (piece instanceof PDP pdp) {
                             int stockAtelier = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0;
                             int stockMagasin = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0;
@@ -365,7 +369,6 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
             .agent(agent)
             .bonDeCommande(bonDeCommande)
             .kilometrage(bonDeCommande.getVehicule() != null && bonDeCommande.getVehicule().getKilometrage() != null ? bonDeCommande.getVehicule().getKilometrage() : 0.0)
-            .paye(false)
             .lignesFacturationPieces(new ArrayList<>())
             .lignesFacturationMainDoeuvres(new ArrayList<>())
             .build();
@@ -384,6 +387,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
 
                     if (ligne.getPieceDetachee() != null) {
                         PieceDetache piece = ligne.getPieceDetachee();
+                        piece = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
                         if (piece instanceof PDP pdp) {
                             EntreeStockRequest entreeReq = new EntreeStockRequest(
                                     pdp.getId(),
@@ -424,6 +428,9 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                     List<sn.oas.facturation.bonDeSortie.dto.LignePieceRequest> lignesPieces = new ArrayList<>();
                     for (sn.oas.facturation.facturation.data.entity.LigneFacturationPiece lp : proforma.getLignesFacturationPieces()) {
                         PieceDetache piece = pieceDetacheRepository.findById(lp.getPiece().getId()).orElse(null);
+                        if (piece != null) {
+                            piece = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
+                        }
                         if (piece instanceof PDP pdp) {
                             int stockAtelier = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0;
                             int stockMagasin = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0;

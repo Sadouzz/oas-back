@@ -18,8 +18,6 @@ public class BonDeLivraisonUpdateRequest {
 
     private String remarque;
 
-    private Boolean paye;
-
     @Valid
     private List<LigneFacturationPieceRequest> lignesPieces;
 

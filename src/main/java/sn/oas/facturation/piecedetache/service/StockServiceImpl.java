@@ -39,8 +39,8 @@ public class StockServiceImpl implements StockService {
             throw new IllegalArgumentException("La quantité doit être supérieure à zéro");
         }
 
-        int magasinAvant = pdp.getStockMagasin();
-        int atelierAvant = pdp.getStockAtelier();
+        int magasinAvant = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0;
+        int atelierAvant = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0;
 
         pdp.setStockMagasin(magasinAvant + request.quantite());
         pdp.setQteReelle(pdp.getStockMagasin() + pdp.getStockAtelier());
@@ -68,16 +68,18 @@ public class StockServiceImpl implements StockService {
         if (request.quantite() == null || request.quantite() <= 0) {
             throw new IllegalArgumentException("La quantité doit être supérieure à zéro");
         }
-        if (pdp.getStockMagasin() < request.quantite()) {
+        int stockMagasinDisponible = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0;
+        if (stockMagasinDisponible < request.quantite()) {
             throw new IllegalArgumentException(
-                    "Stock magasin insuffisant. Disponible : " + pdp.getStockMagasin());
+                    "Stock magasin insuffisant. Disponible : " + stockMagasinDisponible);
         }
 
-        int magasinAvant = pdp.getStockMagasin();
-        int atelierAvant = pdp.getStockAtelier();
+        int magasinAvant = stockMagasinDisponible;
+        int atelierAvant = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0;
 
         pdp.setStockMagasin(magasinAvant - request.quantite());
         pdp.setStockAtelier(atelierAvant + request.quantite());
+        pdp.setQteReelle(pdp.getStockMagasin() + pdp.getStockAtelier());
         pieceDetacheRepository.save(pdp);
 
         return stockMouvementRepository.save(StockMouvement.builder()
@@ -106,8 +108,8 @@ public class StockServiceImpl implements StockService {
             throw new IllegalArgumentException("Le stock atelier ne peut pas être négatif");
         }
 
-        int magasinAvant = pdp.getStockMagasin();
-        int atelierAvant = pdp.getStockAtelier();
+        int magasinAvant = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0;
+        int atelierAvant = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0;
         int quantite = Math.abs(
                 (request.stockMagasin() + request.stockAtelier()) - (magasinAvant + atelierAvant));
 
@@ -149,6 +151,7 @@ public class StockServiceImpl implements StockService {
     private PDP getPDP(Long pieceId) {
         PieceDetache piece = pieceDetacheRepository.findById(pieceId)
                 .orElseThrow(() -> new RuntimeException("Pièce introuvable avec l'id : " + pieceId));
+        piece = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
         if (!(piece instanceof PDP pdp)) {
             throw new IllegalArgumentException("La pièce id=" + pieceId + " n'est pas une PDP");
         }

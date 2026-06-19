@@ -25,7 +25,6 @@ public class BonDeLivraisonResponse {
     private String agentNom;
     private String remarque;
     private Double kilometrage;
-    private Boolean paye;
     
     private Long bonDeCommandeId;
     private String bonDeCommandeNumero;

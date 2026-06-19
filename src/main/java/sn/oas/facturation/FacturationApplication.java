@@ -27,7 +27,13 @@ public class FacturationApplication {
 				jdbcTemplate.execute("ALTER TABLE main_doeuvre DROP COLUMN IF EXISTS categorie CASCADE;");
 				System.out.println("====== DB CLEANUP: Obsolete column 'categorie' dropped successfully ======");
 			} catch (Exception e) {
-				System.out.println("====== DB CLEANUP INFO: " + e.getMessage() + " ======");
+				System.out.println("====== DB CLEANUP INFO (main_doeuvre): " + e.getMessage() + " ======");
+			}
+			try {
+				jdbcTemplate.execute("ALTER TABLE bons_de_livraison DROP COLUMN IF EXISTS paye CASCADE;");
+				System.out.println("====== DB CLEANUP: Obsolete column 'paye' on 'bons_de_livraison' dropped successfully ======");
+			} catch (Exception e) {
+				System.out.println("====== DB CLEANUP INFO (bons_de_livraison): " + e.getMessage() + " ======");
 			}
 		};
 	}

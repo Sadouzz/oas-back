@@ -240,7 +240,6 @@ public class BonDeLivraisonServiceImpl implements BonDeLivraisonService {
                 .agentNom(bl.getAgent() != null ? bl.getAgent().getFirstName() + " " + bl.getAgent().getLastName() : null)
                 .remarque(bl.getRemarque())
                 .kilometrage(bl.getKilometrage())
-                .paye(bl.getPaye())
                 .bonDeCommandeId(bl.getBonDeCommande() != null ? bl.getBonDeCommande().getId() : null)
                 .bonDeCommandeNumero(bl.getBonDeCommande() != null ? bl.getBonDeCommande().getNumero() : null)
 

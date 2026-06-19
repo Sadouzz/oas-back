@@ -139,8 +139,10 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
             throw new RuntimeException("Statut invalide : " + statut);
         }
 
-        // Si la réparation se termine, on déduit les pièces du proforma du stock de l'atelier
-        if (newStatut == StatutReparation.TERMINE && fiche.getStatut() != StatutReparation.TERMINE) {
+        // Si la réparation se termine ou est livrée directement, on déduit les pièces du proforma du stock de l'atelier
+        if ((newStatut == StatutReparation.TERMINE || newStatut == StatutReparation.LIVRE)
+                && fiche.getStatut() != StatutReparation.TERMINE
+                && fiche.getStatut() != StatutReparation.LIVRE) {
             proformaRepository.findByFicheAtelierId(id).ifPresent(proforma -> {
                 for (sn.oas.facturation.facturation.data.entity.LigneFacturationPiece lp : proforma.getLignesFacturationPieces()) {
                     sn.oas.facturation.piecedetache.data.entity.PieceDetache piece = pieceDetacheRepository.findById(lp.getPiece().getId()).orElse(null);
@@ -148,6 +150,7 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
                         int currentAtelier = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0;
                         int quantiteUtilisee = lp.getQuantite();
                         pdp.setStockAtelier(Math.max(0, currentAtelier - quantiteUtilisee));
+                        pdp.setQteReelle((pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0) + pdp.getStockAtelier());
                         pieceDetacheRepository.save(pdp);
                     }
                 }

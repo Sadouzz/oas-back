@@ -13,20 +13,8 @@ import sn.oas.facturation.facturation.data.entity.FactureTTC;
 @Table(name = "bons_de_livraison")
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 public class BonDeLivraison extends FactureTTC {
 
-    @Column(nullable = false)
-    private Boolean paye;
-
-    @Override
-    @PrePersist
-    protected void onCreate() {
-        super.onCreate();
-        if (this.paye == null) {
-            this.paye = false;
-        }
-    }
 }

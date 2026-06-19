@@ -117,17 +117,19 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
             PDP pdp = ligne.getPiece();
             int quantite = ligne.getQuantite();
 
-            if (pdp.getStockMagasin() < quantite) {
+            int stockMagasinDisponible = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0;
+            if (stockMagasinDisponible < quantite) {
                 throw new IllegalArgumentException(
                         "Stock magasin insuffisant pour la pièce " + pdp.getReference()
-                        + ". Disponible : " + pdp.getStockMagasin() + ", demandé : " + quantite);
+                        + ". Disponible : " + stockMagasinDisponible + ", demandé : " + quantite);
             }
 
-            int magasinAvant = pdp.getStockMagasin();
-            int atelierAvant = pdp.getStockAtelier();
+            int magasinAvant = stockMagasinDisponible;
+            int atelierAvant = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0;
 
             pdp.setStockMagasin(magasinAvant - quantite);
             pdp.setStockAtelier(atelierAvant + quantite);
+            pdp.setQteReelle(pdp.getStockMagasin() + pdp.getStockAtelier());
             pieceDetacheRepository.save(pdp);
 
             stockMouvementRepository.save(StockMouvement.builder()
@@ -198,6 +200,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
     private PDP getPDP(Long pieceId) {
         PieceDetache piece = pieceDetacheRepository.findById(pieceId)
                 .orElseThrow(() -> new RuntimeException("Pièce introuvable avec l'id : " + pieceId));
+        piece = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
         if (!(piece instanceof PDP pdp)) {
             throw new IllegalArgumentException("La pièce id=" + pieceId + " n'est pas une PDP");
         }

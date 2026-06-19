@@ -70,6 +70,7 @@ public class AlerteServiceImpl implements AlerteService {
 
     private List<PDP> getAllPDP() {
         return pieceDetacheRepository.findByType(TypePiece.PDP).stream()
+                .map(p -> (PieceDetache) org.hibernate.Hibernate.unproxy(p))
                 .filter(p -> p instanceof PDP)
                 .map(p -> (PDP) p)
                 .toList();
