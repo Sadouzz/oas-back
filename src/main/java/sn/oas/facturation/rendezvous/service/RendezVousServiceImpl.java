@@ -70,6 +70,7 @@ public class RendezVousServiceImpl implements RendezVousService {
         return RendezVousResponse.of(rv);
     }
 
+    @Transactional(readOnly = true)
     @Override
     public List<RendezVousResponse> getClientRendezVous(Client client) {
         return rendezvousRepository.findByClientIdOrderByDateCreationDesc(client.getId())
@@ -78,6 +79,7 @@ public class RendezVousServiceImpl implements RendezVousService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     @Override
     public List<RendezVousResponse> getClientRendezVousByStatus(Client client, RendezVousStatus status) {
         return rendezvousRepository.findByClientIdAndStatutOrderByDateCreationDesc(client.getId(), status)
@@ -86,6 +88,7 @@ public class RendezVousServiceImpl implements RendezVousService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     @Override
     public List<RendezVousResponse> getAllRendezVous() {
         return rendezvousRepository.findAllByOrderByDateCreationDesc()
