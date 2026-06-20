@@ -11,9 +11,7 @@ import sn.oas.facturation.auth.data.entity.User;
 import sn.oas.facturation.auth.repository.UserRepository;
 import sn.oas.facturation.bonDeSortie.data.entity.BonDeSortie;
 import sn.oas.facturation.bonDeSortie.data.entity.LigneBonDeSortiePiece;
-import sn.oas.facturation.bonDeSortie.data.entity.LigneBonDeSortieMainDoeuvre;
-import sn.oas.facturation.main_doeuvre.data.entity.MainDoeuvre;
-import sn.oas.facturation.main_doeuvre.repository.MainDoeuvreRepository;
+
 import sn.oas.facturation.piecedetache.data.entity.PDP;
 import sn.oas.facturation.piecedetache.data.entity.PieceDetache;
 import sn.oas.facturation.piecedetache.data.entity.StockMouvement;
@@ -21,12 +19,14 @@ import sn.oas.facturation.bonDeSortie.data.enums.StatutBon;
 import sn.oas.facturation.piecedetache.data.enums.TypeMouvement;
 import sn.oas.facturation.bonDeSortie.dto.BonDeSortieRequest;
 import sn.oas.facturation.bonDeSortie.dto.LignePieceRequest;
-import sn.oas.facturation.bonDeSortie.dto.LigneMainDoeuvreRequest;
+
 import sn.oas.facturation.bonDeSortie.repository.BonDeSortieRepository;
 import sn.oas.facturation.piecedetache.repository.PieceDetacheRepository;
 import sn.oas.facturation.piecedetache.repository.StockMouvementRepository;
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
-import sn.oas.facturation.vehicule.repository.VehiculeRepository;
+import sn.oas.facturation.vehicule.repository.VehiculeRepository;import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
+import sn.oas.facturation.ficheAtelier.data.enums.StatutReparation;
+import sn.oas.facturation.ficheAtelier.repository.FicheAtelierRepository;
 
 import java.time.LocalDateTime;
 import java.time.Year;
@@ -41,7 +41,9 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
     private final StockMouvementRepository stockMouvementRepository;
     private final VehiculeRepository vehiculeRepository;
     private final UserRepository userRepository;
-    private final MainDoeuvreRepository mainDoeuvreRepository;
+    private final FicheAtelierRepository ficheAtelierRepository;
+    private final sn.oas.facturation.facture.service.FactureService factureService;
+
 
     @Transactional
     @Override
@@ -82,23 +84,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
             }
         }
 
-        if (request.lignesMainDoeuvres() != null) {
-            for (LigneMainDoeuvreRequest ligneReq : request.lignesMainDoeuvres()) {
-                MainDoeuvre mainDoeuvre = getMainDoeuvre(ligneReq.mainDoeuvreId());
-                if (ligneReq.quantite() == null || ligneReq.quantite() <= 0) {
-                    throw new IllegalArgumentException(
-                            "La quantité doit être supérieure à zéro pour la main d'oeuvre id=" + ligneReq.mainDoeuvreId());
-                }
-                Integer prixMo = (mainDoeuvre.getPrix() != null) ? mainDoeuvre.getPrix().intValue() : 0;
-                LigneBonDeSortieMainDoeuvre ligne = LigneBonDeSortieMainDoeuvre.builder()
-                        .bonDeSortie(bon)
-                        .mainDoeuvre(mainDoeuvre)
-                        .quantite(ligneReq.quantite())
-                        .prix(prixMo)
-                        .build();
-                bon.getLignesBonDeSortieMainDoeuvres().add(ligne);
-            }
-        }
+
 
         return bonDeSortieRepository.save(bon);
     }
@@ -148,6 +134,16 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
         bon.setStatut(StatutBon.VALIDE);
         bon.setAgentValidateur(agentValidateur);
         bon.setDateValidation(LocalDateTime.now());
+        
+        if (bon.getFicheAtelier() != null && bon.getFicheAtelier().getStatut() == StatutReparation.EN_ATTENTE_SORTIE) {
+            FicheAtelier fiche = bon.getFicheAtelier();
+            fiche.setStatut(StatutReparation.EN_COURS);
+            ficheAtelierRepository.save(fiche);
+            
+            // Génération automatique de la facture
+            factureService.createFactureAuto(fiche);
+        }
+
         return bonDeSortieRepository.save(bon);
     }
 
@@ -191,9 +187,8 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
             throw new IllegalArgumentException("Le véhicule est obligatoire");
         }
         boolean hasPieces = request.lignesPieces() != null && !request.lignesPieces().isEmpty();
-        boolean hasMainDoeuvre = request.lignesMainDoeuvres() != null && !request.lignesMainDoeuvres().isEmpty();
-        if (!hasPieces && !hasMainDoeuvre) {
-            throw new IllegalArgumentException("Le bon de sortie doit contenir au moins une pièce ou une main d'œuvre");
+        if (!hasPieces) {
+            throw new IllegalArgumentException("Le bon de sortie doit contenir au moins une pièce");
         }
     }
 
@@ -233,8 +228,5 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
         return agent;
     }
 
-    private MainDoeuvre getMainDoeuvre(Long mainDoeuvreId) {
-        return mainDoeuvreRepository.findById(mainDoeuvreId)
-                .orElseThrow(() -> new RuntimeException("Main d'œuvre introuvable avec l'id : " + mainDoeuvreId));
-    }
+
 }

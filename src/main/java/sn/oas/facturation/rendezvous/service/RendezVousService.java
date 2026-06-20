@@ -14,4 +14,5 @@ public interface RendezVousService {
     List<RendezVousResponse> getClientRendezVousByStatus(Client client, RendezVousStatus status);
     List<RendezVousResponse> getAllRendezVous();
     RendezVousResponse updateRendezVousStatus(Long id, RendezVousStatus status, String commentaire);
+    RendezVousResponse validerRendezVous(Long id, List<Long> mecanicienIds);
 }

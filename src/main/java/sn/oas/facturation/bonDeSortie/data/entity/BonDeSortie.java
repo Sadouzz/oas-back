@@ -74,10 +74,6 @@ public class BonDeSortie {
     @Builder.Default
     private List<LigneBonDeSortiePiece> lignesBonDeSortiePieces = new ArrayList<>();
     
-    @OneToMany(mappedBy = "bonDeSortie", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private List<LigneBonDeSortieMainDoeuvre> lignesBonDeSortieMainDoeuvres = new ArrayList<>();
-
 
     
 

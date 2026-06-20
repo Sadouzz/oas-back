@@ -35,6 +35,26 @@ public class FacturationApplication {
 			} catch (Exception e) {
 				System.out.println("====== DB CLEANUP INFO (bons_de_livraison): " + e.getMessage() + " ======");
 			}
+			try {
+				jdbcTemplate.execute("ALTER TABLE bons_de_commande DROP CONSTRAINT IF EXISTS bons_de_commande_statut_check;");
+				System.out.println("====== DB CLEANUP: Obsolete constraint 'bons_de_commande_statut_check' dropped successfully ======");
+			} catch (Exception e) {
+				System.out.println("====== DB CLEANUP INFO (bons_de_commande_statut_check): " + e.getMessage() + " ======");
+			}
+			try {
+				jdbcTemplate.execute("ALTER TABLE fiche_atelier DROP CONSTRAINT IF EXISTS fiche_atelier_statut_check;");
+				System.out.println("====== DB CLEANUP: Obsolete constraint 'fiche_atelier_statut_check' dropped successfully ======");
+			} catch (Exception e) {
+				System.out.println("====== DB CLEANUP INFO (fiche_atelier_statut_check): " + e.getMessage() + " ======");
+			}
+			try {
+				jdbcTemplate.execute("ALTER TABLE recus DROP COLUMN IF EXISTS montant_paye CASCADE;");
+				jdbcTemplate.execute("ALTER TABLE recus DROP COLUMN IF EXISTS reste_a_payer CASCADE;");
+				jdbcTemplate.execute("ALTER TABLE recus DROP COLUMN IF EXISTS statut_paiement CASCADE;");
+				System.out.println("====== DB CLEANUP: Obsolete columns on 'recus' dropped successfully ======");
+			} catch (Exception e) {
+				System.out.println("====== DB CLEANUP INFO (recus): " + e.getMessage() + " ======");
+			}
 		};
 	}
 

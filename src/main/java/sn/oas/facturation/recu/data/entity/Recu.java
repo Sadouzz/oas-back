@@ -7,15 +7,16 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import sn.oas.facturation.facture.data.entity.Facture;
 
+import org.hibernate.annotations.CreationTimestamp;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "recus")
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 public class Recu {
 
     @Id
@@ -29,12 +30,15 @@ public class Recu {
     @JoinColumn(name = "facture_id", nullable = false)
     private Facture facture;
 
-    @Column(name = "montant_paye", nullable = false, precision = 15, scale = 2)
-    private BigDecimal montantPaye;
+    @Column(nullable = false, precision = 15, scale = 2)
+    private BigDecimal montant;
 
-    @Column(name = "date_paiement", nullable = false)
+    @Column(name = "mode_paiement")
+    private String modePaiement; // ESPECE, CHEQUE, VIREMENT...
+
+    @Column(nullable = false, updatable = false)
+    @CreationTimestamp
     private LocalDateTime datePaiement;
 
-    @Column(name = "methode_paiement")
-    private String methodePaiement;
+    private String remarque;
 }

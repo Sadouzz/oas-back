@@ -23,6 +23,9 @@ public class LigneBonDeCommandePiece {
 
     private Integer quantite;
 
+    @Builder.Default
+    private Integer quantiteRecue = 0;
+
     private BigDecimal prixUnitaire;
 
     private BigDecimal montant;

@@ -23,6 +23,7 @@ public class RendezVousServiceImpl implements RendezVousService {
     private final RendezVousRepository rendezvousRepository;
     private final VehiculeRepository vehiculeRepository;
     private final NotificationService notificationService;
+    private final sn.oas.facturation.ficheAtelier.service.FicheAtelierService ficheAtelierService;
 
     @Transactional
     @Override
@@ -115,6 +116,37 @@ public class RendezVousServiceImpl implements RendezVousService {
             message += " Commentaire : " + commentaire;
         }
         notificationService.sendNotification(rv.getClient(), titre, message);
+
+        return RendezVousResponse.of(rv);
+    }
+
+    @Transactional
+    @Override
+    public RendezVousResponse validerRendezVous(Long id, List<Long> mecanicienIds) {
+        RendezVous rv = rendezvousRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Rendez-vous non trouvé"));
+        if (rv.getVehicule() == null) {
+            throw new RuntimeException("Impossible de valider un rendez-vous sans véhicule associé.");
+        }
+        
+        rv.setStatut(RendezVousStatus.CONFIRME);
+        rendezvousRepository.save(rv);
+
+        sn.oas.facturation.ficheAtelier.dto.FicheAtelierRequest faReq = new sn.oas.facturation.ficheAtelier.dto.FicheAtelierRequest();
+        faReq.setVehiculeId(rv.getVehicule().getId());
+        faReq.setDescriptionTravaux(rv.getMotif());
+        faReq.setStatut(sn.oas.facturation.ficheAtelier.data.enums.StatutReparation.A_FAIRE);
+        
+        sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier fiche = ficheAtelierService.createFicheAtelier(faReq);
+        
+        if (mecanicienIds != null) {
+            for (Long mId : mecanicienIds) {
+                ficheAtelierService.assignMecanicien(fiche.getId(), mId);
+            }
+        }
+
+        notificationService.sendNotification(rv.getClient(), "Rendez-vous validé", 
+                "Votre rendez-vous du " + rv.getDateRendezVous() + " a été validé et une fiche atelier a été créée.");
 
         return RendezVousResponse.of(rv);
     }

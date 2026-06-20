@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 import sn.oas.facturation.facturation.dto.LigneFacturationMainDoeuvreResponse;
 import sn.oas.facturation.facturation.dto.LigneFacturationPieceResponse;
+import sn.oas.facturation.recu.dto.RecuResponse;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -22,6 +23,10 @@ public class FactureResponse {
     private BigDecimal montantTimbre;
     private BigDecimal montantAutre;
     private BigDecimal montantTotal;
+    private BigDecimal montantPaye;
+    private BigDecimal resteAPayer;
+    private sn.oas.facturation.facture.data.enums.StatutPaiement statutPaiement;
+
     private Long agentId;
     private String agentNom;
     private String remarque;
@@ -41,4 +46,5 @@ public class FactureResponse {
 
     private List<LigneFacturationPieceResponse> lignesPieces;
     private List<LigneFacturationMainDoeuvreResponse> lignesMainDoeuvres;
+    private List<RecuResponse> recus;
 }

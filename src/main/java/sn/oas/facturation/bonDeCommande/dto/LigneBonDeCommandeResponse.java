@@ -19,6 +19,8 @@ public class LigneBonDeCommandeResponse {
 
     private Integer quantite;
 
+    private Integer quantiteRecue;
+
     private Double prixUnitaire;
 
     private Double montant;

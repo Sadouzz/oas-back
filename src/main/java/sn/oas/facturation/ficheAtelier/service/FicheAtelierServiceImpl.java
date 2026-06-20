@@ -10,6 +10,14 @@ import sn.oas.facturation.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.vehicule.repository.VehiculeRepository;
 import sn.oas.facturation.mecanicien.data.entity.Mecanicien;
 import sn.oas.facturation.mecanicien.repository.MecanicienRepository;
+import sn.oas.facturation.ficheAtelier.data.entity.LigneFicheAtelierPiece;
+import sn.oas.facturation.ficheAtelier.data.entity.LigneFicheAtelierMainDoeuvre;
+import sn.oas.facturation.ficheAtelier.dto.LigneFicheAtelierPieceRequest;
+import sn.oas.facturation.ficheAtelier.dto.LigneFicheAtelierMainDoeuvreRequest;
+import sn.oas.facturation.piecedetache.data.entity.PDP;
+import sn.oas.facturation.piecedetache.data.entity.PieceDetache;
+import sn.oas.facturation.main_doeuvre.data.entity.MainDoeuvre;
+import sn.oas.facturation.main_doeuvre.repository.MainDoeuvreRepository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -24,6 +32,7 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     private final MecanicienRepository mecanicienRepository;
     private final sn.oas.facturation.proforma.repository.ProformaRepository proformaRepository;
     private final sn.oas.facturation.piecedetache.repository.PieceDetacheRepository pieceDetacheRepository;
+    private final MainDoeuvreRepository mainDoeuvreRepository;
 
     @Override
     public FicheAtelier createFicheAtelier(FicheAtelierRequest request) {
@@ -60,6 +69,34 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
                 .vehicule(vehicule)
                 .statut(request.getStatut() != null ? request.getStatut() : StatutReparation.A_FAIRE)
                 .build();
+
+        if (request.getLignesPieces() != null) {
+            for (LigneFicheAtelierPieceRequest ligneReq : request.getLignesPieces()) {
+                PieceDetache piece = pieceDetacheRepository.findById(ligneReq.pieceId())
+                        .orElseThrow(() -> new RuntimeException("Pièce non trouvée"));
+                PDP pdp = (PDP) org.hibernate.Hibernate.unproxy(piece);
+                ficheAtelier.getLignesFicheAtelierPieces().add(LigneFicheAtelierPiece.builder()
+                        .ficheAtelier(ficheAtelier)
+                        .piece(pdp)
+                        .quantite(ligneReq.quantite())
+                        .prix(ligneReq.prix() != null ? ligneReq.prix() : (pdp.getPrix() != null ? pdp.getPrix().intValue() : 0))
+                        .build());
+            }
+        }
+
+        if (request.getLignesMainDoeuvres() != null) {
+            for (LigneFicheAtelierMainDoeuvreRequest ligneReq : request.getLignesMainDoeuvres()) {
+                MainDoeuvre md = mainDoeuvreRepository.findById(ligneReq.mainDoeuvreId())
+                        .orElseThrow(() -> new RuntimeException("Main d'œuvre non trouvée"));
+                ficheAtelier.getLignesFicheAtelierMainDoeuvres().add(LigneFicheAtelierMainDoeuvre.builder()
+                        .ficheAtelier(ficheAtelier)
+                        .mainDoeuvre(md)
+                        .nbreHeure(ligneReq.nbreHeure())
+                        .prix(ligneReq.prix() != null ? ligneReq.prix() : (md.getPrix() != null ? md.getPrix().intValue() : 0))
+                        .build());
+            }
+        }
+
         return ficheAtelierRepository.save(ficheAtelier);
     }
 
@@ -89,6 +126,35 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
             Vehicule vehicule = vehiculeRepository.findById(request.getVehiculeId())
                     .orElseThrow(() -> new RuntimeException("Véhicule non trouvé"));
             ficheAtelier.setVehicule(vehicule);
+        }
+
+        if (request.getLignesPieces() != null) {
+            ficheAtelier.getLignesFicheAtelierPieces().clear();
+            for (LigneFicheAtelierPieceRequest ligneReq : request.getLignesPieces()) {
+                PieceDetache piece = pieceDetacheRepository.findById(ligneReq.pieceId())
+                        .orElseThrow(() -> new RuntimeException("Pièce non trouvée"));
+                PDP pdp = (PDP) org.hibernate.Hibernate.unproxy(piece);
+                ficheAtelier.getLignesFicheAtelierPieces().add(LigneFicheAtelierPiece.builder()
+                        .ficheAtelier(ficheAtelier)
+                        .piece(pdp)
+                        .quantite(ligneReq.quantite())
+                        .prix(ligneReq.prix() != null ? ligneReq.prix() : (pdp.getPrix() != null ? pdp.getPrix().intValue() : 0))
+                        .build());
+            }
+        }
+
+        if (request.getLignesMainDoeuvres() != null) {
+            ficheAtelier.getLignesFicheAtelierMainDoeuvres().clear();
+            for (LigneFicheAtelierMainDoeuvreRequest ligneReq : request.getLignesMainDoeuvres()) {
+                MainDoeuvre md = mainDoeuvreRepository.findById(ligneReq.mainDoeuvreId())
+                        .orElseThrow(() -> new RuntimeException("Main d'œuvre non trouvée"));
+                ficheAtelier.getLignesFicheAtelierMainDoeuvres().add(LigneFicheAtelierMainDoeuvre.builder()
+                        .ficheAtelier(ficheAtelier)
+                        .mainDoeuvre(md)
+                        .nbreHeure(ligneReq.nbreHeure())
+                        .prix(ligneReq.prix() != null ? ligneReq.prix() : (md.getPrix() != null ? md.getPrix().intValue() : 0))
+                        .build());
+            }
         }
         
         return ficheAtelierRepository.save(ficheAtelier);

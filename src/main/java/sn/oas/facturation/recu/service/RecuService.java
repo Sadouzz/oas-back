@@ -1,13 +1,15 @@
 package sn.oas.facturation.recu.service;
 
-import sn.oas.facturation.auth.data.entity.Client;
-import sn.oas.facturation.recu.dto.RecuResponse;
-
-import java.math.BigDecimal;
 import java.util.List;
 
+import sn.oas.facturation.recu.dto.RecuRequest;
+import sn.oas.facturation.recu.dto.RecuResponse;
+
+import sn.oas.facturation.auth.data.entity.Client;
+
 public interface RecuService {
-    RecuResponse payerFacture(Long factureId, BigDecimal montant, String methodePaiement);
+    RecuResponse create(RecuRequest request);
+    List<RecuResponse> getByFacture(Long factureId);
     List<RecuResponse> getClientRecus(Client client);
-    List<RecuResponse> getAllRecus();
+    List<RecuResponse> getAll();
 }

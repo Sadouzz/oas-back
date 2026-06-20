@@ -11,6 +11,8 @@ import sn.oas.facturation.messagerie.dto.ClientConversationResponse;
 import sn.oas.facturation.messagerie.dto.MessageRequest;
 import sn.oas.facturation.messagerie.dto.MessageResponse;
 import sn.oas.facturation.messagerie.service.MessageService;
+import sn.oas.facturation.notification.service.NotificationService;
+import sn.oas.facturation.recu.dto.RecuRequest;
 import sn.oas.facturation.recu.dto.RecuResponse;
 import sn.oas.facturation.recu.service.RecuService;
 import sn.oas.facturation.rendezvous.data.enums.RendezVousStatus;
@@ -51,6 +53,19 @@ public class AdminPortalController {
         }
     }
 
+    @PostMapping("/rendezvous/{id}/valider")
+    @Operation(summary = "Valider un rendez-vous et créer une fiche atelier")
+    public ResponseEntity<?> validerRendezVous(
+            @PathVariable Long id,
+            @RequestBody List<Long> mecanicienIds) {
+        try {
+            RendezVousResponse response = rendezvousService.validerRendezVous(id, mecanicienIds);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     // --- Paiement & Reçu ---
     @PostMapping("/factures/{id}/payer")
     @Operation(summary = "Enregistrer un paiement (total ou partiel) pour une facture")
@@ -59,7 +74,12 @@ public class AdminPortalController {
             @RequestParam(required = false) BigDecimal montant,
             @RequestParam String methodePaiement) {
         try {
-            RecuResponse response = recuService.payerFacture(id, montant, methodePaiement);
+            RecuRequest request = RecuRequest.builder()
+                .factureId(id)
+                .montant(montant)
+                .modePaiement(methodePaiement)
+                .build();
+            RecuResponse response = recuService.create(request);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -67,6 +87,16 @@ public class AdminPortalController {
     }
 
     // --- Messagerie Dashboard ---
+    @GetMapping("/recus")
+    @Operation(summary = "Lister tous les reçus de paiement")
+    public ResponseEntity<?> getAllRecus() {
+        try {
+            return ResponseEntity.ok(recuService.getAll());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @GetMapping("/messages/clients")
     @Operation(summary = "Lister les conversations actives avec les clients")
     public ResponseEntity<List<ClientConversationResponse>> getActiveConversations() {

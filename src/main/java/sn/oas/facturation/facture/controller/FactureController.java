@@ -21,6 +21,12 @@ public class FactureController {
 
     private final FactureService factureService;
 
+    @PostMapping("/creer")
+    @Operation(summary = "Créer une nouvelle facture à partir d'une fiche atelier")
+    public ResponseEntity<FactureResponse> createFacture(@RequestBody sn.oas.facturation.facture.dto.FactureCreateRequest request) {
+        return ResponseEntity.ok(factureService.createFacture(request));
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Récupérer une facture par son ID")
     public ResponseEntity<FactureResponse> getById(@PathVariable Long id) {

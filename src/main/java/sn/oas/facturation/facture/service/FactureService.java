@@ -11,4 +11,6 @@ public interface FactureService {
     List<FactureResponse> getRecentFactures();
     void delete(Long id);
     byte[] generatePdf(Long id);
+    FactureResponse createFacture(sn.oas.facturation.facture.dto.FactureCreateRequest request);
+    FactureResponse createFactureAuto(sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier fiche);
 }

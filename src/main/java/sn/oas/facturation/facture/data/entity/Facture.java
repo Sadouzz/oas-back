@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 import sn.oas.facturation.auth.data.entity.Client;
 import sn.oas.facturation.facturation.data.entity.FactureTTC;
+import sn.oas.facturation.recu.data.entity.Recu;
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
 
 import java.math.BigDecimal;
@@ -38,4 +39,16 @@ public class Facture extends FactureTTC {
     @Column(name = "montant_paye", precision = 15, scale = 2)
     @lombok.Builder.Default
     private BigDecimal montantPaye = BigDecimal.ZERO;
+
+    @Column(name = "reste_a_payer", precision = 15, scale = 2)
+    private BigDecimal resteAPayer;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "statut_paiement")
+    @lombok.Builder.Default
+    private sn.oas.facturation.facture.data.enums.StatutPaiement statutPaiement = sn.oas.facturation.facture.data.enums.StatutPaiement.NON_PAYE;
+
+    @OneToMany(mappedBy = "facture", cascade = CascadeType.ALL, orphanRemoval = true)
+    @lombok.Builder.Default
+    private java.util.List<Recu> recus = new java.util.ArrayList<>();
 }

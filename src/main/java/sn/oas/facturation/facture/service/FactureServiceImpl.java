@@ -21,6 +21,18 @@ import sn.oas.facturation.facture.data.entity.Facture;
 import sn.oas.facturation.facture.dto.FactureResponse;
 import sn.oas.facturation.facture.repository.FactureRepository;
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
+import sn.oas.facturation.auth.data.entity.Agent;
+import sn.oas.facturation.auth.data.entity.Client;
+import sn.oas.facturation.auth.data.entity.User;
+import sn.oas.facturation.auth.repository.UserRepository;
+import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
+import sn.oas.facturation.ficheAtelier.data.entity.LigneFicheAtelierMainDoeuvre;
+import sn.oas.facturation.ficheAtelier.data.entity.LigneFicheAtelierPiece;
+import sn.oas.facturation.ficheAtelier.repository.FicheAtelierRepository;
+import sn.oas.facturation.vehicule.repository.VehiculeRepository;
+import sn.oas.facturation.facture.dto.FactureCreateRequest;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
@@ -34,6 +46,153 @@ import java.util.stream.Collectors;
 public class FactureServiceImpl implements FactureService {
 
     private final FactureRepository factureRepository;
+    private final FicheAtelierRepository ficheAtelierRepository;
+    private final VehiculeRepository vehiculeRepository;
+    private final UserRepository userRepository;
+
+    @Override
+    @Transactional
+    public FactureResponse createFacture(FactureCreateRequest request) {
+        Client client = (Client) userRepository.findById(request.getClientId())
+                .orElseThrow(() -> new IllegalArgumentException("Client introuvable"));
+        
+        Vehicule vehicule = vehiculeRepository.findById(request.getVehiculeId())
+                .orElseThrow(() -> new IllegalArgumentException("Véhicule introuvable"));
+
+        FicheAtelier ficheAtelier = ficheAtelierRepository.findById(request.getFicheAtelierId())
+                .orElseThrow(() -> new IllegalArgumentException("Fiche Atelier introuvable"));
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        Agent agent = null;
+        if (auth != null && auth.getName() != null) {
+            User user = userRepository.findByUsername(auth.getName())
+                    .or(() -> userRepository.findByEmail(auth.getName()))
+                    .orElse(null);
+            agent = (user instanceof Agent) ? (Agent) user : null;
+        }
+
+        String numero = "FACT-" + System.currentTimeMillis();
+
+        Facture facture = Facture.builder()
+                .numero(numero)
+                .client(client)
+                .vehicule(vehicule)
+                .ficheAtelier(ficheAtelier)
+                .agent(agent)
+                .kilometrage(request.getKilometrage() != null ? request.getKilometrage() : 0.0)
+                .remarque(request.getRemarque())
+                .build();
+
+        BigDecimal ht = BigDecimal.ZERO;
+        
+        for (LigneFicheAtelierPiece ligneFiche : ficheAtelier.getLignesFicheAtelierPieces()) {
+            LigneFacturationPiece lfp = LigneFacturationPiece.builder()
+                    .facturation(facture)
+                    .piece(ligneFiche.getPiece())
+                    .quantite(ligneFiche.getQuantite())
+                    .prix(ligneFiche.getPrix())
+                    .build();
+            facture.getLignesFacturationPieces().add(lfp);
+            ht = ht.add(BigDecimal.valueOf((long) ligneFiche.getQuantite() * ligneFiche.getPrix()));
+        }
+
+        for (LigneFicheAtelierMainDoeuvre ligneFiche : ficheAtelier.getLignesFicheAtelierMainDoeuvres()) {
+            LigneFacturationMainDoeuvre lfm = LigneFacturationMainDoeuvre.builder()
+                    .facturation(facture)
+                    .mainDoeuvre(ligneFiche.getMainDoeuvre())
+                    .nbreHeure(ligneFiche.getNbreHeure())
+                    .tarifHoraire(ligneFiche.getPrix())
+                    .build();
+            facture.getLignesFacturationMainDoeuvres().add(lfm);
+            ht = ht.add(BigDecimal.valueOf((long) ligneFiche.getNbreHeure() * ligneFiche.getPrix()));
+        }
+
+        BigDecimal tva = BigDecimal.ZERO;
+        if (Boolean.TRUE.equals(request.getAppliquerTVA())) {
+            tva = ht.multiply(BigDecimal.valueOf(0.18));
+        }
+
+        BigDecimal timbre = BigDecimal.ZERO;
+        if (Boolean.TRUE.equals(request.getAppliquerTimbre())) {
+            timbre = BigDecimal.valueOf(200);
+        }
+
+        BigDecimal ttc = ht.add(tva).add(timbre);
+
+        facture.setMontantHT(ht);
+        facture.setMontantTVA(tva);
+        facture.setMontantTimbre(timbre);
+        facture.setMontantTTC(ttc);
+        facture.setMontantTotal(ttc);
+        facture.setMontantPaye(BigDecimal.ZERO);
+        facture.setResteAPayer(ttc);
+        facture.setStatutPaiement(sn.oas.facturation.facture.data.enums.StatutPaiement.NON_PAYE);
+
+        facture = factureRepository.save(facture);
+        return mapToResponse(facture);
+    }
+
+    @Override
+    @Transactional
+    public FactureResponse createFactureAuto(FicheAtelier ficheAtelier) {
+        Client client = null;
+        Vehicule vehicule = ficheAtelier.getVehicule();
+        if (vehicule != null) {
+            client = vehicule.getClient();
+        }
+
+        String numero = "FACT-" + System.currentTimeMillis();
+
+        Facture facture = Facture.builder()
+                .numero(numero)
+                .client(client)
+                .vehicule(vehicule)
+                .ficheAtelier(ficheAtelier)
+                .agent(null)
+                .kilometrage(vehicule != null && vehicule.getKilometrage() != null ? vehicule.getKilometrage() : 0.0)
+                .remarque("Facture générée automatiquement depuis la Fiche Atelier " + ficheAtelier.getNumero())
+                .build();
+
+        BigDecimal ht = BigDecimal.ZERO;
+        
+        for (LigneFicheAtelierPiece ligneFiche : ficheAtelier.getLignesFicheAtelierPieces()) {
+            LigneFacturationPiece lfp = LigneFacturationPiece.builder()
+                    .facturation(facture)
+                    .piece(ligneFiche.getPiece())
+                    .quantite(ligneFiche.getQuantite())
+                    .prix(ligneFiche.getPrix())
+                    .build();
+            facture.getLignesFacturationPieces().add(lfp);
+            ht = ht.add(BigDecimal.valueOf((long) ligneFiche.getQuantite() * ligneFiche.getPrix()));
+        }
+
+        for (LigneFicheAtelierMainDoeuvre ligneFiche : ficheAtelier.getLignesFicheAtelierMainDoeuvres()) {
+            LigneFacturationMainDoeuvre lfm = LigneFacturationMainDoeuvre.builder()
+                    .facturation(facture)
+                    .mainDoeuvre(ligneFiche.getMainDoeuvre())
+                    .nbreHeure(ligneFiche.getNbreHeure())
+                    .tarifHoraire(ligneFiche.getPrix())
+                    .build();
+            facture.getLignesFacturationMainDoeuvres().add(lfm);
+            ht = ht.add(BigDecimal.valueOf((long) ligneFiche.getNbreHeure() * ligneFiche.getPrix()));
+        }
+
+        BigDecimal tva = BigDecimal.ZERO;
+        BigDecimal timbre = BigDecimal.ZERO;
+        BigDecimal ttc = ht.add(tva).add(timbre);
+
+        facture.setMontantHT(ht);
+        facture.setMontantTVA(tva);
+        facture.setMontantTimbre(timbre);
+        facture.setMontantTTC(ttc);
+        facture.setMontantTotal(ttc);
+        facture.setMontantPaye(BigDecimal.ZERO);
+        facture.setResteAPayer(ttc);
+        facture.setStatutPaiement(sn.oas.facturation.facture.data.enums.StatutPaiement.NON_PAYE);
+
+        facture = factureRepository.save(facture);
+        return mapToResponse(facture);
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -208,6 +367,9 @@ public class FactureServiceImpl implements FactureService {
                 .montantTimbre(f.getMontantTimbre())
                 .montantAutre(f.getMontantAutre())
                 .montantTotal(f.getMontantTotal())
+                .montantPaye(f.getMontantPaye())
+                .resteAPayer(f.getResteAPayer())
+                .statutPaiement(f.getStatutPaiement())
                 .agentId(f.getAgent() != null ? f.getAgent().getId() : null)
                 .agentNom(f.getAgent() != null ? f.getAgent().getFirstName() + " " + f.getAgent().getLastName() : null)
                 .remarque(f.getRemarque())
@@ -239,6 +401,17 @@ public class FactureServiceImpl implements FactureService {
                                 .nbreHeure(lm.getNbreHeure())
                                 .tarifHoraire(lm.getTarifHoraire())
                                 .montantTotal(lm.getNbreHeure() * lm.getTarifHoraire())
+                                .build())
+                        .collect(Collectors.toList()))
+                .recus(f.getRecus() == null ? List.of() : f.getRecus().stream()
+                        .map(r -> sn.oas.facturation.recu.dto.RecuResponse.builder()
+                                .id(r.getId())
+                                .numero(r.getNumero())
+                                .factureId(f.getId())
+                                .montant(r.getMontant())
+                                .modePaiement(r.getModePaiement())
+                                .remarque(r.getRemarque())
+                                .datePaiement(r.getDatePaiement())
                                 .build())
                         .collect(Collectors.toList()))
                 .build();

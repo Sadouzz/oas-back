@@ -1,95 +1,122 @@
 package sn.oas.facturation.recu.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import sn.oas.facturation.auth.data.entity.Client;
-import sn.oas.facturation.facturation.data.enums.StatutFacturation;
 import sn.oas.facturation.facture.data.entity.Facture;
+import sn.oas.facturation.facture.data.enums.StatutPaiement;
 import sn.oas.facturation.facture.repository.FactureRepository;
-import sn.oas.facturation.notification.service.NotificationService;
+import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
+import sn.oas.facturation.ficheAtelier.data.enums.StatutReparation;
+import sn.oas.facturation.ficheAtelier.repository.FicheAtelierRepository;
 import sn.oas.facturation.recu.data.entity.Recu;
+import sn.oas.facturation.recu.dto.RecuRequest;
 import sn.oas.facturation.recu.dto.RecuResponse;
 import sn.oas.facturation.recu.repository.RecuRepository;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Year;
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class RecuServiceImpl implements RecuService {
 
     private final RecuRepository recuRepository;
     private final FactureRepository factureRepository;
-    private final NotificationService notificationService;
+    private final FicheAtelierRepository ficheAtelierRepository;
 
-    @Transactional
     @Override
-    public RecuResponse payerFacture(Long factureId, BigDecimal montant, String methodePaiement) {
-        Facture facture = factureRepository.findById(factureId)
-                .orElseThrow(() -> new RuntimeException("Facture non trouvée"));
+    @Transactional
+    public RecuResponse create(RecuRequest request) {
+        Facture facture = factureRepository.findById(request.getFactureId())
+                .orElseThrow(() -> new IllegalArgumentException("Facture introuvable"));
 
-        if (facture.getStatut() == StatutFacturation.PAYEE) {
-            throw new IllegalStateException("La facture est déjà payée");
+        if (facture.getStatutPaiement() == StatutPaiement.PAYE) {
+            throw new IllegalStateException("Cette facture est déjà totalement payée");
         }
 
-        BigDecimal dejaPaye = facture.getMontantPaye() != null ? facture.getMontantPaye() : BigDecimal.ZERO;
-        BigDecimal resteAPayer = facture.getMontantTTC().subtract(dejaPaye);
-
-        BigDecimal montantAPayer = montant;
-        if (montantAPayer == null || montantAPayer.compareTo(BigDecimal.ZERO) <= 0) {
-            montantAPayer = resteAPayer;
+        if (request.getMontant().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("Le montant doit être supérieur à zéro");
         }
 
-        if (montantAPayer.compareTo(resteAPayer) > 0) {
-            throw new IllegalArgumentException("Le montant du paiement dépasse le reste à payer (" + resteAPayer + ")");
+        if (request.getMontant().compareTo(facture.getResteAPayer()) > 0) {
+            throw new IllegalArgumentException("Le montant du reçu dépasse le reste à payer (" + facture.getResteAPayer() + ")");
         }
 
-        BigDecimal nouveauMontantPaye = dejaPaye.add(montantAPayer);
-        facture.setMontantPaye(nouveauMontantPaye);
-
-        if (nouveauMontantPaye.compareTo(facture.getMontantTTC()) >= 0) {
-            facture.setStatut(StatutFacturation.PAYEE);
-        } else {
-            facture.setStatut(StatutFacturation.PARTIELLEMENT_PAYEE);
-        }
-        factureRepository.save(facture);
+        int year = Year.now().getValue();
+        long count = recuRepository.countByDatePaiementYear(year) + 1;
+        String numero = String.format("REC-%d-%04d", year, count);
 
         Recu recu = Recu.builder()
-                .numero("REC-" + System.currentTimeMillis())
+                .numero(numero)
                 .facture(facture)
-                .montantPaye(montantAPayer)
-                .datePaiement(LocalDateTime.now())
-                .methodePaiement(methodePaiement)
+                .montant(request.getMontant())
+                .modePaiement(request.getModePaiement())
+                .remarque(request.getRemarque())
                 .build();
 
-        recuRepository.save(recu);
+        recu = recuRepository.save(recu);
 
-        // Notify client
-        String note = facture.getStatut() == StatutFacturation.PAYEE
-                ? "Le paiement total de votre facture " + facture.getNumero() + " a été enregistré avec succès."
-                : "Un paiement partiel de " + montantAPayer + " F CFA pour votre facture " + facture.getNumero() + " a été enregistré. Reste à payer : " + facture.getMontantTTC().subtract(nouveauMontantPaye) + " F CFA.";
+        // Update Facture
+        facture.setMontantPaye(facture.getMontantPaye().add(request.getMontant()));
+        facture.setResteAPayer(facture.getMontantTotal().subtract(facture.getMontantPaye()));
 
-        notificationService.sendNotification(facture.getClient(), "Paiement Enregistré", note);
+        if (facture.getResteAPayer().compareTo(BigDecimal.ZERO) <= 0) {
+            facture.setStatutPaiement(StatutPaiement.PAYE);
 
-        return RecuResponse.of(recu);
+            // Advance Fiche Atelier to TERMINE if it was waiting for payment
+            if (facture.getFicheAtelier() != null) {
+                FicheAtelier fiche = facture.getFicheAtelier();
+                if (fiche.getStatut() == StatutReparation.EN_ATTENTE_PAIEMENT) {
+                    fiche.setStatut(StatutReparation.TERMINE);
+                    ficheAtelierRepository.save(fiche);
+                }
+            }
+        } else {
+            facture.setStatutPaiement(StatutPaiement.PARTIEL);
+        }
+
+        factureRepository.save(facture);
+
+        return mapToResponse(recu);
     }
 
     @Override
-    public List<RecuResponse> getClientRecus(Client client) {
+    public List<RecuResponse> getByFacture(Long factureId) {
+        return recuRepository.findByFactureIdOrderByDatePaiementDesc(factureId)
+                .stream().map(this::mapToResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<RecuResponse> getClientRecus(sn.oas.facturation.auth.data.entity.Client client) {
         return recuRepository.findByFactureClientIdOrderByDatePaiementDesc(client.getId())
-                .stream()
-                .map(RecuResponse::of)
-                .collect(Collectors.toList());
+                .stream().map(this::mapToResponse).collect(Collectors.toList());
     }
 
     @Override
-    public List<RecuResponse> getAllRecus() {
+    public List<RecuResponse> getAll() {
         return recuRepository.findAll()
-                .stream()
-                .map(RecuResponse::of)
+                .stream().map(this::mapToResponse)
+                .sorted((a, b) -> b.getId().compareTo(a.getId()))
                 .collect(Collectors.toList());
+    }
+
+    private RecuResponse mapToResponse(Recu r) {
+        return RecuResponse.builder()
+                .id(r.getId())
+                .numero(r.getNumero())
+                .factureId(r.getFacture().getId())
+                .numeroFacture(r.getFacture().getNumero())
+                .clientNom(r.getFacture().getClient() != null ? r.getFacture().getClient().getFirstName() + " " + r.getFacture().getClient().getLastName() : null)
+                .numeroFicheAtelier(r.getFacture().getFicheAtelier() != null ? r.getFacture().getFicheAtelier().getNumero() : null)
+                .montant(r.getMontant())
+                .modePaiement(r.getModePaiement())
+                .remarque(r.getRemarque())
+                .datePaiement(r.getDatePaiement())
+                .build();
     }
 }

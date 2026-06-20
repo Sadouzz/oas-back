@@ -8,5 +8,7 @@ public enum StatutBonCommande {
 
     RECU,
 
+    INCOMPLET,
+
     ANNULE
 }

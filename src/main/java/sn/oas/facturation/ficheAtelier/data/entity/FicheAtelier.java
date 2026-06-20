@@ -85,6 +85,14 @@ public class FicheAtelier {
     @com.fasterxml.jackson.annotation.JsonIgnore
     private List<Facturation> facturations = new ArrayList<>();
 
+    @OneToMany(mappedBy = "ficheAtelier", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<LigneFicheAtelierPiece> lignesFicheAtelierPieces = new ArrayList<>();
+
+    @OneToMany(mappedBy = "ficheAtelier", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<LigneFicheAtelierMainDoeuvre> lignesFicheAtelierMainDoeuvres = new ArrayList<>();
+
     @PrePersist
     protected void onCreate() {
         if (this.dateCreation == null) {

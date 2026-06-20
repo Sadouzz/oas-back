@@ -13,4 +13,6 @@ public class FicheAtelierRequest {
     private LocalDateTime dateSortie;
     private Long vehiculeId;
     private StatutReparation statut;
+    private java.util.List<LigneFicheAtelierPieceRequest> lignesPieces;
+    private java.util.List<LigneFicheAtelierMainDoeuvreRequest> lignesMainDoeuvres;
 }
