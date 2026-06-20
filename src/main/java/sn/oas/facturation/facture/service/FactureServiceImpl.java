@@ -129,6 +129,13 @@ public class FactureServiceImpl implements FactureService {
         facture.setStatutPaiement(sn.oas.facturation.facture.data.enums.StatutPaiement.NON_PAYE);
 
         facture = factureRepository.save(facture);
+
+        // Update FicheAtelier status to EN_ATTENTE_PAIEMENT
+        if (ficheAtelier != null && ficheAtelier.getStatut() != sn.oas.facturation.ficheAtelier.data.enums.StatutReparation.EN_ATTENTE_PAIEMENT) {
+            ficheAtelier.setStatut(sn.oas.facturation.ficheAtelier.data.enums.StatutReparation.EN_ATTENTE_PAIEMENT);
+            ficheAtelierRepository.save(ficheAtelier);
+        }
+
         return mapToResponse(facture);
     }
 
@@ -191,6 +198,13 @@ public class FactureServiceImpl implements FactureService {
         facture.setStatutPaiement(sn.oas.facturation.facture.data.enums.StatutPaiement.NON_PAYE);
 
         facture = factureRepository.save(facture);
+
+        // Update FicheAtelier status to EN_ATTENTE_PAIEMENT
+        if (ficheAtelier != null && ficheAtelier.getStatut() != sn.oas.facturation.ficheAtelier.data.enums.StatutReparation.EN_ATTENTE_PAIEMENT) {
+            ficheAtelier.setStatut(sn.oas.facturation.ficheAtelier.data.enums.StatutReparation.EN_ATTENTE_PAIEMENT);
+            ficheAtelierRepository.save(ficheAtelier);
+        }
+
         return mapToResponse(facture);
     }
 

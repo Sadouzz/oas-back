@@ -18,10 +18,20 @@ import sn.oas.facturation.piecedetache.data.entity.PDP;
 import sn.oas.facturation.piecedetache.data.entity.PieceDetache;
 import sn.oas.facturation.main_doeuvre.data.entity.MainDoeuvre;
 import sn.oas.facturation.main_doeuvre.repository.MainDoeuvreRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import sn.oas.facturation.proforma.service.ProformaService;
+import sn.oas.facturation.proforma.dto.ProformaCreateRequest;
+import sn.oas.facturation.facturation.dto.LigneFacturationPieceRequest;
+import sn.oas.facturation.facturation.dto.LigneFacturationMainDoeuvreRequest;
+import sn.oas.facturation.ficheAtelier.dto.FicheAtelierLightDTO;
+import sn.oas.facturation.ficheAtelier.dto.VehiculeLightDTO;
+import sn.oas.facturation.ficheAtelier.dto.ClientLightDTO;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +43,10 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     private final sn.oas.facturation.proforma.repository.ProformaRepository proformaRepository;
     private final sn.oas.facturation.piecedetache.repository.PieceDetacheRepository pieceDetacheRepository;
     private final MainDoeuvreRepository mainDoeuvreRepository;
+
+    @Autowired
+    @Lazy
+    private ProformaService proformaService;
 
     @Override
     public FicheAtelier createFicheAtelier(FicheAtelierRequest request) {
@@ -101,8 +115,39 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     }
 
     @Override
-    public List<FicheAtelier> getAllFichesAtelier() {
-        return ficheAtelierRepository.findAll();
+    public List<FicheAtelierLightDTO> getAllFichesAtelier() {
+        return ficheAtelierRepository.findAllWithVehiculeAndClient().stream().map(f -> {
+            ClientLightDTO clientDTO = null;
+            if (f.getVehicule() != null && f.getVehicule().getClient() != null) {
+                clientDTO = ClientLightDTO.builder()
+                        .id(f.getVehicule().getClient().getId())
+                        .firstName(f.getVehicule().getClient().getFirstName())
+                        .lastName(f.getVehicule().getClient().getLastName())
+                        .phone(f.getVehicule().getClient().getPhone())
+                        .build();
+            }
+
+            VehiculeLightDTO vehiculeDTO = null;
+            if (f.getVehicule() != null) {
+                vehiculeDTO = VehiculeLightDTO.builder()
+                        .id(f.getVehicule().getId())
+                        .immatriculation(f.getVehicule().getImmatriculation())
+                        .marque(f.getVehicule().getMarque())
+                        .modele(f.getVehicule().getModele())
+                        .client(clientDTO)
+                        .build();
+            }
+
+            return FicheAtelierLightDTO.builder()
+                    .id(f.getId())
+                    .numero(f.getNumero())
+                    .descriptionTravaux(f.getDescriptionTravaux())
+                    .dateCreation(f.getDateCreation())
+                    .dateSortie(f.getDateSortie())
+                    .statut(f.getStatut())
+                    .vehicule(vehiculeDTO)
+                    .build();
+        }).collect(Collectors.toList());
     }
 
     @Override
@@ -157,7 +202,45 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
             }
         }
         
-        return ficheAtelierRepository.save(ficheAtelier);
+        ficheAtelier = ficheAtelierRepository.save(ficheAtelier);
+
+        // Auto-create proforma if pieces or MO are added and it doesn't exist yet
+        if ((request.getLignesPieces() != null && !request.getLignesPieces().isEmpty()) || 
+            (request.getLignesMainDoeuvres() != null && !request.getLignesMainDoeuvres().isEmpty())) {
+            
+            if (proformaRepository.findByFicheAtelierId(ficheAtelier.getId()).isEmpty()) {
+                ProformaCreateRequest pcr = new ProformaCreateRequest();
+                pcr.setFicheAtelierId(ficheAtelier.getId());
+                pcr.setClientId(ficheAtelier.getVehicule().getClient() != null ? ficheAtelier.getVehicule().getClient().getId() : null);
+                pcr.setVehiculeId(ficheAtelier.getVehicule().getId());
+                pcr.setKilometrage(ficheAtelier.getVehicule().getKilometrage() != null ? ficheAtelier.getVehicule().getKilometrage() : 0.0);
+                
+                if (request.getLignesPieces() != null) {
+                    pcr.setLignesPieces(request.getLignesPieces().stream().map(lp -> {
+                        LigneFacturationPieceRequest lr = new LigneFacturationPieceRequest();
+                        lr.setPieceId(lp.pieceId());
+                        lr.setQuantite(lp.quantite());
+                        lr.setPrix(lp.prix());
+                        return lr;
+                    }).collect(Collectors.toList()));
+                }
+                
+                if (request.getLignesMainDoeuvres() != null) {
+                    pcr.setLignesMainDoeuvres(request.getLignesMainDoeuvres().stream().map(lm -> {
+                        LigneFacturationMainDoeuvreRequest lmr = new LigneFacturationMainDoeuvreRequest();
+                        lmr.setMainDoeuvreId(lm.mainDoeuvreId());
+                        lmr.setNbreHeure(lm.nbreHeure());
+                        lmr.setTarifHoraire(lm.prix());
+                        return lmr;
+                    }).collect(Collectors.toList()));
+                }
+                
+                proformaService.create(pcr);
+                // proformaService.create already sets FicheAtelier status to EN_ATTENTE_PROFORMA
+            }
+        }
+
+        return ficheAtelier;
     }
 
     @Override

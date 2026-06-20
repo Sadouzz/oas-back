@@ -11,6 +11,9 @@ import java.util.List;
 @Repository
 public interface FicheAtelierRepository extends JpaRepository<FicheAtelier, Long> {
 
+    @Query("SELECT f FROM FicheAtelier f JOIN FETCH f.vehicule v LEFT JOIN FETCH v.client ORDER BY f.id DESC")
+    List<FicheAtelier> findAllWithVehiculeAndClient();
+
     @Query("SELECT f FROM FicheAtelier f WHERE " +
             "LOWER(f.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(f.descriptionTravaux) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +

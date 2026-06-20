@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
 import sn.oas.facturation.ficheAtelier.dto.FicheAtelierRequest;
+import sn.oas.facturation.ficheAtelier.dto.FicheAtelierLightDTO;
 import sn.oas.facturation.ficheAtelier.service.FicheAtelierService;
 
 import java.util.List;
@@ -21,7 +22,7 @@ public class FicheAtelierController {
 
     @GetMapping
     @Operation(summary = "Lister toutes les fiches atelier")
-    public ResponseEntity<List<FicheAtelier>> getAllFichesAtelier() {
+    public ResponseEntity<List<FicheAtelierLightDTO>> getAllFichesAtelier() {
         return ResponseEntity.ok(ficheAtelierService.getAllFichesAtelier());
     }
 
