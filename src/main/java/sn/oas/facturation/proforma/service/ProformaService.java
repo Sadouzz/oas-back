@@ -20,4 +20,9 @@ public interface ProformaService {
     ProformaResponse valider(Long id);
     byte[] generatePdf(Long id);
     FactureResponse convertToFacture(Long id);
+
+    // Client methods
+    List<ProformaResponse> getClientProformas(sn.oas.facturation.auth.data.entity.Client client);
+    ProformaResponse clientValider(sn.oas.facturation.auth.data.entity.Client client, Long id);
+    ProformaResponse clientRefuser(sn.oas.facturation.auth.data.entity.Client client, Long id);
 }

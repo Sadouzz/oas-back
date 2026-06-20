@@ -24,6 +24,8 @@ import sn.oas.facturation.rendezvous.service.RendezVousService;
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.vehicule.dto.VehiculeRequest;
 import sn.oas.facturation.vehicule.service.VehiculeService;
+import sn.oas.facturation.proforma.dto.ProformaResponse;
+import sn.oas.facturation.proforma.service.ProformaService;
 
 import java.util.List;
 
@@ -41,6 +43,7 @@ public class ClientPortalController {
     private final RecuService recuService;
     private final NotificationService notificationService;
     private final MessageService messageService;
+    private final ProformaService proformaService;
 
     // --- Profil ---
     @GetMapping("/me")
@@ -145,6 +148,36 @@ public class ClientPortalController {
             return ResponseEntity.badRequest().body("Accès non autorisé à cette facture");
         }
         return ResponseEntity.ok(facture);
+    }
+
+    // --- Proformas ---
+    @GetMapping("/proformas")
+    @Operation(summary = "Lister les proformas du client connecté")
+    public ResponseEntity<List<ProformaResponse>> getProformas() {
+        Client client = clientService.getClientConnecte();
+        return ResponseEntity.ok(proformaService.getClientProformas(client));
+    }
+
+    @PutMapping("/proformas/{id}/valider")
+    @Operation(summary = "Valider un proforma par le client")
+    public ResponseEntity<?> validerProforma(@PathVariable Long id) {
+        try {
+            Client client = clientService.getClientConnecte();
+            return ResponseEntity.ok(proformaService.clientValider(client, id));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/proformas/{id}/refuser")
+    @Operation(summary = "Refuser un proforma par le client")
+    public ResponseEntity<?> refuserProforma(@PathVariable Long id) {
+        try {
+            Client client = clientService.getClientConnecte();
+            return ResponseEntity.ok(proformaService.clientRefuser(client, id));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     // --- Reçus ---

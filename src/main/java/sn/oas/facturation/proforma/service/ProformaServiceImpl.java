@@ -599,6 +599,60 @@ public class ProformaServiceImpl implements ProformaService {
         return mapToFactureResponse(savedFacture);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProformaResponse> getClientProformas(Client client) {
+        return proformaRepository.findByClientIdOrderByDateCreationDesc(client.getId()).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public ProformaResponse clientValider(Client client, Long id) {
+        log.info("Validation du proforma id: {} par le client: {}", id, client.getId());
+        Proforma proforma = proformaRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Proforma non trouvé avec l'id : " + id));
+
+        if (proforma.getFicheAtelier() == null || proforma.getFicheAtelier().getVehicule() == null || 
+            !proforma.getFicheAtelier().getVehicule().getClient().getId().equals(client.getId())) {
+            throw new IllegalArgumentException("Accès non autorisé à ce proforma");
+        }
+
+        proforma.setStatut(sn.oas.facturation.facturation.data.enums.StatutFacturation.ACCEPTE);
+        
+        FicheAtelier ficheAtelier = proforma.getFicheAtelier();
+        if (ficheAtelier != null) {
+            ficheAtelier.setStatut(StatutReparation.EN_COURS);
+            ficheAtelierRepository.save(ficheAtelier);
+        }
+
+        return mapToResponse(proformaRepository.save(proforma));
+    }
+
+    @Override
+    @Transactional
+    public ProformaResponse clientRefuser(Client client, Long id) {
+        log.info("Refus du proforma id: {} par le client: {}", id, client.getId());
+        Proforma proforma = proformaRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Proforma non trouvé avec l'id : " + id));
+
+        if (proforma.getFicheAtelier() == null || proforma.getFicheAtelier().getVehicule() == null || 
+            !proforma.getFicheAtelier().getVehicule().getClient().getId().equals(client.getId())) {
+            throw new IllegalArgumentException("Accès non autorisé à ce proforma");
+        }
+
+        proforma.setStatut(sn.oas.facturation.facturation.data.enums.StatutFacturation.REJETTE);
+        
+        FicheAtelier ficheAtelier = proforma.getFicheAtelier();
+        if (ficheAtelier != null) {
+            ficheAtelier.setStatut(StatutReparation.ANNULEE);
+            ficheAtelierRepository.save(ficheAtelier);
+        }
+
+        return mapToResponse(proformaRepository.save(proforma));
+    }
+
     private ProformaResponse mapToResponse(Proforma p) {
         return ProformaResponse.builder()
                 .id(p.getId())
