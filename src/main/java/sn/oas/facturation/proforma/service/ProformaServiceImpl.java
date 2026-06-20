@@ -642,7 +642,7 @@ public class ProformaServiceImpl implements ProformaService {
             throw new IllegalArgumentException("Accès non autorisé à ce proforma");
         }
 
-        proforma.setStatut(sn.oas.facturation.facturation.data.enums.StatutFacturation.REJETTE);
+        proforma.setStatut(sn.oas.facturation.facturation.data.enums.StatutFacturation.REJETE);
         
         FicheAtelier ficheAtelier = proforma.getFicheAtelier();
         // Optionnel : ne pas changer le statut de la fiche atelier ou le remettre à EN_DIAGNOSTIC
