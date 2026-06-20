@@ -355,6 +355,25 @@ public class FactureServiceImpl implements FactureService {
         return baos.toByteArray();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<FactureResponse> getClientFactures(Client client) {
+        return factureRepository.findByClientIdOrderByDateCreationDesc(client.getId()).stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public FactureResponse getClientFactureById(Client client, Long id) {
+        Facture f = factureRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Facture non trouvée avec l'id : " + id));
+        if (f.getClient() == null || !f.getClient().getId().equals(client.getId())) {
+            throw new IllegalArgumentException("Accès non autorisé à cette facture");
+        }
+        return mapToResponse(f);
+    }
+
     private FactureResponse mapToResponse(Facture f) {
         return FactureResponse.builder()
                 .id(f.getId())

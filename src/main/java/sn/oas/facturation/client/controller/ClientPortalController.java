@@ -8,7 +8,9 @@ import org.springframework.web.bind.annotation.*;
 import sn.oas.facturation.auth.data.entity.Client;
 import sn.oas.facturation.client.service.ClientService;
 import sn.oas.facturation.facture.data.entity.Facture;
+import sn.oas.facturation.facture.dto.FactureResponse;
 import sn.oas.facturation.facture.repository.FactureRepository;
+import sn.oas.facturation.facture.service.FactureService;
 import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
 import sn.oas.facturation.ficheAtelier.repository.FicheAtelierRepository;
 import sn.oas.facturation.messagerie.dto.MessageRequest;
@@ -40,6 +42,7 @@ public class ClientPortalController {
     private final RendezVousService rendezvousService;
     private final FicheAtelierRepository ficheAtelierRepository;
     private final FactureRepository factureRepository;
+    private final FactureService factureService;
     private final RecuService recuService;
     private final NotificationService notificationService;
     private final MessageService messageService;
@@ -133,21 +136,20 @@ public class ClientPortalController {
     // --- Facturation ---
     @GetMapping("/factures")
     @Operation(summary = "Lister l'historique de facturation du client connecté")
-    public ResponseEntity<List<Facture>> getFactures() {
+    public ResponseEntity<List<FactureResponse>> getFactures() {
         Client client = clientService.getClientConnecte();
-        return ResponseEntity.ok(factureRepository.findByClientIdOrderByDateCreationDesc(client.getId()));
+        return ResponseEntity.ok(factureService.getClientFactures(client));
     }
 
     @GetMapping("/factures/{id}")
     @Operation(summary = "Récupérer le détail d'une facture")
     public ResponseEntity<?> getFactureById(@PathVariable Long id) {
-        Client client = clientService.getClientConnecte();
-        Facture facture = factureRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Facture non trouvée"));
-        if (!facture.getClient().getId().equals(client.getId())) {
-            return ResponseEntity.badRequest().body("Accès non autorisé à cette facture");
+        try {
+            Client client = clientService.getClientConnecte();
+            return ResponseEntity.ok(factureService.getClientFactureById(client, id));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
-        return ResponseEntity.ok(facture);
     }
 
     // --- Proformas ---

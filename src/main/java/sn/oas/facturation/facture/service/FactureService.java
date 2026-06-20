@@ -13,4 +13,8 @@ public interface FactureService {
     byte[] generatePdf(Long id);
     FactureResponse createFacture(sn.oas.facturation.facture.dto.FactureCreateRequest request);
     FactureResponse createFactureAuto(sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier fiche);
+    
+    // Client methods
+    List<FactureResponse> getClientFactures(sn.oas.facturation.auth.data.entity.Client client);
+    FactureResponse getClientFactureById(sn.oas.facturation.auth.data.entity.Client client, Long id);
 }
