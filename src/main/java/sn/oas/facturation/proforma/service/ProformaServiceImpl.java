@@ -645,10 +645,8 @@ public class ProformaServiceImpl implements ProformaService {
         proforma.setStatut(sn.oas.facturation.facturation.data.enums.StatutFacturation.REJETTE);
         
         FicheAtelier ficheAtelier = proforma.getFicheAtelier();
-        if (ficheAtelier != null) {
-            ficheAtelier.setStatut(StatutReparation.ANNULEE);
-            ficheAtelierRepository.save(ficheAtelier);
-        }
+        // Optionnel : ne pas changer le statut de la fiche atelier ou le remettre à EN_DIAGNOSTIC
+        // si le proforma est refusé. Pour l'instant on garde le statut actuel.
 
         return mapToResponse(proformaRepository.save(proforma));
     }
