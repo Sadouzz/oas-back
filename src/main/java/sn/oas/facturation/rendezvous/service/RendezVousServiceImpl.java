@@ -135,7 +135,7 @@ public class RendezVousServiceImpl implements RendezVousService {
         sn.oas.facturation.ficheAtelier.dto.FicheAtelierRequest faReq = new sn.oas.facturation.ficheAtelier.dto.FicheAtelierRequest();
         faReq.setVehiculeId(rv.getVehicule().getId());
         faReq.setDescriptionTravaux(rv.getMotif());
-        faReq.setStatut(sn.oas.facturation.ficheAtelier.data.enums.StatutReparation.A_FAIRE);
+        faReq.setStatut(sn.oas.facturation.ficheAtelier.data.enums.StatutFiche.A_FAIRE);
         
         sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier fiche = ficheAtelierService.createFicheAtelier(faReq);
         

@@ -3,7 +3,7 @@ package sn.oas.facturation.ficheAtelier.data.entity;
 import sn.oas.facturation.bonDeSortie.data.entity.BonDeSortie;
 import sn.oas.facturation.facturation.data.entity.Facturation;
 import sn.oas.facturation.mecanicien.data.entity.Mecanicien;
-import sn.oas.facturation.ficheAtelier.data.enums.StatutReparation;
+import sn.oas.facturation.ficheAtelier.data.enums.StatutFiche;
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
 import jakarta.persistence.*;
 import lombok.*;
@@ -58,7 +58,7 @@ public class FicheAtelier {
     @Enumerated(EnumType.STRING)
     @Column(name = "statut")
     @Builder.Default
-    private StatutReparation statut = StatutReparation.A_FAIRE;
+    private StatutFiche statut = StatutFiche.A_FAIRE;
 
     // ── Relationship Block ───────────────────────────────────
 
@@ -75,6 +75,16 @@ public class FicheAtelier {
     @Builder.Default
     @JsonIgnoreProperties("fichesAtelier")
     private List<Mecanicien> mecaniciens = new ArrayList<>();
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "fiche_mecaniciens_reparation",
+        joinColumns = @JoinColumn(name = "fiche_id"),
+        inverseJoinColumns = @JoinColumn(name = "mecanicien_id")
+    )
+    @Builder.Default
+    @JsonIgnoreProperties("fichesAtelier")
+    private List<Mecanicien> mecaniciensReparation = new ArrayList<>();
 
     @OneToOne(mappedBy = "ficheAtelier", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnoreProperties("ficheAtelier") // Ignore le champ "ficheAtelier" qui est DANS le "BonDeSortie"
@@ -102,7 +112,7 @@ public class FicheAtelier {
             this.updatedAt = LocalDateTime.now();
         }
         if (this.statut == null) {
-            this.statut = StatutReparation.A_FAIRE;
+            this.statut = StatutFiche.A_FAIRE;
         }
     }
 }

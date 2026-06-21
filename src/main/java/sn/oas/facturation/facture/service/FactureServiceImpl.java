@@ -33,6 +33,8 @@ import sn.oas.facturation.vehicule.repository.VehiculeRepository;
 import sn.oas.facturation.facture.dto.FactureCreateRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import sn.oas.facturation.auth.data.enums.Role;
+import sn.oas.facturation.notification.service.AgentNotificationService;
 
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
@@ -49,6 +51,7 @@ public class FactureServiceImpl implements FactureService {
     private final FicheAtelierRepository ficheAtelierRepository;
     private final VehiculeRepository vehiculeRepository;
     private final UserRepository userRepository;
+    private final AgentNotificationService agentNotificationService;
 
     @Override
     @Transactional
@@ -131,10 +134,14 @@ public class FactureServiceImpl implements FactureService {
         facture = factureRepository.save(facture);
 
         // Update FicheAtelier status to EN_ATTENTE_PAIEMENT
-        if (ficheAtelier != null && ficheAtelier.getStatut() != sn.oas.facturation.ficheAtelier.data.enums.StatutReparation.EN_ATTENTE_PAIEMENT) {
-            ficheAtelier.setStatut(sn.oas.facturation.ficheAtelier.data.enums.StatutReparation.EN_ATTENTE_PAIEMENT);
+        if (ficheAtelier != null && ficheAtelier.getStatut() != sn.oas.facturation.ficheAtelier.data.enums.StatutFiche.EN_ATTENTE_PAIEMENT) {
+            ficheAtelier.setStatut(sn.oas.facturation.ficheAtelier.data.enums.StatutFiche.EN_ATTENTE_PAIEMENT);
             ficheAtelierRepository.save(ficheAtelier);
         }
+
+        agentNotificationService.notifyRole(Role.AGENT, 
+            "Nouvelle Facture", 
+            "La facture " + facture.getNumero() + " a été générée et est en attente de paiement.");
 
         return mapToResponse(facture);
     }
@@ -200,10 +207,13 @@ public class FactureServiceImpl implements FactureService {
         facture = factureRepository.save(facture);
 
         // Update FicheAtelier status to EN_ATTENTE_PAIEMENT
-        if (ficheAtelier != null && ficheAtelier.getStatut() != sn.oas.facturation.ficheAtelier.data.enums.StatutReparation.EN_ATTENTE_PAIEMENT) {
-            ficheAtelier.setStatut(sn.oas.facturation.ficheAtelier.data.enums.StatutReparation.EN_ATTENTE_PAIEMENT);
-            ficheAtelierRepository.save(ficheAtelier);
-        }
+        // REMOVED: Since the facture is generated automatically when the Bon de Sortie is validated, 
+        // the repair hasn't even started yet! The Fiche Atelier must go to EN_ATTENTE_MECANICIEN (Step 7).
+        // It will only transition to payment later when the repair is done.
+
+        agentNotificationService.notifyRole(Role.AGENT, 
+            "Nouvelle Facture Auto", 
+            "La facture " + facture.getNumero() + " a été générée automatiquement et est en attente de paiement.");
 
         return mapToResponse(facture);
     }
@@ -416,6 +426,8 @@ public class FactureServiceImpl implements FactureService {
                 .modele(f.getVehicule() != null ? f.getVehicule().getModele() : null)
                 .annee(f.getVehicule() != null ? f.getVehicule().getAnnee() : null)
                 .numeroBonDeCommande(f.getNumeroBonDeCommande())
+                .ficheAtelierId(f.getFicheAtelier() != null ? f.getFicheAtelier().getId() : null)
+                .numeroFicheAtelier(f.getFicheAtelier() != null ? f.getFicheAtelier().getNumero() : null)
                 .lignesPieces(f.getLignesFacturationPieces() == null ? List.of() : f.getLignesFacturationPieces().stream()
                         .map(lp -> LigneFacturationPieceResponse.builder()
                                 .id(lp.getId())

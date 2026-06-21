@@ -16,5 +16,8 @@ public interface FicheAtelierService {
     void deleteFicheAtelier(Long id);
     void assignMecanicien(Long ficheId, Long mecanicienId);
     void removeMecanicien(Long ficheId, Long mecanicienId);
+
+    void assignMecanicienReparation(Long ficheId, Long mecanicienId);
+    void removeMecanicienReparation(Long ficheId, Long mecanicienId);
     FicheAtelier updateStatut(Long id, String statut);
 }

@@ -40,7 +40,9 @@ import sn.oas.facturation.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.vehicule.repository.VehiculeRepository;
 import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
 import sn.oas.facturation.ficheAtelier.repository.FicheAtelierRepository;
-import sn.oas.facturation.ficheAtelier.data.enums.StatutReparation;
+import sn.oas.facturation.ficheAtelier.data.enums.StatutFiche;
+import sn.oas.facturation.auth.data.enums.Role;
+import sn.oas.facturation.notification.service.AgentNotificationService;
 
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
@@ -64,6 +66,7 @@ public class ProformaServiceImpl implements ProformaService {
     private final MainDoeuvreRepository mainDoeuvreRepository;
     private final FicheAtelierRepository ficheAtelierRepository;
     private final AuthService authService;
+    private final AgentNotificationService agentNotificationService;
 
     @Override
     @Transactional
@@ -239,9 +242,13 @@ public class ProformaServiceImpl implements ProformaService {
         Proforma saved = proformaRepository.save(proforma);
 
         if (ficheAtelier != null) {
-            ficheAtelier.setStatut(StatutReparation.EN_ATTENTE_PROFORMA);
+            ficheAtelier.setStatut(StatutFiche.EN_ATTENTE_PROFORMA);
             ficheAtelierRepository.save(ficheAtelier);
         }
+
+        agentNotificationService.notifyRole(Role.AGENT, 
+            "Nouveau Proforma", 
+            "Le proforma " + saved.getNumero() + " a été généré et est en attente.");
 
         return mapToResponse(saved);
     }
@@ -423,7 +430,7 @@ public class ProformaServiceImpl implements ProformaService {
         
         FicheAtelier ficheAtelier = proforma.getFicheAtelier();
         if (ficheAtelier != null) {
-            ficheAtelier.setStatut(StatutReparation.EN_COURS);
+            ficheAtelier.setStatut(StatutFiche.PROFORMA_VALIDE);
             ficheAtelierRepository.save(ficheAtelier);
         }
 
@@ -623,9 +630,13 @@ public class ProformaServiceImpl implements ProformaService {
         
         FicheAtelier ficheAtelier = proforma.getFicheAtelier();
         if (ficheAtelier != null) {
-            ficheAtelier.setStatut(StatutReparation.EN_COURS);
+            ficheAtelier.setStatut(StatutFiche.PROFORMA_VALIDE);
             ficheAtelierRepository.save(ficheAtelier);
         }
+
+        agentNotificationService.notifyRole(Role.CHEF_ATELIER, 
+            "Proforma Validé", 
+            "Le proforma " + proforma.getNumero() + " a été validé par le client.");
 
         return mapToResponse(proformaRepository.save(proforma));
     }

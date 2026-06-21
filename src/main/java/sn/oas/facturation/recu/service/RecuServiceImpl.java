@@ -8,7 +8,7 @@ import sn.oas.facturation.facture.data.entity.Facture;
 import sn.oas.facturation.facture.data.enums.StatutPaiement;
 import sn.oas.facturation.facture.repository.FactureRepository;
 import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
-import sn.oas.facturation.ficheAtelier.data.enums.StatutReparation;
+import sn.oas.facturation.ficheAtelier.data.enums.StatutFiche;
 import sn.oas.facturation.ficheAtelier.repository.FicheAtelierRepository;
 import sn.oas.facturation.recu.data.entity.Recu;
 import sn.oas.facturation.recu.dto.RecuRequest;
@@ -71,8 +71,8 @@ public class RecuServiceImpl implements RecuService {
             // Advance Fiche Atelier to TERMINE if it was waiting for payment
             if (facture.getFicheAtelier() != null) {
                 FicheAtelier fiche = facture.getFicheAtelier();
-                if (fiche.getStatut() == StatutReparation.EN_ATTENTE_PAIEMENT) {
-                    fiche.setStatut(StatutReparation.TERMINE);
+                if (fiche.getStatut() == StatutFiche.EN_ATTENTE_PAIEMENT) {
+                    fiche.setStatut(StatutFiche.TERMINE);
                     ficheAtelierRepository.save(fiche);
                 }
             }

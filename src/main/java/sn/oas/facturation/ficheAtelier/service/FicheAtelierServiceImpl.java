@@ -3,7 +3,7 @@ package sn.oas.facturation.ficheAtelier.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
-import sn.oas.facturation.ficheAtelier.data.enums.StatutReparation;
+import sn.oas.facturation.ficheAtelier.data.enums.StatutFiche;
 import sn.oas.facturation.ficheAtelier.dto.FicheAtelierRequest;
 import sn.oas.facturation.ficheAtelier.repository.FicheAtelierRepository;
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
@@ -21,6 +21,8 @@ import sn.oas.facturation.main_doeuvre.repository.MainDoeuvreRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.transaction.annotation.Transactional;
+import sn.oas.facturation.auth.data.enums.Role;
+import sn.oas.facturation.notification.service.AgentNotificationService;
 
 import java.util.List;
 import java.util.Optional;
@@ -43,6 +45,7 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     private final sn.oas.facturation.proforma.repository.ProformaRepository proformaRepository;
     private final sn.oas.facturation.piecedetache.repository.PieceDetacheRepository pieceDetacheRepository;
     private final MainDoeuvreRepository mainDoeuvreRepository;
+    private final AgentNotificationService agentNotificationService;
 
     @Autowired
     @Lazy
@@ -63,7 +66,8 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
             String prefix = String.format("FA-%d-", java.time.Year.now().getValue());
             FicheAtelier derniereFiche = ficheAtelierRepository.findTopByNumeroStartingWithOrderByNumeroDesc(prefix);
             long nextId = 1;
-            if (derniereFiche != null && derniereFiche.getNumero() != null && derniereFiche.getNumero().startsWith(prefix)) {
+            if (derniereFiche != null && derniereFiche.getNumero() != null
+                    && derniereFiche.getNumero().startsWith(prefix)) {
                 try {
                     String lastSeq = derniereFiche.getNumero().substring(prefix.length());
                     nextId = Long.parseLong(lastSeq) + 1;
@@ -81,7 +85,7 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
                 .listeDefauts(request.getListeDefauts())
                 .dateSortie(request.getDateSortie())
                 .vehicule(vehicule)
-                .statut(request.getStatut() != null ? request.getStatut() : StatutReparation.A_FAIRE)
+                .statut(request.getStatut() != null ? request.getStatut() : StatutFiche.A_FAIRE)
                 .build();
 
         if (request.getLignesPieces() != null) {
@@ -93,7 +97,8 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
                         .ficheAtelier(ficheAtelier)
                         .piece(pdp)
                         .quantite(ligneReq.quantite())
-                        .prix(ligneReq.prix() != null ? ligneReq.prix() : (pdp.getPrix() != null ? pdp.getPrix().intValue() : 0))
+                        .prix(ligneReq.prix() != null ? ligneReq.prix()
+                                : (pdp.getPrix() != null ? pdp.getPrix().intValue() : 0))
                         .build());
             }
         }
@@ -106,7 +111,8 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
                         .ficheAtelier(ficheAtelier)
                         .mainDoeuvre(md)
                         .nbreHeure(ligneReq.nbreHeure())
-                        .prix(ligneReq.prix() != null ? ligneReq.prix() : (md.getPrix() != null ? md.getPrix().intValue() : 0))
+                        .prix(ligneReq.prix() != null ? ligneReq.prix()
+                                : (md.getPrix() != null ? md.getPrix().intValue() : 0))
                         .build());
             }
         }
@@ -159,13 +165,19 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     public FicheAtelier updateFicheAtelier(Long id, FicheAtelierRequest request) {
         FicheAtelier ficheAtelier = ficheAtelierRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
-        
-        if (request.getNumero() != null) ficheAtelier.setNumero(request.getNumero());
-        if (request.getDescriptionTravaux() != null) ficheAtelier.setDescriptionTravaux(request.getDescriptionTravaux());
-        if (request.getListeReception() != null) ficheAtelier.setListeReception(request.getListeReception());
-        if (request.getListeDefauts() != null) ficheAtelier.setListeDefauts(request.getListeDefauts());
-        if (request.getDateSortie() != null) ficheAtelier.setDateSortie(request.getDateSortie());
-        if (request.getStatut() != null) ficheAtelier.setStatut(request.getStatut());
+
+        if (request.getNumero() != null)
+            ficheAtelier.setNumero(request.getNumero());
+        if (request.getDescriptionTravaux() != null)
+            ficheAtelier.setDescriptionTravaux(request.getDescriptionTravaux());
+        if (request.getListeReception() != null)
+            ficheAtelier.setListeReception(request.getListeReception());
+        if (request.getListeDefauts() != null)
+            ficheAtelier.setListeDefauts(request.getListeDefauts());
+        if (request.getDateSortie() != null)
+            ficheAtelier.setDateSortie(request.getDateSortie());
+        if (request.getStatut() != null)
+            ficheAtelier.setStatut(request.getStatut());
 
         if (request.getVehiculeId() != null) {
             Vehicule vehicule = vehiculeRepository.findById(request.getVehiculeId())
@@ -183,7 +195,8 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
                         .ficheAtelier(ficheAtelier)
                         .piece(pdp)
                         .quantite(ligneReq.quantite())
-                        .prix(ligneReq.prix() != null ? ligneReq.prix() : (pdp.getPrix() != null ? pdp.getPrix().intValue() : 0))
+                        .prix(ligneReq.prix() != null ? ligneReq.prix()
+                                : (pdp.getPrix() != null ? pdp.getPrix().intValue() : 0))
                         .build());
             }
         }
@@ -197,24 +210,29 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
                         .ficheAtelier(ficheAtelier)
                         .mainDoeuvre(md)
                         .nbreHeure(ligneReq.nbreHeure())
-                        .prix(ligneReq.prix() != null ? ligneReq.prix() : (md.getPrix() != null ? md.getPrix().intValue() : 0))
+                        .prix(ligneReq.prix() != null ? ligneReq.prix()
+                                : (md.getPrix() != null ? md.getPrix().intValue() : 0))
                         .build());
             }
         }
-        
+
         ficheAtelier = ficheAtelierRepository.save(ficheAtelier);
 
         // Auto-create proforma if pieces or MO are added and it doesn't exist yet
-        if ((request.getLignesPieces() != null && !request.getLignesPieces().isEmpty()) || 
-            (request.getLignesMainDoeuvres() != null && !request.getLignesMainDoeuvres().isEmpty())) {
-            
+        if ((request.getLignesPieces() != null && !request.getLignesPieces().isEmpty()) ||
+                (request.getLignesMainDoeuvres() != null && !request.getLignesMainDoeuvres().isEmpty())) {
+
             if (proformaRepository.findByFicheAtelierId(ficheAtelier.getId()).isEmpty()) {
                 ProformaCreateRequest pcr = new ProformaCreateRequest();
                 pcr.setFicheAtelierId(ficheAtelier.getId());
-                pcr.setClientId(ficheAtelier.getVehicule().getClient() != null ? ficheAtelier.getVehicule().getClient().getId() : null);
+                pcr.setClientId(
+                        ficheAtelier.getVehicule().getClient() != null ? ficheAtelier.getVehicule().getClient().getId()
+                                : null);
                 pcr.setVehiculeId(ficheAtelier.getVehicule().getId());
-                pcr.setKilometrage(ficheAtelier.getVehicule().getKilometrage() != null ? ficheAtelier.getVehicule().getKilometrage() : 0.0);
-                
+                pcr.setKilometrage(ficheAtelier.getVehicule().getKilometrage() != null
+                        ? ficheAtelier.getVehicule().getKilometrage()
+                        : 0.0);
+
                 if (request.getLignesPieces() != null) {
                     pcr.setLignesPieces(request.getLignesPieces().stream().map(lp -> {
                         LigneFacturationPieceRequest lr = new LigneFacturationPieceRequest();
@@ -224,7 +242,7 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
                         return lr;
                     }).collect(Collectors.toList()));
                 }
-                
+
                 if (request.getLignesMainDoeuvres() != null) {
                     pcr.setLignesMainDoeuvres(request.getLignesMainDoeuvres().stream().map(lm -> {
                         LigneFacturationMainDoeuvreRequest lmr = new LigneFacturationMainDoeuvreRequest();
@@ -234,9 +252,10 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
                         return lmr;
                     }).collect(Collectors.toList()));
                 }
-                
+
                 proformaService.create(pcr);
-                // proformaService.create already sets FicheAtelier status to EN_ATTENTE_PROFORMA
+                // proformaService.create already sets FicheAtelier status to
+                // EN_ATTENTE_PROFORMA
             }
         }
 
@@ -278,28 +297,56 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
 
     @Transactional
     @Override
+    public void assignMecanicienReparation(Long ficheId, Long mecanicienId) {
+        FicheAtelier fiche = ficheAtelierRepository.findById(ficheId)
+                .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        Mecanicien mecanicien = mecanicienRepository.findById(mecanicienId)
+                .orElseThrow(() -> new RuntimeException("Mécanicien non trouvé"));
+
+        if (!fiche.getMecaniciensReparation().contains(mecanicien)) {
+            fiche.getMecaniciensReparation().add(mecanicien);
+            ficheAtelierRepository.save(fiche);
+        }
+    }
+
+    @Transactional
+    @Override
+    public void removeMecanicienReparation(Long ficheId, Long mecanicienId) {
+        FicheAtelier fiche = ficheAtelierRepository.findById(ficheId)
+                .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        Mecanicien mecanicien = mecanicienRepository.findById(mecanicienId)
+                .orElseThrow(() -> new RuntimeException("Mécanicien non trouvé"));
+
+        fiche.getMecaniciensReparation().remove(mecanicien);
+        ficheAtelierRepository.save(fiche);
+    }
+
+    @Transactional
+    @Override
     public FicheAtelier updateStatut(Long id, String statut) {
         FicheAtelier fiche = ficheAtelierRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
-        StatutReparation newStatut;
+        StatutFiche newStatut;
         try {
-            newStatut = StatutReparation.valueOf(statut);
+            newStatut = StatutFiche.valueOf(statut);
         } catch (IllegalArgumentException e) {
             throw new RuntimeException("Statut invalide : " + statut);
         }
 
-        // Si la réparation se termine ou est livrée directement, on déduit les pièces du proforma du stock de l'atelier
-        if ((newStatut == StatutReparation.TERMINE || newStatut == StatutReparation.LIVRE)
-                && fiche.getStatut() != StatutReparation.TERMINE
-                && fiche.getStatut() != StatutReparation.LIVRE) {
+        // Si la réparation commence (EN_COURS), on déduit les pièces
+        // du proforma du stock de l'atelier
+        if (newStatut == StatutFiche.EN_COURS && fiche.getStatut() != StatutFiche.EN_COURS) {
             proformaRepository.findByFicheAtelierId(id).ifPresent(proforma -> {
-                for (sn.oas.facturation.facturation.data.entity.LigneFacturationPiece lp : proforma.getLignesFacturationPieces()) {
-                    sn.oas.facturation.piecedetache.data.entity.PieceDetache piece = pieceDetacheRepository.findById(lp.getPiece().getId()).orElse(null);
+                for (sn.oas.facturation.facturation.data.entity.LigneFacturationPiece lp : proforma
+                        .getLignesFacturationPieces()) {
+                    sn.oas.facturation.piecedetache.data.entity.PieceDetache piece = pieceDetacheRepository
+                            .findById(lp.getPiece().getId()).orElse(null);
                     if (piece != null && piece instanceof sn.oas.facturation.piecedetache.data.entity.PDP pdp) {
                         int currentAtelier = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0;
                         int quantiteUtilisee = lp.getQuantite();
                         pdp.setStockAtelier(Math.max(0, currentAtelier - quantiteUtilisee));
-                        pdp.setQteReelle((pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0) + pdp.getStockAtelier());
+                        pdp.setQteReelle(
+                                (pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0) + pdp.getStockAtelier());
                         pieceDetacheRepository.save(pdp);
                     }
                 }
@@ -307,6 +354,14 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
         }
 
         fiche.setStatut(newStatut);
-        return ficheAtelierRepository.save(fiche);
+        FicheAtelier savedFiche = ficheAtelierRepository.save(fiche);
+
+        if (newStatut == StatutFiche.EN_ATTENTE_COMMANDE || newStatut == StatutFiche.EN_ATTENTE_SORTIE) {
+            agentNotificationService.notifyRole(Role.AGENT_MAGASIN,
+                    "Pièces en attente pour " + savedFiche.getNumero(),
+                    "La fiche " + savedFiche.getNumero() + " est passée en " + newStatut + ".");
+        }
+
+        return savedFiche;
     }
 }

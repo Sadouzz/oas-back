@@ -22,7 +22,7 @@ Ce document explique en détail tout ce qui a été réalisé et configuré pour
 ## 3. Suivi de l'Avancement des Réparations
 * **Problématique** : La fiche d'atelier (`FicheAtelier`) ne possédait pas d'état permettant de suivre l'avancement d'un véhicule en réparation.
 * **Solution** :
-  * Création d'un enum [StatutReparation.java](file:///d:/JBA/BACK/oas-back/oas-back/src/main/java/sn/oas/facturation/ficheAtelier/data/enums/StatutReparation.java) avec les statuts `A_FAIRE`, `EN_COURS`, `TERMINE`, `LIVRE`.
+  * Création d'un enum [StatutFiche.java](file:///d:/JBA/BACK/oas-back/oas-back/src/main/java/sn/oas/facturation/ficheAtelier/data/enums/StatutFiche.java) avec les statuts `A_FAIRE`, `EN_COURS`, `TERMINE`, `LIVRE`.
   * Ajout du champ `statut` dans l'entité [FicheAtelier.java](file:///d:/JBA/BACK/oas-back/oas-back/src/main/java/sn/oas/facturation/ficheAtelier/data/entity/FicheAtelier.java).
   * Les clients connectés peuvent ainsi suivre la progression de leurs véhicules en direct via `GET /api/client/interventions`.
 

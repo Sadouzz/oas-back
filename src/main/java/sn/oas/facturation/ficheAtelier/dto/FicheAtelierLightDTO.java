@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import sn.oas.facturation.ficheAtelier.data.enums.StatutReparation;
+import sn.oas.facturation.ficheAtelier.data.enums.StatutFiche;
 import java.time.LocalDateTime;
 
 @Data
@@ -17,6 +17,6 @@ public class FicheAtelierLightDTO {
     private String descriptionTravaux;
     private LocalDateTime dateCreation;
     private LocalDateTime dateSortie;
-    private StatutReparation statut;
+    private StatutFiche statut;
     private VehiculeLightDTO vehicule;
 }

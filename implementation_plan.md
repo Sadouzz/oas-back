@@ -79,11 +79,11 @@ Ce plan d'implémentation détaille la conception et la structure du backend pou
 
 ### 4. Module Suivi des Réparations
 
-#### [NEW] [StatutReparation.java](file:///d:/JBA/BACK/oas-back/oas-back/src/main/java/sn/oas/facturation/ficheAtelier/data/enums/StatutReparation.java)
+#### [NEW] [StatutFiche.java](file:///d:/JBA/BACK/oas-back/oas-back/src/main/java/sn/oas/facturation/ficheAtelier/data/enums/StatutFiche.java)
 - Enumération pour la progression des réparations : `A_FAIRE`, `EN_COURS`, `TERMINE`, `LIVRE`.
 
 #### [MODIFY] [FicheAtelier.java](file:///d:/JBA/BACK/oas-back/oas-back/src/main/java/sn/oas/facturation/ficheAtelier/data/entity/FicheAtelier.java)
-- Ajout du champ `statut` de type `StatutReparation` (par défaut `A_FAIRE`) et gestion dans le cycle de vie JPA (`PrePersist`).
+- Ajout du champ `statut` de type `StatutFiche` (par défaut `A_FAIRE`) et gestion dans le cycle de vie JPA (`PrePersist`).
 
 #### [MODIFY] [FicheAtelierRequest.java](file:///d:/JBA/BACK/oas-back/oas-back/src/main/java/sn/oas/facturation/ficheAtelier/dto/FicheAtelierRequest.java)
 - Ajout du champ `statut` pour permettre sa modification lors de la création ou mise à jour.

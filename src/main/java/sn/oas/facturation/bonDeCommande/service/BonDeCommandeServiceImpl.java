@@ -43,6 +43,8 @@ import java.util.stream.Collectors;
 
 import sn.oas.facturation.piecedetache.service.StockService;
 import sn.oas.facturation.piecedetache.dto.EntreeStockRequest;
+import sn.oas.facturation.auth.data.enums.Role;
+import sn.oas.facturation.notification.service.AgentNotificationService;
 
 @Service
 @RequiredArgsConstructor
@@ -60,6 +62,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
     private final BonDeLivraisonRepository bonDeLivraisonRepository;
     private final StockService stockService;
     private final sn.oas.facturation.bonDeSortie.repository.BonDeSortieRepository bonDeSortieRepository;
+    private final AgentNotificationService agentNotificationService;
 
 
     @Override
@@ -115,6 +118,11 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
         bonDeCommande.setMontantTTC(montantHT.add(tva));
 
         BonDeCommande saved = bonDeCommandeRepository.save(bonDeCommande);
+
+        agentNotificationService.notifyRole(Role.AGENT_MAGASIN, 
+            "Nouveau Bon de Commande", 
+            "Le bon de commande " + saved.getNumero() + " a été créé et est en attente.");
+
         return mapToResponse(saved);
     }
 
@@ -295,7 +303,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
         if (bonDeCommande.getVehicule() != null) {
             List<sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier> fiches = ficheAtelierRepository.findByVehiculeIdAndStatut(
                     bonDeCommande.getVehicule().getId(), 
-                    sn.oas.facturation.ficheAtelier.data.enums.StatutReparation.EN_ATTENTE_COMMANDE);
+                    sn.oas.facturation.ficheAtelier.data.enums.StatutFiche.EN_ATTENTE_COMMANDE);
             
             for (sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier fiche : fiches) {
                 sn.oas.facturation.proforma.data.entity.Proforma proforma = proformaRepository.findByFicheAtelierId(fiche.getId()).orElse(null);
@@ -322,6 +330,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                         fiche.getVehicule().getClient().getId(),
                         fiche.getVehicule().getId(),
                         lignesPieces,
+                        fiche.getId(),
                         "Bon de sortie automatique suite à la réception de commande"
                     );
                     
@@ -331,7 +340,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                         bds = bonDeSortieRepository.save(bds); // update le BDS avec la fiche
                         
                         fiche.setBonDeSortie(bds);
-                        fiche.setStatut(sn.oas.facturation.ficheAtelier.data.enums.StatutReparation.EN_ATTENTE_SORTIE);
+                        fiche.setStatut(sn.oas.facturation.ficheAtelier.data.enums.StatutFiche.EN_ATTENTE_SORTIE);
                         ficheAtelierRepository.save(fiche);
                     } catch (Exception e) {
                         log.error("Erreur auto bon de sortie FA-" + fiche.getId(), e);
@@ -340,6 +349,10 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
             }
         }
         
+        agentNotificationService.notifyRole(Role.AGENT_MAGASIN, 
+            "Bon de Commande Réceptionné", 
+            "Le bon de commande " + bonDeCommande.getNumero() + " a été réceptionné totalement.");
+
         return mapToResponse(bonDeCommandeRepository.save(bonDeCommande));
     }
 
@@ -433,7 +446,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
         if (toutRecu && bonDeCommande.getVehicule() != null) {
             List<sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier> fiches = ficheAtelierRepository.findByVehiculeIdAndStatut(
                     bonDeCommande.getVehicule().getId(), 
-                    sn.oas.facturation.ficheAtelier.data.enums.StatutReparation.EN_ATTENTE_COMMANDE);
+                    sn.oas.facturation.ficheAtelier.data.enums.StatutFiche.EN_ATTENTE_COMMANDE);
             
             for (sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier fiche : fiches) {
                 sn.oas.facturation.proforma.data.entity.Proforma proforma = proformaRepository.findByFicheAtelierId(fiche.getId()).orElse(null);
@@ -459,6 +472,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                             fiche.getVehicule().getClient().getId(),
                             fiche.getVehicule().getId(),
                             lignesPieces,
+                            fiche.getId(),
                             "Bon de sortie auto suite réception commande"
                         );
                         try {
@@ -467,7 +481,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                             bds = bonDeSortieRepository.save(bds);
                             
                             fiche.setBonDeSortie(bds);
-                            fiche.setStatut(sn.oas.facturation.ficheAtelier.data.enums.StatutReparation.EN_ATTENTE_SORTIE);
+                            fiche.setStatut(sn.oas.facturation.ficheAtelier.data.enums.StatutFiche.EN_ATTENTE_SORTIE);
                             ficheAtelierRepository.save(fiche);
                         } catch (Exception e) {
                             log.error("Erreur auto bon de sortie FA-" + fiche.getId(), e);
@@ -478,6 +492,10 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
             }
         }
         
+        agentNotificationService.notifyRole(Role.AGENT_MAGASIN, 
+            "Bon de Commande " + (toutRecu ? "Réceptionné" : "Partiellement Réceptionné"), 
+            "Le bon de commande " + bonDeCommande.getNumero() + " a été " + (toutRecu ? "réceptionné" : "partiellement réceptionné") + ".");
+
         return mapToResponse(bonDeCommandeRepository.save(bonDeCommande));
     }
 
