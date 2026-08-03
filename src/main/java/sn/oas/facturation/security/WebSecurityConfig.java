@@ -30,7 +30,7 @@ public class WebSecurityConfig {
 
     @Value("${app.cors.allowed-origins}")
     private List<String> allowedOrigins;
-//    private String[] allowedOrigins;
+    // private String[] allowedOrigins;
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
@@ -45,7 +45,7 @@ public class WebSecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-//        config.setAllowedOrigins(List.of(allowedOrigins));
+        // config.setAllowedOrigins(List.of(allowedOrigins));
         config.setAllowedOrigins(allowedOrigins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
@@ -61,33 +61,32 @@ public class WebSecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .csrf(csrf -> csrf.disable())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(csrf -> csrf.disable())
 
-            .sessionManagement(sm ->
-                sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-            )
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                    "/",
-                    "/api/auth/**",
-                    "/swagger-ui/**",
-                    "/swagger-ui.html",
-                    "/v3/api-docs/**",
-                    "/actuator/**",
-                    "/error"
-                ).permitAll()
-                    .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
-                    .requestMatchers("/api/admin/users/**", "/api/admin/connection-history/**").hasAnyAuthority("ROLE_SUPER_AGENT", "SUPER_AGENT")
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                "/",
+                                "/api/auth/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/v3/api-docs/**",
+                                "/actuator/**",
+                                "/error",
+                                "/api/blog",
+                                "/api/blog/**")
+                        .permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/api/admin/users/**", "/api/admin/connection-history/**")
+                        .hasAnyAuthority("ROLE_SUPER_AGENT", "SUPER_AGENT")
 
-                .anyRequest().authenticated()
-            );
+                        .anyRequest().authenticated());
 
         http.addFilterBefore(
-            authTokenFilter,
-            UsernamePasswordAuthenticationFilter.class
-        );
+                authTokenFilter,
+                UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
