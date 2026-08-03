@@ -22,7 +22,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import sn.oas.facturation.auth.data.entity.Agent;
 import sn.oas.facturation.auth.data.entity.Client;
-
+import sn.oas.facturation.facturation.data.enums.StatutFacturation;
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
 
 @Entity
@@ -32,7 +32,7 @@ import sn.oas.facturation.vehicule.data.entity.Vehicule;
 @Builder
 @Table(name = "devis_previsionnels")
 public class DevisPrevisionnel {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -62,7 +62,9 @@ public class DevisPrevisionnel {
     @JoinColumn(name = "client_id", nullable = false)
     private Client client;
 
-
+    @Column(nullable = false)
+    @Builder.Default
+    private StatutFacturation statut = StatutFacturation.EN_ATTENTE;
 
     @PrePersist
     protected void onCreate() {

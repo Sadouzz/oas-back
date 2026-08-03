@@ -11,6 +11,9 @@ import java.util.List;
 @Repository
 public interface DevisPrevisionnelRepository extends JpaRepository<DevisPrevisionnel, Long> {
     List<DevisPrevisionnel> findByClientId(Long clientId);
+
+    List<DevisPrevisionnel> findByClientIdOrderByDateCreationDesc(Long clientId);
+
     List<DevisPrevisionnel> findByVehiculeId(Long vehiculeId);
 
     @Query("SELECT d FROM DevisPrevisionnel d WHERE " +

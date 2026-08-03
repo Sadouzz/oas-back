@@ -98,9 +98,36 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
         return devisPrevisionnelRepository.findByVehiculeId(vehiculeId);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<DevisPrevisionnel> getClientDevis(Client client) {
+        return devisPrevisionnelRepository.findByClientIdOrderByDateCreationDesc(client.getId());
+    }
+
+    @Override
+    @Transactional
+    public DevisPrevisionnel clientAccepter(Client client, Long id) {
+        DevisPrevisionnel devis = getById(id);
+        if (!devis.getClient().getId().equals(client.getId())) {
+            throw new IllegalArgumentException("Accès non autorisé à ce devis");
+        }
+        devis.setStatut(sn.oas.facturation.facturation.data.enums.StatutFacturation.ACCEPTE);
+        return devisPrevisionnelRepository.save(devis);
+    }
+
+    @Override
+    @Transactional
+    public DevisPrevisionnel clientRefuser(Client client, Long id) {
+        DevisPrevisionnel devis = getById(id);
+        if (!devis.getClient().getId().equals(client.getId())) {
+            throw new IllegalArgumentException("Accès non autorisé à ce devis");
+        }
+        devis.setStatut(sn.oas.facturation.facturation.data.enums.StatutFacturation.REJETE);
+        return devisPrevisionnelRepository.save(devis);
+    }
+
     private Vehicule getVehicule(Long vehiculeId) {
         return vehiculeService.getVehiculeById(vehiculeId);
     }
 
-    
 }

@@ -7,6 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sn.oas.facturation.auth.data.entity.Client;
 import sn.oas.facturation.client.service.ClientService;
+import sn.oas.facturation.devisPrevisionnel.data.entity.DevisPrevisionnel;
+import sn.oas.facturation.devisPrevisionnel.service.DevisPrevisionnelService;
 import sn.oas.facturation.facture.data.entity.Facture;
 import sn.oas.facturation.facture.dto.FactureResponse;
 import sn.oas.facturation.facture.repository.FactureRepository;
@@ -47,6 +49,7 @@ public class ClientPortalController {
     private final NotificationService notificationService;
     private final MessageService messageService;
     private final ProformaService proformaService;
+    private final DevisPrevisionnelService devisPrevisionnelService;
 
     // --- Profil ---
     @GetMapping("/me")
@@ -75,8 +78,7 @@ public class ClientPortalController {
                     request.marque(),
                     request.kilometrage(),
                     request.numeroChassis(),
-                    client.getId()
-            );
+                    client.getId());
             return ResponseEntity.ok(vehiculeService.createVehicule(securedRequest));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -177,6 +179,36 @@ public class ClientPortalController {
         try {
             Client client = clientService.getClientConnecte();
             return ResponseEntity.ok(proformaService.clientRefuser(client, id));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // --- Devis prévisionnels ---
+    @GetMapping("/devis-previsionnels")
+    @Operation(summary = "Lister les devis prévisionnels du client connecté")
+    public ResponseEntity<List<DevisPrevisionnel>> getDevisPrevisionnels() {
+        Client client = clientService.getClientConnecte();
+        return ResponseEntity.ok(devisPrevisionnelService.getClientDevis(client));
+    }
+
+    @PutMapping("/devis-previsionnels/{id}/accepter")
+    @Operation(summary = "Accepter un devis prévisionnel par le client")
+    public ResponseEntity<?> accepterDevisPrevisionnel(@PathVariable Long id) {
+        try {
+            Client client = clientService.getClientConnecte();
+            return ResponseEntity.ok(devisPrevisionnelService.clientAccepter(client, id));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/devis-previsionnels/{id}/refuser")
+    @Operation(summary = "Refuser un devis prévisionnel par le client")
+    public ResponseEntity<?> refuserDevisPrevisionnel(@PathVariable Long id) {
+        try {
+            Client client = clientService.getClientConnecte();
+            return ResponseEntity.ok(devisPrevisionnelService.clientRefuser(client, id));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
