@@ -22,6 +22,14 @@ public interface DevisPrevisionnelService {
 
     List<DevisPrevisionnel> getClientDevis(sn.oas.facturation.auth.data.entity.Client client);
 
+    List<DevisPrevisionnel> search(String keyword);
+
+    byte[] generatePdf(Long id);
+
+    DevisPrevisionnel valider(Long id);
+
+    DevisPrevisionnel annuler(Long id);
+
     DevisPrevisionnel clientAccepter(sn.oas.facturation.auth.data.entity.Client client, Long id);
 
     DevisPrevisionnel clientRefuser(sn.oas.facturation.auth.data.entity.Client client, Long id);

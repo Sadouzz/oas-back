@@ -192,9 +192,35 @@ public class ClientPortalController {
         return ResponseEntity.ok(devisPrevisionnelService.getClientDevis(client));
     }
 
+    @GetMapping("/devis-previsionnels/{id}")
+    @Operation(summary = "Récupérer les détails d'un devis prévisionnel du client connecté")
+    public ResponseEntity<?> getDevisPrevisionnelDetails(@PathVariable Long id) {
+        try {
+            Client client = clientService.getClientConnecte();
+            DevisPrevisionnel devis = devisPrevisionnelService.getById(id);
+            if (!devis.getClient().getId().equals(client.getId())) {
+                return ResponseEntity.badRequest().body("Accès non autorisé à ce devis");
+            }
+            return ResponseEntity.ok(devis);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @PutMapping("/devis-previsionnels/{id}/accepter")
     @Operation(summary = "Accepter un devis prévisionnel par le client")
     public ResponseEntity<?> accepterDevisPrevisionnel(@PathVariable Long id) {
+        try {
+            Client client = clientService.getClientConnecte();
+            return ResponseEntity.ok(devisPrevisionnelService.clientAccepter(client, id));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/devis-previsionnels/{id}/valider")
+    @Operation(summary = "Valider un devis prévisionnel par le client")
+    public ResponseEntity<?> validerDevisPrevisionnel(@PathVariable Long id) {
         try {
             Client client = clientService.getClientConnecte();
             return ResponseEntity.ok(devisPrevisionnelService.clientAccepter(client, id));
