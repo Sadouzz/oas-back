@@ -30,6 +30,9 @@ public class BlogPostServiceImpl implements BlogPostService {
                 .datePublication(request.datePublication() != null ? request.datePublication() : LocalDateTime.now())
                 .description(request.description())
                 .images(request.images())
+                .category(request.category() != null ? request.category() : "Conseils automobiles")
+                .readTime(request.readTime() != null ? request.readTime() : "5 min de lecture")
+                .featured(request.featured() != null ? request.featured() : false)
                 .build();
         return blogPostRepository.save(post);
     }
@@ -44,6 +47,9 @@ public class BlogPostServiceImpl implements BlogPostService {
                 request.datePublication() != null ? request.datePublication() : post.getDatePublication());
         post.setDescription(request.description());
         post.setImages(request.images());
+        post.setCategory(request.category() != null ? request.category() : post.getCategory());
+        post.setReadTime(request.readTime() != null ? request.readTime() : post.getReadTime());
+        post.setFeatured(request.featured() != null ? request.featured() : post.getFeatured());
         return blogPostRepository.save(post);
     }
 

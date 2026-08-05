@@ -37,6 +37,18 @@ public class BlogPost {
     @Column(nullable = true)
     private String images;
 
+    @Column(nullable = false)
+    @Builder.Default
+    private String category = "Conseils automobiles";
+
+    @Column(nullable = false)
+    @Builder.Default
+    private String readTime = "5 min de lecture";
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean featured = false;
+
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<BlogComment> comments = new ArrayList<>();

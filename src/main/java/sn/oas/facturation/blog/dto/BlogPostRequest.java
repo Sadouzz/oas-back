@@ -7,5 +7,8 @@ public record BlogPostRequest(
         String metaDescription,
         LocalDateTime datePublication,
         String description,
-        String images) {
+        String images,
+        String category,
+        String readTime,
+        Boolean featured) {
 }

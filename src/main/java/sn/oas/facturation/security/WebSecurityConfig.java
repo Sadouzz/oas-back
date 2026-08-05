@@ -76,7 +76,9 @@ public class WebSecurityConfig {
                                 "/actuator/**",
                                 "/error",
                                 "/api/blog",
-                                "/api/blog/**")
+                                "/api/blog/**",
+                                "/api/client/marketplace/produits",
+                                "/api/client/marketplace/produits/**")
                         .permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/admin/users/**", "/api/admin/connection-history/**")
