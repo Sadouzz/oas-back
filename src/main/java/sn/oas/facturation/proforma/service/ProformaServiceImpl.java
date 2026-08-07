@@ -188,7 +188,7 @@ public class ProformaServiceImpl implements ProformaService {
                 .montantTVA(BigDecimal.ZERO)
                 .montantTTC(BigDecimal.ZERO)
                 .montantTimbre(BigDecimal.ZERO)
-                // .montantAutre(BigDecimal.ZERO)
+                .montantAutre(BigDecimal.ZERO)
                 .montantTotal(BigDecimal.ZERO)
                 .lignesFacturationPieces(lignesPieces)
                 .lignesFacturationMainDoeuvres(lignesMainDoeuvres)

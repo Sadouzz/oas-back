@@ -35,8 +35,8 @@ public class Proforma extends FactureTTC {
      * private String numeroBonDeCommande;
      */
 
-    /*
-     * @Column(name = "montant_autre", precision = 15, scale = 2)
-     * private BigDecimal montantAutre;
-     */
+    
+     @Column(name = "montant_autre", precision = 15, scale = 2)
+     private BigDecimal montantAutre;
+     
 }

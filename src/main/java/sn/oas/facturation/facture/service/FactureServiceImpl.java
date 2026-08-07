@@ -110,25 +110,31 @@ public class FactureServiceImpl implements FactureService {
             ht = ht.add(BigDecimal.valueOf((long) ligneFiche.getNbreHeure() * ligneFiche.getPrix()));
         }
 
-        BigDecimal tva = BigDecimal.ZERO;
-        if (Boolean.TRUE.equals(request.getAppliquerTVA())) {
-            tva = ht.multiply(BigDecimal.valueOf(0.18));
-        }
+        Double tvaRate = request.getTvaRate() != null ? request.getTvaRate() : 18.0;
 
-        BigDecimal timbre = BigDecimal.ZERO;
-        if (Boolean.TRUE.equals(request.getAppliquerTimbre())) {
-            timbre = BigDecimal.valueOf(200);
-        }
+        BigDecimal rateBD = BigDecimal.valueOf(tvaRate)
+                .divide(BigDecimal.valueOf(100));
 
-        BigDecimal ttc = ht.add(tva).add(timbre);
+        BigDecimal tva = ht.multiply(rateBD);
+
+        BigDecimal timbre = request.getMontantTimbre() != null
+                ? request.getMontantTimbre()
+                : BigDecimal.valueOf(100);
+
+        BigDecimal autre = request.getMontantAutre() != null
+                ? request.getMontantAutre()
+                : BigDecimal.ZERO;
+
+        BigDecimal ttc = ht.add(tva);
 
         facture.setMontantHT(ht);
         facture.setMontantTVA(tva);
-        facture.setMontantTimbre(timbre);
         facture.setMontantTTC(ttc);
-        facture.setMontantTotal(ttc);
+        facture.setMontantTimbre(timbre);
+        facture.setMontantAutre(autre);
+        facture.setMontantTotal(ttc.add(timbre).add(autre));
         facture.setMontantPaye(BigDecimal.ZERO);
-        facture.setResteAPayer(ttc);
+        facture.setResteAPayer(ttc.add(timbre).add(autre));
         facture.setStatutPaiement(sn.oas.facturation.facture.data.enums.StatutPaiement.NON_PAYE);
 
         facture = factureRepository.save(facture);
@@ -191,17 +197,26 @@ public class FactureServiceImpl implements FactureService {
             ht = ht.add(BigDecimal.valueOf((long) ligneFiche.getNbreHeure() * ligneFiche.getPrix()));
         }
 
-        BigDecimal tva = BigDecimal.ZERO;
-        BigDecimal timbre = BigDecimal.ZERO;
-        BigDecimal ttc = ht.add(tva).add(timbre);
+        Double tvaRate = 18.0;
+
+        BigDecimal rateBD = BigDecimal.valueOf(tvaRate)
+                .divide(BigDecimal.valueOf(100));
+
+        BigDecimal tva = ht.multiply(rateBD);
+
+        BigDecimal timbre = BigDecimal.valueOf(100);
+        BigDecimal autre = BigDecimal.ZERO;
+
+        BigDecimal ttc = ht.add(tva);
 
         facture.setMontantHT(ht);
         facture.setMontantTVA(tva);
-        facture.setMontantTimbre(timbre);
         facture.setMontantTTC(ttc);
-        facture.setMontantTotal(ttc);
+        facture.setMontantTimbre(timbre);
+        facture.setMontantAutre(autre);
+        facture.setMontantTotal(ttc.add(timbre).add(autre));
         facture.setMontantPaye(BigDecimal.ZERO);
-        facture.setResteAPayer(ttc);
+        facture.setResteAPayer(ttc.add(timbre).add(autre));
         facture.setStatutPaiement(sn.oas.facturation.facture.data.enums.StatutPaiement.NON_PAYE);
 
         facture = factureRepository.save(facture);
