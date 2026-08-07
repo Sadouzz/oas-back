@@ -1,0 +1,152 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] -------------------------< sn.oas:facturation >-------------------------
+[INFO] Building  0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ facturation ---
+[INFO] Copying 3 resources from src\main\resources to target\classes
+[INFO] Copying 0 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.14.1:compile (default-compile) @ facturation ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ facturation ---
+[INFO] Copying 1 resource from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.14.1:testCompile (default-testCompile) @ facturation ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 6 source files with javac [debug parameters release 21] to target\test-classes
+[INFO] 
+[INFO] --- surefire:3.5.5:test (default-test) @ facturation ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running sn.oas.facturation.FacturationApplicationTests
+14:50:51.900 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [sn.oas.facturation.FacturationApplicationTests]: FacturationApplicationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+14:50:52.414 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration sn.oas.facturation.FacturationApplication for test class sn.oas.facturation.FacturationApplicationTests
+14:50:52.663 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [sn.oas.facturation.FacturationApplicationTests]: FacturationApplicationTests does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+14:50:52.663 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration sn.oas.facturation.FacturationApplication for test class sn.oas.facturation.FacturationApplicationTests
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v4.0.6)
+
+2026-08-07T14:50:53.688Z  INFO 12096 --- [facturation] [           main] s.o.f.FacturationApplicationTests        : Starting FacturationApplicationTests using Java 23.0.2 with PID 12096 (started by HILLY MARYSE in C:\Users\HILLY MARYSE\oas-back)
+2026-08-07T14:50:53.703Z  INFO 12096 --- [facturation] [           main] s.o.f.FacturationApplicationTests        : The following 1 profile is active: "dev"
+2026-08-07T14:50:59.219Z  INFO 12096 --- [facturation] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2026-08-07T14:51:00.206Z  INFO 12096 --- [facturation] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 970 ms. Found 32 JPA repository interfaces.
+2026-08-07T14:51:02.696Z  INFO 12096 --- [facturation] [           main] org.hibernate.orm.jpa                    : HHH008540: Processing PersistenceUnitInfo [name: default]
+2026-08-07T14:51:02.945Z  INFO 12096 --- [facturation] [           main] org.hibernate.orm.core                   : HHH000001: Hibernate ORM core version 7.2.12.Final
+2026-08-07T14:51:04.286Z  INFO 12096 --- [facturation] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2026-08-07T14:51:04.374Z  INFO 12096 --- [facturation] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2026-08-07T14:51:07.147Z  INFO 12096 --- [facturation] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@256aabbe
+2026-08-07T14:51:07.162Z  INFO 12096 --- [facturation] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2026-08-07T14:51:07.396Z  WARN 12096 --- [facturation] [           main] org.hibernate.orm.deprecation            : HHH90000025: PostgreSQLDialect does not need to be specified explicitly using 'hibernate.dialect' (remove the property setting and it will be selected by default)
+2026-08-07T14:51:08.084Z  INFO 12096 --- [facturation] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [jdbc:postgresql://ep-holy-king-aqjd3rk2-pooler.c-8.us-east-1.aws.neon.tech/oas_database?user=neondb_owner&password=npg_la0z1vjEkOrt&sslmode=require&channelBinding=require]
+	Database driver: PostgreSQL JDBC Driver
+	Database dialect: PostgreSQLDialect
+	Database version: 17.10
+	Default catalog/schema: oas_database/public
+	Autocommit mode: undefined/unknown
+	Isolation level: READ_COMMITTED [default READ_COMMITTED]
+	JDBC fetch size: none
+	Pool: DataSourceConnectionProvider
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2026-08-07T14:51:13.024Z  INFO 12096 --- [facturation] [           main] org.hibernate.orm.core                   : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2026-08-07T14:51:14.848Z  INFO 12096 --- [facturation] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2026-08-07T14:51:15.290Z  INFO 12096 --- [facturation] [           main] o.s.d.j.r.query.QueryEnhancerFactories   : Hibernate is in classpath; If applicable, HQL parser will be used.
+2026-08-07T14:51:18.010Z TRACE 12096 --- [facturation] [           main] eGlobalAuthenticationAutowiredConfigurer : Eagerly initializing {webSecurityConfig=sn.oas.facturation.security.WebSecurityConfig$$SpringCGLIB$$0@6bb500fa}
+2026-08-07T14:51:18.041Z  INFO 12096 --- [facturation] [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with UserDetailsService bean with name customUserDetailsService
+? Constraint 'fiches_atelier_statut_check' dropped successfully!
+2026-08-07T14:51:24.631Z  WARN 12096 --- [facturation] [           main] JpaBaseConfiguration$JpaWebConfiguration : spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2026-08-07T14:51:25.763Z DEBUG 12096 --- [facturation] [           main] o.s.s.web.DefaultSecurityFilterChain     : Will secure any request with filters: DisableEncodeUrlFilter, WebAsyncManagerIntegrationFilter, SecurityContextHolderFilter, HeaderWriterFilter, CorsFilter, LogoutFilter, AuthTokenFilter, RequestCacheAwareFilter, SecurityContextHolderAwareRequestFilter, AnonymousAuthenticationFilter, SessionManagementFilter, ExceptionTranslationFilter, AuthorizationFilter
+2026-08-07T14:51:27.853Z  INFO 12096 --- [facturation] [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
+2026-08-07T14:51:28.009Z  INFO 12096 --- [facturation] [           main] s.o.f.FacturationApplicationTests        : Started FacturationApplicationTests in 35.162 seconds (process running for 38.956)
+Hibernate: select count(*) from blog_posts bp1_0
+2026-08-07T14:51:28.854Z  INFO 12096 --- [facturation] [           main] s.o.f.FixDatabaseConstraintsRunner       : --- V?rification et correction des contraintes CHECK dans la base de donn?es ---
+2026-08-07T14:51:28.994Z  INFO 12096 --- [facturation] [           main] s.o.f.FixDatabaseConstraintsRunner       : Contrainte proformas_statut_check supprim?e avec succ?s sur la table proformas
+2026-08-07T14:51:29.138Z  INFO 12096 --- [facturation] [           main] s.o.f.FixDatabaseConstraintsRunner       : Contrainte factures_statut_check supprim?e avec succ?s sur la table factures
+2026-08-07T14:51:29.304Z  INFO 12096 --- [facturation] [           main] s.o.f.FixDatabaseConstraintsRunner       : Contrainte avoirs_ht_statut_check supprim?e avec succ?s sur la table avoirs_ht
+2026-08-07T14:51:29.443Z  INFO 12096 --- [facturation] [           main] s.o.f.FixDatabaseConstraintsRunner       : Contrainte avoirs_ttc_statut_check supprim?e avec succ?s sur la table avoirs_ttc
+2026-08-07T14:51:29.584Z  INFO 12096 --- [facturation] [           main] s.o.f.FixDatabaseConstraintsRunner       : Contrainte bons_de_livraison_statut_check supprim?e avec succ?s sur la table bons_de_livraison
+2026-08-07T14:51:29.730Z  INFO 12096 --- [facturation] [           main] s.o.f.FixDatabaseConstraintsRunner       : Contrainte notes_de_prix_statut_check supprim?e avec succ?s sur la table notes_de_prix
+2026-08-07T14:51:29.863Z  INFO 12096 --- [facturation] [           main] s.o.f.FixDatabaseConstraintsRunner       : Contrainte fiches_atelier_statut_check supprim?e avec succ?s sur la table fiches_atelier
+2026-08-07T14:51:30.008Z  INFO 12096 --- [facturation] [           main] s.o.f.FixDatabaseConstraintsRunner       : Contrainte bons_de_sortie_statut_check supprim?e avec succ?s sur la table bons_de_sortie
+2026-08-07T14:51:30.008Z  INFO 12096 --- [facturation] [           main] s.o.f.FixDatabaseConstraintsRunner       : --- Fin de la v?rification des contraintes ---
+2026-08-07T14:51:30.008Z  WARN 12096 --- [facturation] [           main] o.s.core.events.SpringDocAppInitializer  : SpringDoc /v3/api-docs endpoint is enabled by default. To disable it in production, set the property 'springdoc.api-docs.enabled=false'
+2026-08-07T14:51:30.008Z  WARN 12096 --- [facturation] [           main] o.s.core.events.SpringDocAppInitializer  : SpringDoc /swagger-ui.html endpoint is enabled by default. To disable it in production, set the property 'springdoc.swagger-ui.enabled=false'
+Mockito is currently self-attaching to enable the inline-mock-maker. This will no longer work in future releases of the JDK. Please add Mockito as an agent to your build as described in Mockito's documentation: https://javadoc.io/doc/org.mockito/mockito-core/latest/org.mockito/org/mockito/Mockito.html#0.3
+Java HotSpot(TM) 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+WARNING: A Java agent has been loaded dynamically (C:\Users\HILLY MARYSE\.m2\repository\net\bytebuddy\byte-buddy-agent\1.17.8\byte-buddy-agent-1.17.8.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+====== EXECUTING TEST RECEPTION ======
+Hibernate: select bdc1_0.id,bdc1_0.agent_id,bdc1_0.date_commande,bdc1_0.date_modification,bdc1_0.fournisseur_id,bdc1_0.montantht,bdc1_0.montantttc,bdc1_0.montanttva,bdc1_0.numero,bdc1_0.observation,bdc1_0.paye,bdc1_0.statut,bdc1_0.tva_applicable,bdc1_0.vehicule_id from bons_de_commande bdc1_0 where bdc1_0.id=?
+Hibernate: select u1_0.id,u1_0.type,u1_0.created_at,u1_0.email,u1_0.enabled,u1_0.first_name,u1_0.last_name,u1_0.matricule,u1_0.password,u1_0.phone,u1_0.type,u1_0.username,u1_1.role,u1_2.adresse_entreprise,u1_2.email_entreprise,u1_2.numero_entreprise,u1_2.raison_sociale,u1_2.type_client from users u1_0 left join agents u1_1 on u1_0.id=u1_1.id left join clients u1_2 on u1_0.id=u1_2.id where u1_0.username=?
+Hibernate: select v1_0.id,v1_0.annee,v1_0.client_id,v1_0.created_at,v1_0.immatriculation,v1_0.kilometrage,v1_0.marque,v1_0.modele,v1_0.numero_chassis,v1_0.update_at from vehicules v1_0 where v1_0.id=?
+Hibernate: select l1_0.bon_commande_id,l1_0.id,l1_0.categorie_pds,l1_0.designation_pds,l1_0.montant,l1_0.piece_detachee_id,l1_0.prix_unitaire,l1_0.quantite,l1_0.quantite_recue,l1_0.reference_pds from ligne_bon_de_commande l1_0 where l1_0.bon_commande_id=?
+====== INPSECTING DATABASE STATE ======
+PIECE: id=1, ref=Liquide freins, qte_reelle=0, magasin=0, atelier=0
+PIECE: id=2, ref=BAT-009, qte_reelle=946, magasin=946, atelier=0
+BC 13: numero=BC-AC291FE6, statut=RECU
+LIGNE BC: id=16, qte=201, pu=30.00, piece_id=1
+BL: id=29, numero=BL-9A167D76, total=6030.00, statut=EN_ATTENTE
+MVT: type=SORTIE, qte=1, magasin_avant=1, magasin_apres=0, motif=Bon de sortie BS-2026-0036, date=2026-06-21 13:48:47.741729
+MVT: type=ENTREE, qte=1, magasin_avant=0, magasin_apres=1, motif=Réception BC BC-BFCCEBF5, date=2026-06-21 13:47:51.947627
+MVT: type=SORTIE, qte=51, magasin_avant=51, magasin_apres=0, motif=Bon de sortie BS-2026-0017, date=2026-06-20 17:06:37.218211
+MVT: type=ENTREE, qte=1, magasin_avant=50, magasin_apres=51, motif=Réception BC BC-9DCE0AE4, date=2026-06-20 17:05:02.982726
+MVT: type=ENTREE, qte=1, magasin_avant=49, magasin_apres=50, motif=Réception BC BC-EF288822, date=2026-06-20 02:24:31.29178
+[ERROR] Tests run: 2, Failures: 0, Errors: 1, Skipped: 0, Time elapsed: 42.58 s <<< FAILURE! -- in sn.oas.facturation.FacturationApplicationTests
+[ERROR] sn.oas.facturation.FacturationApplicationTests.testReceptionAndUpdateStock -- Time elapsed: 2.869 s <<< ERROR!
+java.lang.RuntimeException: La quantité reçue dépasse la quantité commandée pour la ligne 16
+	at sn.oas.facturation.bonDeCommande.service.BonDeCommandeServiceImpl.receptionnerAvecQuantites(BonDeCommandeServiceImpl.java:398)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(DirectMethodHandleAccessor.java:103)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:580)
+	at org.springframework.aop.support.AopUtils.invokeJoinpointUsingReflection(AopUtils.java:359)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.invokeJoinpoint(ReflectiveMethodInvocation.java:190)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:158)
+	at org.springframework.transaction.interceptor.TransactionInterceptor$1.proceedWithInvocation(TransactionInterceptor.java:133)
+	at org.springframework.transaction.interceptor.TransactionAspectSupport.invokeWithinTransaction(TransactionAspectSupport.java:371)
+	at org.springframework.transaction.interceptor.TransactionInterceptor.invoke(TransactionInterceptor.java:130)
+	at org.springframework.aop.framework.ReflectiveMethodInvocation.proceed(ReflectiveMethodInvocation.java:179)
+	at org.springframework.aop.framework.CglibAopProxy$DynamicAdvisedInterceptor.intercept(CglibAopProxy.java:719)
+	at sn.oas.facturation.bonDeCommande.service.BonDeCommandeServiceImpl$$SpringCGLIB$$0.receptionnerAvecQuantites(<generated>)
+	at sn.oas.facturation.FacturationApplicationTests.testReceptionAndUpdateStock(FacturationApplicationTests.java:122)
+
+[INFO] 
+[INFO] Results:
+[INFO] 
+[ERROR] Errors: 
+[ERROR]   FacturationApplicationTests.testReceptionAndUpdateStock:122 » Runtime La quantité reçue dépasse la quantité commandée pour la ligne 16
+[INFO] 
+[ERROR] Tests run: 2, Failures: 0, Errors: 1, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  01:03 min
+[INFO] Finished at: 2026-08-07T14:51:35Z
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.5.5:test (default-test) on project facturation: 
+[ERROR] 
+[ERROR] See C:\Users\HILLY MARYSE\oas-back\target\surefire-reports for the individual test results.
+[ERROR] See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

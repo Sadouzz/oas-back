@@ -16,6 +16,7 @@ import sn.oas.facturation.recu.dto.RecuRequest;
 import sn.oas.facturation.recu.dto.RecuResponse;
 import sn.oas.facturation.recu.service.RecuService;
 import sn.oas.facturation.rendezvous.data.enums.RendezVousStatus;
+import sn.oas.facturation.rendezvous.dto.RendezVousDateRequest;
 import sn.oas.facturation.rendezvous.dto.RendezVousResponse;
 import sn.oas.facturation.rendezvous.service.RendezVousService;
 
@@ -48,6 +49,19 @@ public class AdminPortalController {
             @RequestParam(required = false) String commentaire) {
         try {
             return ResponseEntity.ok(rendezvousService.updateRendezVousStatus(id, statut, commentaire));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/rendezvous/{id}/date")
+    @Operation(summary = "Modifier la date d'un rendez-vous client (avec historique et notification)")
+    public ResponseEntity<?> updateRendezVousDate(
+            @PathVariable Long id,
+            @RequestBody RendezVousDateRequest request) {
+        try {
+            RendezVousResponse response = rendezvousService.updateRendezVousDate(id, request.nouvelleDate());
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

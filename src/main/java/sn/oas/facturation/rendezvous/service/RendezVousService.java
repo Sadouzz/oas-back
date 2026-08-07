@@ -5,6 +5,7 @@ import sn.oas.facturation.rendezvous.data.enums.RendezVousStatus;
 import sn.oas.facturation.rendezvous.dto.RendezVousRequest;
 import sn.oas.facturation.rendezvous.dto.RendezVousResponse;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface RendezVousService {
@@ -14,5 +15,6 @@ public interface RendezVousService {
     List<RendezVousResponse> getClientRendezVousByStatus(Client client, RendezVousStatus status);
     List<RendezVousResponse> getAllRendezVous();
     RendezVousResponse updateRendezVousStatus(Long id, RendezVousStatus status, String commentaire);
+    RendezVousResponse updateRendezVousDate(Long id, LocalDateTime nouvelleDate);
     RendezVousResponse validerRendezVous(Long id, List<Long> mecanicienIds);
 }

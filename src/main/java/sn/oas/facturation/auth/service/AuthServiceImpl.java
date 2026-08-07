@@ -116,6 +116,11 @@ public class AuthServiceImpl implements AuthService {
                     .email(request.email())
                     .password(passwordEncoder.encode(request.password()))
                     .type(request.type())
+                    .typeClient(request.typeClient() != null ? request.typeClient() : sn.oas.facturation.auth.data.enums.TypeClient.PARTICULIER)
+                    .raisonSociale(request.raisonSociale())
+                    .numeroEntreprise(request.numeroEntreprise())
+                    .emailEntreprise(request.emailEntreprise())
+                    .adresseEntreprise(request.adresseEntreprise())
                     .build();
         }
         else {

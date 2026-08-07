@@ -35,6 +35,9 @@ public class RendezVous {
     @Column(name = "date_rendez_vous", nullable = false)
     private LocalDateTime dateRendezVous;
 
+    @Column(name = "ancienne_date_rendez_vous")
+private LocalDateTime ancienneDateRendezVous;
+
     @Column(columnDefinition = "TEXT")
     private String motif;
 

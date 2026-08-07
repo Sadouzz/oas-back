@@ -6,13 +6,16 @@ import org.springframework.transaction.annotation.Transactional;
 import sn.oas.facturation.auth.data.entity.Client;
 import sn.oas.facturation.notification.service.NotificationService;
 import sn.oas.facturation.rendezvous.data.entity.RendezVous;
+import sn.oas.facturation.rendezvous.data.entity.RendezVousDateHistory;
 import sn.oas.facturation.rendezvous.data.enums.RendezVousStatus;
 import sn.oas.facturation.rendezvous.dto.RendezVousRequest;
 import sn.oas.facturation.rendezvous.dto.RendezVousResponse;
+import sn.oas.facturation.rendezvous.repository.RendezVousDateHistoryRepository;
 import sn.oas.facturation.rendezvous.repository.RendezVousRepository;
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.vehicule.repository.VehiculeRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,6 +24,7 @@ import java.util.stream.Collectors;
 public class RendezVousServiceImpl implements RendezVousService {
 
     private final RendezVousRepository rendezvousRepository;
+    private final RendezVousDateHistoryRepository rendezVousDateHistoryRepository;
     private final VehiculeRepository vehiculeRepository;
     private final NotificationService notificationService;
     private final sn.oas.facturation.ficheAtelier.service.FicheAtelierService ficheAtelierService;
@@ -76,7 +80,7 @@ public class RendezVousServiceImpl implements RendezVousService {
     public List<RendezVousResponse> getClientRendezVous(Client client) {
         return rendezvousRepository.findByClientIdOrderByDateCreationDesc(client.getId())
                 .stream()
-                .map(RendezVousResponse::of)
+                .map(this::toResponseWithHistory)
                 .collect(Collectors.toList());
     }
 
@@ -85,7 +89,7 @@ public class RendezVousServiceImpl implements RendezVousService {
     public List<RendezVousResponse> getClientRendezVousByStatus(Client client, RendezVousStatus status) {
         return rendezvousRepository.findByClientIdAndStatutOrderByDateCreationDesc(client.getId(), status)
                 .stream()
-                .map(RendezVousResponse::of)
+                .map(this::toResponseWithHistory)
                 .collect(Collectors.toList());
     }
 
@@ -94,7 +98,7 @@ public class RendezVousServiceImpl implements RendezVousService {
     public List<RendezVousResponse> getAllRendezVous() {
         return rendezvousRepository.findAllByOrderByDateCreationDesc()
                 .stream()
-                .map(RendezVousResponse::of)
+                .map(this::toResponseWithHistory)
                 .collect(Collectors.toList());
     }
 
@@ -117,7 +121,39 @@ public class RendezVousServiceImpl implements RendezVousService {
         }
         notificationService.sendNotification(rv.getClient(), titre, message);
 
-        return RendezVousResponse.of(rv);
+        return toResponseWithHistory(rv);
+    }
+
+    @Transactional
+    @Override
+    public RendezVousResponse updateRendezVousDate(Long id, LocalDateTime nouvelleDate) {
+        if (nouvelleDate == null) {
+            throw new IllegalArgumentException("La nouvelle date est obligatoire");
+        }
+
+        RendezVous rv = rendezvousRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Rendez-vous non trouvé"));
+
+        LocalDateTime ancienneDate = rv.getDateRendezVous();
+
+        // Enregistrer l'historique de la modification
+        RendezVousDateHistory history = RendezVousDateHistory.builder()
+                .rendezVous(rv)
+                .ancienneDate(ancienneDate)
+                .nouvelleDate(nouvelleDate)
+                .build();
+        rendezVousDateHistoryRepository.save(history);
+
+        // Mettre à jour la date du rendez-vous
+        rv.setDateRendezVous(nouvelleDate);
+        rendezvousRepository.save(rv);
+
+        // Notifier le client
+        String titre = "Modification de votre rendez-vous";
+        String message = "Votre rendez-vous a été déplacé de " + ancienneDate + " à " + nouvelleDate + ".";
+        notificationService.sendNotification(rv.getClient(), titre, message);
+
+        return toResponseWithHistory(rv);
     }
 
     @Transactional
@@ -148,6 +184,12 @@ public class RendezVousServiceImpl implements RendezVousService {
         notificationService.sendNotification(rv.getClient(), "Rendez-vous validé", 
                 "Votre rendez-vous du " + rv.getDateRendezVous() + " a été validé et une fiche atelier a été créée.");
 
-        return RendezVousResponse.of(rv);
+        return toResponseWithHistory(rv);
+    }
+
+    private RendezVousResponse toResponseWithHistory(RendezVous rv) {
+        List<RendezVousDateHistory> history = rendezVousDateHistoryRepository
+                .findByRendezVousIdOrderByDateModificationDesc(rv.getId());
+        return RendezVousResponse.of(rv, history);
     }
 }

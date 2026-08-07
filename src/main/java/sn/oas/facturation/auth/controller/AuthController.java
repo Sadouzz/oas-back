@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import sn.oas.facturation.auth.data.entity.User;
 import sn.oas.facturation.auth.dto.AuthResponse;
 import sn.oas.facturation.auth.dto.ChangePasswordRequest;
+import sn.oas.facturation.auth.dto.CheckAvailabilityResponse;
 import sn.oas.facturation.auth.dto.LoginRequest;
 import sn.oas.facturation.auth.dto.RegisterRequest;
 import sn.oas.facturation.auth.repository.UserRepository;
@@ -36,6 +37,20 @@ public class AuthController {
     public ResponseEntity<Void> signup(@RequestBody RegisterRequest request) {
         authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
+    }
+
+    @GetMapping("/check-username")
+    @Operation(summary = "Vérifier la disponibilité d'un username")
+    public ResponseEntity<CheckAvailabilityResponse> checkUsername(@RequestParam String username) {
+        boolean available = !userRepository.existsByUsername(username);
+        return ResponseEntity.ok(new CheckAvailabilityResponse(available));
+    }
+
+    @GetMapping("/check-email")
+    @Operation(summary = "Vérifier la disponibilité d'un email")
+    public ResponseEntity<CheckAvailabilityResponse> checkEmail(@RequestParam String email) {
+        boolean available = !userRepository.existsByEmail(email);
+        return ResponseEntity.ok(new CheckAvailabilityResponse(available));
     }
 
     @PostMapping("/change-password")

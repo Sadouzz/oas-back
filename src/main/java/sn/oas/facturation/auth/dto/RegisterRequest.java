@@ -1,6 +1,7 @@
 package sn.oas.facturation.auth.dto;
 
 import sn.oas.facturation.auth.data.enums.Role;
+import sn.oas.facturation.auth.data.enums.TypeClient;
 import sn.oas.facturation.auth.data.enums.TypeUser;
 
 public record RegisterRequest(
@@ -12,5 +13,10 @@ public record RegisterRequest(
         String email,
         String password,
         TypeUser type,
-        Role role
+        Role role,
+        TypeClient typeClient,
+        String raisonSociale,
+        String numeroEntreprise,
+        String emailEntreprise,
+        String adresseEntreprise
 ) {}

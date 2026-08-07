@@ -1,0 +1,26 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] -------------------------< sn.oas:facturation >-------------------------
+[INFO] Building  0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- clean:3.5.0:clean (default-clean) @ facturation ---
+[INFO] Deleting C:\Users\HILLY MARYSE\oas-back\target
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ facturation ---
+[INFO] Copying 3 resources from src\main\resources to target\classes
+[INFO] Copying 0 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.14.1:compile (default-compile) @ facturation ---
+[INFO] Recompiling the module because of changed source code.
+[INFO] Compiling 262 source files with javac [debug parameters release 21] to target\classes
+[WARNING] /C:/Users/HILLY MARYSE/oas-back/src/main/java/sn/oas/facturation/fournisseur/data/entity/Fournisseur.java:[26,21] @Builder will ignore the initializing expression entirely. If you want the initializing expression to serve as default, add @Builder.Default. If it is not supposed to be settable during building, make the field final.
+[WARNING] /C:/Users/HILLY MARYSE/oas-back/src/main/java/sn/oas/facturation/facturation/data/entity/FactureHT.java:[12,1] Generating equals/hashCode implementation but without a call to superclass, even though this class does not extend java.lang.Object. If this is intentional, add '@EqualsAndHashCode(callSuper=false)' to your type.
+[WARNING] /C:/Users/HILLY MARYSE/oas-back/src/main/java/sn/oas/facturation/facturation/data/entity/FactureTTC.java:[12,1] Generating equals/hashCode implementation but without a call to superclass, even though this class does not extend java.lang.Object. If this is intentional, add '@EqualsAndHashCode(callSuper=false)' to your type.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  39.377 s
+[INFO] Finished at: 2026-08-07T15:01:12Z
+[INFO] ------------------------------------------------------------------------

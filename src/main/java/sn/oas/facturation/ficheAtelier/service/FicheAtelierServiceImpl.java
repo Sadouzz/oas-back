@@ -21,8 +21,10 @@ import sn.oas.facturation.main_doeuvre.repository.MainDoeuvreRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.transaction.annotation.Transactional;
+import sn.oas.facturation.auth.data.entity.Client;
 import sn.oas.facturation.auth.data.enums.Role;
 import sn.oas.facturation.notification.service.AgentNotificationService;
+import sn.oas.facturation.notification.service.NotificationService;
 
 import java.util.List;
 import java.util.Optional;
@@ -46,6 +48,7 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     private final sn.oas.facturation.piecedetache.repository.PieceDetacheRepository pieceDetacheRepository;
     private final MainDoeuvreRepository mainDoeuvreRepository;
     private final AgentNotificationService agentNotificationService;
+    private final NotificationService notificationService;
 
     @Autowired
     @Lazy
@@ -355,6 +358,15 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
 
         fiche.setStatut(newStatut);
         FicheAtelier savedFiche = ficheAtelierRepository.save(fiche);
+
+        // Notifier le client du changement de statut
+        if (savedFiche.getVehicule() != null && savedFiche.getVehicule().getClient() != null) {
+            Client client = savedFiche.getVehicule().getClient();
+            String vehiculeInfo = savedFiche.getVehicule().getMarque() + " " + savedFiche.getVehicule().getModele();
+            notificationService.sendNotification(client,
+                    "Suivi de votre véhicule",
+                    "Votre " + vehiculeInfo + " est passé à l'étape " + newStatut.name() + ".");
+        }
 
         if (newStatut == StatutFiche.EN_ATTENTE_COMMANDE || newStatut == StatutFiche.EN_ATTENTE_SORTIE) {
             agentNotificationService.notifyRole(Role.AGENT_MAGASIN,
