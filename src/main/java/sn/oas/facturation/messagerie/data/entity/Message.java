@@ -8,11 +8,16 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import sn.oas.facturation.auth.data.entity.Client;
 import sn.oas.facturation.auth.data.entity.User;
+import sn.oas.facturation.garage.data.entity.Garage;
+import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.FilterDef;
+import org.hibernate.annotations.ParamDef;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "messages")
+@Filter(name = "garageFilter", condition = "garage_id = :garageId")
 @Data
 @Builder
 @NoArgsConstructor
@@ -34,6 +39,10 @@ public class Message {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "destinataire_id")
     private User destinataire;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "garage_id")
+    private Garage garage;
 
     @Column(columnDefinition = "TEXT", nullable = false)
     private String contenu;

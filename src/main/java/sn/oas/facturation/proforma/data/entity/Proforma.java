@@ -1,5 +1,12 @@
 package sn.oas.facturation.proforma.data.entity;
 
+import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.FilterDef;
+import org.hibernate.annotations.ParamDef;
+import sn.oas.facturation.shared.tenant.TenantAware;
+import sn.oas.facturation.shared.tenant.TenantListener;
+import sn.oas.facturation.garage.data.entity.Garage;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -18,7 +25,14 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
-public class Proforma extends FactureTTC {
+@EntityListeners(TenantListener.class)
+@FilterDef(name = "garageFilter", parameters = @ParamDef(name = "garageId", type = Long.class))
+@Filter(name = "garageFilter", condition = "garage_id = :garageId")
+public class Proforma extends FactureTTC implements TenantAware  {
+
+    @ManyToOne(fetch = jakarta.persistence.FetchType.LAZY)
+    @jakarta.persistence.JoinColumn(name = "garage_id")
+    private Garage garage;
 
     /*
      * @ManyToOne(fetch = FetchType.LAZY)
@@ -40,3 +54,4 @@ public class Proforma extends FactureTTC {
      * private BigDecimal montantAutre;
      */
 }
+

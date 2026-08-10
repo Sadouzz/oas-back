@@ -4,6 +4,7 @@ import sn.oas.facturation.rendezvous.data.entity.RendezVous;
 import sn.oas.facturation.rendezvous.data.enums.RendezVousStatus;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record RendezVousResponse(
         Long id,
@@ -15,8 +16,7 @@ public record RendezVousResponse(
         String motif,
         RendezVousStatus statut,
         String commentaire,
-        LocalDateTime dateCreation
-) {
+        LocalDateTime dateCreation) {
     public static RendezVousResponse of(RendezVous rv) {
         return new RendezVousResponse(
                 rv.getId(),
@@ -28,7 +28,6 @@ public record RendezVousResponse(
                 rv.getMotif(),
                 rv.getStatut(),
                 rv.getCommentaire(),
-                rv.getDateCreation()
-        );
+                rv.getDateCreation());
     }
 }

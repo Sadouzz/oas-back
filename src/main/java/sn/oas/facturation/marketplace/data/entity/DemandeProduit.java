@@ -7,11 +7,16 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import sn.oas.facturation.auth.data.entity.Client;
 import sn.oas.facturation.marketplace.data.enums.StatutDemandeProduit;
+import sn.oas.facturation.garage.data.entity.Garage;
+import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.FilterDef;
+import org.hibernate.annotations.ParamDef;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "marketplace_demandes")
+@Filter(name = "garageFilter", condition = "garage_id = :garageId")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -29,6 +34,10 @@ public class DemandeProduit {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "produit_id", nullable = false)
     private Produit produit;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "garage_id")
+    private Garage garage;
 
     @Column(nullable = false)
     @Builder.Default

@@ -1,5 +1,12 @@
 package sn.oas.facturation.facturation.data.entity;
 
+import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.FilterDef;
+import org.hibernate.annotations.ParamDef;
+import sn.oas.facturation.shared.tenant.TenantAware;
+import sn.oas.facturation.shared.tenant.TenantListener;
+import sn.oas.facturation.garage.data.entity.Garage;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -44,7 +51,14 @@ import java.util.List;
 @AllArgsConstructor
 @SuperBuilder
 @Inheritance(strategy = InheritanceType.TABLE_PER_CLASS)
-public abstract class Facturation {
+@EntityListeners(TenantListener.class)
+@FilterDef(name = "garageFilter", parameters = @ParamDef(name = "garageId", type = Long.class))
+@Filter(name = "garageFilter", condition = "garage_id = :garageId")
+public abstract class Facturation implements TenantAware  {
+
+    @ManyToOne(fetch = jakarta.persistence.FetchType.LAZY)
+    @jakarta.persistence.JoinColumn(name = "garage_id")
+    private Garage garage;
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "facturation_seq")
@@ -67,7 +81,7 @@ public abstract class Facturation {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "agent_id")
-    private Agent agent; // Agent qui a créé la facture
+    private Agent agent; // Agent qui a crÃ©Ã© la facture
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "bon_de_commande_id")

@@ -1,11 +1,4 @@
-package sn.oas.facturation.fournisseur.data.entity;
-
-import org.hibernate.annotations.Filter;
-import org.hibernate.annotations.FilterDef;
-import org.hibernate.annotations.ParamDef;
-import sn.oas.facturation.shared.tenant.TenantAware;
-import sn.oas.facturation.shared.tenant.TenantListener;
-import sn.oas.facturation.garage.data.entity.Garage;
+package sn.oas.facturation.partenaire.data.entity;
 
 import java.time.LocalDateTime;
 
@@ -15,28 +8,28 @@ import org.hibernate.annotations.UpdateTimestamp;
 import jakarta.persistence.*;
 import lombok.*;
 
-
 @Entity
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@EntityListeners(TenantListener.class)
-@FilterDef(name = "garageFilter", parameters = @ParamDef(name = "garageId", type = Long.class))
-@Filter(name = "garageFilter", condition = "garage_id = :garageId")
-public class Fournisseur implements TenantAware  {
-
-    @ManyToOne(fetch = jakarta.persistence.FetchType.LAZY)
-    @jakarta.persistence.JoinColumn(name = "garage_id")
-    private Garage garage;
+public class Partenaire {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String matricule;
-    private String nomEntreprise;
+    
+    @Column(nullable = false)
     private String nom;
-    private String prenom;
+    
+    @Column(columnDefinition = "TEXT")
+    private String description;
+    
+    private String logo;
+    
+    @Enumerated(EnumType.STRING)
+    private TypePartenaire type;
+    
     private boolean archived = false;
 
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -58,6 +51,4 @@ public class Fournisseur implements TenantAware  {
             this.updatedAt = LocalDateTime.now();
         }
     }
-
-
 }

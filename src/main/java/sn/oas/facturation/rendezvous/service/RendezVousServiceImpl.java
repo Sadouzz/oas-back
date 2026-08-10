@@ -12,6 +12,8 @@ import sn.oas.facturation.rendezvous.dto.RendezVousResponse;
 import sn.oas.facturation.rendezvous.repository.RendezVousRepository;
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.vehicule.repository.VehiculeRepository;
+import sn.oas.facturation.garage.data.entity.Garage;
+import sn.oas.facturation.garage.repository.GarageRepository;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -22,6 +24,7 @@ public class RendezVousServiceImpl implements RendezVousService {
 
     private final RendezVousRepository rendezvousRepository;
     private final VehiculeRepository vehiculeRepository;
+    private final GarageRepository garageRepository;
     private final NotificationService notificationService;
     private final sn.oas.facturation.ficheAtelier.service.FicheAtelierService ficheAtelierService;
 
@@ -37,9 +40,18 @@ public class RendezVousServiceImpl implements RendezVousService {
             }
         }
 
+        Garage garage = null;
+        if (request.garageId() != null) {
+            garage = garageRepository.findById(request.garageId())
+                    .orElseThrow(() -> new RuntimeException("Garage non trouvé"));
+        } else {
+            throw new IllegalArgumentException("Veuillez sélectionner un garage");
+        }
+
         RendezVous rv = RendezVous.builder()
                 .client(client)
                 .vehicule(vehicule)
+                .garage(garage)
                 .dateRendezVous(request.dateRendezVous())
                 .motif(request.motif())
                 .statut(RendezVousStatus.EN_ATTENTE)

@@ -12,5 +12,6 @@ public record RegisterRequest(
         String email,
         String password,
         TypeUser type,
-        Role role
+        Role role,
+        Long garageId
 ) {}

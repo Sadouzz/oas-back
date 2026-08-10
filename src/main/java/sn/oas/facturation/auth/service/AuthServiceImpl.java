@@ -22,6 +22,8 @@ import sn.oas.facturation.auth.dto.RegisterRequest;
 import sn.oas.facturation.auth.repository.ConnectionHistoryRepository;
 import sn.oas.facturation.auth.repository.UserRepository;
 import sn.oas.facturation.client.repository.ClientRepository;
+import sn.oas.facturation.garage.data.entity.Garage;
+import sn.oas.facturation.garage.repository.GarageRepository;
 import sn.oas.facturation.security.JwtUtil;
 
 @Service
@@ -36,6 +38,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
     private final ClientRepository clientRepository;
+    private final GarageRepository garageRepository;
 
     @Override
     public AuthResponse login(LoginRequest request) {
@@ -95,6 +98,12 @@ public class AuthServiceImpl implements AuthService {
 
         if (request.type() == TypeUser.AGENT)
         {
+            Garage garage = null;
+            if (request.garageId() != null) {
+                garage = garageRepository.findById(request.garageId())
+                        .orElseThrow(() -> new IllegalArgumentException("Garage non trouvé"));
+            }
+
             user = Agent.builder()
                     .matricule(matricule)
                     .phone(request.phone())
@@ -105,6 +114,7 @@ public class AuthServiceImpl implements AuthService {
                     .password(passwordEncoder.encode(request.password()))
                     .type(request.type())
                     .role(request.role())
+                    .garage(garage)
                     .build();
         } else if (request.type() == TypeUser.CLIENT) {
             user = Client.builder()

@@ -5,5 +5,6 @@ import java.time.LocalDateTime;
 public record RendezVousRequest(
         LocalDateTime dateRendezVous,
         String motif,
-        Long vehiculeId
+        Long vehiculeId,
+        Long garageId
 ) {}

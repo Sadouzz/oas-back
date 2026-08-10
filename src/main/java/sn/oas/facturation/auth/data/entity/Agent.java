@@ -6,6 +6,10 @@ import lombok.experimental.SuperBuilder;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import sn.oas.facturation.auth.data.enums.Role;
+import sn.oas.facturation.garage.data.entity.Garage;
+import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.FilterDef;
+import org.hibernate.annotations.ParamDef;
 
 import java.util.Collection;
 import java.util.List;
@@ -13,6 +17,8 @@ import java.util.List;
 @Entity
 @DiscriminatorValue("AGENT")
 @Table(name = "agents")
+@FilterDef(name = "garageFilter", parameters = @ParamDef(name = "garageId", type = Long.class))
+@Filter(name = "garageFilter", condition = "garage_id = :garageId")
 @Data
 @NoArgsConstructor
 @SuperBuilder
@@ -23,6 +29,10 @@ public class Agent extends User{
     @Enumerated(EnumType.STRING)
     @Column(name = "role")
     private Role role;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "garage_id")
+    private Garage garage;
 
 
     @Override
