@@ -364,4 +364,10 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
 
         return savedFiche;
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean existsByVehiculeIdAndStatutNotIn(Long vehiculeId, List<sn.oas.facturation.ficheAtelier.data.enums.StatutFiche> statuts) {
+        return ficheAtelierRepository.existsByVehiculeIdAndStatutNotIn(vehiculeId, statuts);
+    }
 }

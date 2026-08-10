@@ -12,4 +12,6 @@ public interface RendezVousRepository extends JpaRepository<RendezVous, Long> {
     List<RendezVous> findByClientIdOrderByDateCreationDesc(Long clientId);
     List<RendezVous> findByClientIdAndStatutOrderByDateCreationDesc(Long clientId, RendezVousStatus statut);
     List<RendezVous> findAllByOrderByDateCreationDesc();
+    boolean existsByVehiculeIdAndStatut(Long vehiculeId, RendezVousStatus statut);
+    boolean existsByVehiculeIdAndStatutAndDateRendezVousAfter(Long vehiculeId, RendezVousStatus statut, java.time.LocalDateTime date);
 }

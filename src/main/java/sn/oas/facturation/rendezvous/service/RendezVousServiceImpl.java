@@ -31,13 +31,31 @@ public class RendezVousServiceImpl implements RendezVousService {
     @Transactional
     @Override
     public RendezVousResponse bookRendezVous(Client client, RendezVousRequest request) {
-        Vehicule vehicule = null;
-        if (request.vehiculeId() != null) {
-            vehicule = vehiculeRepository.findById(request.vehiculeId())
-                    .orElseThrow(() -> new RuntimeException("Véhicule non trouvé"));
-            if (!vehicule.getClient().getId().equals(client.getId())) {
-                throw new IllegalArgumentException("Le véhicule n'appartient pas au client connecté");
-            }
+        if (request.vehiculeId() == null) {
+            throw new IllegalArgumentException("Veuillez sélectionner un véhicule");
+        }
+        
+        if (request.dateRendezVous() != null && request.dateRendezVous().isBefore(java.time.LocalDateTime.now())) {
+            throw new IllegalArgumentException("La date du rendez-vous ne peut pas être dans le passé");
+        }
+        
+        Vehicule vehicule = vehiculeRepository.findById(request.vehiculeId())
+                .orElseThrow(() -> new RuntimeException("Véhicule non trouvé"));
+        if (!vehicule.getClient().getId().equals(client.getId())) {
+            throw new IllegalArgumentException("Le véhicule n'appartient pas au client connecté");
+        }
+        if (rendezvousRepository.existsByVehiculeIdAndStatut(vehicule.getId(), RendezVousStatus.EN_ATTENTE)) {
+            throw new IllegalArgumentException("Ce véhicule a déjà un rendez-vous en attente");
+        }
+        
+        if (rendezvousRepository.existsByVehiculeIdAndStatutAndDateRendezVousAfter(vehicule.getId(), RendezVousStatus.CONFIRME, java.time.LocalDateTime.now())) {
+            throw new IllegalArgumentException("Ce véhicule a déjà un rendez-vous confirmé à venir");
+        }
+
+        if (ficheAtelierService.existsByVehiculeIdAndStatutNotIn(vehicule.getId(), 
+                java.util.List.of(sn.oas.facturation.ficheAtelier.data.enums.StatutFiche.TERMINE, 
+                                  sn.oas.facturation.ficheAtelier.data.enums.StatutFiche.LIVRE))) {
+            throw new IllegalArgumentException("Ce véhicule est actuellement en réparation");
         }
 
         Garage garage = null;
