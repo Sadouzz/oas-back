@@ -98,6 +98,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                 .fournisseur(fournisseur)
                 .vehicule(vehicule)
                 .agent(agent)
+                .garage(agent != null ? agent.getGarage() : null)
                 .lignes(new ArrayList<>())
                 .build();
 
@@ -377,6 +378,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
             .dateCreation(LocalDateTime.now())
             .dateModification(LocalDateTime.now())
             .agent(agent)
+            .garage(agent != null ? agent.getGarage() : null)
             .bonDeCommande(bonDeCommande)
             .kilometrage(bonDeCommande.getVehicule() != null && bonDeCommande.getVehicule().getKilometrage() != null ? bonDeCommande.getVehicule().getKilometrage() : 0.0)
             .lignesFacturationPieces(new ArrayList<>())

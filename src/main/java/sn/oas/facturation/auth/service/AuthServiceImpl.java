@@ -55,7 +55,18 @@ public class AuthServiceImpl implements AuthService {
                     .findFirst()
                     .orElse("ROLE_USER");
             connectionHistoryService.saveConnectionLog(request.username(), ip, "SUCCESS");
-            return AuthResponse.of(token, userDetails.getUsername(), role);
+            
+            Long garageId = null;
+            String garageName = null;
+            User user = userRepository.findByUsername(userDetails.getUsername())
+                    .or(() -> userRepository.findByEmail(userDetails.getUsername()))
+                    .orElse(null);
+            if (user instanceof Agent agent && agent.getGarage() != null) {
+                garageId = agent.getGarage().getId();
+                garageName = agent.getGarage().getNom();
+            }
+            
+            return AuthResponse.of(token, userDetails.getUsername(), role, garageId, garageName);
         } catch (AuthenticationException e) {
             connectionHistoryService.saveConnectionLog(request.username(), ip, "FAILED");
             throw new BadCredentialsException("Username ou mot de passe incorrect");
