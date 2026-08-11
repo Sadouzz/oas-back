@@ -18,6 +18,10 @@ app:
     expiration: 3600000
   cors:
     allowed-origins: ${CORS_ORIGINS:http://localhost,https://oas-front.vercel.app}
+  cloudinary:
+    cloud-name: ${CLOUDINARY_CLOUD_NAME}
+    api-key: ${CLOUDINARY_API_KEY}
+    api-secret: ${CLOUDINARY_API_SECRET}
 
 server:
   port: 9090
