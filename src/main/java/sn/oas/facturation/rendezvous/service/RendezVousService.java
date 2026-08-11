@@ -15,4 +15,5 @@ public interface RendezVousService {
     List<RendezVousResponse> getAllRendezVous();
     RendezVousResponse updateRendezVousStatus(Long id, RendezVousStatus status, String commentaire);
     RendezVousResponse validerRendezVous(Long id, List<Long> mecanicienIds);
+    RendezVousResponse updateDate(Long id, java.time.LocalDateTime nouvelleDate);
 }

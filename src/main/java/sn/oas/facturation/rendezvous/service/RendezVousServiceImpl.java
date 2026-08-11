@@ -180,4 +180,20 @@ public class RendezVousServiceImpl implements RendezVousService {
 
         return RendezVousResponse.of(rv);
     }
+    @Transactional
+    @Override
+    public RendezVousResponse updateDate(Long id, java.time.LocalDateTime nouvelleDate) {
+        RendezVous rv = rendezvousRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Rendez-vous non trouvé"));
+        if (nouvelleDate.isBefore(java.time.LocalDateTime.now())) {
+            throw new IllegalArgumentException("La nouvelle date ne peut pas être dans le passé");
+        }
+        rv.setDateRendezVous(nouvelleDate);
+        rendezvousRepository.save(rv);
+
+        notificationService.sendNotification(rv.getClient(), "Date de rendez-vous modifiée",
+                "La date de votre rendez-vous a été modifiée au " + nouvelleDate + ".");
+
+        return RendezVousResponse.of(rv);
+    }
 }
