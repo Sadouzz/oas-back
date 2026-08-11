@@ -77,6 +77,10 @@ public class WebSecurityConfig {
                                 "/error",
                                 "/api/blog",
                                 "/api/blog/**",
+                                "/api/partenaires",
+                                "/api/partenaires/**",
+                                "/api/fournisseurs",
+                                "/api/fournisseurs/**",
                                 "/api/client/marketplace/produits",
                                 "/api/client/marketplace/produits/**")
                         .permitAll()
