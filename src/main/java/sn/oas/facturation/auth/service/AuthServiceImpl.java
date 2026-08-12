@@ -22,6 +22,8 @@ import sn.oas.facturation.auth.dto.RegisterRequest;
 import sn.oas.facturation.auth.repository.ConnectionHistoryRepository;
 import sn.oas.facturation.auth.repository.UserRepository;
 import sn.oas.facturation.client.repository.ClientRepository;
+import sn.oas.facturation.garage.data.entity.Garage;
+import sn.oas.facturation.garage.repository.GarageRepository;
 import sn.oas.facturation.security.JwtUtil;
 
 @Service
@@ -36,6 +38,8 @@ public class AuthServiceImpl implements AuthService {
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
     private final ClientRepository clientRepository;
+    private final GarageRepository garageRepository;
+    private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
 
     @Override
     public AuthResponse login(LoginRequest request) {
@@ -52,7 +56,18 @@ public class AuthServiceImpl implements AuthService {
                     .findFirst()
                     .orElse("ROLE_USER");
             connectionHistoryService.saveConnectionLog(request.username(), ip, "SUCCESS");
-            return AuthResponse.of(token, userDetails.getUsername(), role);
+            
+            Long garageId = null;
+            String garageName = null;
+            User user = userRepository.findByUsername(userDetails.getUsername())
+                    .or(() -> userRepository.findByEmail(userDetails.getUsername()))
+                    .orElse(null);
+            if (user instanceof Agent agent && agent.getGarage() != null) {
+                garageId = agent.getGarage().getId();
+                garageName = agent.getGarage().getNom();
+            }
+            
+            return AuthResponse.of(token, userDetails.getUsername(), role, garageId, garageName);
         } catch (AuthenticationException e) {
             connectionHistoryService.saveConnectionLog(request.username(), ip, "FAILED");
             throw new BadCredentialsException("Username ou mot de passe incorrect");
@@ -95,8 +110,20 @@ public class AuthServiceImpl implements AuthService {
 
         if (request.type() == TypeUser.AGENT)
         {
+            Garage garage = null;
+            if (request.garageId() != null) {
+                garage = garageRepository.findById(request.garageId())
+                        .orElseThrow(() -> new IllegalArgumentException("Garage non trouvé"));
+            }
+
+            // Auto-generate matricule for Agent if not provided
+            String agentMatricule = matricule;
+            if (agentMatricule == null || agentMatricule.trim().isEmpty()) {
+                agentMatricule = documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.AG);
+            }
+
             user = Agent.builder()
-                    .matricule(matricule)
+                    .matricule(agentMatricule)
                     .phone(request.phone())
                     .username(request.username())
                     .firstName(request.firstName())
@@ -105,6 +132,7 @@ public class AuthServiceImpl implements AuthService {
                     .password(passwordEncoder.encode(request.password()))
                     .type(request.type())
                     .role(request.role())
+                    .garage(garage)
                     .build();
         } else if (request.type() == TypeUser.CLIENT) {
             user = Client.builder()

@@ -33,6 +33,7 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
     private final FicheAtelierRepository ficheAtelierRepository;
     private final PDPRepository pdpRepository;
     private final MainDoeuvreRepository mainDoeuvreRepository;
+    private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
 
     @Override
     @Transactional
@@ -44,7 +45,7 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
         }
 
         NoteDePrix note = NoteDePrix.builder()
-                .numero("NP-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
+                .numero(documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.NP))
                 .ficheAtelier(fiche)
                 .kilometrage(request.getKilometrage())
                 .remarque(request.getRemarque())

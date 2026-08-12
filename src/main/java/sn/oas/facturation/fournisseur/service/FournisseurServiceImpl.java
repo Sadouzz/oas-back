@@ -12,17 +12,18 @@ import java.util.List;
 @RequiredArgsConstructor
 public class FournisseurServiceImpl implements FournisseurService{
     private final FournisseurRepository fournisseurRepository;
+    private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
 
     @Override
     public Fournisseur createFournisseur(FournisseurRequest request) {
-        if (request.getMatricule() != null &&
-                fournisseurRepository.existsByMatricule(request.getMatricule())) {
-            throw new IllegalArgumentException(
-                    "Matricule déjà existant : " + request.getMatricule()
-            );
+        String matricule = request.getMatricule();
+        if (matricule == null || matricule.trim().isEmpty()) {
+            matricule = documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.FO);
+        } else if (fournisseurRepository.existsByMatricule(matricule)) {
+            throw new IllegalArgumentException("Matricule déjà existant : " + matricule);
         }
         Fournisseur fournisseur = Fournisseur.builder()
-                .matricule(request.getMatricule())
+                .matricule(matricule)
                 .nomEntreprise(request.getNomEntreprise())
                 .nom(request.getNom())
                 .prenom(request.getPrenom())

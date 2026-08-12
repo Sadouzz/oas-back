@@ -9,11 +9,16 @@ import org.hibernate.annotations.CreationTimestamp;
 import sn.oas.facturation.auth.data.entity.Client;
 import sn.oas.facturation.rendezvous.data.enums.RendezVousStatus;
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
+import sn.oas.facturation.garage.data.entity.Garage;
+import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.FilterDef;
+import org.hibernate.annotations.ParamDef;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "rendez_vous")
+@Filter(name = "garageFilter", condition = "garage_id = :garageId")
 @Data
 @Builder
 @NoArgsConstructor
@@ -24,6 +29,9 @@ public class RendezVous {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true)
+    private String numero;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id", nullable = false)
     private Client client;
@@ -31,6 +39,10 @@ public class RendezVous {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vehicule_id", nullable = true)
     private Vehicule vehicule;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "garage_id")
+    private Garage garage;
 
     @Column(name = "date_rendez_vous", nullable = false)
     private LocalDateTime dateRendezVous;

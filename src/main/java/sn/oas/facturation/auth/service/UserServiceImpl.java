@@ -11,6 +11,8 @@ import sn.oas.facturation.auth.data.entity.Client;
 import sn.oas.facturation.auth.dto.CreateUserResponse;
 import sn.oas.facturation.auth.dto.UserUpdateRequest;
 import sn.oas.facturation.auth.repository.UserRepository;
+import sn.oas.facturation.garage.data.entity.Garage;
+import sn.oas.facturation.garage.repository.GarageRepository;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,6 +21,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService{
     private final UserRepository userRepository;
+    private final GarageRepository garageRepository;
 
     @Transactional
     @Override
@@ -49,8 +52,15 @@ public class UserServiceImpl implements UserService{
         if (request.lastName() != null) user.setLastName(request.lastName());
         if (request.email() != null) user.setEmail(request.email());
 
-        if (user instanceof Agent agent && request.role() != null) {
-            agent.setRole(request.role());
+        if (user instanceof Agent agent) {
+            if (request.role() != null) {
+                agent.setRole(request.role());
+            }
+            if (request.garageId() != null) {
+                Garage garage = garageRepository.findById(request.garageId())
+                        .orElseThrow(() -> new IllegalArgumentException("Garage non trouvé"));
+                agent.setGarage(garage);
+            }
         }
 
         return userRepository.save(user);

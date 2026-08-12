@@ -1,25 +1,19 @@
 package sn.oas.facturation.devisPrevisionnel.data.entity;
 
+import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.FilterDef;
+import org.hibernate.annotations.ParamDef;
+import sn.oas.facturation.shared.tenant.TenantAware;
+import sn.oas.facturation.shared.tenant.TenantListener;
+import sn.oas.facturation.garage.data.entity.Garage;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import org.hibernate.annotations.CreationTimestamp;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import jakarta.persistence.*;
+import lombok.*;
 import sn.oas.facturation.auth.data.entity.Agent;
 import sn.oas.facturation.auth.data.entity.Client;
 import sn.oas.facturation.facturation.data.enums.StatutFacturation;
@@ -31,11 +25,21 @@ import sn.oas.facturation.vehicule.data.entity.Vehicule;
 @AllArgsConstructor
 @Builder
 @Table(name = "devis_previsionnels")
-public class DevisPrevisionnel {
+@EntityListeners(TenantListener.class)
+@FilterDef(name = "garageFilter", parameters = @ParamDef(name = "garageId", type = Long.class))
+@Filter(name = "garageFilter", condition = "garage_id = :garageId")
+public class DevisPrevisionnel implements TenantAware {
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "garage_id")
+    private Garage garage;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(unique = true)
+    private String numero;
 
     @Column(columnDefinition = "TEXT", nullable = true, name = "notes_reparation")
     private String notesReparation;
@@ -69,7 +73,7 @@ public class DevisPrevisionnel {
     @PrePersist
     protected void onCreate() {
         if (this.dateCreation == null) {
-            this.dateCreation = java.time.LocalDateTime.now();
+            this.dateCreation = LocalDateTime.now();
         }
     }
 }

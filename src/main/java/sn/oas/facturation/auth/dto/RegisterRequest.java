@@ -18,5 +18,6 @@ public record RegisterRequest(
         String raisonSociale,
         String numeroEntreprise,
         String emailEntreprise,
-        String adresseEntreprise
+        String adresseEntreprise,
+        Long garageId
 ) {}

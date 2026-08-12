@@ -80,6 +80,27 @@ public class AdminPortalController {
         }
     }
 
+    @PutMapping("/rendezvous/{id}/date")
+    @Operation(summary = "Modifier la date d'un rendez-vous")
+    public ResponseEntity<?> updateDate(
+            @PathVariable Long id,
+            @RequestBody java.util.Map<String, String> body) {
+        try {
+            String dateStr = body.get("nouvelleDate");
+            // Handle both "2026-08-15T10:30" and "2026-08-15T10:30:00" formats
+            java.time.LocalDateTime nouvelleDate;
+            if (dateStr.length() == 16) {
+                nouvelleDate = java.time.LocalDateTime.parse(dateStr + ":00");
+            } else {
+                nouvelleDate = java.time.LocalDateTime.parse(dateStr);
+            }
+            RendezVousResponse response = rendezvousService.updateDate(id, nouvelleDate);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     // --- Paiement & Reçu ---
     @PostMapping("/factures/{id}/payer")
     @Operation(summary = "Enregistrer un paiement (total ou partiel) pour une facture")

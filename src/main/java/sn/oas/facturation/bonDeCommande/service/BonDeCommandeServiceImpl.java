@@ -63,6 +63,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
     private final StockService stockService;
     private final sn.oas.facturation.bonDeSortie.repository.BonDeSortieRepository bonDeSortieRepository;
     private final AgentNotificationService agentNotificationService;
+    private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
 
 
     @Override
@@ -89,7 +90,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
         }
 
         BonDeCommande bonDeCommande = BonDeCommande.builder()
-                .numero("BC-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
+                .numero(documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.BC))
                 .dateCommande(LocalDateTime.now())
                 .dateModification(LocalDateTime.now())
                 .statut(StatutBonCommande.EN_ATTENTE)
@@ -98,6 +99,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                 .fournisseur(fournisseur)
                 .vehicule(vehicule)
                 .agent(agent)
+                .garage(agent != null ? agent.getGarage() : null)
                 .lignes(new ArrayList<>())
                 .build();
 
@@ -373,10 +375,11 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
         Agent agent = (user instanceof Agent a) ? a : null;
 
         BonDeLivraison bonDeLivraison = BonDeLivraison.builder()
-            .numero("BL-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
+            .numero(documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.BL))
             .dateCreation(LocalDateTime.now())
             .dateModification(LocalDateTime.now())
             .agent(agent)
+            .garage(agent != null ? agent.getGarage() : null)
             .bonDeCommande(bonDeCommande)
             .kilometrage(bonDeCommande.getVehicule() != null && bonDeCommande.getVehicule().getKilometrage() != null ? bonDeCommande.getVehicule().getKilometrage() : 0.0)
             .lignesFacturationPieces(new ArrayList<>())

@@ -58,7 +58,7 @@ public class ClientController {
                     request.firstName(), request.lastName(), request.email(),
                     request.password(), TypeUser.CLIENT, null,
                     request.typeClient(), request.raisonSociale(), request.numeroEntreprise(),
-                    request.emailEntreprise(), request.adresseEntreprise()
+                    request.emailEntreprise(), request.adresseEntreprise(), null
             );
             authService.register(clientReq);
             return ResponseEntity.ok("{\"message\": \"Client créé avec succès !\"}");

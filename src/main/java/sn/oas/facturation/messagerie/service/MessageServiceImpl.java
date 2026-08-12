@@ -25,6 +25,7 @@ public class MessageServiceImpl implements MessageService {
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
     private final ClientRepository clientRepository;
+    private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
 
     @Transactional
     @Override
@@ -36,6 +37,7 @@ public class MessageServiceImpl implements MessageService {
         }
 
         Message message = Message.builder()
+                .numero(documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.MSG))
                 .client(client)
                 .expediteur(client)
                 .destinataire(destinataire)
@@ -54,6 +56,7 @@ public class MessageServiceImpl implements MessageService {
                 .orElseThrow(() -> new RuntimeException("Client non trouvé"));
 
         Message message = Message.builder()
+                .numero(documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.MSG))
                 .client(client)
                 .expediteur(agent)
                 .destinataire(client)

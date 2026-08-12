@@ -1,5 +1,12 @@
 package sn.oas.facturation.bonDeCommande.data.entity;
 
+import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.FilterDef;
+import org.hibernate.annotations.ParamDef;
+import sn.oas.facturation.shared.tenant.TenantAware;
+import sn.oas.facturation.shared.tenant.TenantListener;
+import sn.oas.facturation.garage.data.entity.Garage;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -26,7 +33,14 @@ import org.hibernate.annotations.UpdateTimestamp;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class BonDeCommande {
+@EntityListeners(TenantListener.class)
+@FilterDef(name = "garageFilter", parameters = @ParamDef(name = "garageId", type = Long.class))
+@Filter(name = "garageFilter", condition = "garage_id = :garageId")
+public class BonDeCommande implements TenantAware  {
+
+    @ManyToOne(fetch = jakarta.persistence.FetchType.LAZY)
+    @jakarta.persistence.JoinColumn(name = "garage_id")
+    private Garage garage;
 
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -67,7 +81,7 @@ public class BonDeCommande {
 
         @ManyToOne(fetch = FetchType.LAZY)
         @JoinColumn(name = "agent_id")
-        private Agent agent; // Agent qui a créé le bon de commande
+        private Agent agent; // Agent qui a crÃ©Ã© le bon de commande
 
         @OneToMany(mappedBy = "bonDeCommande", cascade = CascadeType.ALL, orphanRemoval = true)
         private List<LigneBonDeCommandePiece> lignes;

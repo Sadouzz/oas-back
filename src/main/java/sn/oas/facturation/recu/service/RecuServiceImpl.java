@@ -28,6 +28,7 @@ public class RecuServiceImpl implements RecuService {
     private final RecuRepository recuRepository;
     private final FactureRepository factureRepository;
     private final FicheAtelierRepository ficheAtelierRepository;
+    private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
 
     @Override
     @Transactional
@@ -47,9 +48,7 @@ public class RecuServiceImpl implements RecuService {
             throw new IllegalArgumentException("Le montant du reçu dépasse le reste à payer (" + facture.getResteAPayer() + ")");
         }
 
-        int year = Year.now().getValue();
-        long count = recuRepository.countByDatePaiementYear(year) + 1;
-        String numero = String.format("REC-%d-%04d", year, count);
+        String numero = documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.RC);
 
         Recu recu = Recu.builder()
                 .numero(numero)

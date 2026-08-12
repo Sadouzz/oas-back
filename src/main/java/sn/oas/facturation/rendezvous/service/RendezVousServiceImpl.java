@@ -14,6 +14,8 @@ import sn.oas.facturation.rendezvous.repository.RendezVousDateHistoryRepository;
 import sn.oas.facturation.rendezvous.repository.RendezVousRepository;
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.vehicule.repository.VehiculeRepository;
+import sn.oas.facturation.garage.data.entity.Garage;
+import sn.oas.facturation.garage.repository.GarageRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,24 +28,54 @@ public class RendezVousServiceImpl implements RendezVousService {
     private final RendezVousRepository rendezvousRepository;
     private final RendezVousDateHistoryRepository rendezVousDateHistoryRepository;
     private final VehiculeRepository vehiculeRepository;
+    private final GarageRepository garageRepository;
     private final NotificationService notificationService;
     private final sn.oas.facturation.ficheAtelier.service.FicheAtelierService ficheAtelierService;
+    private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
 
     @Transactional
     @Override
     public RendezVousResponse bookRendezVous(Client client, RendezVousRequest request) {
-        Vehicule vehicule = null;
-        if (request.vehiculeId() != null) {
-            vehicule = vehiculeRepository.findById(request.vehiculeId())
-                    .orElseThrow(() -> new RuntimeException("Véhicule non trouvé"));
-            if (!vehicule.getClient().getId().equals(client.getId())) {
-                throw new IllegalArgumentException("Le véhicule n'appartient pas au client connecté");
-            }
+        if (request.vehiculeId() == null) {
+            throw new IllegalArgumentException("Veuillez sélectionner un véhicule");
+        }
+        
+        if (request.dateRendezVous() != null && request.dateRendezVous().isBefore(java.time.LocalDateTime.now())) {
+            throw new IllegalArgumentException("La date du rendez-vous ne peut pas être dans le passé");
+        }
+        
+        Vehicule vehicule = vehiculeRepository.findById(request.vehiculeId())
+                .orElseThrow(() -> new RuntimeException("Véhicule non trouvé"));
+        if (!vehicule.getClient().getId().equals(client.getId())) {
+            throw new IllegalArgumentException("Le véhicule n'appartient pas au client connecté");
+        }
+        if (rendezvousRepository.existsByVehiculeIdAndStatut(vehicule.getId(), RendezVousStatus.EN_ATTENTE)) {
+            throw new IllegalArgumentException("Ce véhicule a déjà un rendez-vous en attente");
+        }
+        
+        if (rendezvousRepository.existsByVehiculeIdAndStatutAndDateRendezVousAfter(vehicule.getId(), RendezVousStatus.CONFIRME, java.time.LocalDateTime.now())) {
+            throw new IllegalArgumentException("Ce véhicule a déjà un rendez-vous confirmé à venir");
+        }
+
+        if (ficheAtelierService.existsByVehiculeIdAndStatutNotIn(vehicule.getId(), 
+                java.util.List.of(sn.oas.facturation.ficheAtelier.data.enums.StatutFiche.TERMINE, 
+                                  sn.oas.facturation.ficheAtelier.data.enums.StatutFiche.LIVRE))) {
+            throw new IllegalArgumentException("Ce véhicule est actuellement en réparation");
+        }
+
+        Garage garage = null;
+        if (request.garageId() != null) {
+            garage = garageRepository.findById(request.garageId())
+                    .orElseThrow(() -> new RuntimeException("Garage non trouvé"));
+        } else {
+            throw new IllegalArgumentException("Veuillez sélectionner un garage");
         }
 
         RendezVous rv = RendezVous.builder()
+                .numero(documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.RDV))
                 .client(client)
                 .vehicule(vehicule)
+                .garage(garage)
                 .dateRendezVous(request.dateRendezVous())
                 .motif(request.motif())
                 .statut(RendezVousStatus.EN_ATTENTE)
@@ -185,6 +217,23 @@ public class RendezVousServiceImpl implements RendezVousService {
                 "Votre rendez-vous du " + rv.getDateRendezVous() + " a été validé et une fiche atelier a été créée.");
 
         return toResponseWithHistory(rv);
+    }
+
+    @Transactional
+    @Override
+    public RendezVousResponse updateDate(Long id, java.time.LocalDateTime nouvelleDate) {
+        RendezVous rv = rendezvousRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Rendez-vous non trouvé"));
+        if (nouvelleDate.isBefore(java.time.LocalDateTime.now())) {
+            throw new IllegalArgumentException("La nouvelle date ne peut pas être dans le passé");
+        }
+        rv.setDateRendezVous(nouvelleDate);
+        rendezvousRepository.save(rv);
+
+        notificationService.sendNotification(rv.getClient(), "Date de rendez-vous modifiée",
+                "La date de votre rendez-vous a été modifiée au " + nouvelleDate + ".");
+
+        return RendezVousResponse.of(rv);
     }
 
     private RendezVousResponse toResponseWithHistory(RendezVous rv) {
