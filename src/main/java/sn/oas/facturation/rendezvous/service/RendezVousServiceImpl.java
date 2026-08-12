@@ -72,12 +72,13 @@ public class RendezVousServiceImpl implements RendezVousService {
         }
 
         RendezVous rv = RendezVous.builder()
-                .numero(documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.RDV))
+                .numero(documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.RDV, garage))
                 .client(client)
                 .vehicule(vehicule)
                 .garage(garage)
                 .dateRendezVous(request.dateRendezVous())
                 .motif(request.motif())
+                .photoUrl(request.photoUrl())
                 .statut(RendezVousStatus.EN_ATTENTE)
                 .build();
 
@@ -162,6 +163,9 @@ public class RendezVousServiceImpl implements RendezVousService {
         if (nouvelleDate == null) {
             throw new IllegalArgumentException("La nouvelle date est obligatoire");
         }
+        if (nouvelleDate.isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("La nouvelle date ne peut pas être dans le passé");
+        }
 
         RendezVous rv = rendezvousRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Rendez-vous non trouvé"));
@@ -217,23 +221,6 @@ public class RendezVousServiceImpl implements RendezVousService {
                 "Votre rendez-vous du " + rv.getDateRendezVous() + " a été validé et une fiche atelier a été créée.");
 
         return toResponseWithHistory(rv);
-    }
-
-    @Transactional
-    @Override
-    public RendezVousResponse updateDate(Long id, java.time.LocalDateTime nouvelleDate) {
-        RendezVous rv = rendezvousRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Rendez-vous non trouvé"));
-        if (nouvelleDate.isBefore(java.time.LocalDateTime.now())) {
-            throw new IllegalArgumentException("La nouvelle date ne peut pas être dans le passé");
-        }
-        rv.setDateRendezVous(nouvelleDate);
-        rendezvousRepository.save(rv);
-
-        notificationService.sendNotification(rv.getClient(), "Date de rendez-vous modifiée",
-                "La date de votre rendez-vous a été modifiée au " + nouvelleDate + ".");
-
-        return RendezVousResponse.of(rv);
     }
 
     private RendezVousResponse toResponseWithHistory(RendezVous rv) {

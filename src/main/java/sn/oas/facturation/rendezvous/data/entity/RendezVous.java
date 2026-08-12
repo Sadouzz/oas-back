@@ -53,6 +53,9 @@ private LocalDateTime ancienneDateRendezVous;
     @Column(columnDefinition = "TEXT")
     private String motif;
 
+    @Column(name = "photo_url", columnDefinition = "TEXT")
+    private String photoUrl;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default

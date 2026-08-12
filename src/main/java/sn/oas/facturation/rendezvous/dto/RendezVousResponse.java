@@ -18,7 +18,8 @@ public record RendezVousResponse(
         RendezVousStatus statut,
         String commentaire,
         LocalDateTime dateCreation,
-        List<RendezVousDateHistoryResponse> dateHistory
+        List<RendezVousDateHistoryResponse> dateHistory,
+        String photoUrl
 ) {
     public static RendezVousResponse of(RendezVous rv) {
         return new RendezVousResponse(
@@ -32,7 +33,8 @@ public record RendezVousResponse(
                 rv.getStatut(),
                 rv.getCommentaire(),
                 rv.getDateCreation(),
-                List.of()
+                List.of(),
+                rv.getPhotoUrl()
         );
     }
 
@@ -51,7 +53,8 @@ public record RendezVousResponse(
                 rv.getStatut(),
                 rv.getCommentaire(),
                 rv.getDateCreation(),
-                historyResponses
+                historyResponses,
+                rv.getPhotoUrl()
         );
     }
 }

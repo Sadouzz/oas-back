@@ -10,7 +10,9 @@ public record MessageResponse(
         String expediteurName,
         String contenu,
         LocalDateTime dateEnvoi,
-        boolean lu
+        boolean lu,
+        Long garageId,
+        String garageName
 ) {
     public static MessageResponse of(Message m) {
         return new MessageResponse(
@@ -19,7 +21,9 @@ public record MessageResponse(
                 m.getExpediteur().getFirstName() + " " + m.getExpediteur().getLastName(),
                 m.getContenu(),
                 m.getDateEnvoi(),
-                m.isLu()
+                m.isLu(),
+                m.getGarage() != null ? m.getGarage().getId() : null,
+                m.getGarage() != null ? m.getGarage().getNom() : null
         );
     }
 }

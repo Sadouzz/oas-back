@@ -6,5 +6,6 @@ public record RendezVousRequest(
         LocalDateTime dateRendezVous,
         String motif,
         Long vehiculeId,
-        Long garageId
+        Long garageId,
+        String photoUrl
 ) {}

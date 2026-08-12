@@ -7,6 +7,8 @@ import sn.oas.facturation.auth.data.entity.Client;
 import sn.oas.facturation.auth.data.entity.User;
 import sn.oas.facturation.auth.repository.UserRepository;
 import sn.oas.facturation.client.repository.ClientRepository;
+import sn.oas.facturation.garage.data.entity.Garage;
+import sn.oas.facturation.garage.repository.GarageRepository;
 import sn.oas.facturation.messagerie.data.entity.Message;
 import sn.oas.facturation.messagerie.dto.ClientConversationResponse;
 import sn.oas.facturation.messagerie.dto.MessageRequest;
@@ -25,6 +27,7 @@ public class MessageServiceImpl implements MessageService {
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
     private final ClientRepository clientRepository;
+    private final GarageRepository garageRepository;
     private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
 
     @Transactional
@@ -36,11 +39,18 @@ public class MessageServiceImpl implements MessageService {
                     .orElse(null);
         }
 
+        if (request.garageId() == null) {
+            throw new IllegalArgumentException("Veuillez sélectionner le garage à qui envoyer votre message");
+        }
+        Garage garage = garageRepository.findById(request.garageId())
+                .orElseThrow(() -> new RuntimeException("Garage non trouvé"));
+
         Message message = Message.builder()
-                .numero(documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.MSG))
+                .numero(documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.MSG, garage))
                 .client(client)
                 .expediteur(client)
                 .destinataire(destinataire)
+                .garage(garage)
                 .contenu(request.contenu())
                 .lu(false)
                 .build();
@@ -55,11 +65,19 @@ public class MessageServiceImpl implements MessageService {
         Client client = clientRepository.findById(clientId)
                 .orElseThrow(() -> new RuntimeException("Client non trouvé"));
 
+        // La réponse de l'agent reste rattachée au garage de la conversation (celui choisi par le
+        // client dans son dernier message), pour que les agents scopés à ce garage la voient.
+        List<Message> existing = messageRepository.findByClientIdOrderByDateEnvoiAsc(clientId);
+        Garage garage = existing.isEmpty() ? null : existing.get(existing.size() - 1).getGarage();
+
         Message message = Message.builder()
-                .numero(documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.MSG))
+                .numero(garage != null
+                        ? documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.MSG, garage)
+                        : documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.MSG))
                 .client(client)
                 .expediteur(agent)
                 .destinataire(client)
+                .garage(garage)
                 .contenu(request.contenu())
                 .lu(false)
                 .build();

@@ -50,6 +50,7 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     private final AgentNotificationService agentNotificationService;
     private final NotificationService notificationService;
     private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
+    private final sn.oas.facturation.shared.email.EmailService emailService;
 
     @Autowired
     @Lazy
@@ -109,7 +110,13 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
             }
         }
 
-        return ficheAtelierRepository.save(ficheAtelier);
+        FicheAtelier saved = ficheAtelierRepository.save(ficheAtelier);
+
+        if (vehicule.getClient() != null) {
+            emailService.sendFicheAtelierCreatedEmail(vehicule.getClient(), saved, vehicule);
+        }
+
+        return saved;
     }
 
     @Override

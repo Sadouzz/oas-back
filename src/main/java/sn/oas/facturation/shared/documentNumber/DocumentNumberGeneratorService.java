@@ -17,7 +17,16 @@ public class DocumentNumberGeneratorService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public String generateNextNumber(DocumentType type) {
-        Garage garage = getCurrentGarage();
+        return generateNextNumber(type, getCurrentGarage());
+    }
+
+    /**
+     * Variante pour les cas où le principal authentifié n'est pas un Agent (ex : un Client qui
+     * prend rendez-vous) et n'a donc pas de garage résolvable via le contexte de sécurité — le
+     * garage concerné est alors fourni explicitement par l'appelant.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public String generateNextNumber(DocumentType type, Garage garage) {
         if (garage == null || garage.getPrefixe() == null || garage.getPrefixe().isBlank()) {
             throw new IllegalArgumentException("Garage ou préfixe du garage manquant");
         }
