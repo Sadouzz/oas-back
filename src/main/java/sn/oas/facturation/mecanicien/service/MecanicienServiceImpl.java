@@ -14,6 +14,7 @@ import java.util.Optional;
 public class MecanicienServiceImpl implements MecanicienService {
 
     private final MecanicienRepository mecanicienRepository;
+    private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
 
 
     @Override
@@ -31,8 +32,8 @@ public class MecanicienServiceImpl implements MecanicienService {
 
 
         Mecanicien mecanicien = Mecanicien.builder()
+                .numero(documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.MEC))
                 .nom(request.getNom())
-
                 .build();
         return mecanicienRepository.save(mecanicien);
     }

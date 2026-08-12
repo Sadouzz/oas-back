@@ -39,6 +39,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final ClientRepository clientRepository;
     private final GarageRepository garageRepository;
+    private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
 
     @Override
     public AuthResponse login(LoginRequest request) {
@@ -115,8 +116,14 @@ public class AuthServiceImpl implements AuthService {
                         .orElseThrow(() -> new IllegalArgumentException("Garage non trouvé"));
             }
 
+            // Auto-generate matricule for Agent if not provided
+            String agentMatricule = matricule;
+            if (agentMatricule == null || agentMatricule.trim().isEmpty()) {
+                agentMatricule = documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.AG);
+            }
+
             user = Agent.builder()
-                    .matricule(matricule)
+                    .matricule(agentMatricule)
                     .phone(request.phone())
                     .username(request.username())
                     .firstName(request.firstName())

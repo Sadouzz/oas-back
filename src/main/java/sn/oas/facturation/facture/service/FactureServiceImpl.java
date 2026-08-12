@@ -52,6 +52,7 @@ public class FactureServiceImpl implements FactureService {
     private final VehiculeRepository vehiculeRepository;
     private final UserRepository userRepository;
     private final AgentNotificationService agentNotificationService;
+    private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
 
     @Override
     @Transactional
@@ -74,7 +75,7 @@ public class FactureServiceImpl implements FactureService {
             agent = (user instanceof Agent) ? (Agent) user : null;
         }
 
-        String numero = "FACT-" + System.currentTimeMillis();
+        String numero = documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.FC);
 
         Facture facture = Facture.builder()
                 .numero(numero)
@@ -155,7 +156,7 @@ public class FactureServiceImpl implements FactureService {
             client = vehicule.getClient();
         }
 
-        String numero = "FACT-" + System.currentTimeMillis();
+        String numero = documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.FC);
 
         Facture facture = Facture.builder()
                 .numero(numero)

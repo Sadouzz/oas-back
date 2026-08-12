@@ -45,6 +45,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
     private final FicheAtelierRepository ficheAtelierRepository;
     private final sn.oas.facturation.facture.service.FactureService factureService;
     private final AgentNotificationService agentNotificationService;
+    private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
 
 
     @Transactional
@@ -198,9 +199,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
     }
 
     private String genererReference() {
-        int annee = Year.now().getValue();
-        long count = bonDeSortieRepository.countByAnnee(annee) + 1;
-        return String.format("BS-%d-%04d", annee, count);
+        return documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.BS);
     }
 
     private void validerRequest(BonDeSortieRequest request) {

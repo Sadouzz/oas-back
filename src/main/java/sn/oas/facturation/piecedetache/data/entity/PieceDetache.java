@@ -14,7 +14,6 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
@@ -33,10 +32,10 @@ import sn.oas.facturation.piecedetache.data.enums.TypePiece;
 @EntityListeners(TenantListener.class)
 @FilterDef(name = "garageFilter", parameters = @ParamDef(name = "garageId", type = Long.class))
 @Filter(name = "garageFilter", condition = "garage_id = :garageId")
-public abstract class PieceDetache implements TenantAware  {
+public abstract class PieceDetache implements TenantAware {
 
-    @ManyToOne(fetch = jakarta.persistence.FetchType.LAZY)
-    @jakarta.persistence.JoinColumn(name = "garage_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "garage_id")
     private Garage garage;
 
     @Id
@@ -46,6 +45,9 @@ public abstract class PieceDetache implements TenantAware  {
     @Enumerated(EnumType.STRING)
     @Column(name = "type_piece", insertable = false, updatable = false)
     private TypePiece type;
+
+    @Column(unique = true)
+    private String numero;
 
     @Column(name = "numero_serie", nullable = false, unique = true)
     private String numeroDeSerie;
@@ -61,16 +63,16 @@ public abstract class PieceDetache implements TenantAware  {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    @Builder.Default
+    @lombok.Builder.Default
     private StatutPiece statut = StatutPiece.ACTIF;
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    @Builder.Default
+    @lombok.Builder.Default
     @CreationTimestamp
     private LocalDateTime createdAt = LocalDateTime.now();
-    
+
     @Column(name = "update_at")
-    @Builder.Default
+    @lombok.Builder.Default
     @UpdateTimestamp
     private LocalDateTime updatedAt = LocalDateTime.now();
 
@@ -98,4 +100,3 @@ public abstract class PieceDetache implements TenantAware  {
         }
     }
 }
-

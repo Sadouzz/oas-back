@@ -27,6 +27,7 @@ public class RendezVousServiceImpl implements RendezVousService {
     private final GarageRepository garageRepository;
     private final NotificationService notificationService;
     private final sn.oas.facturation.ficheAtelier.service.FicheAtelierService ficheAtelierService;
+    private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
 
     @Transactional
     @Override
@@ -67,6 +68,7 @@ public class RendezVousServiceImpl implements RendezVousService {
         }
 
         RendezVous rv = RendezVous.builder()
+                .numero(documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.RDV))
                 .client(client)
                 .vehicule(vehicule)
                 .garage(garage)

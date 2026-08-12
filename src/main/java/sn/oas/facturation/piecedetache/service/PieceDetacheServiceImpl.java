@@ -19,6 +19,7 @@ import java.util.List;
 public class PieceDetacheServiceImpl implements PieceDetacheService {
 
     private final PieceDetacheRepository pieceDetacheRepository;
+    private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
 
 
     @Override
@@ -125,11 +126,13 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
 
     private PieceDetache buildPieceFromRequest(PieceDetacheRequest request) {
         StatutPiece statut = request.statut() != null ? request.statut() : StatutPiece.ACTIF;
+        String numero = documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.PC);
 
         return switch (request.type()) {
             case PDP -> {
                 int stockMagasin = request.stockMagasin();
                 yield PDP.builder()
+                        .numero(numero)
                         .numeroDeSerie(request.numeroDeSerie())
                         .reference(request.reference())
                         .categorie(request.categorie())
@@ -143,6 +146,7 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
                         .build();
             }
             case PDG -> PDG.builder()
+                    .numero(numero)
                     .numeroDeSerie(request.numeroDeSerie())
                     .reference(request.reference())
                     .categorie(request.categorie())
@@ -150,6 +154,7 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
                     .statut(statut)
                     .build();
             case PDS -> PDS.builder()
+                    .numero(numero)
                     .numeroDeSerie(request.numeroDeSerie())
                     .reference(request.reference())
                     .categorie(request.categorie())

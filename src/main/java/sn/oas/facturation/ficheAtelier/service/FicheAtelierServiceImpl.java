@@ -46,6 +46,7 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     private final sn.oas.facturation.piecedetache.repository.PieceDetacheRepository pieceDetacheRepository;
     private final MainDoeuvreRepository mainDoeuvreRepository;
     private final AgentNotificationService agentNotificationService;
+    private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
 
     @Autowired
     @Lazy
@@ -63,19 +64,7 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
 
         String numero = request.getNumero();
         if (numero == null || numero.trim().isEmpty()) {
-            String prefix = String.format("FA-%d-", java.time.Year.now().getValue());
-            FicheAtelier derniereFiche = ficheAtelierRepository.findTopByNumeroStartingWithOrderByNumeroDesc(prefix);
-            long nextId = 1;
-            if (derniereFiche != null && derniereFiche.getNumero() != null
-                    && derniereFiche.getNumero().startsWith(prefix)) {
-                try {
-                    String lastSeq = derniereFiche.getNumero().substring(prefix.length());
-                    nextId = Long.parseLong(lastSeq) + 1;
-                } catch (NumberFormatException e) {
-                    nextId = derniereFiche.getId() + 1;
-                }
-            }
-            numero = String.format("%s%04d", prefix, nextId);
+            numero = documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.FA);
         }
 
         FicheAtelier ficheAtelier = FicheAtelier.builder()

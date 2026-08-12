@@ -20,6 +20,7 @@ public class DemandeProduitServiceImpl implements DemandeProduitService {
 
     private final DemandeProduitRepository demandeProduitRepository;
     private final ProduitRepository produitRepository;
+    private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
 
     @Override
     @Transactional
@@ -28,12 +29,13 @@ public class DemandeProduitServiceImpl implements DemandeProduitService {
                 .orElseThrow(() -> new IllegalArgumentException("Produit introuvable"));
 
         DemandeProduit demande = DemandeProduit.builder()
+                .numero(documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.DMD))
                 .client(client)
                 .produit(produit)
                 .quantite(request.quantite() != null ? request.quantite() : 1)
                 .message(request.message())
                 .statut(StatutDemandeProduit.EN_ATTENTE)
-                .dateCreation(LocalDateTime.now())
+                .dateCreation(java.time.LocalDateTime.now())
                 .build();
 
         return demandeProduitRepository.save(demande);

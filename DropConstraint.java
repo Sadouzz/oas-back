@@ -4,14 +4,14 @@ import java.sql.Statement;
 
 public class DropConstraint {
     public static void main(String[] args) throws Exception {
-        String url = "jdbc:postgresql://ep-holy-king-aqjd3rk2-pooler.c-8.us-east-1.aws.neon.tech/oas_database?sslmode=require&channelBinding=require";
-        String user = "neondb_owner";
-        String password = "npg_la0z1vjEkOrt";
+        String url = "jdbc:postgresql://localhost:5432/oas";
+        String user = "postgres";
+        String password = "passer";
         
         try (Connection conn = DriverManager.getConnection(url, user, password);
              Statement stmt = conn.createStatement()) {
-            stmt.execute("ALTER TABLE bons_de_commande ALTER COLUMN fournisseur_id DROP NOT NULL;");
-            System.out.println("Constraint dropped successfully.");
+            stmt.execute("ALTER TABLE document_sequences DROP CONSTRAINT IF EXISTS document_sequences_document_type_check;");
+            System.out.println("Constraint document_sequences_document_type_check dropped successfully.");
         } catch (Exception e) {
             e.printStackTrace();
         }

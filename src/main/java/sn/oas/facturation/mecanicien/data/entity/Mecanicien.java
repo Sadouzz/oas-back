@@ -26,15 +26,18 @@ import org.hibernate.annotations.CreationTimestamp;
 @EntityListeners(TenantListener.class)
 @FilterDef(name = "garageFilter", parameters = @ParamDef(name = "garageId", type = Long.class))
 @Filter(name = "garageFilter", condition = "garage_id = :garageId")
-public class Mecanicien implements TenantAware  {
+public class Mecanicien implements TenantAware {
 
-    @ManyToOne(fetch = jakarta.persistence.FetchType.LAZY)
-    @jakarta.persistence.JoinColumn(name = "garage_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "garage_id")
     private Garage garage;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(unique = true)
+    private String numero;
 
     @Column(nullable = false)
     private String nom;

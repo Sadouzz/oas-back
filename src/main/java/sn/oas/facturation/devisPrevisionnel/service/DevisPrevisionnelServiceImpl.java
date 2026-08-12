@@ -31,6 +31,7 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
     private final VehiculeService vehiculeService;
     private final AuthService authService;
     private final UserService userService;
+    private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
 
     @Transactional
     @Override
@@ -44,6 +45,7 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
         }
 
         DevisPrevisionnel devis = DevisPrevisionnel.builder()
+                .numero(documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.DP))
                 .notesReparation(request.notesReparation())
                 .montantTotal(request.montantTotal())
                 .kilometrageVehicule(request.kilometrageVehicule())

@@ -67,6 +67,7 @@ public class ProformaServiceImpl implements ProformaService {
     private final FicheAtelierRepository ficheAtelierRepository;
     private final AuthService authService;
     private final AgentNotificationService agentNotificationService;
+    private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
 
     @Override
     @Transactional
@@ -174,7 +175,7 @@ public class ProformaServiceImpl implements ProformaService {
         }
 
         Proforma proforma = Proforma.builder()
-                .numero("PR-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
+                .numero(documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.PF))
                 .dateCreation(LocalDateTime.now())
                 .dateModification(LocalDateTime.now())
                 .agent(authService.getAgentConnecte())
