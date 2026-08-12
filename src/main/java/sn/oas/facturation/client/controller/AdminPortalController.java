@@ -6,7 +6,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sn.oas.facturation.auth.data.entity.Agent;
+import sn.oas.facturation.auth.data.entity.Client;
 import sn.oas.facturation.auth.service.AuthService;
+import sn.oas.facturation.client.service.ClientService;
 import sn.oas.facturation.messagerie.dto.ClientConversationResponse;
 import sn.oas.facturation.messagerie.dto.MessageRequest;
 import sn.oas.facturation.messagerie.dto.MessageResponse;
@@ -16,6 +18,7 @@ import sn.oas.facturation.recu.dto.RecuRequest;
 import sn.oas.facturation.recu.dto.RecuResponse;
 import sn.oas.facturation.recu.service.RecuService;
 import sn.oas.facturation.rendezvous.data.enums.RendezVousStatus;
+import sn.oas.facturation.rendezvous.dto.RendezVousRequest;
 import sn.oas.facturation.rendezvous.dto.RendezVousResponse;
 import sn.oas.facturation.rendezvous.service.RendezVousService;
 
@@ -32,12 +35,27 @@ public class AdminPortalController {
     private final RecuService recuService;
     private final MessageService messageService;
     private final AuthService authService;
+    private final ClientService clientService;
 
     // --- Rendez-vous ---
     @GetMapping("/rendezvous")
     @Operation(summary = "Lister tous les rendez-vous clients")
     public ResponseEntity<List<RendezVousResponse>> getAllRendezVous() {
         return ResponseEntity.ok(rendezvousService.getAllRendezVous());
+    }
+
+    @PostMapping("/rendezvous")
+    @Operation(summary = "Créer un rendez-vous pour un client")
+    public ResponseEntity<?> createRendezVous(
+            @RequestParam Long clientId,
+            @RequestBody RendezVousRequest request) {
+        try {
+            Client client = clientService.getClientById(clientId);
+            RendezVousResponse response = rendezvousService.bookRendezVous(client, request);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @PutMapping("/rendezvous/{id}/statut")
