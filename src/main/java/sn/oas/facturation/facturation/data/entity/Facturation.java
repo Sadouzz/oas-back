@@ -35,7 +35,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import sn.oas.facturation.auth.data.entity.Agent;
 import sn.oas.facturation.bonDeCommande.data.entity.BonDeCommande;
 import sn.oas.facturation.facturation.data.enums.StatutFacturation;
-import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
+import sn.oas.facturation.ordreReparation.data.entity.OrdreReparation;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
 
@@ -88,9 +88,9 @@ public abstract class Facturation implements TenantAware  {
     private BonDeCommande bonDeCommande;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fiche_atelier_id")
+    @JoinColumn(name = "ordre_reparation_id")
     @com.fasterxml.jackson.annotation.JsonIgnoreProperties("facturations")
-    private FicheAtelier ficheAtelier;
+    private OrdreReparation ordreReparation;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

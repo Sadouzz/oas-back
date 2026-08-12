@@ -14,11 +14,11 @@ public interface BonDeLivraisonRepository extends JpaRepository<BonDeLivraison, 
     @Query("SELECT b FROM BonDeLivraison b WHERE " +
             "LOWER(b.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(b.remarque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(b.ficheAtelier.vehicule.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(b.ficheAtelier.vehicule.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(b.ficheAtelier.vehicule.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(b.ficheAtelier.vehicule.client.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(b.ficheAtelier.vehicule.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+            "LOWER(b.ordreReparation.vehicule.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(b.ordreReparation.vehicule.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(b.ordreReparation.vehicule.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(b.ordreReparation.vehicule.client.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(b.ordreReparation.vehicule.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<BonDeLivraison> searchBonsDeLivraison(@Param("keyword") String keyword);
     
     List<BonDeLivraison> findTop5ByOrderByDateCreationDesc();

@@ -6,6 +6,6 @@ public record BonDeSortieRequest(
         Long clientId,
         Long vehiculeId,
         List<LignePieceRequest> lignesPieces,
-        Long ficheAtelierId,
+        Long ordreReparationId,
         String remarque
 ) {}

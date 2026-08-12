@@ -54,7 +54,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
     private final FournisseurRepository fournisseurRepository;
     private final VehiculeRepository vehiculeRepository;
     private final PieceDetacheRepository pieceDetacheRepository;
-    private final sn.oas.facturation.ficheAtelier.repository.FicheAtelierRepository ficheAtelierRepository;
+    private final sn.oas.facturation.ordreReparation.repository.OrdreReparationRepository ordreReparationRepository;
     private final sn.oas.facturation.bonDeSortie.service.BonDeSortieService bonDeSortieService;
     private final sn.oas.facturation.proforma.repository.ProformaRepository proformaRepository;
     private final PdfGeneratorService pdfGeneratorService;
@@ -303,12 +303,12 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
         
         // Auto-générer le Bon de Sortie pour la fiche atelier en attente
         if (bonDeCommande.getVehicule() != null) {
-            List<sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier> fiches = ficheAtelierRepository.findByVehiculeIdAndStatut(
+            List<sn.oas.facturation.ordreReparation.data.entity.OrdreReparation> fiches = ordreReparationRepository.findByVehiculeIdAndStatut(
                     bonDeCommande.getVehicule().getId(), 
-                    sn.oas.facturation.ficheAtelier.data.enums.StatutFiche.EN_ATTENTE_COMMANDE);
+                    sn.oas.facturation.ordreReparation.data.enums.StatutOrdreReparation.EN_ATTENTE_COMMANDE);
             
-            for (sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier fiche : fiches) {
-                sn.oas.facturation.proforma.data.entity.Proforma proforma = proformaRepository.findByFicheAtelierId(fiche.getId()).orElse(null);
+            for (sn.oas.facturation.ordreReparation.data.entity.OrdreReparation fiche : fiches) {
+                sn.oas.facturation.proforma.data.entity.Proforma proforma = proformaRepository.findByOrdreReparationId(fiche.getId()).orElse(null);
                 if (proforma != null && fiche.getVehicule().getClient() != null) {
                     List<sn.oas.facturation.bonDeSortie.dto.LignePieceRequest> lignesPieces = new ArrayList<>();
                     for (sn.oas.facturation.facturation.data.entity.LigneFacturationPiece lp : proforma.getLignesFacturationPieces()) {
@@ -338,12 +338,12 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                     
                     try {
                         sn.oas.facturation.bonDeSortie.data.entity.BonDeSortie bds = bonDeSortieService.creer(bdsRequest);
-                        bds.setFicheAtelier(fiche);
+                        bds.setOrdreReparation(fiche);
                         bds = bonDeSortieRepository.save(bds); // update le BDS avec la fiche
                         
                         fiche.setBonDeSortie(bds);
-                        fiche.setStatut(sn.oas.facturation.ficheAtelier.data.enums.StatutFiche.EN_ATTENTE_SORTIE);
-                        ficheAtelierRepository.save(fiche);
+                        fiche.setStatut(sn.oas.facturation.ordreReparation.data.enums.StatutOrdreReparation.EN_ATTENTE_SORTIE);
+                        ordreReparationRepository.save(fiche);
                     } catch (Exception e) {
                         log.error("Erreur auto bon de sortie FA-" + fiche.getId(), e);
                     }
@@ -447,12 +447,12 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
         bonDeLivraisonRepository.save(bonDeLivraison);
         
         if (toutRecu && bonDeCommande.getVehicule() != null) {
-            List<sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier> fiches = ficheAtelierRepository.findByVehiculeIdAndStatut(
+            List<sn.oas.facturation.ordreReparation.data.entity.OrdreReparation> fiches = ordreReparationRepository.findByVehiculeIdAndStatut(
                     bonDeCommande.getVehicule().getId(), 
-                    sn.oas.facturation.ficheAtelier.data.enums.StatutFiche.EN_ATTENTE_COMMANDE);
+                    sn.oas.facturation.ordreReparation.data.enums.StatutOrdreReparation.EN_ATTENTE_COMMANDE);
             
-            for (sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier fiche : fiches) {
-                sn.oas.facturation.proforma.data.entity.Proforma proforma = proformaRepository.findByFicheAtelierId(fiche.getId()).orElse(null);
+            for (sn.oas.facturation.ordreReparation.data.entity.OrdreReparation fiche : fiches) {
+                sn.oas.facturation.proforma.data.entity.Proforma proforma = proformaRepository.findByOrdreReparationId(fiche.getId()).orElse(null);
                 if (proforma != null && fiche.getVehicule().getClient() != null) {
                     List<sn.oas.facturation.bonDeSortie.dto.LignePieceRequest> lignesPieces = new ArrayList<>();
                     for (sn.oas.facturation.facturation.data.entity.LigneFacturationPiece lp : proforma.getLignesFacturationPieces()) {
@@ -480,12 +480,12 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                         );
                         try {
                             sn.oas.facturation.bonDeSortie.data.entity.BonDeSortie bds = bonDeSortieService.creer(bdsRequest);
-                            bds.setFicheAtelier(fiche);
+                            bds.setOrdreReparation(fiche);
                             bds = bonDeSortieRepository.save(bds);
                             
                             fiche.setBonDeSortie(bds);
-                            fiche.setStatut(sn.oas.facturation.ficheAtelier.data.enums.StatutFiche.EN_ATTENTE_SORTIE);
-                            ficheAtelierRepository.save(fiche);
+                            fiche.setStatut(sn.oas.facturation.ordreReparation.data.enums.StatutOrdreReparation.EN_ATTENTE_SORTIE);
+                            ordreReparationRepository.save(fiche);
                         } catch (Exception e) {
                             log.error("Erreur auto bon de sortie FA-" + fiche.getId(), e);
                             throw new RuntimeException("Erreur lors de la création automatique du bon de sortie", e);

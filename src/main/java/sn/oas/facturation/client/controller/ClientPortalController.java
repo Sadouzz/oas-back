@@ -13,8 +13,8 @@ import sn.oas.facturation.facture.data.entity.Facture;
 import sn.oas.facturation.facture.dto.FactureResponse;
 import sn.oas.facturation.facture.repository.FactureRepository;
 import sn.oas.facturation.facture.service.FactureService;
-import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
-import sn.oas.facturation.ficheAtelier.repository.FicheAtelierRepository;
+import sn.oas.facturation.ordreReparation.data.entity.OrdreReparation;
+import sn.oas.facturation.ordreReparation.repository.OrdreReparationRepository;
 import sn.oas.facturation.messagerie.dto.MessageRequest;
 import sn.oas.facturation.messagerie.dto.MessageResponse;
 import sn.oas.facturation.messagerie.service.MessageService;
@@ -42,7 +42,7 @@ public class ClientPortalController {
     private final ClientService clientService;
     private final VehiculeService vehiculeService;
     private final RendezVousService rendezvousService;
-    private final FicheAtelierRepository ficheAtelierRepository;
+    private final OrdreReparationRepository ordreReparationRepository;
     private final FactureRepository factureRepository;
     private final FactureService factureService;
     private final RecuService recuService;
@@ -118,16 +118,16 @@ public class ClientPortalController {
     // --- Suivi des réparations/interventions ---
     @GetMapping("/interventions")
     @Operation(summary = "Lister l'historique des interventions/réparations")
-    public ResponseEntity<List<FicheAtelier>> getInterventions() {
+    public ResponseEntity<List<OrdreReparation>> getInterventions() {
         Client client = clientService.getClientConnecte();
-        return ResponseEntity.ok(ficheAtelierRepository.findByVehiculeClientIdOrderByDateCreationDesc(client.getId()));
+        return ResponseEntity.ok(ordreReparationRepository.findByVehiculeClientIdOrderByDateCreationDesc(client.getId()));
     }
 
     @GetMapping("/interventions/{id}")
     @Operation(summary = "Détail d'une intervention/réparation")
     public ResponseEntity<?> getInterventionById(@PathVariable Long id) {
         Client client = clientService.getClientConnecte();
-        FicheAtelier fiche = ficheAtelierRepository.findById(id)
+        OrdreReparation fiche = ordreReparationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Intervention non trouvée"));
         if (!fiche.getVehicule().getClient().getId().equals(client.getId())) {
             return ResponseEntity.badRequest().body("Accès non autorisé à cette intervention");

@@ -100,8 +100,8 @@ public class AvoirHTServiceImpl implements AvoirHTService {
                 document.add(new Paragraph("Agent : " + a.getAgent().getFirstName() + " " + a.getAgent().getLastName(), fontTexte));
             }
 
-            if (a.getFicheAtelier() != null && a.getFicheAtelier().getVehicule() != null) {
-                Vehicule v = a.getFicheAtelier().getVehicule();
+            if (a.getOrdreReparation() != null && a.getOrdreReparation().getVehicule() != null) {
+                Vehicule v = a.getOrdreReparation().getVehicule();
                 if (v.getClient() != null) {
                     document.add(new Paragraph("Client : " + v.getClient().getFirstName() + " " + v.getClient().getLastName(), fontTexte));
                 }
@@ -196,14 +196,14 @@ public class AvoirHTServiceImpl implements AvoirHTService {
                 .agentNom(a.getAgent() != null ? a.getAgent().getFirstName() + " " + a.getAgent().getLastName() : null)
                 .remarque(a.getRemarque())
                 .kilometrage(a.getKilometrage())
-                .clientId((a.getFicheAtelier() != null && a.getFicheAtelier().getVehicule() != null && a.getFicheAtelier().getVehicule().getClient() != null) ? a.getFicheAtelier().getVehicule().getClient().getId() : null)
-                .clientNom((a.getFicheAtelier() != null && a.getFicheAtelier().getVehicule() != null && a.getFicheAtelier().getVehicule().getClient() != null) ? a.getFicheAtelier().getVehicule().getClient().getFirstName() + " " + a.getFicheAtelier().getVehicule().getClient().getLastName() : null)
-                .vehiculeId((a.getFicheAtelier() != null && a.getFicheAtelier().getVehicule() != null) ? a.getFicheAtelier().getVehicule().getId() : null)
-                .immatriculation((a.getFicheAtelier() != null && a.getFicheAtelier().getVehicule() != null) ? a.getFicheAtelier().getVehicule().getImmatriculation() : null)
-                .numeroChassis((a.getFicheAtelier() != null && a.getFicheAtelier().getVehicule() != null) ? a.getFicheAtelier().getVehicule().getNumeroChassis() : null)
-                .marque((a.getFicheAtelier() != null && a.getFicheAtelier().getVehicule() != null) ? a.getFicheAtelier().getVehicule().getMarque() : null)
-                .modele((a.getFicheAtelier() != null && a.getFicheAtelier().getVehicule() != null) ? a.getFicheAtelier().getVehicule().getModele() : null)
-                .annee((a.getFicheAtelier() != null && a.getFicheAtelier().getVehicule() != null) ? a.getFicheAtelier().getVehicule().getAnnee() : null)
+                .clientId((a.getOrdreReparation() != null && a.getOrdreReparation().getVehicule() != null && a.getOrdreReparation().getVehicule().getClient() != null) ? a.getOrdreReparation().getVehicule().getClient().getId() : null)
+                .clientNom((a.getOrdreReparation() != null && a.getOrdreReparation().getVehicule() != null && a.getOrdreReparation().getVehicule().getClient() != null) ? a.getOrdreReparation().getVehicule().getClient().getFirstName() + " " + a.getOrdreReparation().getVehicule().getClient().getLastName() : null)
+                .vehiculeId((a.getOrdreReparation() != null && a.getOrdreReparation().getVehicule() != null) ? a.getOrdreReparation().getVehicule().getId() : null)
+                .immatriculation((a.getOrdreReparation() != null && a.getOrdreReparation().getVehicule() != null) ? a.getOrdreReparation().getVehicule().getImmatriculation() : null)
+                .numeroChassis((a.getOrdreReparation() != null && a.getOrdreReparation().getVehicule() != null) ? a.getOrdreReparation().getVehicule().getNumeroChassis() : null)
+                .marque((a.getOrdreReparation() != null && a.getOrdreReparation().getVehicule() != null) ? a.getOrdreReparation().getVehicule().getMarque() : null)
+                .modele((a.getOrdreReparation() != null && a.getOrdreReparation().getVehicule() != null) ? a.getOrdreReparation().getVehicule().getModele() : null)
+                .annee((a.getOrdreReparation() != null && a.getOrdreReparation().getVehicule() != null) ? a.getOrdreReparation().getVehicule().getAnnee() : null)
                 .numeroBonDeCommande(a.getBonDeCommande() != null ? a.getBonDeCommande().getNumero() : null)
                 .lignesPieces(a.getLignesFacturationPieces() == null ? List.of() : a.getLignesFacturationPieces().stream()
                         .map(lp -> LigneFacturationPieceResponse.builder()

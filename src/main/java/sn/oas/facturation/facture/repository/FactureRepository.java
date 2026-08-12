@@ -15,11 +15,11 @@ public interface FactureRepository extends JpaRepository<Facture, Long> {
             "LOWER(f.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(f.remarque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(f.numeroBonDeCommande) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(f.ficheAtelier.vehicule.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(f.ficheAtelier.vehicule.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(f.ficheAtelier.vehicule.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(f.ficheAtelier.vehicule.client.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(f.ficheAtelier.vehicule.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+            "LOWER(f.ordreReparation.vehicule.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(f.ordreReparation.vehicule.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(f.ordreReparation.vehicule.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(f.ordreReparation.vehicule.client.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(f.ordreReparation.vehicule.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<Facture> searchFactures(@Param("keyword") String keyword);
 
     List<Facture> findTop5ByOrderByDateCreationDesc();

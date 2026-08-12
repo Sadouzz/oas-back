@@ -7,9 +7,9 @@ import org.springframework.transaction.annotation.Transactional;
 import sn.oas.facturation.facture.data.entity.Facture;
 import sn.oas.facturation.facture.data.enums.StatutPaiement;
 import sn.oas.facturation.facture.repository.FactureRepository;
-import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
-import sn.oas.facturation.ficheAtelier.data.enums.StatutFiche;
-import sn.oas.facturation.ficheAtelier.repository.FicheAtelierRepository;
+import sn.oas.facturation.ordreReparation.data.entity.OrdreReparation;
+import sn.oas.facturation.ordreReparation.data.enums.StatutOrdreReparation;
+import sn.oas.facturation.ordreReparation.repository.OrdreReparationRepository;
 import sn.oas.facturation.recu.data.entity.Recu;
 import sn.oas.facturation.recu.dto.RecuRequest;
 import sn.oas.facturation.recu.dto.RecuResponse;
@@ -27,7 +27,7 @@ public class RecuServiceImpl implements RecuService {
 
     private final RecuRepository recuRepository;
     private final FactureRepository factureRepository;
-    private final FicheAtelierRepository ficheAtelierRepository;
+    private final OrdreReparationRepository ordreReparationRepository;
     private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
 
     @Override
@@ -68,11 +68,11 @@ public class RecuServiceImpl implements RecuService {
             facture.setStatutPaiement(StatutPaiement.PAYE);
 
             // Advance Fiche Atelier to TERMINE if it was waiting for payment
-            if (facture.getFicheAtelier() != null) {
-                FicheAtelier fiche = facture.getFicheAtelier();
-                if (fiche.getStatut() == StatutFiche.EN_ATTENTE_PAIEMENT) {
-                    fiche.setStatut(StatutFiche.TERMINE);
-                    ficheAtelierRepository.save(fiche);
+            if (facture.getOrdreReparation() != null) {
+                OrdreReparation fiche = facture.getOrdreReparation();
+                if (fiche.getStatut() == StatutOrdreReparation.EN_ATTENTE_PAIEMENT) {
+                    fiche.setStatut(StatutOrdreReparation.TERMINE);
+                    ordreReparationRepository.save(fiche);
                 }
             }
         } else {
@@ -111,7 +111,7 @@ public class RecuServiceImpl implements RecuService {
                 .factureId(r.getFacture().getId())
                 .numeroFacture(r.getFacture().getNumero())
                 .clientNom(r.getFacture().getClient() != null ? r.getFacture().getClient().getFirstName() + " " + r.getFacture().getClient().getLastName() : null)
-                .numeroFicheAtelier(r.getFacture().getFicheAtelier() != null ? r.getFacture().getFicheAtelier().getNumero() : null)
+                .numeroOrdreReparation(r.getFacture().getOrdreReparation() != null ? r.getFacture().getOrdreReparation().getNumero() : null)
                 .montant(r.getMontant())
                 .modePaiement(r.getModePaiement())
                 .remarque(r.getRemarque())

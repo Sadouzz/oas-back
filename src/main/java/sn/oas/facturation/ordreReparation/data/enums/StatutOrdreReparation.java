@@ -1,6 +1,6 @@
-package sn.oas.facturation.ficheAtelier.data.enums;
+package sn.oas.facturation.ordreReparation.data.enums;
 
-public enum StatutFiche {
+public enum StatutOrdreReparation {
     A_FAIRE,
     EN_DIAGNOSTIC,
     EN_ATTENTE_PROFORMA,

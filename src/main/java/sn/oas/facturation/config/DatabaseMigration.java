@@ -14,8 +14,8 @@ public class DatabaseMigration {
     @PostConstruct
     public void dropStatutConstraint() {
         try {
-            jdbcTemplate.execute("ALTER TABLE fiches_atelier DROP CONSTRAINT IF EXISTS fiches_atelier_statut_check");
-            System.out.println("✅ Constraint 'fiches_atelier_statut_check' dropped successfully!");
+            jdbcTemplate.execute("ALTER TABLE ordres_reparation DROP CONSTRAINT IF EXISTS ordres_reparation_statut_check");
+            System.out.println("✅ Constraint 'ordres_reparation_statut_check' dropped successfully!");
         } catch (Exception e) {}
         
         try {

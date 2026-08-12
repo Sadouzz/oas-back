@@ -54,7 +54,7 @@ public class DocumentNumberGeneratorService {
                             .orElseThrow(() -> new IllegalArgumentException("Garage non trouvé pour l'ID : " + garageIdHeader));
                     }
                 }
-            } else if (agent.getRole() != sn.oas.facturation.auth.data.enums.Role.MASTER) {
+            } else {
                 return agent.getGarage();
             }
         }

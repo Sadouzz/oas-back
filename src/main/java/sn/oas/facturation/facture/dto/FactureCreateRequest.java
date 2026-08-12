@@ -6,7 +6,7 @@ import lombok.Data;
 public class FactureCreateRequest {
     private Long clientId;
     private Long vehiculeId;
-    private Long ficheAtelierId;
+    private Long ordreReparationId;
     private Double kilometrage;
     private String remarque;
     private Boolean appliquerTVA;

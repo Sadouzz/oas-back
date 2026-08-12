@@ -39,7 +39,7 @@ public class GarageFilterAspect {
                         Filter filter = session.enableFilter("garageFilter");
                         filter.setParameter("garageId", Long.parseLong(garageIdHeader));
                     }
-                } else if (agent.getRole() != Role.MASTER && agent.getGarage() != null) {
+                } else if (agent.getGarage() != null) {
                     Session session = entityManager.unwrap(Session.class);
                     Filter filter = session.enableFilter("garageFilter");
                     filter.setParameter("garageId", agent.getGarage().getId());

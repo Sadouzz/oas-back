@@ -1,38 +1,38 @@
-package sn.oas.facturation.ficheAtelier.controller;
+package sn.oas.facturation.ordreReparation.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
-import sn.oas.facturation.ficheAtelier.dto.FicheAtelierRequest;
-import sn.oas.facturation.ficheAtelier.dto.FicheAtelierLightDTO;
-import sn.oas.facturation.ficheAtelier.service.FicheAtelierService;
+import sn.oas.facturation.ordreReparation.data.entity.OrdreReparation;
+import sn.oas.facturation.ordreReparation.dto.OrdreReparationRequest;
+import sn.oas.facturation.ordreReparation.dto.OrdreReparationLightDTO;
+import sn.oas.facturation.ordreReparation.service.OrdreReparationService;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/fiches-atelier")
+@RequestMapping("/api/ordres-reparation")
 @RequiredArgsConstructor
 @Tag(name = "Fiches Atelier", description = "API pour la gestion des fiches atelier")
-public class FicheAtelierController {
+public class OrdreReparationController {
 
-    private final FicheAtelierService ficheAtelierService;
+    private final OrdreReparationService ordreReparationService;
 
     @GetMapping
     @Operation(summary = "Lister toutes les fiches atelier")
-    public ResponseEntity<List<FicheAtelierLightDTO>> getAllFichesAtelier() {
-        return ResponseEntity.ok(ficheAtelierService.getAllFichesAtelier());
+    public ResponseEntity<List<OrdreReparationLightDTO>> getAllOrdresReparation() {
+        return ResponseEntity.ok(ordreReparationService.getAllOrdresReparation());
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Récupérer une fiche atelier par son ID")
-    public ResponseEntity<?> getFicheAtelierById(@PathVariable Long id) {
+    public ResponseEntity<?> getOrdreReparationById(@PathVariable Long id) {
         try {
-            FicheAtelier ficheAtelier = ficheAtelierService.getFicheAtelierById(id)
+            OrdreReparation ordreReparation = ordreReparationService.getOrdreReparationById(id)
                     .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
-            return ResponseEntity.ok(ficheAtelier);
+            return ResponseEntity.ok(ordreReparation);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
         }
@@ -40,10 +40,10 @@ public class FicheAtelierController {
 
     @PostMapping("/create")
     @Operation(summary = "Créer une nouvelle fiche atelier")
-    public ResponseEntity<?> createFicheAtelier(@RequestBody FicheAtelierRequest request) {
+    public ResponseEntity<?> createOrdreReparation(@RequestBody OrdreReparationRequest request) {
         try {
-            FicheAtelier ficheAtelier = ficheAtelierService.createFicheAtelier(request);
-            return ResponseEntity.ok(ficheAtelier);
+            OrdreReparation ordreReparation = ordreReparationService.createOrdreReparation(request);
+            return ResponseEntity.ok(ordreReparation);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
         }
@@ -51,10 +51,10 @@ public class FicheAtelierController {
 
     @PutMapping("/{id}")
     @Operation(summary = "Mettre à jour une fiche atelier")
-    public ResponseEntity<?> updateFicheAtelier(@PathVariable Long id, @RequestBody FicheAtelierRequest request) {
+    public ResponseEntity<?> updateOrdreReparation(@PathVariable Long id, @RequestBody OrdreReparationRequest request) {
         try {
-            FicheAtelier ficheAtelier = ficheAtelierService.updateFicheAtelier(id, request);
-            return ResponseEntity.ok(ficheAtelier);
+            OrdreReparation ordreReparation = ordreReparationService.updateOrdreReparation(id, request);
+            return ResponseEntity.ok(ordreReparation);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
         }
@@ -62,9 +62,9 @@ public class FicheAtelierController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Supprimer une fiche atelier")
-    public ResponseEntity<?> deleteFicheAtelier(@PathVariable Long id) {
+    public ResponseEntity<?> deleteOrdreReparation(@PathVariable Long id) {
         try {
-            ficheAtelierService.deleteFicheAtelier(id);
+            ordreReparationService.deleteOrdreReparation(id);
             return ResponseEntity.ok("{\"message\": \"Fiche Atelier supprimée avec succès !\"}");
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
@@ -75,7 +75,7 @@ public class FicheAtelierController {
     @Operation(summary = "Assigner un mécanicien à une fiche atelier")
     public ResponseEntity<?> assignMecanicien(@PathVariable Long ficheId, @PathVariable Long mecanicienId) {
         try {
-            ficheAtelierService.assignMecanicien(ficheId, mecanicienId);
+            ordreReparationService.assignMecanicien(ficheId, mecanicienId);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
@@ -86,7 +86,7 @@ public class FicheAtelierController {
     @Operation(summary = "Retirer un mécanicien d'une fiche atelier")
     public ResponseEntity<?> removeMecanicien(@PathVariable Long ficheId, @PathVariable Long mecanicienId) {
         try {
-            ficheAtelierService.removeMecanicien(ficheId, mecanicienId);
+            ordreReparationService.removeMecanicien(ficheId, mecanicienId);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
@@ -97,7 +97,7 @@ public class FicheAtelierController {
     @Operation(summary = "Assigner un mécanicien pour la réparation")
     public ResponseEntity<?> assignMecanicienReparation(@PathVariable Long ficheId, @PathVariable Long mecanicienId) {
         try {
-            ficheAtelierService.assignMecanicienReparation(ficheId, mecanicienId);
+            ordreReparationService.assignMecanicienReparation(ficheId, mecanicienId);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
@@ -108,7 +108,7 @@ public class FicheAtelierController {
     @Operation(summary = "Retirer un mécanicien de la réparation")
     public ResponseEntity<?> removeMecanicienReparation(@PathVariable Long ficheId, @PathVariable Long mecanicienId) {
         try {
-            ficheAtelierService.removeMecanicienReparation(ficheId, mecanicienId);
+            ordreReparationService.removeMecanicienReparation(ficheId, mecanicienId);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
@@ -119,7 +119,7 @@ public class FicheAtelierController {
     @Operation(summary = "Mettre à jour le statut d'une fiche atelier")
     public ResponseEntity<?> updateStatut(@PathVariable Long id, @RequestParam String statut) {
         try {
-            FicheAtelier fiche = ficheAtelierService.updateStatut(id, statut);
+            OrdreReparation fiche = ordreReparationService.updateStatut(id, statut);
             return ResponseEntity.ok(fiche);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");

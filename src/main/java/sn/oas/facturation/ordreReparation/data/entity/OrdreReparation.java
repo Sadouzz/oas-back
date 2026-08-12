@@ -1,4 +1,4 @@
-package sn.oas.facturation.ficheAtelier.data.entity;
+package sn.oas.facturation.ordreReparation.data.entity;
 
 import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
@@ -10,7 +10,7 @@ import sn.oas.facturation.garage.data.entity.Garage;
 import sn.oas.facturation.bonDeSortie.data.entity.BonDeSortie;
 import sn.oas.facturation.facturation.data.entity.Facturation;
 import sn.oas.facturation.mecanicien.data.entity.Mecanicien;
-import sn.oas.facturation.ficheAtelier.data.enums.StatutFiche;
+import sn.oas.facturation.ordreReparation.data.enums.StatutOrdreReparation;
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
 import jakarta.persistence.*;
 import lombok.*;
@@ -24,7 +24,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
-@Table(name = "fiches_atelier")
+@Table(name = "ordres_reparation")
 @Data
 @Builder
 @NoArgsConstructor
@@ -32,7 +32,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @EntityListeners(TenantListener.class)
 @FilterDef(name = "garageFilter", parameters = @ParamDef(name = "garageId", type = Long.class))
 @Filter(name = "garageFilter", condition = "garage_id = :garageId")
-public class FicheAtelier implements TenantAware  {
+public class OrdreReparation implements TenantAware  {
 
     @ManyToOne(fetch = jakarta.persistence.FetchType.LAZY)
     @jakarta.persistence.JoinColumn(name = "garage_id")
@@ -72,7 +72,7 @@ public class FicheAtelier implements TenantAware  {
     @Enumerated(EnumType.STRING)
     @Column(name = "statut")
     @Builder.Default
-    private StatutFiche statut = StatutFiche.A_FAIRE;
+    private StatutOrdreReparation statut = StatutOrdreReparation.A_FAIRE;
 
     // â”€â”€ Relationship Block â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -87,7 +87,7 @@ public class FicheAtelier implements TenantAware  {
         inverseJoinColumns = @JoinColumn(name = "mecanicien_id")
     )
     @Builder.Default
-    @JsonIgnoreProperties("fichesAtelier")
+    @JsonIgnoreProperties("ordresReparation")
     private List<Mecanicien> mecaniciens = new ArrayList<>();
 
     @ManyToMany(fetch = FetchType.LAZY)
@@ -97,25 +97,25 @@ public class FicheAtelier implements TenantAware  {
         inverseJoinColumns = @JoinColumn(name = "mecanicien_id")
     )
     @Builder.Default
-    @JsonIgnoreProperties("fichesAtelier")
+    @JsonIgnoreProperties("ordresReparation")
     private List<Mecanicien> mecaniciensReparation = new ArrayList<>();
 
-    @OneToOne(mappedBy = "ficheAtelier", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonIgnoreProperties("ficheAtelier") // Ignore le champ "ficheAtelier" qui est DANS le "BonDeSortie"
+    @OneToOne(mappedBy = "ordreReparation", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnoreProperties("ordreReparation") // Ignore le champ "ordreReparation" qui est DANS le "BonDeSortie"
     private BonDeSortie bonDeSortie;
 
-    @OneToMany(mappedBy = "ficheAtelier", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "ordreReparation", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     @com.fasterxml.jackson.annotation.JsonIgnore
     private List<Facturation> facturations = new ArrayList<>();
 
-    @OneToMany(mappedBy = "ficheAtelier", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "ordreReparation", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    private List<LigneFicheAtelierPiece> lignesFicheAtelierPieces = new ArrayList<>();
+    private List<LigneOrdreReparationPiece> lignesOrdreReparationPieces = new ArrayList<>();
 
-    @OneToMany(mappedBy = "ficheAtelier", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "ordreReparation", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    private List<LigneFicheAtelierMainDoeuvre> lignesFicheAtelierMainDoeuvres = new ArrayList<>();
+    private List<LigneOrdreReparationMainDoeuvre> lignesOrdreReparationMainDoeuvres = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {
@@ -126,7 +126,7 @@ public class FicheAtelier implements TenantAware  {
             this.updatedAt = LocalDateTime.now();
         }
         if (this.statut == null) {
-            this.statut = StatutFiche.A_FAIRE;
+            this.statut = StatutOrdreReparation.A_FAIRE;
         }
     }
 }

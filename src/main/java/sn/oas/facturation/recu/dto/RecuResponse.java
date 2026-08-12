@@ -22,5 +22,5 @@ public class RecuResponse {
 
     private String clientNom;
     private String numeroFacture;
-    private String numeroFicheAtelier;
+    private String numeroOrdreReparation;
 }

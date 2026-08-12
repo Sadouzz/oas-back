@@ -1,4 +1,4 @@
-package sn.oas.facturation.ficheAtelier.data.entity;
+package sn.oas.facturation.ordreReparation.data.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
@@ -9,12 +9,12 @@ import lombok.NoArgsConstructor;
 import sn.oas.facturation.main_doeuvre.data.entity.MainDoeuvre;
 
 @Entity
-@Table(name = "lignes_fiche_atelier_main_doeuvre")
+@Table(name = "lignes_ordre_reparation_main_doeuvre")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class LigneFicheAtelierMainDoeuvre {
+public class LigneOrdreReparationMainDoeuvre {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,8 +22,8 @@ public class LigneFicheAtelierMainDoeuvre {
 
     @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fiche_atelier_id", nullable = false)
-    private FicheAtelier ficheAtelier;
+    @JoinColumn(name = "ordre_reparation_id", nullable = false)
+    private OrdreReparation ordreReparation;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "main_doeuvre_id", nullable = false)

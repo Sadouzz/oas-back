@@ -27,7 +27,7 @@ public class TenantListener {
                                 tenantAware.setGarage(garage);
                             }
                         }
-                    } else if (agent.getRole() != Role.MASTER) {
+                    } else {
                         tenantAware.setGarage(agent.getGarage());
                     }
                 }

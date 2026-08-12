@@ -38,9 +38,9 @@ import sn.oas.facturation.proforma.dto.ProformaUpdateRequest;
 import sn.oas.facturation.proforma.repository.ProformaRepository;
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.vehicule.repository.VehiculeRepository;
-import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
-import sn.oas.facturation.ficheAtelier.repository.FicheAtelierRepository;
-import sn.oas.facturation.ficheAtelier.data.enums.StatutFiche;
+import sn.oas.facturation.ordreReparation.data.entity.OrdreReparation;
+import sn.oas.facturation.ordreReparation.repository.OrdreReparationRepository;
+import sn.oas.facturation.ordreReparation.data.enums.StatutOrdreReparation;
 import sn.oas.facturation.auth.data.enums.Role;
 import sn.oas.facturation.notification.service.AgentNotificationService;
 
@@ -64,7 +64,7 @@ public class ProformaServiceImpl implements ProformaService {
     private final VehiculeRepository vehiculeRepository;
     private final PieceDetacheRepository pieceDetacheRepository;
     private final MainDoeuvreRepository mainDoeuvreRepository;
-    private final FicheAtelierRepository ficheAtelierRepository;
+    private final OrdreReparationRepository ordreReparationRepository;
     private final AuthService authService;
     private final AgentNotificationService agentNotificationService;
     private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
@@ -168,10 +168,10 @@ public class ProformaServiceImpl implements ProformaService {
         List<LigneFacturationPiece> lignesPieces = new ArrayList<>();
         List<LigneFacturationMainDoeuvre> lignesMainDoeuvres = new ArrayList<>();
 
-        FicheAtelier ficheAtelier = null;
-        if (request.getFicheAtelierId() != null) {
-            ficheAtelier = ficheAtelierRepository.findById(request.getFicheAtelierId())
-                    .orElseThrow(() -> new IllegalArgumentException("Fiche Atelier non trouvée avec l'id : " + request.getFicheAtelierId()));
+        OrdreReparation ordreReparation = null;
+        if (request.getOrdreReparationId() != null) {
+            ordreReparation = ordreReparationRepository.findById(request.getOrdreReparationId())
+                    .orElseThrow(() -> new IllegalArgumentException("Fiche Atelier non trouvée avec l'id : " + request.getOrdreReparationId()));
         }
 
         Proforma proforma = Proforma.builder()
@@ -181,7 +181,7 @@ public class ProformaServiceImpl implements ProformaService {
                 .agent(authService.getAgentConnecte())
                 // .client(client)
                 // .vehicule(vehicule)
-                .ficheAtelier(ficheAtelier)
+                .ordreReparation(ordreReparation)
                 .kilometrage(request.getKilometrage())
                 .remarque(request.getRemarque())
                 // .numeroBonDeCommande(request.getNumeroBonDeCommande())
@@ -242,9 +242,9 @@ public class ProformaServiceImpl implements ProformaService {
 
         Proforma saved = proformaRepository.save(proforma);
 
-        if (ficheAtelier != null) {
-            ficheAtelier.setStatut(StatutFiche.EN_ATTENTE_PROFORMA);
-            ficheAtelierRepository.save(ficheAtelier);
+        if (ordreReparation != null) {
+            ordreReparation.setStatut(StatutOrdreReparation.EN_ATTENTE_PROFORMA);
+            ordreReparationRepository.save(ordreReparation);
         }
 
         agentNotificationService.notifyRole(Role.AGENT, 
@@ -262,8 +262,8 @@ public class ProformaServiceImpl implements ProformaService {
                 .orElseThrow(() -> new IllegalArgumentException("Proforma non trouvé avec l'id : " + id));
 
         Vehicule vehicule = null;
-        if (proforma.getFicheAtelier() != null) {
-            vehicule = proforma.getFicheAtelier().getVehicule();
+        if (proforma.getOrdreReparation() != null) {
+            vehicule = proforma.getOrdreReparation().getVehicule();
         }
         
         if (vehicule != null) {
@@ -397,8 +397,8 @@ public class ProformaServiceImpl implements ProformaService {
 
     @Override
     @Transactional(readOnly = true)
-    public ProformaResponse getByFicheAtelierId(Long ficheAtelierId) {
-        return proformaRepository.findByFicheAtelierId(ficheAtelierId)
+    public ProformaResponse getByOrdreReparationId(Long ordreReparationId) {
+        return proformaRepository.findByOrdreReparationId(ordreReparationId)
                 .map(this::mapToResponse)
                 .orElse(null);
     }
@@ -429,10 +429,10 @@ public class ProformaServiceImpl implements ProformaService {
 
         proforma.setStatut(sn.oas.facturation.facturation.data.enums.StatutFacturation.ACCEPTE);
         
-        FicheAtelier ficheAtelier = proforma.getFicheAtelier();
-        if (ficheAtelier != null) {
-            ficheAtelier.setStatut(StatutFiche.PROFORMA_VALIDE);
-            ficheAtelierRepository.save(ficheAtelier);
+        OrdreReparation ordreReparation = proforma.getOrdreReparation();
+        if (ordreReparation != null) {
+            ordreReparation.setStatut(StatutOrdreReparation.PROFORMA_VALIDE);
+            ordreReparationRepository.save(ordreReparation);
         }
 
         return mapToResponse(proformaRepository.save(proforma));
@@ -466,8 +466,8 @@ public class ProformaServiceImpl implements ProformaService {
             if (p.getAgent() != null) {
                 document.add(new Paragraph("Agent : " + p.getAgent().getFirstName() + " " + p.getAgent().getLastName(), fontTexte));
             }
-            if (p.getFicheAtelier() != null && p.getFicheAtelier().getVehicule() != null) {
-                Vehicule v = p.getFicheAtelier().getVehicule();
+            if (p.getOrdreReparation() != null && p.getOrdreReparation().getVehicule() != null) {
+                Vehicule v = p.getOrdreReparation().getVehicule();
                 if (v.getClient() != null) {
                     document.add(new Paragraph("Client : " + v.getClient().getFirstName() + " " + v.getClient().getLastName(), fontTexte));
                 }
@@ -570,8 +570,8 @@ public class ProformaServiceImpl implements ProformaService {
                 .dateCreation(LocalDateTime.now())
                 .dateModification(LocalDateTime.now())
                 .agent(authService.getAgentConnecte())
-                .client(proforma.getFicheAtelier() != null ? proforma.getFicheAtelier().getVehicule().getClient() : null)
-                .vehicule(proforma.getFicheAtelier() != null ? proforma.getFicheAtelier().getVehicule() : null)
+                .client(proforma.getOrdreReparation() != null ? proforma.getOrdreReparation().getVehicule().getClient() : null)
+                .vehicule(proforma.getOrdreReparation() != null ? proforma.getOrdreReparation().getVehicule() : null)
                 .kilometrage(proforma.getKilometrage())
                 .remarque(proforma.getRemarque())
                 .numeroBonDeCommande(proforma.getBonDeCommande() != null ? proforma.getBonDeCommande().getNumero() : null)
@@ -622,17 +622,17 @@ public class ProformaServiceImpl implements ProformaService {
         Proforma proforma = proformaRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Proforma non trouvé avec l'id : " + id));
 
-        if (proforma.getFicheAtelier() == null || proforma.getFicheAtelier().getVehicule() == null || 
-            !proforma.getFicheAtelier().getVehicule().getClient().getId().equals(client.getId())) {
+        if (proforma.getOrdreReparation() == null || proforma.getOrdreReparation().getVehicule() == null || 
+            !proforma.getOrdreReparation().getVehicule().getClient().getId().equals(client.getId())) {
             throw new IllegalArgumentException("Accès non autorisé à ce proforma");
         }
 
         proforma.setStatut(sn.oas.facturation.facturation.data.enums.StatutFacturation.ACCEPTE);
         
-        FicheAtelier ficheAtelier = proforma.getFicheAtelier();
-        if (ficheAtelier != null) {
-            ficheAtelier.setStatut(StatutFiche.PROFORMA_VALIDE);
-            ficheAtelierRepository.save(ficheAtelier);
+        OrdreReparation ordreReparation = proforma.getOrdreReparation();
+        if (ordreReparation != null) {
+            ordreReparation.setStatut(StatutOrdreReparation.PROFORMA_VALIDE);
+            ordreReparationRepository.save(ordreReparation);
         }
 
         agentNotificationService.notifyRole(Role.CHEF_ATELIER, 
@@ -649,14 +649,14 @@ public class ProformaServiceImpl implements ProformaService {
         Proforma proforma = proformaRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Proforma non trouvé avec l'id : " + id));
 
-        if (proforma.getFicheAtelier() == null || proforma.getFicheAtelier().getVehicule() == null || 
-            !proforma.getFicheAtelier().getVehicule().getClient().getId().equals(client.getId())) {
+        if (proforma.getOrdreReparation() == null || proforma.getOrdreReparation().getVehicule() == null || 
+            !proforma.getOrdreReparation().getVehicule().getClient().getId().equals(client.getId())) {
             throw new IllegalArgumentException("Accès non autorisé à ce proforma");
         }
 
         proforma.setStatut(sn.oas.facturation.facturation.data.enums.StatutFacturation.REJETE);
         
-        FicheAtelier ficheAtelier = proforma.getFicheAtelier();
+        OrdreReparation ordreReparation = proforma.getOrdreReparation();
         // Optionnel : ne pas changer le statut de la fiche atelier ou le remettre à EN_DIAGNOSTIC
         // si le proforma est refusé. Pour l'instant on garde le statut actuel.
 
@@ -680,14 +680,14 @@ public class ProformaServiceImpl implements ProformaService {
                 .agentNom(p.getAgent() != null ? p.getAgent().getFirstName() + " " + p.getAgent().getLastName() : null)
                 .remarque(p.getRemarque())
                 .kilometrage(p.getKilometrage())
-                .clientId(p.getFicheAtelier() != null && p.getFicheAtelier().getVehicule() != null ? p.getFicheAtelier().getVehicule().getClient().getId() : null)
-                .clientNom(p.getFicheAtelier() != null && p.getFicheAtelier().getVehicule() != null ? p.getFicheAtelier().getVehicule().getClient().getFirstName() + " " + p.getFicheAtelier().getVehicule().getClient().getLastName() : null)
-                .vehiculeId(p.getFicheAtelier() != null && p.getFicheAtelier().getVehicule() != null ? p.getFicheAtelier().getVehicule().getId() : null)
-                .immatriculation(p.getFicheAtelier() != null && p.getFicheAtelier().getVehicule() != null ? p.getFicheAtelier().getVehicule().getImmatriculation() : null)
-                .numeroChassis(p.getFicheAtelier() != null && p.getFicheAtelier().getVehicule() != null ? p.getFicheAtelier().getVehicule().getNumeroChassis() : null)
-                .marque(p.getFicheAtelier() != null && p.getFicheAtelier().getVehicule() != null ? p.getFicheAtelier().getVehicule().getMarque() : null)
-                .modele(p.getFicheAtelier() != null && p.getFicheAtelier().getVehicule() != null ? p.getFicheAtelier().getVehicule().getModele() : null)
-                .annee(p.getFicheAtelier() != null && p.getFicheAtelier().getVehicule() != null ? p.getFicheAtelier().getVehicule().getAnnee() : null)
+                .clientId(p.getOrdreReparation() != null && p.getOrdreReparation().getVehicule() != null ? p.getOrdreReparation().getVehicule().getClient().getId() : null)
+                .clientNom(p.getOrdreReparation() != null && p.getOrdreReparation().getVehicule() != null ? p.getOrdreReparation().getVehicule().getClient().getFirstName() + " " + p.getOrdreReparation().getVehicule().getClient().getLastName() : null)
+                .vehiculeId(p.getOrdreReparation() != null && p.getOrdreReparation().getVehicule() != null ? p.getOrdreReparation().getVehicule().getId() : null)
+                .immatriculation(p.getOrdreReparation() != null && p.getOrdreReparation().getVehicule() != null ? p.getOrdreReparation().getVehicule().getImmatriculation() : null)
+                .numeroChassis(p.getOrdreReparation() != null && p.getOrdreReparation().getVehicule() != null ? p.getOrdreReparation().getVehicule().getNumeroChassis() : null)
+                .marque(p.getOrdreReparation() != null && p.getOrdreReparation().getVehicule() != null ? p.getOrdreReparation().getVehicule().getMarque() : null)
+                .modele(p.getOrdreReparation() != null && p.getOrdreReparation().getVehicule() != null ? p.getOrdreReparation().getVehicule().getModele() : null)
+                .annee(p.getOrdreReparation() != null && p.getOrdreReparation().getVehicule() != null ? p.getOrdreReparation().getVehicule().getAnnee() : null)
                 .numeroBonDeCommande(p.getBonDeCommande() != null ? p.getBonDeCommande().getNumero() : null)
                 .lignesPieces(p.getLignesFacturationPieces() == null ? List.of() : p.getLignesFacturationPieces().stream()
                         .map(lp -> LigneFacturationPieceResponse.builder()

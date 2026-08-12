@@ -33,7 +33,26 @@ public class UserServiceImpl implements UserService{
 
     @Override
     public List<User> getAllUsers() {
-        return userRepository.findAll();
+        List<User> users = userRepository.findAll();
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !auth.getName().equals("anonymousUser")) {
+            boolean isMaster = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_MASTER") || a.getAuthority().equals("MASTER"));
+            if (isMaster) {
+                // Récupérer le garage du MASTER connecté
+                Optional<User> currentUserOpt = userRepository.findByUsername(auth.getName());
+                if (currentUserOpt.isPresent() && currentUserOpt.get() instanceof Agent currentAgent && currentAgent.getGarage() != null) {
+                    Long masterGarageId = currentAgent.getGarage().getId();
+                    return users.stream().filter(u -> {
+                        if (u instanceof Agent a) {
+                            return a.getGarage() != null && a.getGarage().getId().equals(masterGarageId);
+                        }
+                        // Pour les autres types d'utilisateurs (ex: Super Agent sans garage, ou Client), on peut les masquer ou les afficher
+                        return false; 
+                    }).toList();
+                }
+            }
+        }
+        return users;
     }
 
     @Override
@@ -56,7 +75,12 @@ public class UserServiceImpl implements UserService{
             if (request.role() != null) {
                 agent.setRole(request.role());
             }
-            if (request.garageId() != null) {
+            org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            boolean isMaster = false;
+            if (auth != null && auth.isAuthenticated() && !auth.getName().equals("anonymousUser")) {
+                isMaster = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_MASTER") || a.getAuthority().equals("MASTER"));
+            }
+            if (!isMaster && request.garageId() != null) {
                 Garage garage = garageRepository.findById(request.garageId())
                         .orElseThrow(() -> new IllegalArgumentException("Garage non trouvé"));
                 agent.setGarage(garage);

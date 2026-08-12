@@ -16,17 +16,17 @@ public interface ProformaRepository extends JpaRepository<Proforma, Long> {
             "LOWER(p.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(p.remarque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(p.bonDeCommande.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(p.ficheAtelier.vehicule.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(p.ficheAtelier.vehicule.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(p.ficheAtelier.vehicule.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(p.ficheAtelier.vehicule.client.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(p.ficheAtelier.vehicule.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+            "LOWER(p.ordreReparation.vehicule.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(p.ordreReparation.vehicule.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(p.ordreReparation.vehicule.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(p.ordreReparation.vehicule.client.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(p.ordreReparation.vehicule.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<Proforma> searchProformas(@Param("keyword") String keyword);
 
     List<Proforma> findTop5ByOrderByDateCreationDesc();
 
-    Optional<Proforma> findByFicheAtelierId(Long ficheAtelierId);
+    Optional<Proforma> findByOrdreReparationId(Long ordreReparationId);
 
-    @Query("SELECT p FROM Proforma p WHERE p.ficheAtelier.vehicule.client.id = :clientId ORDER BY p.dateCreation DESC")
+    @Query("SELECT p FROM Proforma p WHERE p.ordreReparation.vehicule.client.id = :clientId ORDER BY p.dateCreation DESC")
     List<Proforma> findByClientIdOrderByDateCreationDesc(@Param("clientId") Long clientId);
 }

@@ -14,7 +14,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import sn.oas.facturation.auth.data.entity.Agent;
 import sn.oas.facturation.auth.data.entity.Client;
-import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
+import sn.oas.facturation.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.bonDeSortie.data.enums.StatutBon;
 
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
@@ -80,9 +80,9 @@ public class BonDeSortie implements TenantAware  {
     private Agent agentValidateur;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fiche_atelier_id", nullable = true, unique = true)
-    @JsonIgnoreProperties("bonDeSortie") // Ignore le champ "bonDeSortie" qui est DANS la "FicheAtelier"
-    private FicheAtelier ficheAtelier;
+    @JoinColumn(name = "ordre_reparation_id", nullable = true, unique = true)
+    @JsonIgnoreProperties("bonDeSortie") // Ignore le champ "bonDeSortie" qui est DANS la "OrdreReparation"
+    private OrdreReparation ordreReparation;
 
     @OneToMany(mappedBy = "bonDeSortie", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

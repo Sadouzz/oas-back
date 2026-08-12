@@ -111,7 +111,16 @@ public class AuthServiceImpl implements AuthService {
         if (request.type() == TypeUser.AGENT)
         {
             Garage garage = null;
-            if (request.garageId() != null) {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated() && !auth.getName().equals("anonymousUser")) {
+                User currentUser = userRepository.findByUsername(auth.getName())
+                        .or(() -> userRepository.findByEmail(auth.getName()))
+                        .orElse(null);
+                if (currentUser instanceof Agent currentAgent && currentAgent.getRole() == sn.oas.facturation.auth.data.enums.Role.MASTER) {
+                    garage = currentAgent.getGarage();
+                }
+            }
+            if (garage == null && request.garageId() != null) {
                 garage = garageRepository.findById(request.garageId())
                         .orElseThrow(() -> new IllegalArgumentException("Garage non trouvé"));
             }

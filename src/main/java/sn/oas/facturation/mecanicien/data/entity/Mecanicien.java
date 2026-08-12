@@ -9,7 +9,7 @@ import sn.oas.facturation.garage.data.entity.Garage;
 
 import jakarta.persistence.*;
 import lombok.*;
-import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
+import sn.oas.facturation.ordreReparation.data.entity.OrdreReparation;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -50,7 +50,7 @@ public class Mecanicien implements TenantAware {
     @ManyToMany(mappedBy = "mecaniciens", fetch = FetchType.LAZY)
     @Builder.Default
     @com.fasterxml.jackson.annotation.JsonIgnore
-    private List<FicheAtelier> fichesAtelier = new ArrayList<>();
+    private List<OrdreReparation> ordresReparation = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {

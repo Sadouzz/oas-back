@@ -14,7 +14,7 @@ public interface ProformaService {
     List<ProformaResponse> getAll();
     List<ProformaResponse> search(String keyword);
     List<ProformaResponse> getRecentProformas();
-    ProformaResponse getByFicheAtelierId(Long ficheAtelierId);
+    ProformaResponse getByOrdreReparationId(Long ordreReparationId);
     void delete(Long id);
 
     ProformaResponse valider(Long id);

@@ -1,4 +1,4 @@
-package sn.oas.facturation.ficheAtelier.dto;
+package sn.oas.facturation.ordreReparation.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

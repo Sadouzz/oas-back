@@ -32,6 +32,6 @@ public class NoteDePrix extends FactureHT implements TenantAware  {
     @jakarta.persistence.JoinColumn(name = "garage_id")
     private Garage garage;
     // Les champs spÃ©cifiques Ã©ventuels.
-    // Client et Vehicule sont accessibles via ficheAtelier (hÃ©ritÃ© de Facturation).
+    // Client et Vehicule sont accessibles via ordreReparation (hÃ©ritÃ© de Facturation).
 }
 

@@ -17,7 +17,7 @@ public class FixDatabaseConstraintsRunner implements CommandLineRunner {
     @Override
     public void run(String... args) {
         log.info("--- Vérification et correction des contraintes CHECK dans la base de données ---");
-        String[] tables = {"proformas", "factures", "avoirs_ht", "avoirs_ttc", "bons_de_livraison", "notes_de_prix", "fiches_atelier", "bons_de_sortie"};
+        String[] tables = {"proformas", "factures", "avoirs_ht", "avoirs_ttc", "bons_de_livraison", "notes_de_prix", "ordres_reparation", "bons_de_sortie"};
         
         for (String table : tables) {
             try {

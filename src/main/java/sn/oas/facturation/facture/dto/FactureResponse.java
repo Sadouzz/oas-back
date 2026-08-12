@@ -44,8 +44,8 @@ public class FactureResponse {
 
     private String numeroBonDeCommande;
 
-    private Long ficheAtelierId;
-    private String numeroFicheAtelier;
+    private Long ordreReparationId;
+    private String numeroOrdreReparation;
 
     private List<LigneFacturationPieceResponse> lignesPieces;
     private List<LigneFacturationMainDoeuvreResponse> lignesMainDoeuvres;

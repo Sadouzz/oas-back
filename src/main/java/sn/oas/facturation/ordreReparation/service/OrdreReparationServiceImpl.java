@@ -1,19 +1,19 @@
-package sn.oas.facturation.ficheAtelier.service;
+package sn.oas.facturation.ordreReparation.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
-import sn.oas.facturation.ficheAtelier.data.enums.StatutFiche;
-import sn.oas.facturation.ficheAtelier.dto.FicheAtelierRequest;
-import sn.oas.facturation.ficheAtelier.repository.FicheAtelierRepository;
+import sn.oas.facturation.ordreReparation.data.entity.OrdreReparation;
+import sn.oas.facturation.ordreReparation.data.enums.StatutOrdreReparation;
+import sn.oas.facturation.ordreReparation.dto.OrdreReparationRequest;
+import sn.oas.facturation.ordreReparation.repository.OrdreReparationRepository;
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.vehicule.repository.VehiculeRepository;
 import sn.oas.facturation.mecanicien.data.entity.Mecanicien;
 import sn.oas.facturation.mecanicien.repository.MecanicienRepository;
-import sn.oas.facturation.ficheAtelier.data.entity.LigneFicheAtelierPiece;
-import sn.oas.facturation.ficheAtelier.data.entity.LigneFicheAtelierMainDoeuvre;
-import sn.oas.facturation.ficheAtelier.dto.LigneFicheAtelierPieceRequest;
-import sn.oas.facturation.ficheAtelier.dto.LigneFicheAtelierMainDoeuvreRequest;
+import sn.oas.facturation.ordreReparation.data.entity.LigneOrdreReparationPiece;
+import sn.oas.facturation.ordreReparation.data.entity.LigneOrdreReparationMainDoeuvre;
+import sn.oas.facturation.ordreReparation.dto.LigneOrdreReparationPieceRequest;
+import sn.oas.facturation.ordreReparation.dto.LigneOrdreReparationMainDoeuvreRequest;
 import sn.oas.facturation.piecedetache.data.entity.PDP;
 import sn.oas.facturation.piecedetache.data.entity.PieceDetache;
 import sn.oas.facturation.main_doeuvre.data.entity.MainDoeuvre;
@@ -30,16 +30,16 @@ import sn.oas.facturation.proforma.service.ProformaService;
 import sn.oas.facturation.proforma.dto.ProformaCreateRequest;
 import sn.oas.facturation.facturation.dto.LigneFacturationPieceRequest;
 import sn.oas.facturation.facturation.dto.LigneFacturationMainDoeuvreRequest;
-import sn.oas.facturation.ficheAtelier.dto.FicheAtelierLightDTO;
-import sn.oas.facturation.ficheAtelier.dto.VehiculeLightDTO;
-import sn.oas.facturation.ficheAtelier.dto.ClientLightDTO;
+import sn.oas.facturation.ordreReparation.dto.OrdreReparationLightDTO;
+import sn.oas.facturation.ordreReparation.dto.VehiculeLightDTO;
+import sn.oas.facturation.ordreReparation.dto.ClientLightDTO;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class FicheAtelierServiceImpl implements FicheAtelierService {
+public class OrdreReparationServiceImpl implements OrdreReparationService {
 
-    private final FicheAtelierRepository ficheAtelierRepository;
+    private final OrdreReparationRepository ordreReparationRepository;
     private final VehiculeRepository vehiculeRepository;
     private final MecanicienRepository mecanicienRepository;
     private final sn.oas.facturation.proforma.repository.ProformaRepository proformaRepository;
@@ -53,7 +53,7 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     private ProformaService proformaService;
 
     @Override
-    public FicheAtelier createFicheAtelier(FicheAtelierRequest request) {
+    public OrdreReparation createOrdreReparation(OrdreReparationRequest request) {
         Vehicule vehicule = null;
         if (request.getVehiculeId() != null) {
             vehicule = vehiculeRepository.findById(request.getVehiculeId())
@@ -67,23 +67,23 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
             numero = documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.FA);
         }
 
-        FicheAtelier ficheAtelier = FicheAtelier.builder()
+        OrdreReparation ordreReparation = OrdreReparation.builder()
                 .numero(numero)
                 .descriptionTravaux(request.getDescriptionTravaux())
                 .listeReception(request.getListeReception())
                 .listeDefauts(request.getListeDefauts())
                 .dateSortie(request.getDateSortie())
                 .vehicule(vehicule)
-                .statut(request.getStatut() != null ? request.getStatut() : StatutFiche.A_FAIRE)
+                .statut(request.getStatut() != null ? request.getStatut() : StatutOrdreReparation.A_FAIRE)
                 .build();
 
         if (request.getLignesPieces() != null) {
-            for (LigneFicheAtelierPieceRequest ligneReq : request.getLignesPieces()) {
+            for (LigneOrdreReparationPieceRequest ligneReq : request.getLignesPieces()) {
                 PieceDetache piece = pieceDetacheRepository.findById(ligneReq.pieceId())
                         .orElseThrow(() -> new RuntimeException("Pièce non trouvée"));
                 PDP pdp = (PDP) org.hibernate.Hibernate.unproxy(piece);
-                ficheAtelier.getLignesFicheAtelierPieces().add(LigneFicheAtelierPiece.builder()
-                        .ficheAtelier(ficheAtelier)
+                ordreReparation.getLignesOrdreReparationPieces().add(LigneOrdreReparationPiece.builder()
+                        .ordreReparation(ordreReparation)
                         .piece(pdp)
                         .quantite(ligneReq.quantite())
                         .prix(ligneReq.prix() != null ? ligneReq.prix()
@@ -93,11 +93,11 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
         }
 
         if (request.getLignesMainDoeuvres() != null) {
-            for (LigneFicheAtelierMainDoeuvreRequest ligneReq : request.getLignesMainDoeuvres()) {
+            for (LigneOrdreReparationMainDoeuvreRequest ligneReq : request.getLignesMainDoeuvres()) {
                 MainDoeuvre md = mainDoeuvreRepository.findById(ligneReq.mainDoeuvreId())
                         .orElseThrow(() -> new RuntimeException("Main d'œuvre non trouvée"));
-                ficheAtelier.getLignesFicheAtelierMainDoeuvres().add(LigneFicheAtelierMainDoeuvre.builder()
-                        .ficheAtelier(ficheAtelier)
+                ordreReparation.getLignesOrdreReparationMainDoeuvres().add(LigneOrdreReparationMainDoeuvre.builder()
+                        .ordreReparation(ordreReparation)
                         .mainDoeuvre(md)
                         .nbreHeure(ligneReq.nbreHeure())
                         .prix(ligneReq.prix() != null ? ligneReq.prix()
@@ -106,12 +106,12 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
             }
         }
 
-        return ficheAtelierRepository.save(ficheAtelier);
+        return ordreReparationRepository.save(ordreReparation);
     }
 
     @Override
-    public List<FicheAtelierLightDTO> getAllFichesAtelier() {
-        return ficheAtelierRepository.findAllWithVehiculeAndClient().stream().map(f -> {
+    public List<OrdreReparationLightDTO> getAllOrdresReparation() {
+        return ordreReparationRepository.findAllWithVehiculeAndClient().stream().map(f -> {
             ClientLightDTO clientDTO = null;
             if (f.getVehicule() != null && f.getVehicule().getClient() != null) {
                 clientDTO = ClientLightDTO.builder()
@@ -133,7 +133,7 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
                         .build();
             }
 
-            return FicheAtelierLightDTO.builder()
+            return OrdreReparationLightDTO.builder()
                     .id(f.getId())
                     .numero(f.getNumero())
                     .descriptionTravaux(f.getDescriptionTravaux())
@@ -146,42 +146,42 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     }
 
     @Override
-    public Optional<FicheAtelier> getFicheAtelierById(Long id) {
-        return ficheAtelierRepository.findById(id);
+    public Optional<OrdreReparation> getOrdreReparationById(Long id) {
+        return ordreReparationRepository.findById(id);
     }
 
     @Override
-    public FicheAtelier updateFicheAtelier(Long id, FicheAtelierRequest request) {
-        FicheAtelier ficheAtelier = ficheAtelierRepository.findById(id)
+    public OrdreReparation updateOrdreReparation(Long id, OrdreReparationRequest request) {
+        OrdreReparation ordreReparation = ordreReparationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
 
         if (request.getNumero() != null)
-            ficheAtelier.setNumero(request.getNumero());
+            ordreReparation.setNumero(request.getNumero());
         if (request.getDescriptionTravaux() != null)
-            ficheAtelier.setDescriptionTravaux(request.getDescriptionTravaux());
+            ordreReparation.setDescriptionTravaux(request.getDescriptionTravaux());
         if (request.getListeReception() != null)
-            ficheAtelier.setListeReception(request.getListeReception());
+            ordreReparation.setListeReception(request.getListeReception());
         if (request.getListeDefauts() != null)
-            ficheAtelier.setListeDefauts(request.getListeDefauts());
+            ordreReparation.setListeDefauts(request.getListeDefauts());
         if (request.getDateSortie() != null)
-            ficheAtelier.setDateSortie(request.getDateSortie());
+            ordreReparation.setDateSortie(request.getDateSortie());
         if (request.getStatut() != null)
-            ficheAtelier.setStatut(request.getStatut());
+            ordreReparation.setStatut(request.getStatut());
 
         if (request.getVehiculeId() != null) {
             Vehicule vehicule = vehiculeRepository.findById(request.getVehiculeId())
                     .orElseThrow(() -> new RuntimeException("Véhicule non trouvé"));
-            ficheAtelier.setVehicule(vehicule);
+            ordreReparation.setVehicule(vehicule);
         }
 
         if (request.getLignesPieces() != null) {
-            ficheAtelier.getLignesFicheAtelierPieces().clear();
-            for (LigneFicheAtelierPieceRequest ligneReq : request.getLignesPieces()) {
+            ordreReparation.getLignesOrdreReparationPieces().clear();
+            for (LigneOrdreReparationPieceRequest ligneReq : request.getLignesPieces()) {
                 PieceDetache piece = pieceDetacheRepository.findById(ligneReq.pieceId())
                         .orElseThrow(() -> new RuntimeException("Pièce non trouvée"));
                 PDP pdp = (PDP) org.hibernate.Hibernate.unproxy(piece);
-                ficheAtelier.getLignesFicheAtelierPieces().add(LigneFicheAtelierPiece.builder()
-                        .ficheAtelier(ficheAtelier)
+                ordreReparation.getLignesOrdreReparationPieces().add(LigneOrdreReparationPiece.builder()
+                        .ordreReparation(ordreReparation)
                         .piece(pdp)
                         .quantite(ligneReq.quantite())
                         .prix(ligneReq.prix() != null ? ligneReq.prix()
@@ -191,12 +191,12 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
         }
 
         if (request.getLignesMainDoeuvres() != null) {
-            ficheAtelier.getLignesFicheAtelierMainDoeuvres().clear();
-            for (LigneFicheAtelierMainDoeuvreRequest ligneReq : request.getLignesMainDoeuvres()) {
+            ordreReparation.getLignesOrdreReparationMainDoeuvres().clear();
+            for (LigneOrdreReparationMainDoeuvreRequest ligneReq : request.getLignesMainDoeuvres()) {
                 MainDoeuvre md = mainDoeuvreRepository.findById(ligneReq.mainDoeuvreId())
                         .orElseThrow(() -> new RuntimeException("Main d'œuvre non trouvée"));
-                ficheAtelier.getLignesFicheAtelierMainDoeuvres().add(LigneFicheAtelierMainDoeuvre.builder()
-                        .ficheAtelier(ficheAtelier)
+                ordreReparation.getLignesOrdreReparationMainDoeuvres().add(LigneOrdreReparationMainDoeuvre.builder()
+                        .ordreReparation(ordreReparation)
                         .mainDoeuvre(md)
                         .nbreHeure(ligneReq.nbreHeure())
                         .prix(ligneReq.prix() != null ? ligneReq.prix()
@@ -205,21 +205,21 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
             }
         }
 
-        ficheAtelier = ficheAtelierRepository.save(ficheAtelier);
+        ordreReparation = ordreReparationRepository.save(ordreReparation);
 
         // Auto-create proforma if pieces or MO are added and it doesn't exist yet
         if ((request.getLignesPieces() != null && !request.getLignesPieces().isEmpty()) ||
                 (request.getLignesMainDoeuvres() != null && !request.getLignesMainDoeuvres().isEmpty())) {
 
-            if (proformaRepository.findByFicheAtelierId(ficheAtelier.getId()).isEmpty()) {
+            if (proformaRepository.findByOrdreReparationId(ordreReparation.getId()).isEmpty()) {
                 ProformaCreateRequest pcr = new ProformaCreateRequest();
-                pcr.setFicheAtelierId(ficheAtelier.getId());
+                pcr.setOrdreReparationId(ordreReparation.getId());
                 pcr.setClientId(
-                        ficheAtelier.getVehicule().getClient() != null ? ficheAtelier.getVehicule().getClient().getId()
+                        ordreReparation.getVehicule().getClient() != null ? ordreReparation.getVehicule().getClient().getId()
                                 : null);
-                pcr.setVehiculeId(ficheAtelier.getVehicule().getId());
-                pcr.setKilometrage(ficheAtelier.getVehicule().getKilometrage() != null
-                        ? ficheAtelier.getVehicule().getKilometrage()
+                pcr.setVehiculeId(ordreReparation.getVehicule().getId());
+                pcr.setKilometrage(ordreReparation.getVehicule().getKilometrage() != null
+                        ? ordreReparation.getVehicule().getKilometrage()
                         : 0.0);
 
                 if (request.getLignesPieces() != null) {
@@ -243,89 +243,89 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
                 }
 
                 proformaService.create(pcr);
-                // proformaService.create already sets FicheAtelier status to
+                // proformaService.create already sets OrdreReparation status to
                 // EN_ATTENTE_PROFORMA
             }
         }
 
-        return ficheAtelier;
+        return ordreReparation;
     }
 
     @Override
-    public void deleteFicheAtelier(Long id) {
-        FicheAtelier ficheAtelier = ficheAtelierRepository.findById(id)
+    public void deleteOrdreReparation(Long id) {
+        OrdreReparation ordreReparation = ordreReparationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
-        ficheAtelierRepository.delete(ficheAtelier);
+        ordreReparationRepository.delete(ordreReparation);
     }
 
     @Transactional
     @Override
     public void assignMecanicien(Long ficheId, Long mecanicienId) {
-        FicheAtelier fiche = ficheAtelierRepository.findById(ficheId)
+        OrdreReparation fiche = ordreReparationRepository.findById(ficheId)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
         Mecanicien mecanicien = mecanicienRepository.findById(mecanicienId)
                 .orElseThrow(() -> new RuntimeException("Mécanicien non trouvé"));
 
         if (!fiche.getMecaniciens().contains(mecanicien)) {
             fiche.getMecaniciens().add(mecanicien);
-            ficheAtelierRepository.save(fiche);
+            ordreReparationRepository.save(fiche);
         }
     }
 
     @Transactional
     @Override
     public void removeMecanicien(Long ficheId, Long mecanicienId) {
-        FicheAtelier fiche = ficheAtelierRepository.findById(ficheId)
+        OrdreReparation fiche = ordreReparationRepository.findById(ficheId)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
         Mecanicien mecanicien = mecanicienRepository.findById(mecanicienId)
                 .orElseThrow(() -> new RuntimeException("Mécanicien non trouvé"));
 
         fiche.getMecaniciens().remove(mecanicien);
-        ficheAtelierRepository.save(fiche);
+        ordreReparationRepository.save(fiche);
     }
 
     @Transactional
     @Override
     public void assignMecanicienReparation(Long ficheId, Long mecanicienId) {
-        FicheAtelier fiche = ficheAtelierRepository.findById(ficheId)
+        OrdreReparation fiche = ordreReparationRepository.findById(ficheId)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
         Mecanicien mecanicien = mecanicienRepository.findById(mecanicienId)
                 .orElseThrow(() -> new RuntimeException("Mécanicien non trouvé"));
 
         if (!fiche.getMecaniciensReparation().contains(mecanicien)) {
             fiche.getMecaniciensReparation().add(mecanicien);
-            ficheAtelierRepository.save(fiche);
+            ordreReparationRepository.save(fiche);
         }
     }
 
     @Transactional
     @Override
     public void removeMecanicienReparation(Long ficheId, Long mecanicienId) {
-        FicheAtelier fiche = ficheAtelierRepository.findById(ficheId)
+        OrdreReparation fiche = ordreReparationRepository.findById(ficheId)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
         Mecanicien mecanicien = mecanicienRepository.findById(mecanicienId)
                 .orElseThrow(() -> new RuntimeException("Mécanicien non trouvé"));
 
         fiche.getMecaniciensReparation().remove(mecanicien);
-        ficheAtelierRepository.save(fiche);
+        ordreReparationRepository.save(fiche);
     }
 
     @Transactional
     @Override
-    public FicheAtelier updateStatut(Long id, String statut) {
-        FicheAtelier fiche = ficheAtelierRepository.findById(id)
+    public OrdreReparation updateStatut(Long id, String statut) {
+        OrdreReparation fiche = ordreReparationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
-        StatutFiche newStatut;
+        StatutOrdreReparation newStatut;
         try {
-            newStatut = StatutFiche.valueOf(statut);
+            newStatut = StatutOrdreReparation.valueOf(statut);
         } catch (IllegalArgumentException e) {
             throw new RuntimeException("Statut invalide : " + statut);
         }
 
         // Si la réparation commence (EN_COURS), on déduit les pièces
         // du proforma du stock de l'atelier
-        if (newStatut == StatutFiche.EN_COURS && fiche.getStatut() != StatutFiche.EN_COURS) {
-            proformaRepository.findByFicheAtelierId(id).ifPresent(proforma -> {
+        if (newStatut == StatutOrdreReparation.EN_COURS && fiche.getStatut() != StatutOrdreReparation.EN_COURS) {
+            proformaRepository.findByOrdreReparationId(id).ifPresent(proforma -> {
                 for (sn.oas.facturation.facturation.data.entity.LigneFacturationPiece lp : proforma
                         .getLignesFacturationPieces()) {
                     sn.oas.facturation.piecedetache.data.entity.PieceDetache piece = pieceDetacheRepository
@@ -343,9 +343,9 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
         }
 
         fiche.setStatut(newStatut);
-        FicheAtelier savedFiche = ficheAtelierRepository.save(fiche);
+        OrdreReparation savedFiche = ordreReparationRepository.save(fiche);
 
-        if (newStatut == StatutFiche.EN_ATTENTE_COMMANDE || newStatut == StatutFiche.EN_ATTENTE_SORTIE) {
+        if (newStatut == StatutOrdreReparation.EN_ATTENTE_COMMANDE || newStatut == StatutOrdreReparation.EN_ATTENTE_SORTIE) {
             agentNotificationService.notifyRole(Role.AGENT_MAGASIN,
                     "Pièces en attente pour " + savedFiche.getNumero(),
                     "La fiche " + savedFiche.getNumero() + " est passée en " + newStatut + ".");
@@ -356,7 +356,7 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
 
     @Override
     @Transactional(readOnly = true)
-    public boolean existsByVehiculeIdAndStatutNotIn(Long vehiculeId, List<sn.oas.facturation.ficheAtelier.data.enums.StatutFiche> statuts) {
-        return ficheAtelierRepository.existsByVehiculeIdAndStatutNotIn(vehiculeId, statuts);
+    public boolean existsByVehiculeIdAndStatutNotIn(Long vehiculeId, List<sn.oas.facturation.ordreReparation.data.enums.StatutOrdreReparation> statuts) {
+        return ordreReparationRepository.existsByVehiculeIdAndStatutNotIn(vehiculeId, statuts);
     }
 }

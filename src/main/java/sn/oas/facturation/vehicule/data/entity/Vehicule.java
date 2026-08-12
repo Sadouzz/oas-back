@@ -12,7 +12,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import sn.oas.facturation.auth.data.entity.Client;
-import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
+import sn.oas.facturation.ordreReparation.data.entity.OrdreReparation;
 
 
 @Entity
@@ -61,7 +61,7 @@ public class Vehicule {
 
     @OneToMany(mappedBy = "vehicule", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
-    private List<FicheAtelier> fichesAtelier;
+    private List<OrdreReparation> ordresReparation;
 
 
 

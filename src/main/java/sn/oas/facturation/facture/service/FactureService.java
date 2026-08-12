@@ -12,7 +12,7 @@ public interface FactureService {
     void delete(Long id);
     byte[] generatePdf(Long id);
     FactureResponse createFacture(sn.oas.facturation.facture.dto.FactureCreateRequest request);
-    FactureResponse createFactureAuto(sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier fiche);
+    FactureResponse createFactureAuto(sn.oas.facturation.ordreReparation.data.entity.OrdreReparation fiche);
     
     // Client methods
     List<FactureResponse> getClientFactures(sn.oas.facturation.auth.data.entity.Client client);

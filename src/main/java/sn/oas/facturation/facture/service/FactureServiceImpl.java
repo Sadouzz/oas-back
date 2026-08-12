@@ -25,10 +25,10 @@ import sn.oas.facturation.auth.data.entity.Agent;
 import sn.oas.facturation.auth.data.entity.Client;
 import sn.oas.facturation.auth.data.entity.User;
 import sn.oas.facturation.auth.repository.UserRepository;
-import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
-import sn.oas.facturation.ficheAtelier.data.entity.LigneFicheAtelierMainDoeuvre;
-import sn.oas.facturation.ficheAtelier.data.entity.LigneFicheAtelierPiece;
-import sn.oas.facturation.ficheAtelier.repository.FicheAtelierRepository;
+import sn.oas.facturation.ordreReparation.data.entity.OrdreReparation;
+import sn.oas.facturation.ordreReparation.data.entity.LigneOrdreReparationMainDoeuvre;
+import sn.oas.facturation.ordreReparation.data.entity.LigneOrdreReparationPiece;
+import sn.oas.facturation.ordreReparation.repository.OrdreReparationRepository;
 import sn.oas.facturation.vehicule.repository.VehiculeRepository;
 import sn.oas.facturation.facture.dto.FactureCreateRequest;
 import org.springframework.security.core.Authentication;
@@ -48,7 +48,7 @@ import java.util.stream.Collectors;
 public class FactureServiceImpl implements FactureService {
 
     private final FactureRepository factureRepository;
-    private final FicheAtelierRepository ficheAtelierRepository;
+    private final OrdreReparationRepository ordreReparationRepository;
     private final VehiculeRepository vehiculeRepository;
     private final UserRepository userRepository;
     private final AgentNotificationService agentNotificationService;
@@ -63,7 +63,7 @@ public class FactureServiceImpl implements FactureService {
         Vehicule vehicule = vehiculeRepository.findById(request.getVehiculeId())
                 .orElseThrow(() -> new IllegalArgumentException("Véhicule introuvable"));
 
-        FicheAtelier ficheAtelier = ficheAtelierRepository.findById(request.getFicheAtelierId())
+        OrdreReparation ordreReparation = ordreReparationRepository.findById(request.getOrdreReparationId())
                 .orElseThrow(() -> new IllegalArgumentException("Fiche Atelier introuvable"));
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -81,7 +81,7 @@ public class FactureServiceImpl implements FactureService {
                 .numero(numero)
                 .client(client)
                 .vehicule(vehicule)
-                .ficheAtelier(ficheAtelier)
+                .ordreReparation(ordreReparation)
                 .agent(agent)
                 .kilometrage(request.getKilometrage() != null ? request.getKilometrage() : 0.0)
                 .remarque(request.getRemarque())
@@ -89,7 +89,7 @@ public class FactureServiceImpl implements FactureService {
 
         BigDecimal ht = BigDecimal.ZERO;
         
-        for (LigneFicheAtelierPiece ligneFiche : ficheAtelier.getLignesFicheAtelierPieces()) {
+        for (LigneOrdreReparationPiece ligneFiche : ordreReparation.getLignesOrdreReparationPieces()) {
             LigneFacturationPiece lfp = LigneFacturationPiece.builder()
                     .facturation(facture)
                     .piece(ligneFiche.getPiece())
@@ -100,7 +100,7 @@ public class FactureServiceImpl implements FactureService {
             ht = ht.add(BigDecimal.valueOf((long) ligneFiche.getQuantite() * ligneFiche.getPrix()));
         }
 
-        for (LigneFicheAtelierMainDoeuvre ligneFiche : ficheAtelier.getLignesFicheAtelierMainDoeuvres()) {
+        for (LigneOrdreReparationMainDoeuvre ligneFiche : ordreReparation.getLignesOrdreReparationMainDoeuvres()) {
             LigneFacturationMainDoeuvre lfm = LigneFacturationMainDoeuvre.builder()
                     .facturation(facture)
                     .mainDoeuvre(ligneFiche.getMainDoeuvre())
@@ -134,10 +134,10 @@ public class FactureServiceImpl implements FactureService {
 
         facture = factureRepository.save(facture);
 
-        // Update FicheAtelier status to EN_ATTENTE_PAIEMENT
-        if (ficheAtelier != null && ficheAtelier.getStatut() != sn.oas.facturation.ficheAtelier.data.enums.StatutFiche.EN_ATTENTE_PAIEMENT) {
-            ficheAtelier.setStatut(sn.oas.facturation.ficheAtelier.data.enums.StatutFiche.EN_ATTENTE_PAIEMENT);
-            ficheAtelierRepository.save(ficheAtelier);
+        // Update OrdreReparation status to EN_ATTENTE_PAIEMENT
+        if (ordreReparation != null && ordreReparation.getStatut() != sn.oas.facturation.ordreReparation.data.enums.StatutOrdreReparation.EN_ATTENTE_PAIEMENT) {
+            ordreReparation.setStatut(sn.oas.facturation.ordreReparation.data.enums.StatutOrdreReparation.EN_ATTENTE_PAIEMENT);
+            ordreReparationRepository.save(ordreReparation);
         }
 
         agentNotificationService.notifyRole(Role.AGENT, 
@@ -149,9 +149,9 @@ public class FactureServiceImpl implements FactureService {
 
     @Override
     @Transactional
-    public FactureResponse createFactureAuto(FicheAtelier ficheAtelier) {
+    public FactureResponse createFactureAuto(OrdreReparation ordreReparation) {
         Client client = null;
-        Vehicule vehicule = ficheAtelier.getVehicule();
+        Vehicule vehicule = ordreReparation.getVehicule();
         if (vehicule != null) {
             client = vehicule.getClient();
         }
@@ -162,15 +162,15 @@ public class FactureServiceImpl implements FactureService {
                 .numero(numero)
                 .client(client)
                 .vehicule(vehicule)
-                .ficheAtelier(ficheAtelier)
+                .ordreReparation(ordreReparation)
                 .agent(null)
                 .kilometrage(vehicule != null && vehicule.getKilometrage() != null ? vehicule.getKilometrage() : 0.0)
-                .remarque("Facture générée automatiquement depuis la Fiche Atelier " + ficheAtelier.getNumero())
+                .remarque("Facture générée automatiquement depuis la Fiche Atelier " + ordreReparation.getNumero())
                 .build();
 
         BigDecimal ht = BigDecimal.ZERO;
         
-        for (LigneFicheAtelierPiece ligneFiche : ficheAtelier.getLignesFicheAtelierPieces()) {
+        for (LigneOrdreReparationPiece ligneFiche : ordreReparation.getLignesOrdreReparationPieces()) {
             LigneFacturationPiece lfp = LigneFacturationPiece.builder()
                     .facturation(facture)
                     .piece(ligneFiche.getPiece())
@@ -181,7 +181,7 @@ public class FactureServiceImpl implements FactureService {
             ht = ht.add(BigDecimal.valueOf((long) ligneFiche.getQuantite() * ligneFiche.getPrix()));
         }
 
-        for (LigneFicheAtelierMainDoeuvre ligneFiche : ficheAtelier.getLignesFicheAtelierMainDoeuvres()) {
+        for (LigneOrdreReparationMainDoeuvre ligneFiche : ordreReparation.getLignesOrdreReparationMainDoeuvres()) {
             LigneFacturationMainDoeuvre lfm = LigneFacturationMainDoeuvre.builder()
                     .facturation(facture)
                     .mainDoeuvre(ligneFiche.getMainDoeuvre())
@@ -207,7 +207,7 @@ public class FactureServiceImpl implements FactureService {
 
         facture = factureRepository.save(facture);
 
-        // Update FicheAtelier status to EN_ATTENTE_PAIEMENT
+        // Update OrdreReparation status to EN_ATTENTE_PAIEMENT
         // REMOVED: Since the facture is generated automatically when the Bon de Sortie is validated, 
         // the repair hasn't even started yet! The Fiche Atelier must go to EN_ATTENTE_MECANICIEN (Step 7).
         // It will only transition to payment later when the repair is done.
@@ -427,8 +427,8 @@ public class FactureServiceImpl implements FactureService {
                 .modele(f.getVehicule() != null ? f.getVehicule().getModele() : null)
                 .annee(f.getVehicule() != null ? f.getVehicule().getAnnee() : null)
                 .numeroBonDeCommande(f.getNumeroBonDeCommande())
-                .ficheAtelierId(f.getFicheAtelier() != null ? f.getFicheAtelier().getId() : null)
-                .numeroFicheAtelier(f.getFicheAtelier() != null ? f.getFicheAtelier().getNumero() : null)
+                .ordreReparationId(f.getOrdreReparation() != null ? f.getOrdreReparation().getId() : null)
+                .numeroOrdreReparation(f.getOrdreReparation() != null ? f.getOrdreReparation().getNumero() : null)
                 .lignesPieces(f.getLignesFacturationPieces() == null ? List.of() : f.getLignesFacturationPieces().stream()
                         .map(lp -> LigneFacturationPieceResponse.builder()
                                 .id(lp.getId())

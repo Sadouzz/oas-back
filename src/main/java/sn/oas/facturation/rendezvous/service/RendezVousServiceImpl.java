@@ -26,7 +26,7 @@ public class RendezVousServiceImpl implements RendezVousService {
     private final VehiculeRepository vehiculeRepository;
     private final GarageRepository garageRepository;
     private final NotificationService notificationService;
-    private final sn.oas.facturation.ficheAtelier.service.FicheAtelierService ficheAtelierService;
+    private final sn.oas.facturation.ordreReparation.service.OrdreReparationService ordreReparationService;
     private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
 
     @Transactional
@@ -53,9 +53,9 @@ public class RendezVousServiceImpl implements RendezVousService {
             throw new IllegalArgumentException("Ce véhicule a déjà un rendez-vous confirmé à venir");
         }
 
-        if (ficheAtelierService.existsByVehiculeIdAndStatutNotIn(vehicule.getId(), 
-                java.util.List.of(sn.oas.facturation.ficheAtelier.data.enums.StatutFiche.TERMINE, 
-                                  sn.oas.facturation.ficheAtelier.data.enums.StatutFiche.LIVRE))) {
+        if (ordreReparationService.existsByVehiculeIdAndStatutNotIn(vehicule.getId(), 
+                java.util.List.of(sn.oas.facturation.ordreReparation.data.enums.StatutOrdreReparation.TERMINE, 
+                                  sn.oas.facturation.ordreReparation.data.enums.StatutOrdreReparation.LIVRE))) {
             throw new IllegalArgumentException("Ce véhicule est actuellement en réparation");
         }
 
@@ -164,16 +164,16 @@ public class RendezVousServiceImpl implements RendezVousService {
         rv.setStatut(RendezVousStatus.CONFIRME);
         rendezvousRepository.save(rv);
 
-        sn.oas.facturation.ficheAtelier.dto.FicheAtelierRequest faReq = new sn.oas.facturation.ficheAtelier.dto.FicheAtelierRequest();
+        sn.oas.facturation.ordreReparation.dto.OrdreReparationRequest faReq = new sn.oas.facturation.ordreReparation.dto.OrdreReparationRequest();
         faReq.setVehiculeId(rv.getVehicule().getId());
         faReq.setDescriptionTravaux(rv.getMotif());
-        faReq.setStatut(sn.oas.facturation.ficheAtelier.data.enums.StatutFiche.A_FAIRE);
+        faReq.setStatut(sn.oas.facturation.ordreReparation.data.enums.StatutOrdreReparation.A_FAIRE);
         
-        sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier fiche = ficheAtelierService.createFicheAtelier(faReq);
+        sn.oas.facturation.ordreReparation.data.entity.OrdreReparation fiche = ordreReparationService.createOrdreReparation(faReq);
         
         if (mecanicienIds != null) {
             for (Long mId : mecanicienIds) {
-                ficheAtelierService.assignMecanicien(fiche.getId(), mId);
+                ordreReparationService.assignMecanicien(fiche.getId(), mId);
             }
         }
 

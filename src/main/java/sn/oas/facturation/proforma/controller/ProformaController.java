@@ -49,10 +49,10 @@ public class ProformaController {
         return ResponseEntity.ok(proformaService.getById(id));
     }
 
-    @GetMapping("/fiche-atelier/{ficheAtelierId}")
+    @GetMapping("/ordre-reparation/{ordreReparationId}")
     @Operation(summary = "Récupérer le proforma lié à une fiche atelier")
-    public ResponseEntity<ProformaResponse> getByFicheAtelierId(@PathVariable Long ficheAtelierId) {
-        return ResponseEntity.ok(proformaService.getByFicheAtelierId(ficheAtelierId));
+    public ResponseEntity<ProformaResponse> getByOrdreReparationId(@PathVariable Long ordreReparationId) {
+        return ResponseEntity.ok(proformaService.getByOrdreReparationId(ordreReparationId));
     }
 
     @GetMapping

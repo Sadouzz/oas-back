@@ -24,9 +24,9 @@ import sn.oas.facturation.bonDeSortie.repository.BonDeSortieRepository;
 import sn.oas.facturation.piecedetache.repository.PieceDetacheRepository;
 import sn.oas.facturation.piecedetache.repository.StockMouvementRepository;
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
-import sn.oas.facturation.vehicule.repository.VehiculeRepository;import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
-import sn.oas.facturation.ficheAtelier.data.enums.StatutFiche;
-import sn.oas.facturation.ficheAtelier.repository.FicheAtelierRepository;
+import sn.oas.facturation.vehicule.repository.VehiculeRepository;import sn.oas.facturation.ordreReparation.data.entity.OrdreReparation;
+import sn.oas.facturation.ordreReparation.data.enums.StatutOrdreReparation;
+import sn.oas.facturation.ordreReparation.repository.OrdreReparationRepository;
 import sn.oas.facturation.notification.service.AgentNotificationService;
 import sn.oas.facturation.auth.data.enums.Role;
 import java.time.LocalDateTime;
@@ -42,7 +42,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
     private final StockMouvementRepository stockMouvementRepository;
     private final VehiculeRepository vehiculeRepository;
     private final UserRepository userRepository;
-    private final FicheAtelierRepository ficheAtelierRepository;
+    private final OrdreReparationRepository ordreReparationRepository;
     private final sn.oas.facturation.facture.service.FactureService factureService;
     private final AgentNotificationService agentNotificationService;
     private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
@@ -87,17 +87,17 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
             }
         }
 
-        if (request.ficheAtelierId() != null) {
-            FicheAtelier fiche = ficheAtelierRepository.findById(request.ficheAtelierId())
+        if (request.ordreReparationId() != null) {
+            OrdreReparation fiche = ordreReparationRepository.findById(request.ordreReparationId())
                 .orElseThrow(() -> new IllegalArgumentException("Fiche atelier introuvable"));
-            bon.setFicheAtelier(fiche);
+            bon.setOrdreReparation(fiche);
         }
 
         BonDeSortie saved = bonDeSortieRepository.save(bon);
-        if (saved.getFicheAtelier() != null) {
-            FicheAtelier fiche = saved.getFicheAtelier();
+        if (saved.getOrdreReparation() != null) {
+            OrdreReparation fiche = saved.getOrdreReparation();
             fiche.setBonDeSortie(saved);
-            ficheAtelierRepository.save(fiche);
+            ordreReparationRepository.save(fiche);
             agentNotificationService.notifyRole(Role.AGENT_MAGASIN, 
                     "Nouveau Bon de Sortie", 
                     "Le bon de sortie " + saved.getReference() + " est en attente de validation pour la fiche " + fiche.getNumero());
@@ -151,18 +151,18 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
         bon.setAgentValidateur(agentValidateur);
         bon.setDateValidation(LocalDateTime.now());
         
-        if (bon.getFicheAtelier() != null) {
-            FicheAtelier fiche = bon.getFicheAtelier();
+        if (bon.getOrdreReparation() != null) {
+            OrdreReparation fiche = bon.getOrdreReparation();
             // Advancing the status if it's in one of the states waiting for parts
-            if (fiche.getStatut() == StatutFiche.EN_ATTENTE_SORTIE || 
-                fiche.getStatut() == StatutFiche.PROFORMA_VALIDE || 
-                fiche.getStatut() == StatutFiche.EN_ATTENTE_COMMANDE) {
+            if (fiche.getStatut() == StatutOrdreReparation.EN_ATTENTE_SORTIE || 
+                fiche.getStatut() == StatutOrdreReparation.PROFORMA_VALIDE || 
+                fiche.getStatut() == StatutOrdreReparation.EN_ATTENTE_COMMANDE) {
                 
-                fiche.setStatut(StatutFiche.EN_ATTENTE_MECANICIEN);
+                fiche.setStatut(StatutOrdreReparation.EN_ATTENTE_MECANICIEN);
                 agentNotificationService.notifyRole(Role.CHEF_ATELIER, 
                     "Mécanicien à assigner", 
                     "Le bon de sortie " + bon.getReference() + " a été validé. La fiche " + fiche.getNumero() + " est prête. Veuillez assigner les mécaniciens finaux.");
-                ficheAtelierRepository.save(fiche);
+                ordreReparationRepository.save(fiche);
                 
                 // Génération automatique de la facture
                 factureService.createFactureAuto(fiche);

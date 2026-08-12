@@ -8,7 +8,7 @@ import java.util.List;
 
 @Data
 public class NoteDePrixRequest {
-    private Long ficheAtelierId;
+    private Long ordreReparationId;
     private Double kilometrage;
     private String remarque;
     private List<LigneFacturationPieceRequest> lignesPieces;
