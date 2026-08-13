@@ -64,7 +64,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
 
         String numero = request.getNumero();
         if (numero == null || numero.trim().isEmpty()) {
-            numero = documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.FA);
+            numero = documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.OR);
         }
 
         OrdreReparation ordreReparation = OrdreReparation.builder()

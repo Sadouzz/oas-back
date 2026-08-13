@@ -16,8 +16,9 @@ public record RendezVousResponse(
         String motif,
         RendezVousStatus statut,
         String commentaire,
-        LocalDateTime dateCreation) {
-    public static RendezVousResponse of(RendezVous rv) {
+        LocalDateTime dateCreation,
+        boolean hasFicheAtelier) {
+    public static RendezVousResponse of(RendezVous rv, boolean hasFicheAtelier) {
         return new RendezVousResponse(
                 rv.getId(),
                 rv.getClient().getId(),
@@ -28,6 +29,7 @@ public record RendezVousResponse(
                 rv.getMotif(),
                 rv.getStatut(),
                 rv.getCommentaire(),
-                rv.getDateCreation());
+                rv.getDateCreation(),
+                hasFicheAtelier);
     }
 }

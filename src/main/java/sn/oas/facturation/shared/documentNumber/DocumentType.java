@@ -18,5 +18,6 @@ public enum DocumentType {
     RDV, // Rendez-Vous
     MSG, // Message
     DMD, // Demande Produit
-    AG   // Agent (matricule)
+    AG,  // Agent (matricule)
+    OR   // Ordre de Réparation
 }

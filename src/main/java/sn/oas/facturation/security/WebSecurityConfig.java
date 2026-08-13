@@ -27,6 +27,7 @@ import java.util.List;
 public class WebSecurityConfig {
 
     private final AuthTokenFilter authTokenFilter;
+    private final AuthEntryPointJwt unauthorizedHandler;
 
     @Value("${app.cors.allowed-origins}")
     private List<String> allowedOrigins;
@@ -63,7 +64,7 @@ public class WebSecurityConfig {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
-
+                .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 .authorizeHttpRequests(auth -> auth
@@ -87,8 +88,10 @@ public class WebSecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/admin/garages", "/api/admin/garages/**")
                         .hasAnyAuthority("ROLE_SUPER_AGENT", "SUPER_AGENT")
-                        .requestMatchers("/api/admin/**")
+                        .requestMatchers("/api/admin/users/**")
                         .hasAnyAuthority("ROLE_SUPER_AGENT", "SUPER_AGENT", "ROLE_MASTER", "MASTER")
+                        .requestMatchers("/api/admin/**")
+                        .hasAnyAuthority("ROLE_SUPER_AGENT", "SUPER_AGENT", "ROLE_MASTER", "MASTER", "ROLE_CHEF_ATELIER", "CHEF_ATELIER", "ROLE_AGENT_MAGASIN", "AGENT_MAGASIN")
 
                         .anyRequest().authenticated());
 

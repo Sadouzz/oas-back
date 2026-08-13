@@ -28,6 +28,12 @@ public class RendezVousServiceImpl implements RendezVousService {
     private final NotificationService notificationService;
     private final sn.oas.facturation.ordreReparation.service.OrdreReparationService ordreReparationService;
     private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
+    private final sn.oas.facturation.ficheAtelier.repository.FicheAtelierRepository ficheAtelierRepository;
+
+    private RendezVousResponse toResponse(RendezVous rv) {
+        boolean hasFicheAtelier = ficheAtelierRepository.existsByRendezVousId(rv.getId());
+        return RendezVousResponse.of(rv, hasFicheAtelier);
+    }
 
     @Transactional
     @Override
@@ -83,7 +89,7 @@ public class RendezVousServiceImpl implements RendezVousService {
         notificationService.sendNotification(client, "Rendez-vous enregistré", 
                 "Votre demande de rendez-vous pour le " + request.dateRendezVous() + " a bien été enregistrée et est en attente de confirmation.");
 
-        return RendezVousResponse.of(rv);
+        return toResponse(rv);
     }
 
     @Transactional
@@ -100,7 +106,7 @@ public class RendezVousServiceImpl implements RendezVousService {
         notificationService.sendNotification(client, "Rendez-vous annulé", 
                 "Vous avez annulé votre rendez-vous du " + rv.getDateRendezVous());
 
-        return RendezVousResponse.of(rv);
+        return toResponse(rv);
     }
 
     @Transactional(readOnly = true)
@@ -108,7 +114,7 @@ public class RendezVousServiceImpl implements RendezVousService {
     public List<RendezVousResponse> getClientRendezVous(Client client) {
         return rendezvousRepository.findByClientIdOrderByDateCreationDesc(client.getId())
                 .stream()
-                .map(RendezVousResponse::of)
+                .map(this::toResponse)
                 .collect(Collectors.toList());
     }
 
@@ -117,7 +123,7 @@ public class RendezVousServiceImpl implements RendezVousService {
     public List<RendezVousResponse> getClientRendezVousByStatus(Client client, RendezVousStatus status) {
         return rendezvousRepository.findByClientIdAndStatutOrderByDateCreationDesc(client.getId(), status)
                 .stream()
-                .map(RendezVousResponse::of)
+                .map(this::toResponse)
                 .collect(Collectors.toList());
     }
 
@@ -126,7 +132,7 @@ public class RendezVousServiceImpl implements RendezVousService {
     public List<RendezVousResponse> getAllRendezVous() {
         return rendezvousRepository.findAllByOrderByDateCreationDesc()
                 .stream()
-                .map(RendezVousResponse::of)
+                .map(this::toResponse)
                 .collect(Collectors.toList());
     }
 
@@ -149,7 +155,7 @@ public class RendezVousServiceImpl implements RendezVousService {
         }
         notificationService.sendNotification(rv.getClient(), titre, message);
 
-        return RendezVousResponse.of(rv);
+        return toResponse(rv);
     }
 
     @Transactional
@@ -180,7 +186,7 @@ public class RendezVousServiceImpl implements RendezVousService {
         notificationService.sendNotification(rv.getClient(), "Rendez-vous validé", 
                 "Votre rendez-vous du " + rv.getDateRendezVous() + " a été validé et une fiche atelier a été créée.");
 
-        return RendezVousResponse.of(rv);
+        return toResponse(rv);
     }
     @Transactional
     @Override
@@ -196,6 +202,6 @@ public class RendezVousServiceImpl implements RendezVousService {
         notificationService.sendNotification(rv.getClient(), "Date de rendez-vous modifiée",
                 "La date de votre rendez-vous a été modifiée au " + nouvelleDate + ".");
 
-        return RendezVousResponse.of(rv);
+        return toResponse(rv);
     }
 }
