@@ -18,6 +18,11 @@ public class DocumentNumberGeneratorService {
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public String generateNextNumber(DocumentType type) {
         Garage garage = getCurrentGarage();
+        return generateNextNumber(garage, type);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public String generateNextNumber(Garage garage, DocumentType type) {
         if (garage == null || garage.getPrefixe() == null || garage.getPrefixe().isBlank()) {
             throw new IllegalArgumentException("Garage ou préfixe du garage manquant");
         }

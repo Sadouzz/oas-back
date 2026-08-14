@@ -74,7 +74,7 @@ public class RendezVousServiceImpl implements RendezVousService {
         }
 
         RendezVous rv = RendezVous.builder()
-                .numero(documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.RDV))
+                .numero(documentNumberGeneratorService.generateNextNumber(garage, sn.oas.facturation.shared.documentNumber.DocumentType.RDV))
                 .client(client)
                 .vehicule(vehicule)
                 .garage(garage)
