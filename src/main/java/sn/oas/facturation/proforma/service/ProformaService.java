@@ -18,6 +18,7 @@ public interface ProformaService {
     void delete(Long id);
 
     ProformaResponse valider(Long id);
+    ProformaResponse validerEnvoi(Long id);
     byte[] generatePdf(Long id);
     FactureResponse convertToFacture(Long id);
 

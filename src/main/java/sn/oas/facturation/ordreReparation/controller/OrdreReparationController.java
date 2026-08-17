@@ -3,14 +3,19 @@ package sn.oas.facturation.ordreReparation.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sn.oas.facturation.ordreReparation.data.entity.OrdreReparation;
+import sn.oas.facturation.ordreReparation.data.enums.TypePieceJointe;
 import sn.oas.facturation.ordreReparation.dto.OrdreReparationRequest;
 import sn.oas.facturation.ordreReparation.dto.OrdreReparationLightDTO;
+import sn.oas.facturation.ordreReparation.dto.PieceJointeDiagnosticRequest;
+import sn.oas.facturation.ordreReparation.dto.PieceJointeDiagnosticResponse;
 import sn.oas.facturation.ordreReparation.service.OrdreReparationService;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/ordres-reparation")
@@ -124,5 +129,63 @@ public class OrdreReparationController {
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
         }
+    }
+
+    // ─── Pièces jointes de diagnostic ──────────────────────────────────
+
+    @GetMapping("/{id}/diagnostic/pieces-jointes")
+    @Operation(summary = "Lister (et filtrer par type) les pièces jointes de diagnostic d'un ordre de réparation")
+    public ResponseEntity<?> getPiecesJointesDiagnostic(@PathVariable Long id,
+            @RequestParam(required = false) TypePieceJointe type) {
+        try {
+            List<PieceJointeDiagnosticResponse> pieces = ordreReparationService.getPiecesJointesDiagnostic(id, type);
+            return ResponseEntity.ok(pieces);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{id}/diagnostic/pieces-jointes")
+    @Operation(summary = "Ajouter une pièce jointe de diagnostic (photo ou PDF)")
+    public ResponseEntity<?> addPieceJointeDiagnostic(@PathVariable Long id,
+            @RequestBody PieceJointeDiagnosticRequest request) {
+        try {
+            PieceJointeDiagnosticResponse piece = ordreReparationService.addPieceJointeDiagnostic(id, request);
+            return ResponseEntity.ok(piece);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{id}/diagnostic/pieces-jointes/{pieceJointeId}")
+    @Operation(summary = "Supprimer une pièce jointe de diagnostic")
+    public ResponseEntity<?> deletePieceJointeDiagnostic(@PathVariable Long id, @PathVariable Long pieceJointeId) {
+        try {
+            ordreReparationService.deletePieceJointeDiagnostic(id, pieceJointeId);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    // ─── Lien Fiche Atelier → Ordre de réparation ──────────────────────
+
+    @PostMapping("/depuis-fiche-atelier/{ficheAtelierId}")
+    @Operation(summary = "Créer un ordre de réparation à partir d'une fiche atelier existante")
+    public ResponseEntity<?> createFromFicheAtelier(@PathVariable Long ficheAtelierId) {
+        try {
+            OrdreReparation ordreReparation = ordreReparationService.createFromFicheAtelier(ficheAtelierId);
+            return ResponseEntity.ok(ordreReparation);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", e.getMessage()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/exists-for-fiche-atelier/{ficheAtelierId}")
+    @Operation(summary = "Vérifier si un ordre de réparation existe déjà pour une fiche atelier")
+    public ResponseEntity<?> existsForFicheAtelier(@PathVariable Long ficheAtelierId) {
+        return ResponseEntity.ok(Map.of("exists", ordreReparationService.existsByFicheAtelierId(ficheAtelierId)));
     }
 }

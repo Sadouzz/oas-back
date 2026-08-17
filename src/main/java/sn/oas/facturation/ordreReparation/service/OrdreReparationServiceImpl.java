@@ -33,6 +33,13 @@ import sn.oas.facturation.facturation.dto.LigneFacturationMainDoeuvreRequest;
 import sn.oas.facturation.ordreReparation.dto.OrdreReparationLightDTO;
 import sn.oas.facturation.ordreReparation.dto.VehiculeLightDTO;
 import sn.oas.facturation.ordreReparation.dto.ClientLightDTO;
+import sn.oas.facturation.ordreReparation.data.entity.PieceJointeDiagnostic;
+import sn.oas.facturation.ordreReparation.data.enums.TypePieceJointe;
+import sn.oas.facturation.ordreReparation.dto.PieceJointeDiagnosticRequest;
+import sn.oas.facturation.ordreReparation.dto.PieceJointeDiagnosticResponse;
+import sn.oas.facturation.ordreReparation.repository.PieceJointeDiagnosticRepository;
+import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
+import sn.oas.facturation.ficheAtelier.repository.FicheAtelierRepository;
 import java.util.stream.Collectors;
 
 @Service
@@ -47,6 +54,8 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     private final MainDoeuvreRepository mainDoeuvreRepository;
     private final AgentNotificationService agentNotificationService;
     private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
+    private final PieceJointeDiagnosticRepository pieceJointeDiagnosticRepository;
+    private final FicheAtelierRepository ficheAtelierRepository;
 
     @Autowired
     @Lazy
@@ -70,6 +79,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         OrdreReparation ordreReparation = OrdreReparation.builder()
                 .numero(numero)
                 .descriptionTravaux(request.getDescriptionTravaux())
+                .travauxDemandes(request.getTravauxDemandes())
                 .listeReception(request.getListeReception())
                 .listeDefauts(request.getListeDefauts())
                 .dateSortie(request.getDateSortie())
@@ -159,6 +169,8 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             ordreReparation.setNumero(request.getNumero());
         if (request.getDescriptionTravaux() != null)
             ordreReparation.setDescriptionTravaux(request.getDescriptionTravaux());
+        if (request.getTravauxDemandes() != null)
+            ordreReparation.setTravauxDemandes(request.getTravauxDemandes());
         if (request.getListeReception() != null)
             ordreReparation.setListeReception(request.getListeReception());
         if (request.getListeDefauts() != null)
@@ -322,6 +334,13 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             throw new RuntimeException("Statut invalide : " + statut);
         }
 
+        // Au moins un mécanicien doit être affecté au pool "diagnostic" avant de
+        // pouvoir démarrer le diagnostic (voir spec point 4).
+        if (newStatut == StatutOrdreReparation.EN_DIAGNOSTIC
+                && (fiche.getMecaniciens() == null || fiche.getMecaniciens().isEmpty())) {
+            throw new RuntimeException("Veuillez affecter au moins un mécanicien avant de démarrer le diagnostic.");
+        }
+
         // Si la réparation commence (EN_COURS), on déduit les pièces
         // du proforma du stock de l'atelier
         if (newStatut == StatutOrdreReparation.EN_COURS && fiche.getStatut() != StatutOrdreReparation.EN_COURS) {
@@ -358,5 +377,104 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     @Transactional(readOnly = true)
     public boolean existsByVehiculeIdAndStatutNotIn(Long vehiculeId, List<sn.oas.facturation.ordreReparation.data.enums.StatutOrdreReparation> statuts) {
         return ordreReparationRepository.existsByVehiculeIdAndStatutNotIn(vehiculeId, statuts);
+    }
+
+    // ─── Pièces jointes de diagnostic ──────────────────────────────────
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PieceJointeDiagnosticResponse> getPiecesJointesDiagnostic(Long ordreReparationId, TypePieceJointe type) {
+        // PieceJointeDiagnostic n'a pas son propre filtre garage (cf. justification sur l'entité) :
+        // on passe par le repository filtré d'OrdreReparation pour garder l'isolation multi-tenant.
+        ordreReparationRepository.findById(ordreReparationId)
+                .orElseThrow(() -> new RuntimeException("Ordre de réparation non trouvé"));
+        List<PieceJointeDiagnostic> pieces = type != null
+                ? pieceJointeDiagnosticRepository.findByOrdreReparationIdAndTypeOrderByCreatedAtDesc(ordreReparationId, type)
+                : pieceJointeDiagnosticRepository.findByOrdreReparationIdOrderByCreatedAtDesc(ordreReparationId);
+        return pieces.stream().map(this::toPieceJointeResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public PieceJointeDiagnosticResponse addPieceJointeDiagnostic(Long ordreReparationId, PieceJointeDiagnosticRequest request) {
+        OrdreReparation ordreReparation = ordreReparationRepository.findById(ordreReparationId)
+                .orElseThrow(() -> new RuntimeException("Ordre de réparation non trouvé"));
+        if (request.getUrl() == null || request.getUrl().trim().isEmpty()) {
+            throw new RuntimeException("L'URL de la pièce jointe est obligatoire");
+        }
+        if (request.getType() == null) {
+            throw new RuntimeException("Le type de la pièce jointe est obligatoire");
+        }
+
+        PieceJointeDiagnostic pieceJointe = PieceJointeDiagnostic.builder()
+                .ordreReparation(ordreReparation)
+                .url(request.getUrl())
+                .type(request.getType())
+                .remarque(request.getRemarque())
+                .build();
+
+        return toPieceJointeResponse(pieceJointeDiagnosticRepository.save(pieceJointe));
+    }
+
+    @Override
+    @Transactional
+    public void deletePieceJointeDiagnostic(Long ordreReparationId, Long pieceJointeId) {
+        // Idem : passage par le repository filtré d'OrdreReparation pour l'isolation multi-tenant.
+        ordreReparationRepository.findById(ordreReparationId)
+                .orElseThrow(() -> new RuntimeException("Ordre de réparation non trouvé"));
+        PieceJointeDiagnostic pieceJointe = pieceJointeDiagnosticRepository.findById(pieceJointeId)
+                .orElseThrow(() -> new RuntimeException("Pièce jointe non trouvée"));
+        if (pieceJointe.getOrdreReparation() == null || !pieceJointe.getOrdreReparation().getId().equals(ordreReparationId)) {
+            throw new RuntimeException("Cette pièce jointe n'appartient pas à cet ordre de réparation");
+        }
+        pieceJointeDiagnosticRepository.delete(pieceJointe);
+    }
+
+    private PieceJointeDiagnosticResponse toPieceJointeResponse(PieceJointeDiagnostic p) {
+        return PieceJointeDiagnosticResponse.builder()
+                .id(p.getId())
+                .ordreReparationId(p.getOrdreReparation() != null ? p.getOrdreReparation().getId() : null)
+                .url(p.getUrl())
+                .type(p.getType())
+                .remarque(p.getRemarque())
+                .createdAt(p.getCreatedAt())
+                .build();
+    }
+
+    // ─── Lien Fiche Atelier → Ordre de réparation ──────────────────────
+
+    @Override
+    @Transactional
+    public OrdreReparation createFromFicheAtelier(Long ficheAtelierId) {
+        FicheAtelier ficheAtelier = ficheAtelierRepository.findById(ficheAtelierId)
+                .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+
+        if (ordreReparationRepository.existsByFicheAtelierId(ficheAtelierId)) {
+            throw new IllegalStateException(
+                    "Un ordre de réparation existe déjà pour la fiche atelier #" + ficheAtelierId);
+        }
+        if (ficheAtelier.getVehicule() == null) {
+            throw new RuntimeException("La fiche atelier n'a pas de véhicule associé");
+        }
+
+        String numero = documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.OR);
+        String travauxDemandes = ficheAtelier.getDesignationTravaux();
+
+        OrdreReparation ordreReparation = OrdreReparation.builder()
+                .numero(numero)
+                .descriptionTravaux(travauxDemandes != null ? travauxDemandes : "")
+                .travauxDemandes(travauxDemandes)
+                .vehicule(ficheAtelier.getVehicule())
+                .ficheAtelier(ficheAtelier)
+                .statut(StatutOrdreReparation.A_FAIRE)
+                .build();
+
+        return ordreReparationRepository.save(ordreReparation);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean existsByFicheAtelierId(Long ficheAtelierId) {
+        return ordreReparationRepository.existsByFicheAtelierId(ficheAtelierId);
     }
 }

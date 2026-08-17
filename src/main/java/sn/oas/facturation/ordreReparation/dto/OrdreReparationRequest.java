@@ -8,6 +8,7 @@ import sn.oas.facturation.ordreReparation.data.enums.StatutOrdreReparation;
 public class OrdreReparationRequest {
     private String numero;
     private String descriptionTravaux;
+    private String travauxDemandes;
     private String listeReception;
     private String listeDefauts;
     private LocalDateTime dateSortie;

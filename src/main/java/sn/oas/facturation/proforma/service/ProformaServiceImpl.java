@@ -439,6 +439,17 @@ public class ProformaServiceImpl implements ProformaService {
     }
 
     @Override
+    @Transactional
+    public ProformaResponse validerEnvoi(Long id) {
+        log.info("Validation et envoi au client du proforma id: {}", id);
+        Proforma proforma = proformaRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Proforma non trouvé avec l'id : " + id));
+
+        proforma.setVisibleClient(true);
+        return mapToResponse(proformaRepository.save(proforma));
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public byte[] generatePdf(Long id) {
         Proforma p = proformaRepository.findById(id)
@@ -622,20 +633,23 @@ public class ProformaServiceImpl implements ProformaService {
         Proforma proforma = proformaRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Proforma non trouvé avec l'id : " + id));
 
-        if (proforma.getOrdreReparation() == null || proforma.getOrdreReparation().getVehicule() == null || 
+        if (proforma.getOrdreReparation() == null || proforma.getOrdreReparation().getVehicule() == null ||
             !proforma.getOrdreReparation().getVehicule().getClient().getId().equals(client.getId())) {
             throw new IllegalArgumentException("Accès non autorisé à ce proforma");
         }
+        if (proforma.getVisibleClient() == null || !proforma.getVisibleClient()) {
+            throw new IllegalArgumentException("Ce proforma n'est pas encore disponible.");
+        }
 
         proforma.setStatut(sn.oas.facturation.facturation.data.enums.StatutFacturation.ACCEPTE);
-        
+
         OrdreReparation ordreReparation = proforma.getOrdreReparation();
         if (ordreReparation != null) {
             ordreReparation.setStatut(StatutOrdreReparation.PROFORMA_VALIDE);
             ordreReparationRepository.save(ordreReparation);
         }
 
-        agentNotificationService.notifyRole(Role.CHEF_ATELIER, 
+        agentNotificationService.notifyRole(Role.CHEF_ATELIER,
             "Proforma Validé", 
             "Le proforma " + proforma.getNumero() + " a été validé par le client.");
 
@@ -649,9 +663,12 @@ public class ProformaServiceImpl implements ProformaService {
         Proforma proforma = proformaRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Proforma non trouvé avec l'id : " + id));
 
-        if (proforma.getOrdreReparation() == null || proforma.getOrdreReparation().getVehicule() == null || 
+        if (proforma.getOrdreReparation() == null || proforma.getOrdreReparation().getVehicule() == null ||
             !proforma.getOrdreReparation().getVehicule().getClient().getId().equals(client.getId())) {
             throw new IllegalArgumentException("Accès non autorisé à ce proforma");
+        }
+        if (proforma.getVisibleClient() == null || !proforma.getVisibleClient()) {
+            throw new IllegalArgumentException("Ce proforma n'est pas encore disponible.");
         }
 
         proforma.setStatut(sn.oas.facturation.facturation.data.enums.StatutFacturation.REJETE);
@@ -676,6 +693,7 @@ public class ProformaServiceImpl implements ProformaService {
                 .montantAutre(BigDecimal.ZERO)
                 .montantTotal(p.getMontantTotal())
                 .statut(p.getStatut() != null ? p.getStatut().name() : null)
+                .visibleClient(p.getVisibleClient() != null ? p.getVisibleClient() : Boolean.FALSE)
                 .agentId(p.getAgent() != null ? p.getAgent().getId() : null)
                 .agentNom(p.getAgent() != null ? p.getAgent().getFirstName() + " " + p.getAgent().getLastName() : null)
                 .remarque(p.getRemarque())

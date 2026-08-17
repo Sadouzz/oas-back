@@ -9,6 +9,7 @@ import sn.oas.facturation.garage.data.entity.Garage;
 
 import sn.oas.facturation.bonDeSortie.data.entity.BonDeSortie;
 import sn.oas.facturation.facturation.data.entity.Facturation;
+import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
 import sn.oas.facturation.mecanicien.data.entity.Mecanicien;
 import sn.oas.facturation.ordreReparation.data.enums.StatutOrdreReparation;
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
@@ -48,9 +49,15 @@ public class OrdreReparation implements TenantAware  {
     @Column(columnDefinition = "TEXT")
     private String descriptionTravaux;
 
-    // Depending on your DB design, these could be simple Strings, JSON strings, or
-    // separate entity lists.
-    // Mapped as Strings here for simplicity based on the UML diagram.
+    // Travaux demandés — champ texte libre distinct, même fonctionnement que
+    // FicheAtelier.designationTravaux (voir spec point 2 : peut être pré-rempli
+    // depuis une FicheAtelier liée, ou saisi/complété librement sur l'ordre de réparation).
+    @Column(columnDefinition = "TEXT")
+    private String travauxDemandes;
+
+    // Réception : simple récapitulatif texte libre (désignation), plus une liste de
+    // checkboxes. Le nom de colonne "liste_reception" est conservé pour ne pas casser
+    // les données existantes ; c'est le front qui n'affiche plus qu'un champ désignation.
     @Column(columnDefinition = "TEXT")
     private String listeReception;
 
@@ -79,6 +86,13 @@ public class OrdreReparation implements TenantAware  {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vehicule_id", nullable = false)
     private Vehicule vehicule;
+
+    // Lien optionnel vers la Fiche Atelier d'origine (voir spec point 8). Nullable :
+    // un ordre de réparation peut aussi être créé directement, sans fiche atelier.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "fiche_atelier_id")
+    @JsonIgnoreProperties({ "vehicule", "client", "garage" })
+    private FicheAtelier ficheAtelier;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
@@ -116,6 +130,11 @@ public class OrdreReparation implements TenantAware  {
     @OneToMany(mappedBy = "ordreReparation", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<LigneOrdreReparationMainDoeuvre> lignesOrdreReparationMainDoeuvres = new ArrayList<>();
+
+    @OneToMany(mappedBy = "ordreReparation", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private List<PieceJointeDiagnostic> piecesJointesDiagnostic = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {

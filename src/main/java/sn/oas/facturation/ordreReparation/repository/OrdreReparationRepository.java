@@ -30,4 +30,5 @@ public interface OrdreReparationRepository extends JpaRepository<OrdreReparation
     OrdreReparation findTopByOrderByIdDesc();
     OrdreReparation findTopByNumeroStartingWithOrderByNumeroDesc(String prefix);
     boolean existsByVehiculeIdAndStatutNotIn(Long vehiculeId, List<sn.oas.facturation.ordreReparation.data.enums.StatutOrdreReparation> statuts);
+    boolean existsByFicheAtelierId(Long ficheAtelierId);
 }

@@ -43,6 +43,12 @@ public class ProformaController {
         return ResponseEntity.ok(proformaService.valider(id));
     }
 
+    @PostMapping("/{id}/valider-envoi")
+    @Operation(summary = "Valider les prix par le chef d'atelier et rendre le proforma visible/envoyé au client")
+    public ResponseEntity<ProformaResponse> validerEnvoi(@PathVariable Long id) {
+        return ResponseEntity.ok(proformaService.validerEnvoi(id));
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Récupérer un proforma par son ID")
     public ResponseEntity<ProformaResponse> getById(@PathVariable Long id) {

@@ -40,6 +40,7 @@ public class ProformaResponse {
     private String numeroBonDeCommande;
 
     private String statut;
+    private Boolean visibleClient;
 
     private List<LigneFacturationPieceResponse> lignesPieces;
     private List<LigneFacturationMainDoeuvreResponse> lignesMainDoeuvres;

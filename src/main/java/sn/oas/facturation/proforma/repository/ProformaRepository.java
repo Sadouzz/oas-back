@@ -27,6 +27,7 @@ public interface ProformaRepository extends JpaRepository<Proforma, Long> {
 
     Optional<Proforma> findByOrdreReparationId(Long ordreReparationId);
 
-    @Query("SELECT p FROM Proforma p WHERE p.ordreReparation.vehicule.client.id = :clientId ORDER BY p.dateCreation DESC")
+    @Query("SELECT p FROM Proforma p WHERE p.ordreReparation.vehicule.client.id = :clientId " +
+            "AND p.visibleClient = true ORDER BY p.dateCreation DESC")
     List<Proforma> findByClientIdOrderByDateCreationDesc(@Param("clientId") Long clientId);
 }
