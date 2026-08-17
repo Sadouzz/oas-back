@@ -8,12 +8,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import sn.oas.facturation.auth.data.entity.User;
+import sn.oas.facturation.auth.data.enums.TypeUser;
 import sn.oas.facturation.auth.dto.AuthResponse;
 import sn.oas.facturation.auth.dto.ChangePasswordRequest;
 import sn.oas.facturation.auth.dto.LoginRequest;
 import sn.oas.facturation.auth.dto.RegisterRequest;
 import sn.oas.facturation.auth.repository.UserRepository;
 import sn.oas.facturation.auth.service.AuthService;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -33,7 +36,15 @@ public class AuthController {
 
     @PostMapping("/signup")
     @Operation(summary = "Inscription d'un nouvel utilisateur")
-    public ResponseEntity<Void> signup(@RequestBody RegisterRequest request) {
+    public ResponseEntity<?> signup(@RequestBody RegisterRequest request) {
+        // Un compte technicien n'est jamais créé par auto-inscription publique : uniquement
+        // via le endpoint staff protégé (TechnicienController / écran gestion/techniciens),
+        // qui passe par AuthServiceImpl.register() avec un appelant Agent authentifié.
+        // Rejet explicite ici en plus du garde-fou dans register() (défense en profondeur).
+        if (request.type() == TypeUser.TECHNICIEN) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", "La création d'un compte technicien n'est pas autorisée via l'inscription publique."));
+        }
         authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }

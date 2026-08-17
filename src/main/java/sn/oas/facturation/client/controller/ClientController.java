@@ -56,7 +56,7 @@ public class ClientController {
             RegisterRequest clientReq = new RegisterRequest(
                     request.matricule(), request.phone(), request.username(),
                     request.firstName(), request.lastName(), request.email(),
-                    request.password(), TypeUser.CLIENT, null, null
+                    request.password(), TypeUser.CLIENT, null, null, null, null
             );
             authService.register(clientReq);
             return ResponseEntity.ok("{\"message\": \"Client créé avec succès !\"}");

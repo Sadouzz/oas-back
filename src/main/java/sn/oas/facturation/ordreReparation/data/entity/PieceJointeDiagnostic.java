@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import sn.oas.facturation.auth.data.entity.Technicien;
 import sn.oas.facturation.ordreReparation.data.enums.TypePieceJointe;
 
 import java.time.LocalDateTime;
@@ -40,6 +41,13 @@ public class PieceJointeDiagnostic {
 
     @Column(columnDefinition = "TEXT")
     private String remarque;
+
+    // Nullable : renseigné uniquement quand la pièce jointe est ajoutée depuis le portail
+    // technicien (voir TechnicienPortalController), null quand ajoutée côté staff/agent.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "technicien_id")
+    @JsonIgnoreProperties({ "password", "authorities", "garage" })
+    private Technicien technicien;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     @Builder.Default

@@ -179,7 +179,7 @@ public class RendezVousServiceImpl implements RendezVousService {
         
         if (mecanicienIds != null) {
             for (Long mId : mecanicienIds) {
-                ordreReparationService.assignMecanicien(fiche.getId(), mId);
+                ordreReparationService.assignTechnicien(fiche.getId(), mId);
             }
         }
 

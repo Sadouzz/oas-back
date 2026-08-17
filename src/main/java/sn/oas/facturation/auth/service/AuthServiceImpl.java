@@ -14,7 +14,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import sn.oas.facturation.auth.data.entity.Agent;
 import sn.oas.facturation.auth.data.entity.Client;
+import sn.oas.facturation.auth.data.entity.Technicien;
 import sn.oas.facturation.auth.data.entity.User;
+import sn.oas.facturation.auth.data.enums.Role;
 import sn.oas.facturation.auth.data.enums.TypeUser;
 import sn.oas.facturation.auth.dto.AuthResponse;
 import sn.oas.facturation.auth.dto.LoginRequest;
@@ -154,11 +156,96 @@ public class AuthServiceImpl implements AuthService {
                     .password(passwordEncoder.encode(request.password()))
                     .type(request.type())
                     .build();
+        } else if (request.type() == TypeUser.TECHNICIEN) {
+            // Garde-fou de sécurité : un compte technicien ne peut être créé que par un membre
+            // du staff authentifié (SUPER_AGENT, MASTER ou CHEF_ATELIER — le même périmètre
+            // que le garde de route du frontend gestion/techniciens). AuthController.signup()
+            // rejette déjà explicitement type=TECHNICIEN pour l'inscription publique ; ce
+            // contrôle est la défense en profondeur côté service, quel que soit l'appelant
+            // (y compris un futur endpoint qui oublierait le filtrage par route).
+            verifierCreateurTechnicienAutorise();
+
+            // Résolution du garage : garage de l'agent connecté (sauf SUPER_AGENT, cf.
+            // X-Garage-ID), sinon repli sur request.garageId(). Même sémantique que
+            // DocumentNumberGeneratorService.getCurrentGarage().
+            Garage garage = resolveGarageForStaffCreation(request.garageId());
+
+            // Auto-generate matricule for Technicien if not provided, en réutilisant la
+            // numérotation DocumentType.MEC existante (pas de nouveau type de document).
+            String technicienMatricule = matricule;
+            if (technicienMatricule == null || technicienMatricule.trim().isEmpty()) {
+                technicienMatricule = documentNumberGeneratorService.generateNextNumber(garage,
+                        sn.oas.facturation.shared.documentNumber.DocumentType.MEC);
+            }
+
+            user = Technicien.builder()
+                    .matricule(technicienMatricule)
+                    .phone(request.phone())
+                    .username(request.username())
+                    .firstName(request.firstName())
+                    .lastName(request.lastName())
+                    .email(request.email())
+                    .password(passwordEncoder.encode(request.password()))
+                    .type(request.type())
+                    .adresse(request.adresse())
+                    .specialite(request.specialite())
+                    .garage(garage)
+                    .build();
         }
         else {
             throw new IllegalArgumentException("Type d'utilisateur non reconnu");
         }
         userService.saveUser(user);
+    }
+
+    private static final java.util.Set<Role> ROLES_AUTORISES_CREATION_TECHNICIEN =
+            java.util.Set.of(Role.SUPER_AGENT, Role.MASTER);
+
+    /**
+     * Vérifie que la création d'un compte Technicien est bien à l'origine d'un Agent
+     * authentifié avec le rôle SUPER_AGENT ou MASTER (un technicien ne peut pas se créer
+     * lui-même, et le chef d'atelier n'est pas habilité à créer des comptes technicien).
+     * Lève IllegalArgumentException sinon (traduit en 409 par GlobalExceptionHandler pour
+     * /api/auth/signup, et en 400 par les contrôleurs staff qui catchent RuntimeException,
+     * ex. TechnicienController).
+     */
+    private void verifierCreateurTechnicienAutorise() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean autorise = auth != null && auth.isAuthenticated() && !auth.getName().equals("anonymousUser")
+                && auth.getPrincipal() instanceof Agent agent
+                && agent.getRole() != null
+                && ROLES_AUTORISES_CREATION_TECHNICIEN.contains(agent.getRole());
+        if (!autorise) {
+            throw new IllegalArgumentException(
+                    "La création d'un compte technicien nécessite d'être authentifié en tant que SUPER_AGENT ou MASTER");
+        }
+    }
+
+    /**
+     * Résout le garage à assigner lors d'une création "staff" (ex: Technicien) : garage de
+     * l'agent actuellement connecté (sauf SUPER_AGENT, qui doit passer par l'en-tête
+     * X-Garage-ID ou un garageId explicite), sinon repli sur le garageId fourni dans la
+     * requête. Reproduit la sémantique de DocumentNumberGeneratorService.getCurrentGarage().
+     */
+    private Garage resolveGarageForStaffCreation(Long requestGarageId) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !auth.getName().equals("anonymousUser")
+                && auth.getPrincipal() instanceof Agent currentAgent) {
+            if (currentAgent.getRole() == sn.oas.facturation.auth.data.enums.Role.SUPER_AGENT) {
+                String garageIdHeader = httpRequest.getHeader("X-Garage-ID");
+                if (garageIdHeader != null && !garageIdHeader.isEmpty()) {
+                    return garageRepository.findById(Long.parseLong(garageIdHeader))
+                            .orElseThrow(() -> new IllegalArgumentException("Garage non trouvé"));
+                }
+            } else if (currentAgent.getGarage() != null) {
+                return currentAgent.getGarage();
+            }
+        }
+        if (requestGarageId != null) {
+            return garageRepository.findById(requestGarageId)
+                    .orElseThrow(() -> new IllegalArgumentException("Garage non trouvé"));
+        }
+        return null;
     }
 
     @Override

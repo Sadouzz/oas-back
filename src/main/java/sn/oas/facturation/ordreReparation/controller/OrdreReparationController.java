@@ -76,44 +76,44 @@ public class OrdreReparationController {
         }
     }
 
-    @PostMapping("/{ficheId}/mecaniciens/{mecanicienId}")
-    @Operation(summary = "Assigner un mécanicien à une fiche atelier")
-    public ResponseEntity<?> assignMecanicien(@PathVariable Long ficheId, @PathVariable Long mecanicienId) {
+    @PostMapping("/{ficheId}/techniciens/{technicienId}")
+    @Operation(summary = "Assigner un technicien à une fiche atelier")
+    public ResponseEntity<?> assignTechnicien(@PathVariable Long ficheId, @PathVariable Long technicienId) {
         try {
-            ordreReparationService.assignMecanicien(ficheId, mecanicienId);
+            ordreReparationService.assignTechnicien(ficheId, technicienId);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
         }
     }
 
-    @DeleteMapping("/{ficheId}/mecaniciens/{mecanicienId}")
-    @Operation(summary = "Retirer un mécanicien d'une fiche atelier")
-    public ResponseEntity<?> removeMecanicien(@PathVariable Long ficheId, @PathVariable Long mecanicienId) {
+    @DeleteMapping("/{ficheId}/techniciens/{technicienId}")
+    @Operation(summary = "Retirer un technicien d'une fiche atelier")
+    public ResponseEntity<?> removeTechnicien(@PathVariable Long ficheId, @PathVariable Long technicienId) {
         try {
-            ordreReparationService.removeMecanicien(ficheId, mecanicienId);
+            ordreReparationService.removeTechnicien(ficheId, technicienId);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
         }
     }
 
-    @PostMapping("/{ficheId}/mecaniciens-reparation/{mecanicienId}")
-    @Operation(summary = "Assigner un mécanicien pour la réparation")
-    public ResponseEntity<?> assignMecanicienReparation(@PathVariable Long ficheId, @PathVariable Long mecanicienId) {
+    @PostMapping("/{ficheId}/techniciens-reparation/{technicienId}")
+    @Operation(summary = "Assigner un technicien pour la réparation")
+    public ResponseEntity<?> assignTechnicienReparation(@PathVariable Long ficheId, @PathVariable Long technicienId) {
         try {
-            ordreReparationService.assignMecanicienReparation(ficheId, mecanicienId);
+            ordreReparationService.assignTechnicienReparation(ficheId, technicienId);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
         }
     }
 
-    @DeleteMapping("/{ficheId}/mecaniciens-reparation/{mecanicienId}")
-    @Operation(summary = "Retirer un mécanicien de la réparation")
-    public ResponseEntity<?> removeMecanicienReparation(@PathVariable Long ficheId, @PathVariable Long mecanicienId) {
+    @DeleteMapping("/{ficheId}/techniciens-reparation/{technicienId}")
+    @Operation(summary = "Retirer un technicien de la réparation")
+    public ResponseEntity<?> removeTechnicienReparation(@PathVariable Long ficheId, @PathVariable Long technicienId) {
         try {
-            ordreReparationService.removeMecanicienReparation(ficheId, mecanicienId);
+            ordreReparationService.removeTechnicienReparation(ficheId, technicienId);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");

@@ -8,8 +8,8 @@ import sn.oas.facturation.ordreReparation.dto.OrdreReparationRequest;
 import sn.oas.facturation.ordreReparation.repository.OrdreReparationRepository;
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.vehicule.repository.VehiculeRepository;
-import sn.oas.facturation.mecanicien.data.entity.Mecanicien;
-import sn.oas.facturation.mecanicien.repository.MecanicienRepository;
+import sn.oas.facturation.auth.data.entity.Technicien;
+import sn.oas.facturation.technicien.repository.TechnicienRepository;
 import sn.oas.facturation.ordreReparation.data.entity.LigneOrdreReparationPiece;
 import sn.oas.facturation.ordreReparation.data.entity.LigneOrdreReparationMainDoeuvre;
 import sn.oas.facturation.ordreReparation.dto.LigneOrdreReparationPieceRequest;
@@ -48,7 +48,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
 
     private final OrdreReparationRepository ordreReparationRepository;
     private final VehiculeRepository vehiculeRepository;
-    private final MecanicienRepository mecanicienRepository;
+    private final TechnicienRepository technicienRepository;
     private final sn.oas.facturation.proforma.repository.ProformaRepository proformaRepository;
     private final sn.oas.facturation.piecedetache.repository.PieceDetacheRepository pieceDetacheRepository;
     private final MainDoeuvreRepository mainDoeuvreRepository;
@@ -272,53 +272,53 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
 
     @Transactional
     @Override
-    public void assignMecanicien(Long ficheId, Long mecanicienId) {
+    public void assignTechnicien(Long ficheId, Long technicienId) {
         OrdreReparation fiche = ordreReparationRepository.findById(ficheId)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
-        Mecanicien mecanicien = mecanicienRepository.findById(mecanicienId)
-                .orElseThrow(() -> new RuntimeException("Mécanicien non trouvé"));
+        Technicien technicien = technicienRepository.findById(technicienId)
+                .orElseThrow(() -> new RuntimeException("Technicien non trouvé"));
 
-        if (!fiche.getMecaniciens().contains(mecanicien)) {
-            fiche.getMecaniciens().add(mecanicien);
+        if (!fiche.getTechniciens().contains(technicien)) {
+            fiche.getTechniciens().add(technicien);
             ordreReparationRepository.save(fiche);
         }
     }
 
     @Transactional
     @Override
-    public void removeMecanicien(Long ficheId, Long mecanicienId) {
+    public void removeTechnicien(Long ficheId, Long technicienId) {
         OrdreReparation fiche = ordreReparationRepository.findById(ficheId)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
-        Mecanicien mecanicien = mecanicienRepository.findById(mecanicienId)
-                .orElseThrow(() -> new RuntimeException("Mécanicien non trouvé"));
+        Technicien technicien = technicienRepository.findById(technicienId)
+                .orElseThrow(() -> new RuntimeException("Technicien non trouvé"));
 
-        fiche.getMecaniciens().remove(mecanicien);
+        fiche.getTechniciens().remove(technicien);
         ordreReparationRepository.save(fiche);
     }
 
     @Transactional
     @Override
-    public void assignMecanicienReparation(Long ficheId, Long mecanicienId) {
+    public void assignTechnicienReparation(Long ficheId, Long technicienId) {
         OrdreReparation fiche = ordreReparationRepository.findById(ficheId)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
-        Mecanicien mecanicien = mecanicienRepository.findById(mecanicienId)
-                .orElseThrow(() -> new RuntimeException("Mécanicien non trouvé"));
+        Technicien technicien = technicienRepository.findById(technicienId)
+                .orElseThrow(() -> new RuntimeException("Technicien non trouvé"));
 
-        if (!fiche.getMecaniciensReparation().contains(mecanicien)) {
-            fiche.getMecaniciensReparation().add(mecanicien);
+        if (!fiche.getTechniciensReparation().contains(technicien)) {
+            fiche.getTechniciensReparation().add(technicien);
             ordreReparationRepository.save(fiche);
         }
     }
 
     @Transactional
     @Override
-    public void removeMecanicienReparation(Long ficheId, Long mecanicienId) {
+    public void removeTechnicienReparation(Long ficheId, Long technicienId) {
         OrdreReparation fiche = ordreReparationRepository.findById(ficheId)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
-        Mecanicien mecanicien = mecanicienRepository.findById(mecanicienId)
-                .orElseThrow(() -> new RuntimeException("Mécanicien non trouvé"));
+        Technicien technicien = technicienRepository.findById(technicienId)
+                .orElseThrow(() -> new RuntimeException("Technicien non trouvé"));
 
-        fiche.getMecaniciensReparation().remove(mecanicien);
+        fiche.getTechniciensReparation().remove(technicien);
         ordreReparationRepository.save(fiche);
     }
 
@@ -334,11 +334,11 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             throw new RuntimeException("Statut invalide : " + statut);
         }
 
-        // Au moins un mécanicien doit être affecté au pool "diagnostic" avant de
+        // Au moins un technicien doit être affecté au pool "diagnostic" avant de
         // pouvoir démarrer le diagnostic (voir spec point 4).
         if (newStatut == StatutOrdreReparation.EN_DIAGNOSTIC
-                && (fiche.getMecaniciens() == null || fiche.getMecaniciens().isEmpty())) {
-            throw new RuntimeException("Veuillez affecter au moins un mécanicien avant de démarrer le diagnostic.");
+                && (fiche.getTechniciens() == null || fiche.getTechniciens().isEmpty())) {
+            throw new RuntimeException("Veuillez affecter au moins un technicien avant de démarrer le diagnostic.");
         }
 
         // Si la réparation commence (EN_COURS), on déduit les pièces

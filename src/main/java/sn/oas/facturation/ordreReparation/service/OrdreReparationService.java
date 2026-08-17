@@ -17,11 +17,11 @@ public interface OrdreReparationService {
     Optional<OrdreReparation> getOrdreReparationById(Long id);
     OrdreReparation updateOrdreReparation(Long id, OrdreReparationRequest request);
     void deleteOrdreReparation(Long id);
-    void assignMecanicien(Long ficheId, Long mecanicienId);
-    void removeMecanicien(Long ficheId, Long mecanicienId);
+    void assignTechnicien(Long ficheId, Long technicienId);
+    void removeTechnicien(Long ficheId, Long technicienId);
 
-    void assignMecanicienReparation(Long ficheId, Long mecanicienId);
-    void removeMecanicienReparation(Long ficheId, Long mecanicienId);
+    void assignTechnicienReparation(Long ficheId, Long technicienId);
+    void removeTechnicienReparation(Long ficheId, Long technicienId);
     OrdreReparation updateStatut(Long id, String statut);
     boolean existsByVehiculeIdAndStatutNotIn(Long vehiculeId, List<sn.oas.facturation.ordreReparation.data.enums.StatutOrdreReparation> statuts);
 

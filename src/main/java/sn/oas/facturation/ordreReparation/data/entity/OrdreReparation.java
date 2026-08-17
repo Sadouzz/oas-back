@@ -10,7 +10,7 @@ import sn.oas.facturation.garage.data.entity.Garage;
 import sn.oas.facturation.bonDeSortie.data.entity.BonDeSortie;
 import sn.oas.facturation.facturation.data.entity.Facturation;
 import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
-import sn.oas.facturation.mecanicien.data.entity.Mecanicien;
+import sn.oas.facturation.auth.data.entity.Technicien;
 import sn.oas.facturation.ordreReparation.data.enums.StatutOrdreReparation;
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
 import jakarta.persistence.*;
@@ -94,6 +94,9 @@ public class OrdreReparation implements TenantAware  {
     @JsonIgnoreProperties({ "vehicule", "client", "garage" })
     private FicheAtelier ficheAtelier;
 
+    // Noms de table/colonne de jointure conservés tels quels (fiche_mecaniciens(_reparation),
+    // mecanicien_id) pour limiter l'ampleur du changement de schéma lors du remplacement de
+    // Mecanicien par Technicien — voir rapport de la tâche. Seul le type Java référencé change.
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
         name = "fiche_mecaniciens",
@@ -101,8 +104,8 @@ public class OrdreReparation implements TenantAware  {
         inverseJoinColumns = @JoinColumn(name = "mecanicien_id")
     )
     @Builder.Default
-    @JsonIgnoreProperties("ordresReparation")
-    private List<Mecanicien> mecaniciens = new ArrayList<>();
+    @JsonIgnoreProperties({ "ordresReparation", "password", "authorities", "garage" })
+    private List<Technicien> techniciens = new ArrayList<>();
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
@@ -111,8 +114,8 @@ public class OrdreReparation implements TenantAware  {
         inverseJoinColumns = @JoinColumn(name = "mecanicien_id")
     )
     @Builder.Default
-    @JsonIgnoreProperties("ordresReparation")
-    private List<Mecanicien> mecaniciensReparation = new ArrayList<>();
+    @JsonIgnoreProperties({ "ordresReparation", "password", "authorities", "garage" })
+    private List<Technicien> techniciensReparation = new ArrayList<>();
 
     @OneToOne(mappedBy = "ordreReparation", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnoreProperties("ordreReparation") // Ignore le champ "ordreReparation" qui est DANS le "BonDeSortie"

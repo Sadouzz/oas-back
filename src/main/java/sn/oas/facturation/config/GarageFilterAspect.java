@@ -10,6 +10,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import sn.oas.facturation.auth.data.entity.Agent;
+import sn.oas.facturation.auth.data.entity.Technicien;
 import sn.oas.facturation.auth.data.enums.Role;
 
 @Aspect
@@ -43,6 +44,15 @@ public class GarageFilterAspect {
                     Session session = entityManager.unwrap(Session.class);
                     Filter filter = session.enableFilter("garageFilter");
                     filter.setParameter("garageId", agent.getGarage().getId());
+                }
+            } else if (auth != null && auth.getPrincipal() instanceof Technicien) {
+                // Un technicien connecté n'a pas de rôle SUPER_AGENT équivalent : il est
+                // toujours filtré par son propre garage, s'il en a un.
+                Technicien technicien = (Technicien) auth.getPrincipal();
+                if (technicien.getGarage() != null) {
+                    Session session = entityManager.unwrap(Session.class);
+                    Filter filter = session.enableFilter("garageFilter");
+                    filter.setParameter("garageId", technicien.getGarage().getId());
                 }
             }
         } catch (Exception e) {
