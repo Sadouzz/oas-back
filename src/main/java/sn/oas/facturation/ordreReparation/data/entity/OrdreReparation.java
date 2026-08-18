@@ -49,17 +49,20 @@ public class OrdreReparation implements TenantAware  {
     @Column(columnDefinition = "TEXT")
     private String descriptionTravaux;
 
-    // Travaux demandés — champ texte libre distinct, même fonctionnement que
-    // FicheAtelier.designationTravaux (voir spec point 2 : peut être pré-rempli
-    // depuis une FicheAtelier liée, ou saisi/complété librement sur l'ordre de réparation).
-    @Column(columnDefinition = "TEXT")
-    private String travauxDemandes;
+    // Travaux demandés — liste de lignes {nom, verrouille}. La ligne issue de
+    // FicheAtelier.designationTravaux (via createFromFicheAtelier) est verrouillée,
+    // non modifiable/supprimable côté UI ; le chef d'atelier peut en ajouter d'autres.
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    @Column(name = "lignes_travaux", columnDefinition = "jsonb")
+    private List<LigneTravailOrdre> lignesTravaux;
 
-    // Réception : simple récapitulatif texte libre (désignation), plus une liste de
-    // checkboxes. Le nom de colonne "liste_reception" est conservé pour ne pas casser
-    // les données existantes ; c'est le front qui n'affiche plus qu'un champ désignation.
-    @Column(columnDefinition = "TEXT")
-    private String listeReception;
+    // Réception : liste de lignes {nom, etat}, comme sur FicheAtelier.lignesReception.
+    // Les lignes provenant de la fiche atelier d'origine (via createFromFicheAtelier)
+    // sont marquées verrouille=true : non modifiables/supprimables côté UI, seule
+    // l'ajout de nouvelles lignes (verrouille=false) est permis.
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    @Column(name = "lignes_reception", columnDefinition = "jsonb")
+    private List<LigneReceptionOrdre> lignesReception;
 
     @Column(columnDefinition = "TEXT")
     private String listeDefauts;

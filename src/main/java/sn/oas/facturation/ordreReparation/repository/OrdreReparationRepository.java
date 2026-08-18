@@ -17,7 +17,6 @@ public interface OrdreReparationRepository extends JpaRepository<OrdreReparation
     @Query("SELECT f FROM OrdreReparation f WHERE " +
             "LOWER(f.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(f.descriptionTravaux) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(f.listeReception) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(f.listeDefauts) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(f.vehicule.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(f.vehicule.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
