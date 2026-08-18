@@ -11,6 +11,8 @@ import sn.oas.facturation.vehicule.repository.VehiculeRepository;
 import sn.oas.facturation.auth.data.entity.Technicien;
 import sn.oas.facturation.technicien.repository.TechnicienRepository;
 import sn.oas.facturation.ordreReparation.data.entity.LigneOrdreReparationPiece;
+import sn.oas.facturation.ordreReparation.data.entity.LigneReceptionOrdre;
+import sn.oas.facturation.ordreReparation.data.entity.LigneTravailOrdre;
 import sn.oas.facturation.ordreReparation.data.entity.LigneOrdreReparationMainDoeuvre;
 import sn.oas.facturation.ordreReparation.dto.LigneOrdreReparationPieceRequest;
 import sn.oas.facturation.ordreReparation.dto.LigneOrdreReparationMainDoeuvreRequest;
@@ -79,8 +81,8 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         OrdreReparation ordreReparation = OrdreReparation.builder()
                 .numero(numero)
                 .descriptionTravaux(request.getDescriptionTravaux())
-                .travauxDemandes(request.getTravauxDemandes())
-                .listeReception(request.getListeReception())
+                .lignesTravaux(request.getLignesTravaux())
+                .lignesReception(request.getLignesReception())
                 .listeDefauts(request.getListeDefauts())
                 .dateSortie(request.getDateSortie())
                 .vehicule(vehicule)
@@ -169,10 +171,10 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             ordreReparation.setNumero(request.getNumero());
         if (request.getDescriptionTravaux() != null)
             ordreReparation.setDescriptionTravaux(request.getDescriptionTravaux());
-        if (request.getTravauxDemandes() != null)
-            ordreReparation.setTravauxDemandes(request.getTravauxDemandes());
-        if (request.getListeReception() != null)
-            ordreReparation.setListeReception(request.getListeReception());
+        if (request.getLignesTravaux() != null)
+            ordreReparation.setLignesTravaux(request.getLignesTravaux());
+        if (request.getLignesReception() != null)
+            ordreReparation.setLignesReception(request.getLignesReception());
         if (request.getListeDefauts() != null)
             ordreReparation.setListeDefauts(request.getListeDefauts());
         if (request.getDateSortie() != null)
@@ -463,13 +465,47 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         OrdreReparation ordreReparation = OrdreReparation.builder()
                 .numero(numero)
                 .descriptionTravaux(travauxDemandes != null ? travauxDemandes : "")
-                .travauxDemandes(travauxDemandes)
+                .lignesTravaux(syntheseTravaux(travauxDemandes))
+                .lignesReception(syntheseReception(ficheAtelier))
                 .vehicule(ficheAtelier.getVehicule())
                 .ficheAtelier(ficheAtelier)
                 .statut(StatutOrdreReparation.A_FAIRE)
                 .build();
 
         return ordreReparationRepository.save(ordreReparation);
+    }
+
+    /**
+     * Reprend la désignation des travaux de la fiche atelier d'origine comme unique ligne
+     * verrouillée de la section "Travaux demandés" (le chef d'atelier peut ensuite en ajouter
+     * d'autres, non verrouillées, mais pas modifier/supprimer celle-ci).
+     */
+    private List<LigneTravailOrdre> syntheseTravaux(String designationTravaux) {
+        java.util.ArrayList<LigneTravailOrdre> lignes = new java.util.ArrayList<>();
+        if (designationTravaux != null && !designationTravaux.isBlank()) {
+            lignes.add(LigneTravailOrdre.builder().nom(designationTravaux).verrouille(true).build());
+        }
+        return lignes;
+    }
+
+    /**
+     * Reprend les lignes de réception de la fiche atelier d'origine, verrouillées (le chef
+     * d'atelier ne peut pas modifier leur désignation ni les supprimer côté UI — il peut
+     * seulement ajouter de nouvelles lignes, non verrouillées, via le formulaire de l'ordre
+     * de réparation).
+     */
+    private List<LigneReceptionOrdre> syntheseReception(FicheAtelier ficheAtelier) {
+        List<sn.oas.facturation.ficheAtelier.data.entity.LigneReception> lignesReception = ficheAtelier.getLignesReception();
+        if (lignesReception == null || lignesReception.isEmpty()) {
+            return new java.util.ArrayList<>();
+        }
+        return lignesReception.stream()
+                .map(l -> LigneReceptionOrdre.builder()
+                        .nom(l.getNom())
+                        .etat(l.getEtat())
+                        .verrouille(true)
+                        .build())
+                .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
     }
 
     @Override

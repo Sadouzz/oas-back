@@ -2,14 +2,17 @@ package sn.oas.facturation.ordreReparation.dto;
 
 import lombok.Data;
 import java.time.LocalDateTime;
+import java.util.List;
+import sn.oas.facturation.ordreReparation.data.entity.LigneReceptionOrdre;
+import sn.oas.facturation.ordreReparation.data.entity.LigneTravailOrdre;
 import sn.oas.facturation.ordreReparation.data.enums.StatutOrdreReparation;
 
 @Data
 public class OrdreReparationRequest {
     private String numero;
     private String descriptionTravaux;
-    private String travauxDemandes;
-    private String listeReception;
+    private List<LigneTravailOrdre> lignesTravaux;
+    private List<LigneReceptionOrdre> lignesReception;
     private String listeDefauts;
     private LocalDateTime dateSortie;
     private Long vehiculeId;
