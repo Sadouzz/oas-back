@@ -42,4 +42,6 @@ public class FicheAtelierResponse {
     private String signatureSortieBase64;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    
+    private boolean hasOrdreReparation;
 }

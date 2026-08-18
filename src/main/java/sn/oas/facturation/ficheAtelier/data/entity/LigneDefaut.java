@@ -13,5 +13,6 @@ import java.io.Serializable;
 @AllArgsConstructor
 public class LigneDefaut implements Serializable {
     private String nom;
-    private Boolean present; // true = cochée, false = non cochée
+    private Boolean present; // keep for backward compatibility
+    private String designation;
 }

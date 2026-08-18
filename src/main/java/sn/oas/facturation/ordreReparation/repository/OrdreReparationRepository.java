@@ -31,6 +31,8 @@ public interface OrdreReparationRepository extends JpaRepository<OrdreReparation
     OrdreReparation findTopByNumeroStartingWithOrderByNumeroDesc(String prefix);
     boolean existsByVehiculeIdAndStatutNotIn(Long vehiculeId, List<sn.oas.facturation.ordreReparation.data.enums.StatutOrdreReparation> statuts);
     boolean existsByFicheAtelierId(Long ficheAtelierId);
+    java.util.Optional<OrdreReparation> findFirstByFicheAtelierId(Long ficheAtelierId);
+    java.util.Optional<OrdreReparation> findFirstByVehiculeIdAndStatutNotIn(Long vehiculeId, List<sn.oas.facturation.ordreReparation.data.enums.StatutOrdreReparation> statuts);
 
     // Portail technicien : ordres où le technicien figure dans le pool diagnostic OU réparation.
     @Query("SELECT DISTINCT f FROM OrdreReparation f " +

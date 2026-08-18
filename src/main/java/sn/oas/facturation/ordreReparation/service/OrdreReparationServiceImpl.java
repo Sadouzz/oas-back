@@ -449,12 +449,21 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         FicheAtelier ficheAtelier = ficheAtelierRepository.findById(ficheAtelierId)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
 
-        if (ordreReparationRepository.existsByFicheAtelierId(ficheAtelierId)) {
-            throw new IllegalStateException(
-                    "Un ordre de réparation existe déjà pour la fiche atelier #" + ficheAtelierId);
+        java.util.Optional<OrdreReparation> existingExact = ordreReparationRepository.findFirstByFicheAtelierId(ficheAtelierId);
+        if (existingExact.isPresent()) {
+            return existingExact.get();
         }
+        
         if (ficheAtelier.getVehicule() == null) {
             throw new RuntimeException("La fiche atelier n'a pas de véhicule associé");
+        }
+        
+        java.util.Optional<OrdreReparation> activeOr = ordreReparationRepository.findFirstByVehiculeIdAndStatutNotIn(
+                ficheAtelier.getVehicule().getId(), 
+                java.util.List.of(StatutOrdreReparation.LIVRE, StatutOrdreReparation.TERMINE)
+        );
+        if (activeOr.isPresent()) {
+            return activeOr.get();
         }
 
         String numero = documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.OR);
@@ -475,6 +484,16 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     @Override
     @Transactional(readOnly = true)
     public boolean existsByFicheAtelierId(Long ficheAtelierId) {
-        return ordreReparationRepository.existsByFicheAtelierId(ficheAtelierId);
+        if (ordreReparationRepository.existsByFicheAtelierId(ficheAtelierId)) {
+            return true;
+        }
+        FicheAtelier fiche = ficheAtelierRepository.findById(ficheAtelierId).orElse(null);
+        if (fiche != null && fiche.getVehicule() != null) {
+            return ordreReparationRepository.existsByVehiculeIdAndStatutNotIn(
+                fiche.getVehicule().getId(), 
+                java.util.List.of(StatutOrdreReparation.LIVRE, StatutOrdreReparation.TERMINE)
+            );
+        }
+        return false;
     }
 }

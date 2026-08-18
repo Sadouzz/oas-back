@@ -2,6 +2,7 @@ package sn.oas.facturation;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import lombok.RequiredArgsConstructor;
@@ -10,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 @RequiredArgsConstructor
 @Slf4j
+@Order(10)
 public class FixDatabaseConstraintsRunner implements CommandLineRunner {
 
     private final JdbcTemplate jdbcTemplate;
@@ -30,6 +32,14 @@ public class FixDatabaseConstraintsRunner implements CommandLineRunner {
                 log.warn("Impossible de supprimer la contrainte sur la table {} : {}", table, e.getMessage());
             }
         }
+        
+        try {
+            jdbcTemplate.execute("ALTER TABLE users DROP CONSTRAINT IF EXISTS users_type_check");
+            log.info("Contrainte users_type_check supprimée avec succès sur la table users");
+        } catch (Exception e) {
+            log.warn("Impossible de supprimer la contrainte users_type_check sur la table users : {}", e.getMessage());
+        }
+
         log.info("--- Fin de la vérification des contraintes ---");
     }
 }

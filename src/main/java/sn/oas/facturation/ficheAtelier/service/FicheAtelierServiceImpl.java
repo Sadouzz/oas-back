@@ -13,6 +13,7 @@ import sn.oas.facturation.rendezvous.data.entity.RendezVous;
 import sn.oas.facturation.rendezvous.repository.RendezVousRepository;
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.vehicule.repository.VehiculeRepository;
+import sn.oas.facturation.ordreReparation.repository.OrdreReparationRepository;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -25,6 +26,7 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     private final RendezVousRepository rendezVousRepository;
     private final ClientRepository clientRepository;
     private final VehiculeRepository vehiculeRepository;
+    private final OrdreReparationRepository ordreReparationRepository;
 
     @Transactional
     @Override
@@ -159,6 +161,7 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
                 .signatureSortieBase64(fiche.getSignatureSortieBase64())
                 .createdAt(fiche.getCreatedAt())
                 .updatedAt(fiche.getUpdatedAt())
+                .hasOrdreReparation(ordreReparationRepository.existsByFicheAtelierId(fiche.getId()))
                 .build();
     }
 }
