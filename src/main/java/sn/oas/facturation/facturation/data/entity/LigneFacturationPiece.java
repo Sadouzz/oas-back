@@ -25,8 +25,13 @@ public class LigneFacturationPiece {
     private Facturation facturation;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "piece_id", nullable = false)
+    @JoinColumn(name = "piece_id", nullable = true) // <-- Nullable for custom pieces
     private PDP piece;
+
+    @Builder.Default
+    private Boolean isCustom = false;
+
+    private String designationPds;
 
     @Column(nullable = false)
     private Integer quantite;

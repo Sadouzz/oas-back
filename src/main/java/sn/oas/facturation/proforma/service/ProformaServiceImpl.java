@@ -30,6 +30,7 @@ import sn.oas.facturation.facture.repository.FactureRepository;
 import sn.oas.facturation.main_doeuvre.data.entity.MainDoeuvre;
 import sn.oas.facturation.main_doeuvre.repository.MainDoeuvreRepository;
 import sn.oas.facturation.piecedetache.data.entity.PDP;
+import sn.oas.facturation.piecedetache.data.entity.PieceDetache;
 import sn.oas.facturation.piecedetache.repository.PieceDetacheRepository;
 import sn.oas.facturation.proforma.data.entity.Proforma;
 import sn.oas.facturation.proforma.dto.ProformaCreateRequest;
@@ -196,18 +197,29 @@ public class ProformaServiceImpl implements ProformaService {
                 .build();
 
         if (hasPieces) {
-            for (LigneFacturationPieceRequest ligneReq : request.getLignesPieces()) {
-                PDP piece = (PDP) pieceDetacheRepository.findById(ligneReq.getPieceId())
-                        .orElseThrow(() -> new IllegalArgumentException("Pièce non trouvée avec l'id : " + ligneReq.getPieceId()));
+            for (LigneFacturationPieceRequest p : request.getLignesPieces()) {
+                PDP pdp = null;
+                Integer prix = p.getPrix();
+
+                if (Boolean.TRUE.equals(p.getIsCustom())) {
+                    if (prix == null) prix = 0;
+                } else {
+                    PieceDetache piece = pieceDetacheRepository.findById(p.getPieceId())
+                            .orElseThrow(() -> new RuntimeException("Pièce non trouvée"));
+                    pdp = (PDP) org.hibernate.Hibernate.unproxy(piece);
+                    if (prix == null) prix = pdp.getPrix() != null ? pdp.getPrix().intValue() : 0;
+                }
                 
                 LigneFacturationPiece ligne = LigneFacturationPiece.builder()
                         .facturation(proforma)
-                        .piece(piece)
-                        .quantite(ligneReq.getQuantite())
-                        .prix(ligneReq.getPrix())
+                        .piece(pdp)
+                        .isCustom(Boolean.TRUE.equals(p.getIsCustom()))
+                        .designationPds(p.getDesignationPds())
+                        .quantite(p.getQuantite())
+                        .prix(prix)
                         .build();
                 lignesPieces.add(ligne);
-                montantHT = montantHT.add(BigDecimal.valueOf((long) ligneReq.getQuantite() * ligneReq.getPrix()));
+                montantHT = montantHT.add(BigDecimal.valueOf((long) p.getQuantite() * prix));
             }
         }
 
@@ -311,16 +323,29 @@ public class ProformaServiceImpl implements ProformaService {
                     if (lReq.getQuantite() == null || lReq.getQuantite() <= 0) {
                         throw new IllegalArgumentException("La quantité de chaque pièce doit être supérieure à 0.");
                     }
-                    if (lReq.getPrix() == null || lReq.getPrix() < 0) {
+                    if (lReq.getPrix() == null && Boolean.FALSE.equals(lReq.getIsCustom())) {
                         throw new IllegalArgumentException("Le prix de chaque pièce doit être positif ou nul.");
                     }
-                    PDP piece = (PDP) pieceDetacheRepository.findById(lReq.getPieceId())
-                            .orElseThrow(() -> new IllegalArgumentException("Pièce non trouvée avec l'id : " + lReq.getPieceId()));
+                    
+                    PDP pdp = null;
+                    Integer prix = lReq.getPrix();
+                    
+                    if (Boolean.TRUE.equals(lReq.getIsCustom())) {
+                        if (prix == null) prix = 0;
+                    } else {
+                        PieceDetache piece = pieceDetacheRepository.findById(lReq.getPieceId())
+                                .orElseThrow(() -> new RuntimeException("Pièce non trouvée"));
+                        pdp = (PDP) org.hibernate.Hibernate.unproxy(piece);
+                        if (prix == null) prix = pdp.getPrix() != null ? pdp.getPrix().intValue() : 0;
+                    }
+
                     proforma.getLignesFacturationPieces().add(LigneFacturationPiece.builder()
                             .facturation(proforma)
-                            .piece(piece)
+                            .piece(pdp)
+                            .isCustom(Boolean.TRUE.equals(lReq.getIsCustom()))
+                            .designationPds(lReq.getDesignationPds())
                             .quantite(lReq.getQuantite())
-                            .prix(lReq.getPrix())
+                            .prix(prix)
                             .build());
                 }
             }

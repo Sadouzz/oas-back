@@ -142,6 +142,9 @@ public class OrdreReparation implements TenantAware  {
     @com.fasterxml.jackson.annotation.JsonIgnore
     private List<PieceJointeDiagnostic> piecesJointesDiagnostic = new ArrayList<>();
 
+    @org.hibernate.annotations.Formula("((SELECT COUNT(*) FROM lignes_ordre_reparation_piece p WHERE p.ordre_reparation_id = id) > 0 OR (SELECT COUNT(*) FROM lignes_ordre_reparation_main_doeuvre m WHERE m.ordre_reparation_id = id) > 0)")
+    private Boolean hasPiecesOrMo;
+
     @PrePersist
     protected void onCreate() {
         if (this.dateCreation == null) {

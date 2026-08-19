@@ -83,7 +83,10 @@ public class OrdreReparationController {
             ordreReparationService.assignTechnicien(ficheId, technicienId);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
+            e.printStackTrace();
+            java.io.StringWriter sw = new java.io.StringWriter();
+            e.printStackTrace(new java.io.PrintWriter(sw));
+            return ResponseEntity.badRequest().body(java.util.Map.of("message", e.getMessage() != null ? e.getMessage() : "null", "trace", sw.toString()));
         }
     }
 

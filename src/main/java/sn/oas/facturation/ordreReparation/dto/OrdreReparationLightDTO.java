@@ -19,4 +19,5 @@ public class OrdreReparationLightDTO {
     private LocalDateTime dateSortie;
     private StatutOrdreReparation statut;
     private VehiculeLightDTO vehicule;
+    private Boolean hasPiecesOrMo;
 }

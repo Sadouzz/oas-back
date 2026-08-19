@@ -91,15 +91,25 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
 
         if (request.getLignesPieces() != null) {
             for (LigneOrdreReparationPieceRequest ligneReq : request.getLignesPieces()) {
-                PieceDetache piece = pieceDetacheRepository.findById(ligneReq.pieceId())
-                        .orElseThrow(() -> new RuntimeException("Pièce non trouvée"));
-                PDP pdp = (PDP) org.hibernate.Hibernate.unproxy(piece);
+                PDP pdp = null;
+                Integer prix = ligneReq.prix();
+                
+                if (Boolean.TRUE.equals(ligneReq.isCustom())) {
+                    if (prix == null) prix = 0;
+                } else {
+                    PieceDetache piece = pieceDetacheRepository.findById(ligneReq.pieceId())
+                            .orElseThrow(() -> new RuntimeException("Pièce non trouvée"));
+                    pdp = (PDP) org.hibernate.Hibernate.unproxy(piece);
+                    if (prix == null) prix = (pdp.getPrix() != null ? pdp.getPrix().intValue() : 0);
+                }
+
                 ordreReparation.getLignesOrdreReparationPieces().add(LigneOrdreReparationPiece.builder()
                         .ordreReparation(ordreReparation)
                         .piece(pdp)
+                        .isCustom(Boolean.TRUE.equals(ligneReq.isCustom()))
+                        .designationPds(ligneReq.designationPds())
                         .quantite(ligneReq.quantite())
-                        .prix(ligneReq.prix() != null ? ligneReq.prix()
-                                : (pdp.getPrix() != null ? pdp.getPrix().intValue() : 0))
+                        .prix(prix)
                         .build());
             }
         }
@@ -153,6 +163,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                     .dateSortie(f.getDateSortie())
                     .statut(f.getStatut())
                     .vehicule(vehiculeDTO)
+                    .hasPiecesOrMo(f.getHasPiecesOrMo())
                     .build();
         }).collect(Collectors.toList());
     }
@@ -191,15 +202,26 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         if (request.getLignesPieces() != null) {
             ordreReparation.getLignesOrdreReparationPieces().clear();
             for (LigneOrdreReparationPieceRequest ligneReq : request.getLignesPieces()) {
-                PieceDetache piece = pieceDetacheRepository.findById(ligneReq.pieceId())
-                        .orElseThrow(() -> new RuntimeException("Pièce non trouvée"));
-                PDP pdp = (PDP) org.hibernate.Hibernate.unproxy(piece);
+                PDP pdp = null;
+                Integer prix = ligneReq.prix();
+                
+                if (Boolean.TRUE.equals(ligneReq.isCustom())) {
+                    // Custom piece, no PDP needed
+                    if (prix == null) prix = 0;
+                } else {
+                    PieceDetache piece = pieceDetacheRepository.findById(ligneReq.pieceId())
+                            .orElseThrow(() -> new RuntimeException("Pièce non trouvée"));
+                    pdp = (PDP) org.hibernate.Hibernate.unproxy(piece);
+                    if (prix == null) prix = (pdp.getPrix() != null ? pdp.getPrix().intValue() : 0);
+                }
+
                 ordreReparation.getLignesOrdreReparationPieces().add(LigneOrdreReparationPiece.builder()
                         .ordreReparation(ordreReparation)
                         .piece(pdp)
+                        .isCustom(Boolean.TRUE.equals(ligneReq.isCustom()))
+                        .designationPds(ligneReq.designationPds())
                         .quantite(ligneReq.quantite())
-                        .prix(ligneReq.prix() != null ? ligneReq.prix()
-                                : (pdp.getPrix() != null ? pdp.getPrix().intValue() : 0))
+                        .prix(prix)
                         .build());
             }
         }
@@ -236,22 +258,24 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                         ? ordreReparation.getVehicule().getKilometrage()
                         : 0.0);
 
-                if (request.getLignesPieces() != null) {
-                    pcr.setLignesPieces(request.getLignesPieces().stream().map(lp -> {
+                if (ordreReparation.getLignesOrdreReparationPieces() != null) {
+                    pcr.setLignesPieces(ordreReparation.getLignesOrdreReparationPieces().stream().map(lp -> {
                         LigneFacturationPieceRequest lr = new LigneFacturationPieceRequest();
-                        lr.setPieceId(lp.pieceId());
-                        lr.setQuantite(lp.quantite());
-                        lr.setPrix(lp.prix());
+                        lr.setPieceId(lp.getPiece() != null ? lp.getPiece().getId() : null);
+                        lr.setQuantite(lp.getQuantite());
+                        lr.setPrix(lp.getPrix());
+                        lr.setIsCustom(lp.getIsCustom());
+                        lr.setDesignationPds(lp.getDesignationPds());
                         return lr;
                     }).collect(Collectors.toList()));
                 }
 
-                if (request.getLignesMainDoeuvres() != null) {
-                    pcr.setLignesMainDoeuvres(request.getLignesMainDoeuvres().stream().map(lm -> {
+                if (ordreReparation.getLignesOrdreReparationMainDoeuvres() != null) {
+                    pcr.setLignesMainDoeuvres(ordreReparation.getLignesOrdreReparationMainDoeuvres().stream().map(lm -> {
                         LigneFacturationMainDoeuvreRequest lmr = new LigneFacturationMainDoeuvreRequest();
-                        lmr.setMainDoeuvreId(lm.mainDoeuvreId());
-                        lmr.setNbreHeure(lm.nbreHeure());
-                        lmr.setTarifHoraire(lm.prix());
+                        lmr.setMainDoeuvreId(lm.getMainDoeuvre() != null ? lm.getMainDoeuvre().getId() : null);
+                        lmr.setNbreHeure(lm.getNbreHeure());
+                        lmr.setTarifHoraire(lm.getPrix());
                         return lmr;
                     }).collect(Collectors.toList()));
                 }

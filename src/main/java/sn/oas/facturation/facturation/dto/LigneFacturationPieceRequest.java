@@ -7,4 +7,6 @@ public class LigneFacturationPieceRequest {
     private Long pieceId;
     private Integer quantite;
     private Integer prix;
+    private Boolean isCustom;
+    private String designationPds;
 }

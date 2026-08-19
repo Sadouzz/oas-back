@@ -40,6 +40,36 @@ public class FixDatabaseConstraintsRunner implements CommandLineRunner {
             log.warn("Impossible de supprimer la contrainte users_type_check sur la table users : {}", e.getMessage());
         }
 
+        // --- NEW FIX: DROP OBSOLETE FOREIGN KEYS TO mecaniciens TABLE ---
+        try {
+            // Drop specific constraint from error trace
+            jdbcTemplate.execute("ALTER TABLE fiche_mecaniciens DROP CONSTRAINT IF EXISTS fk2rmbsma50tmll1pb60urfupdu");
+            
+            // Drop any other FK on fiche_mecaniciens pointing to mecaniciens by querying information_schema
+            jdbcTemplate.execute(
+                "DO $$ DECLARE r RECORD; BEGIN " +
+                "FOR r IN (SELECT tc.constraint_name FROM information_schema.table_constraints tc " +
+                "JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name " +
+                "JOIN information_schema.constraint_column_usage ccu ON ccu.constraint_name = tc.constraint_name " +
+                "WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = 'fiche_mecaniciens' AND ccu.table_name = 'mecaniciens') " +
+                "LOOP EXECUTE 'ALTER TABLE fiche_mecaniciens DROP CONSTRAINT ' || r.constraint_name; END LOOP; " +
+                "END $$;"
+            );
+
+            jdbcTemplate.execute(
+                "DO $$ DECLARE r RECORD; BEGIN " +
+                "FOR r IN (SELECT tc.constraint_name FROM information_schema.table_constraints tc " +
+                "JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name " +
+                "JOIN information_schema.constraint_column_usage ccu ON ccu.constraint_name = tc.constraint_name " +
+                "WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name = 'fiche_mecaniciens_reparation' AND ccu.table_name = 'mecaniciens') " +
+                "LOOP EXECUTE 'ALTER TABLE fiche_mecaniciens_reparation DROP CONSTRAINT ' || r.constraint_name; END LOOP; " +
+                "END $$;"
+            );
+            log.info("Anciennes clés étrangères vers 'mecaniciens' supprimées avec succès.");
+        } catch (Exception e) {
+            log.warn("Impossible de supprimer les anciennes clés étrangères : {}", e.getMessage());
+        }
+
         log.info("--- Fin de la vérification des contraintes ---");
     }
 }
