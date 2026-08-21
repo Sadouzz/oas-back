@@ -12,6 +12,7 @@ import sn.oas.facturation.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.ordreReparation.data.enums.TypePieceJointe;
 import sn.oas.facturation.ordreReparation.dto.PieceJointeDiagnosticRequest;
 import sn.oas.facturation.ordreReparation.dto.PieceJointeDiagnosticResponse;
+import sn.oas.facturation.ordreReparation.service.OrdreReparationService;
 import sn.oas.facturation.technicien.dto.PannesRequest;
 import sn.oas.facturation.technicien.dto.TechnicienLigneMainDoeuvreRequest;
 import sn.oas.facturation.technicien.dto.TechnicienLignePieceRequest;
@@ -34,6 +35,7 @@ public class TechnicienPortalController {
 
     private final TechnicienService technicienService;
     private final TechnicienPortalService technicienPortalService;
+    private final OrdreReparationService ordreReparationService;
 
     @GetMapping("/me")
     @Operation(summary = "Récupérer le profil du technicien connecté")
@@ -142,6 +144,54 @@ public class TechnicienPortalController {
         try {
             Technicien technicien = technicienService.getTechnicienConnecte();
             technicienPortalService.proposerMainDoeuvre(technicien, id, request);
+            return ResponseEntity.ok().build();
+        } catch (AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", e.getMessage()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    // ─── Remarques de diagnostic ────────────────────────────────────────
+
+    @GetMapping("/ordres-reparation/{id}/diagnostic/remarques")
+    @Operation(summary = "Lister les remarques de diagnostic d'un ordre assigné")
+    public ResponseEntity<?> getRemarquesDiagnostic(@PathVariable Long id) {
+        try {
+            Technicien technicien = technicienService.getTechnicienConnecte();
+            // vérifie que le tech est assigné via le service existant
+            technicienPortalService.getMonOrdreReparation(technicien, id);
+            return ResponseEntity.ok(ordreReparationService.getRemarquesDiagnostic(id));
+        } catch (AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", e.getMessage()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/ordres-reparation/{id}/diagnostic/remarques")
+    @Operation(summary = "Ajouter une remarque de diagnostic (attribuée au technicien connecté)")
+    public ResponseEntity<?> addRemarqueDiagnostic(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        try {
+            Technicien technicien = technicienService.getTechnicienConnecte();
+            // vérifie assignation
+            technicienPortalService.getMonOrdreReparation(technicien, id);
+            String contenu = body.get("contenu");
+            return ResponseEntity.ok(ordreReparationService.addRemarqueDiagnostic(id, technicien, contenu));
+        } catch (AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", e.getMessage()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/ordres-reparation/{id}/diagnostic/remarques/{remarqueId}")
+    @Operation(summary = "Supprimer une de ses propres remarques de diagnostic")
+    public ResponseEntity<?> deleteRemarqueDiagnostic(@PathVariable Long id, @PathVariable Long remarqueId) {
+        try {
+            Technicien technicien = technicienService.getTechnicienConnecte();
+            technicienPortalService.getMonOrdreReparation(technicien, id);
+            ordreReparationService.deleteRemarqueDiagnostic(id, remarqueId);
             return ResponseEntity.ok().build();
         } catch (AccessDeniedException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", e.getMessage()));

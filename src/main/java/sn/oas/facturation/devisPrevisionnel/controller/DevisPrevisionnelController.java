@@ -72,6 +72,14 @@ public class DevisPrevisionnelController {
         return ResponseEntity.ok(devisPrevisionnelService.getById(id));
     }
 
+    @Operation(summary = "Obtenir un devis prévisionnel par ID de Fiche Atelier")
+    @GetMapping("/fiche-atelier/{ficheAtelierId}")
+    public ResponseEntity<DevisPrevisionnel> getByFicheAtelier(@PathVariable Long ficheAtelierId) {
+        return devisPrevisionnelService.getByFicheAtelierId(ficheAtelierId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.noContent().build());
+    }
+
     @Operation(summary = "Lister les devis prévisionnels", description = "Retourne tous les devis. Filtrable par clientId ou vehiculeId.")
     @ApiResponse(responseCode = "200", description = "Liste retournée")
     @GetMapping

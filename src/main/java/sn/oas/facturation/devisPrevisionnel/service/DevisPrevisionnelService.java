@@ -20,6 +20,8 @@ public interface DevisPrevisionnelService {
 
     List<DevisPrevisionnel> getByVehicule(Long vehiculeId);
 
+    java.util.Optional<DevisPrevisionnel> getByFicheAtelierId(Long ficheAtelierId);
+
     List<DevisPrevisionnel> getClientDevis(sn.oas.facturation.auth.data.entity.Client client);
 
     List<DevisPrevisionnel> search(String keyword);

@@ -7,5 +7,6 @@ public record DevisPrevisionnelRequest(
         BigDecimal montantTotal,
         Double kilometrageVehicule,
         Long vehiculeId,
-        Long clientId
+        Long clientId,
+        Long ficheAtelierId
 ) {}

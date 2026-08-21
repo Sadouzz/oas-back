@@ -42,6 +42,11 @@ public class FixDatabaseConstraintsRunner implements CommandLineRunner {
 
         // --- NEW FIX: DROP OBSOLETE FOREIGN KEYS TO mecaniciens TABLE ---
         try {
+            // Delete bad data that prevents foreign key creation
+            jdbcTemplate.execute("DELETE FROM fiche_mecaniciens WHERE mecanicien_id NOT IN (SELECT id FROM techniciens)");
+            jdbcTemplate.execute("DELETE FROM fiche_mecaniciens_reparation WHERE mecanicien_id NOT IN (SELECT id FROM techniciens)");
+            log.info("Données obsolètes de mécaniciens supprimées.");
+
             // Drop specific constraint from error trace
             jdbcTemplate.execute("ALTER TABLE fiche_mecaniciens DROP CONSTRAINT IF EXISTS fk2rmbsma50tmll1pb60urfupdu");
             

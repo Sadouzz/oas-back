@@ -16,6 +16,8 @@ public interface DevisPrevisionnelRepository extends JpaRepository<DevisPrevisio
 
     List<DevisPrevisionnel> findByVehiculeId(Long vehiculeId);
 
+    java.util.Optional<DevisPrevisionnel> findByFicheAtelierId(Long ficheAtelierId);
+
     @Query("SELECT d FROM DevisPrevisionnel d WHERE " +
             "LOWER(d.notesReparation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(d.vehicule.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +

@@ -12,6 +12,7 @@ import sn.oas.facturation.ordreReparation.dto.OrdreReparationRequest;
 import sn.oas.facturation.ordreReparation.dto.OrdreReparationLightDTO;
 import sn.oas.facturation.ordreReparation.dto.PieceJointeDiagnosticRequest;
 import sn.oas.facturation.ordreReparation.dto.PieceJointeDiagnosticResponse;
+import sn.oas.facturation.ordreReparation.dto.RemarqueDiagnosticResponse;
 import sn.oas.facturation.ordreReparation.service.OrdreReparationService;
 
 import java.util.List;
@@ -190,5 +191,40 @@ public class OrdreReparationController {
     @Operation(summary = "Vérifier si un ordre de réparation existe déjà pour une fiche atelier")
     public ResponseEntity<?> existsForFicheAtelier(@PathVariable Long ficheAtelierId) {
         return ResponseEntity.ok(Map.of("exists", ordreReparationService.existsByFicheAtelierId(ficheAtelierId)));
+    }
+
+    // ─── Remarques de diagnostic ────────────────────────────────────────
+
+    @GetMapping("/{id}/diagnostic/remarques")
+    @Operation(summary = "Lister les remarques de diagnostic d'un ordre")
+    public ResponseEntity<?> getRemarquesDiagnostic(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(ordreReparationService.getRemarquesDiagnostic(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/{id}/diagnostic/remarques")
+    @Operation(summary = "Ajouter une remarque de diagnostic (depuis le portail chef atelier)")
+    public ResponseEntity<?> addRemarqueDiagnostic(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        try {
+            String contenu = body.get("contenu");
+            RemarqueDiagnosticResponse r = ordreReparationService.addRemarqueDiagnostic(id, null, contenu);
+            return ResponseEntity.ok(r);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{id}/diagnostic/remarques/{remarqueId}")
+    @Operation(summary = "Supprimer une remarque de diagnostic")
+    public ResponseEntity<?> deleteRemarqueDiagnostic(@PathVariable Long id, @PathVariable Long remarqueId) {
+        try {
+            ordreReparationService.deleteRemarqueDiagnostic(id, remarqueId);
+            return ResponseEntity.ok().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 }

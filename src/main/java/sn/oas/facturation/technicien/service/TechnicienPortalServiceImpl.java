@@ -172,12 +172,20 @@ public class TechnicienPortalServiceImpl implements TechnicienPortalService {
     }
 
     private PieceJointeDiagnosticResponse toPieceJointeResponse(PieceJointeDiagnostic p) {
+        String techNom = null;
+        if (p.getTechnicien() != null) {
+            String prenom = p.getTechnicien().getFirstName() != null ? p.getTechnicien().getFirstName() : "";
+            String nom = p.getTechnicien().getLastName() != null ? p.getTechnicien().getLastName() : "";
+            techNom = (prenom + " " + nom).trim();
+            if (techNom.isEmpty()) techNom = p.getTechnicien().getUsername();
+        }
         return PieceJointeDiagnosticResponse.builder()
                 .id(p.getId())
                 .ordreReparationId(p.getOrdreReparation() != null ? p.getOrdreReparation().getId() : null)
                 .url(p.getUrl())
                 .type(p.getType())
                 .remarque(p.getRemarque())
+                .technicienNom(techNom)
                 .createdAt(p.getCreatedAt())
                 .build();
     }

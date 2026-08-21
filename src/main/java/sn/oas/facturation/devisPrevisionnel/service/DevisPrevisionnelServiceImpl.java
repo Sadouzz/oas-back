@@ -22,12 +22,15 @@ import sn.oas.facturation.vehicule.service.VehiculeService;
 
 import java.io.ByteArrayOutputStream;
 import java.util.List;
+import sn.oas.facturation.ficheAtelier.repository.FicheAtelierRepository;
+import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
 
 @Service
 @RequiredArgsConstructor
 public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
 
     private final DevisPrevisionnelRepository devisPrevisionnelRepository;
+    private final FicheAtelierRepository ficheAtelierRepository;
     private final VehiculeService vehiculeService;
     private final AuthService authService;
     private final UserService userService;
@@ -43,6 +46,12 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
         if (!vehicule.getClient().getId().equals(client.getId())) {
             throw new IllegalArgumentException("Le véhicule ne correspond pas au client");
         }
+        
+        FicheAtelier ficheAtelier = null;
+        if (request.ficheAtelierId() != null) {
+            ficheAtelier = ficheAtelierRepository.findById(request.ficheAtelierId())
+                .orElseThrow(() -> new IllegalArgumentException("Fiche atelier introuvable"));
+        }
 
         DevisPrevisionnel devis = DevisPrevisionnel.builder()
                 .numero(documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.DP))
@@ -52,6 +61,7 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
                 .vehicule(vehicule)
                 .client(client)
                 .agent(agent)
+                .ficheAtelier(ficheAtelier)
                 .build();
 
         return devisPrevisionnelRepository.save(devis);
@@ -106,6 +116,10 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
     @Override
     public List<DevisPrevisionnel> getByVehicule(Long vehiculeId) {
         return devisPrevisionnelRepository.findByVehiculeId(vehiculeId);
+    }
+
+    public java.util.Optional<DevisPrevisionnel> getByFicheAtelierId(Long ficheAtelierId) {
+        return devisPrevisionnelRepository.findByFicheAtelierId(ficheAtelierId);
     }
 
     @Override

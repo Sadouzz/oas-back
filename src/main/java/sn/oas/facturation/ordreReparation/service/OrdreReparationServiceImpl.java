@@ -36,10 +36,13 @@ import sn.oas.facturation.ordreReparation.dto.OrdreReparationLightDTO;
 import sn.oas.facturation.ordreReparation.dto.VehiculeLightDTO;
 import sn.oas.facturation.ordreReparation.dto.ClientLightDTO;
 import sn.oas.facturation.ordreReparation.data.entity.PieceJointeDiagnostic;
+import sn.oas.facturation.ordreReparation.data.entity.RemarqueDiagnostic;
 import sn.oas.facturation.ordreReparation.data.enums.TypePieceJointe;
 import sn.oas.facturation.ordreReparation.dto.PieceJointeDiagnosticRequest;
 import sn.oas.facturation.ordreReparation.dto.PieceJointeDiagnosticResponse;
+import sn.oas.facturation.ordreReparation.dto.RemarqueDiagnosticResponse;
 import sn.oas.facturation.ordreReparation.repository.PieceJointeDiagnosticRepository;
+import sn.oas.facturation.ordreReparation.repository.RemarqueDiagnosticRepository;
 import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
 import sn.oas.facturation.ficheAtelier.repository.FicheAtelierRepository;
 import java.util.stream.Collectors;
@@ -57,7 +60,9 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     private final AgentNotificationService agentNotificationService;
     private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
     private final PieceJointeDiagnosticRepository pieceJointeDiagnosticRepository;
+    private final RemarqueDiagnosticRepository remarqueDiagnosticRepository;
     private final FicheAtelierRepository ficheAtelierRepository;
+    private final sn.oas.facturation.devisPrevisionnel.repository.DevisPrevisionnelRepository devisPrevisionnelRepository;
 
     @Autowired
     @Lazy
@@ -457,13 +462,78 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     }
 
     private PieceJointeDiagnosticResponse toPieceJointeResponse(PieceJointeDiagnostic p) {
+        String techNom = null;
+        if (p.getTechnicien() != null) {
+            String prenom = p.getTechnicien().getFirstName() != null ? p.getTechnicien().getFirstName() : "";
+            String nom = p.getTechnicien().getLastName() != null ? p.getTechnicien().getLastName() : "";
+            techNom = (prenom + " " + nom).trim();
+            if (techNom.isEmpty()) techNom = p.getTechnicien().getUsername();
+        }
         return PieceJointeDiagnosticResponse.builder()
                 .id(p.getId())
                 .ordreReparationId(p.getOrdreReparation() != null ? p.getOrdreReparation().getId() : null)
                 .url(p.getUrl())
                 .type(p.getType())
                 .remarque(p.getRemarque())
+                .technicienNom(techNom)
                 .createdAt(p.getCreatedAt())
+                .build();
+    }
+
+    // ─── Remarques de diagnostic ────────────────────────────────────────
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RemarqueDiagnosticResponse> getRemarquesDiagnostic(Long ordreReparationId) {
+        ordreReparationRepository.findById(ordreReparationId)
+                .orElseThrow(() -> new RuntimeException("Ordre de réparation non trouvé"));
+        return remarqueDiagnosticRepository.findByOrdreReparationIdOrderByCreatedAtDesc(ordreReparationId)
+                .stream().map(this::toRemarqueResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public RemarqueDiagnosticResponse addRemarqueDiagnostic(Long ordreReparationId, sn.oas.facturation.auth.data.entity.Technicien technicien, String contenu) {
+        OrdreReparation ordreReparation = ordreReparationRepository.findById(ordreReparationId)
+                .orElseThrow(() -> new RuntimeException("Ordre de réparation non trouvé"));
+        if (contenu == null || contenu.trim().isEmpty()) {
+            throw new RuntimeException("Le contenu de la remarque ne peut pas être vide");
+        }
+        RemarqueDiagnostic remarque = RemarqueDiagnostic.builder()
+                .ordreReparation(ordreReparation)
+                .technicien(technicien)
+                .contenu(contenu.trim())
+                .build();
+        return toRemarqueResponse(remarqueDiagnosticRepository.save(remarque));
+    }
+
+    @Override
+    @Transactional
+    public void deleteRemarqueDiagnostic(Long ordreReparationId, Long remarqueId) {
+        ordreReparationRepository.findById(ordreReparationId)
+                .orElseThrow(() -> new RuntimeException("Ordre de réparation non trouvé"));
+        RemarqueDiagnostic r = remarqueDiagnosticRepository.findById(remarqueId)
+                .orElseThrow(() -> new RuntimeException("Remarque non trouvée"));
+        if (r.getOrdreReparation() == null || !r.getOrdreReparation().getId().equals(ordreReparationId)) {
+            throw new RuntimeException("Cette remarque n'appartient pas à cet ordre de réparation");
+        }
+        remarqueDiagnosticRepository.delete(r);
+    }
+
+    private RemarqueDiagnosticResponse toRemarqueResponse(RemarqueDiagnostic r) {
+        String techNom = null;
+        if (r.getTechnicien() != null) {
+            String prenom = r.getTechnicien().getFirstName() != null ? r.getTechnicien().getFirstName() : "";
+            String nom = r.getTechnicien().getLastName() != null ? r.getTechnicien().getLastName() : "";
+            techNom = (prenom + " " + nom).trim();
+            if (techNom.isEmpty()) techNom = r.getTechnicien().getUsername();
+        }
+        return RemarqueDiagnosticResponse.builder()
+                .id(r.getId())
+                .ordreReparationId(r.getOrdreReparation() != null ? r.getOrdreReparation().getId() : null)
+                .technicienNom(techNom)
+                .contenu(r.getContenu())
+                .createdAt(r.getCreatedAt())
                 .build();
     }
 
@@ -480,6 +550,15 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             return existingExact.get();
         }
         
+        java.util.Optional<sn.oas.facturation.devisPrevisionnel.data.entity.DevisPrevisionnel> devisOpt = devisPrevisionnelRepository.findByFicheAtelierId(ficheAtelierId);
+        if (devisOpt.isEmpty()) {
+            throw new RuntimeException("Un devis prévisionnel doit être créé et accepté avant de créer l'ordre de réparation.");
+        }
+        sn.oas.facturation.devisPrevisionnel.data.entity.DevisPrevisionnel devis = devisOpt.get();
+        if (devis.getStatut() != sn.oas.facturation.facturation.data.enums.StatutFacturation.ACCEPTE &&
+            devis.getStatut() != sn.oas.facturation.facturation.data.enums.StatutFacturation.PAYEE) {
+            throw new RuntimeException("Le devis prévisionnel doit être accepté avant de créer l'ordre de réparation.");
+        }
         if (ficheAtelier.getVehicule() == null) {
             throw new RuntimeException("La fiche atelier n'a pas de véhicule associé");
         }

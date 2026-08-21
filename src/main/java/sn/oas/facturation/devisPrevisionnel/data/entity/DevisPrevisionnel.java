@@ -70,6 +70,10 @@ public class DevisPrevisionnel implements TenantAware {
     @Builder.Default
     private StatutFacturation statut = StatutFacturation.EN_ATTENTE;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "fiche_atelier_id", nullable = true)
+    private sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier ficheAtelier;
+
     @PrePersist
     protected void onCreate() {
         if (this.dateCreation == null) {
