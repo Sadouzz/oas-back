@@ -9,6 +9,13 @@ import sn.oas.facturation.auth.data.entity.Agent;
 import sn.oas.facturation.piecedetache.data.enums.TypeMouvement;
 
 
+import sn.oas.facturation.garage.data.entity.Garage;
+import sn.oas.facturation.shared.tenant.TenantAware;
+import sn.oas.facturation.shared.tenant.TenantListener;
+import org.hibernate.annotations.Filter;
+import org.hibernate.annotations.FilterDef;
+import org.hibernate.annotations.ParamDef;
+
 import java.time.LocalDateTime;
 
 @Entity
@@ -17,7 +24,14 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class StockMouvement {
+@EntityListeners(TenantListener.class)
+@FilterDef(name = "garageFilter", parameters = @ParamDef(name = "garageId", type = Long.class))
+@Filter(name = "garageFilter", condition = "garage_id = :garageId")
+public class StockMouvement implements TenantAware {
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "garage_id")
+    private Garage garage;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,19 +42,19 @@ public class StockMouvement {
     private TypeMouvement type;
 
     @Column(nullable = false)
-    private Integer quantite;
+    private Double quantite;
 
     @Column(name = "stock_magasin_avant", nullable = false)
-    private Integer stockMagasinAvant;
+    private Double stockMagasinAvant;
 
     @Column(name = "stock_atelier_avant", nullable = false)
-    private Integer stockAtelierAvant;
+    private Double stockAtelierAvant;
 
     @Column(name = "stock_magasin_apres", nullable = false)
-    private Integer stockMagasinApres;
+    private Double stockMagasinApres;
 
     @Column(name = "stock_atelier_apres", nullable = false)
-    private Integer stockAtelierApres;
+    private Double stockAtelierApres;
 
     private String motif;
 

@@ -99,7 +99,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                         .piece(pdp)
                         .quantite(ligneReq.quantite())
                         .prix(ligneReq.prix() != null ? ligneReq.prix()
-                                : (pdp.getPrix() != null ? pdp.getPrix().intValue() : 0))
+                                : (pdp.getPrixUnitaire() != null ? pdp.getPrixUnitaire().intValue() : 0))
                         .build());
             }
         }
@@ -199,7 +199,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                         .piece(pdp)
                         .quantite(ligneReq.quantite())
                         .prix(ligneReq.prix() != null ? ligneReq.prix()
-                                : (pdp.getPrix() != null ? pdp.getPrix().intValue() : 0))
+                                : (pdp.getPrixUnitaire() != null ? pdp.getPrixUnitaire().intValue() : 0))
                         .build());
             }
         }
@@ -352,9 +352,11 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                     sn.oas.facturation.piecedetache.data.entity.PieceDetache piece = pieceDetacheRepository
                             .findById(lp.getPiece().getId()).orElse(null);
                     if (piece != null && piece instanceof sn.oas.facturation.piecedetache.data.entity.PDP pdp) {
-                        int currentAtelier = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0;
-                        int quantiteUtilisee = lp.getQuantite();
-                        pdp.setStockAtelier(Math.max(0, currentAtelier - quantiteUtilisee));
+                        double prixUnitaire = (pdp.getPrixUnitaire() != null) ? pdp.getPrixUnitaire() : 0.0;
+                        double montantPiece = prixUnitaire * lp.getQuantite();
+                        Double currentAtelier = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0.0;
+                        double quantiteUtilisee = lp.getQuantite();
+                        pdp.setStockAtelier(Math.max(0.0, currentAtelier - quantiteUtilisee));
                         pdp.setQteReelle(
                                 (pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0) + pdp.getStockAtelier());
                         pieceDetacheRepository.save(pdp);

@@ -7,9 +7,9 @@ public record AlerteStockResponse(
         String numeroDeSerie,
         String reference,
         String categorie,
-        Integer stockMagasin,
-        Integer stockAtelier,
-        Integer qteReelle,
-        Integer seuilApplique,
+        Double stockMagasin,
+        Double stockAtelier,
+        Double qteReelle,
+        Double seuilApplique,
         TypeAlerte typeAlerte
 ) {}

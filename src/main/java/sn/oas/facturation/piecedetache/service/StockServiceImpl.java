@@ -39,8 +39,8 @@ public class StockServiceImpl implements StockService {
             throw new IllegalArgumentException("La quantité doit être supérieure à zéro");
         }
 
-        int magasinAvant = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0;
-        int atelierAvant = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0;
+        Double magasinAvant = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0.0;
+        Double atelierAvant = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0.0;
 
         pdp.setStockMagasin(magasinAvant + request.quantite());
         pdp.setQteReelle(pdp.getStockMagasin() + pdp.getStockAtelier());
@@ -48,7 +48,7 @@ public class StockServiceImpl implements StockService {
 
         return stockMouvementRepository.save(StockMouvement.builder()
                 .type(TypeMouvement.ENTREE)
-                .quantite(request.quantite())
+                .quantite(request.quantite().doubleValue())
                 .stockMagasinAvant(magasinAvant)
                 .stockAtelierAvant(atelierAvant)
                 .stockMagasinApres(pdp.getStockMagasin())
@@ -68,14 +68,14 @@ public class StockServiceImpl implements StockService {
         if (request.quantite() == null || request.quantite() <= 0) {
             throw new IllegalArgumentException("La quantité doit être supérieure à zéro");
         }
-        int stockMagasinDisponible = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0;
+        Double stockMagasinDisponible = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0.0;
         if (stockMagasinDisponible < request.quantite()) {
             throw new IllegalArgumentException(
                     "Stock magasin insuffisant. Disponible : " + stockMagasinDisponible);
         }
 
-        int magasinAvant = stockMagasinDisponible;
-        int atelierAvant = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0;
+        Double magasinAvant = stockMagasinDisponible;
+        Double atelierAvant = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0.0;
 
         pdp.setStockMagasin(magasinAvant - request.quantite());
         pdp.setStockAtelier(atelierAvant + request.quantite());
@@ -83,8 +83,8 @@ public class StockServiceImpl implements StockService {
         pieceDetacheRepository.save(pdp);
 
         return stockMouvementRepository.save(StockMouvement.builder()
-                .type(TypeMouvement.SORTIE)
-                .quantite(request.quantite())
+                .type(TypeMouvement.SORTIE_MAGASIN_VERS_ATELIER)
+                .quantite(request.quantite().doubleValue())
                 .stockMagasinAvant(magasinAvant)
                 .stockAtelierAvant(atelierAvant)
                 .stockMagasinApres(pdp.getStockMagasin())
@@ -108,19 +108,19 @@ public class StockServiceImpl implements StockService {
             throw new IllegalArgumentException("Le stock atelier ne peut pas être négatif");
         }
 
-        int magasinAvant = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0;
-        int atelierAvant = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0;
-        int quantite = Math.abs(
+        Double magasinAvant = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0.0;
+        Double atelierAvant = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0.0;
+        Double quantite = Math.abs(
                 (request.stockMagasin() + request.stockAtelier()) - (magasinAvant + atelierAvant));
 
-        pdp.setStockMagasin(request.stockMagasin());
-        pdp.setStockAtelier(request.stockAtelier());
-        pdp.setQteReelle(request.stockMagasin() + request.stockAtelier());
+        pdp.setStockMagasin(request.stockMagasin() != null ? request.stockMagasin().doubleValue() : 0.0);
+        pdp.setStockAtelier(request.stockAtelier() != null ? request.stockAtelier().doubleValue() : 0.0);
+        pdp.setQteReelle((request.stockMagasin() != null ? request.stockMagasin().doubleValue() : 0.0) + (request.stockAtelier() != null ? request.stockAtelier().doubleValue() : 0.0));
         pieceDetacheRepository.save(pdp);
 
         return stockMouvementRepository.save(StockMouvement.builder()
                 .type(TypeMouvement.AJUSTEMENT)
-                .quantite(quantite)
+                .quantite(quantite.doubleValue())
                 .stockMagasinAvant(magasinAvant)
                 .stockAtelierAvant(atelierAvant)
                 .stockMagasinApres(pdp.getStockMagasin())

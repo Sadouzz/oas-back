@@ -17,17 +17,15 @@ import lombok.experimental.SuperBuilder;
 @EqualsAndHashCode(callSuper = true)
 public class PDP extends PieceDetache {
 
-    private Integer qteReelle;
-    private Integer stockAtelier;
-    private Integer stockMagasin;
-    private Double prix;
-    private Integer seuilMinimum;
+    private Double qteReelle;
+    private Double seuilMinimum;
 
     @jakarta.persistence.PrePersist
     @jakarta.persistence.PreUpdate
     protected void calculateQteReelle() {
-        this.stockAtelier = this.stockAtelier == null ? 0 : this.stockAtelier;
-        this.stockMagasin = this.stockMagasin == null ? 0 : this.stockMagasin;
-        this.qteReelle = this.stockAtelier + this.stockMagasin;
+        this.setStockAtelier(this.getStockAtelier() == null ? 0.0 : this.getStockAtelier());
+        this.setStockMagasin(this.getStockMagasin() == null ? 0.0 : this.getStockMagasin());
+        this.qteReelle = this.getStockAtelier() + this.getStockMagasin();
+        // this.setQuantite(this.qteReelle); // Keep PieceDetache quantite in sync (field removed)
     }
 }

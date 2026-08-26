@@ -79,13 +79,14 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
         }
 
         if (request.reference() != null) piece.setReference(request.reference());
-        if (request.categorie() != null) piece.setCategorie(request.categorie());
+        if (request.categorie() != null) piece.setDesignation(request.categorie());
         if (request.pourcentage() != null) piece.setPourcentage(request.pourcentage());
         if (request.statut() != null) piece.setStatut(request.statut());
 
         if (piece instanceof PDP pdp) {
-            if (request.prix() != null) pdp.setPrix(request.prix());
+            if (request.prix() != null) pdp.setPrixUnitaire(request.prix());
             if (request.seuilMinimum() != null) pdp.setSeuilMinimum(request.seuilMinimum());
+            if (request.stockMagasin() != null) pdp.setStockMagasin(request.stockMagasin().doubleValue());
         }
 
 
@@ -130,18 +131,18 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
 
         return switch (request.type()) {
             case PDP -> {
-                int stockMagasin = request.stockMagasin();
+                Double stockMagasin = request.stockMagasin() != null ? request.stockMagasin() : 0.0;
                 yield PDP.builder()
                         .numero(numero)
                         .numeroDeSerie(request.numeroDeSerie())
                         .reference(request.reference())
-                        .categorie(request.categorie())
+                        .designation(request.categorie())
                         .pourcentage(request.pourcentage())
                         .statut(statut)
-                        .stockAtelier(0)
+                        .stockAtelier(0.0)
                         .stockMagasin(stockMagasin)
                         .qteReelle(stockMagasin)
-                        .prix(request.prix())
+                        .prixUnitaire(request.prix())
                         .seuilMinimum(request.seuilMinimum())
                         .build();
             }
@@ -149,7 +150,7 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
                     .numero(numero)
                     .numeroDeSerie(request.numeroDeSerie())
                     .reference(request.reference())
-                    .categorie(request.categorie())
+                    .designation(request.categorie())
                     .pourcentage(request.pourcentage())
                     .statut(statut)
                     .build();
@@ -157,7 +158,7 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
                     .numero(numero)
                     .numeroDeSerie(request.numeroDeSerie())
                     .reference(request.reference())
-                    .categorie(request.categorie())
+                    .designation(request.categorie())
                     .pourcentage(request.pourcentage())
                     .statut(statut)
                     .build();

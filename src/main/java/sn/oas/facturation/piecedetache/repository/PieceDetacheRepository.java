@@ -22,6 +22,6 @@ public interface PieceDetacheRepository extends JpaRepository<PieceDetache, Long
     @Query("SELECT p FROM PieceDetache p WHERE " +
             "LOWER(p.numeroDeSerie) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(p.reference) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(p.categorie) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+            "LOWER(p.designation) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<PieceDetache> searchPieces(@Param("keyword") String keyword);
 }

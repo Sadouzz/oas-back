@@ -6,12 +6,12 @@ public record InventaireResponse(
         Long pieceId,
         String numeroDeSerie,
         String reference,
-        Integer stockMagasinTheorique,
-        Integer stockAtelierTheorique,
-        Integer stockMagasinPhysique,
-        Integer stockAtelierPhysique,
-        Integer ecartMagasin,
-        Integer ecartAtelier,
+        Double stockMagasinTheorique,
+        Double stockAtelierTheorique,
+        Double stockMagasinPhysique,
+        Double stockAtelierPhysique,
+        Double ecartMagasin,
+        Double ecartAtelier,
         boolean ajuste,
         StockMouvement mouvement
 ) {}
