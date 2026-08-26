@@ -16,10 +16,10 @@ public class LigneBonDeCommandeRequest {
     private TypePiece typePiece;
 
     // PDP ou PDG à créer
-    private String numeroDeSerie;
     private String reference;
+    private String designation;
     private String categorie;
-    private Double pourcentage;
+    // private Double pourcentage;
 
     // Cas PDS
     private String designationPds;

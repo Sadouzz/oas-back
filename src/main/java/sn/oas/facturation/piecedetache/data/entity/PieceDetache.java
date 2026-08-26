@@ -50,21 +50,30 @@ public abstract class PieceDetache implements TenantAware {
     private String numero;
 
     @Column(name = "numero_serie", nullable = false, unique = true)
-    private String numeroDeSerie;
-
-    @Column(nullable = false)
     private String reference;
+
+    @Column(name = "reference", nullable = false, columnDefinition = "varchar(255) default 'N/A'")
+    @lombok.Builder.Default
+    private String legacyReference = "N/A";
+
+    @Column(columnDefinition = "varchar(255) default 'N/A'", nullable = false)
+    private String designation;
 
     @Column(nullable = false)
     private String categorie;
 
-    @Column(nullable = false)
-    private Double pourcentage;
+    @Column(nullable = false, columnDefinition = "double precision default 0.0")
+    @lombok.Builder.Default
+    private Double pourcentage = 0.0;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     @lombok.Builder.Default
     private StatutPiece statut = StatutPiece.ACTIF;
+
+    @Transient
+    @lombok.Builder.Default
+    private boolean estUtilise = false;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     @lombok.Builder.Default

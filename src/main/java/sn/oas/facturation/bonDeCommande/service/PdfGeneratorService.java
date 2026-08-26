@@ -72,7 +72,7 @@ public class PdfGeneratorService {
             // Lignes
             for (LigneBonDeCommandePiece ligne : bonDeCommande.getLignes()) {
                 String designation = ligne.getPieceDetachee() != null ? ligne.getPieceDetachee().getCategorie() : ligne.getDesignationPds();
-                String reference = ligne.getPieceDetachee() != null ? ligne.getPieceDetachee().getReference() : ligne.getReferencePds();
+                String reference = ligne.getPieceDetachee() != null ? ligne.getPieceDetachee().getDesignation() : ligne.getReferencePds();
                 
                 table.addCell(new Phrase(designation != null ? designation : "", fontNormal));
                 table.addCell(new Phrase(reference != null ? reference : "", fontNormal));

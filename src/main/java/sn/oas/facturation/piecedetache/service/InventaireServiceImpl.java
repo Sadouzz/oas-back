@@ -40,7 +40,7 @@ public class InventaireServiceImpl implements InventaireService {
 
         if (!aUnEcart) {
             return new InventaireResponse(
-                    pdp.getId(), pdp.getNumeroDeSerie(), pdp.getReference(),
+                    pdp.getId(), pdp.getReference(), pdp.getDesignation(),
                     magasinTheorique, atelierTheorique,
                     request.stockMagasinPhysique(), request.stockAtelierPhysique(),
                     0, 0, false, null
@@ -68,7 +68,7 @@ public class InventaireServiceImpl implements InventaireService {
                 .build());
 
         return new InventaireResponse(
-                pdp.getId(), pdp.getNumeroDeSerie(), pdp.getReference(),
+                pdp.getId(), pdp.getReference(), pdp.getDesignation(),
                 magasinTheorique, atelierTheorique,
                 request.stockMagasinPhysique(), request.stockAtelierPhysique(),
                 ecartMagasin, ecartAtelier, true, mouvement

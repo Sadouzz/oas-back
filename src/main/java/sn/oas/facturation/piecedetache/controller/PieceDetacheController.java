@@ -8,7 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sn.oas.facturation.piecedetache.data.entity.PieceDetache;
-import sn.oas.facturation.piecedetache.data.enums.StatutPiece;
+
 import sn.oas.facturation.piecedetache.data.enums.TypePiece;
 import sn.oas.facturation.piecedetache.dto.PieceDetacheRequest;
 import sn.oas.facturation.piecedetache.service.PieceDetacheService;
@@ -27,15 +27,11 @@ public class PieceDetacheController {
     @ApiResponse(responseCode = "200", description = "Liste retournée avec succès")
     @GetMapping
     public ResponseEntity<List<PieceDetache>> list(
-            @RequestParam(required = false) StatutPiece statut,
             @RequestParam(required = false) TypePiece type,
             @RequestParam(required = false) String keyword) {
 
         if (keyword != null && !keyword.trim().isEmpty()) {
             return ResponseEntity.ok(pieceDetacheService.searchPieces(keyword.trim()));
-        }
-        if (statut != null) {
-            return ResponseEntity.ok(pieceDetacheService.filterByStatut(statut));
         }
         if (type != null) {
             return ResponseEntity.ok(pieceDetacheService.filterByType(type));
@@ -94,9 +90,25 @@ public class PieceDetacheController {
     public ResponseEntity<?> delete(@PathVariable Long id) {
         try {
             pieceDetacheService.delete(id);
-            return ResponseEntity.ok("Pièce détachée supprimée avec succès !");
+            return ResponseEntity.ok(java.util.Map.of("message", "Pièce détachée supprimée avec succès !"));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            e.printStackTrace(); // Pour voir l'erreur dans la console backend
+            return ResponseEntity.badRequest()
+                    .body(java.util.Map.of("message", e.getMessage() != null ? e.getMessage() : e.toString()));
+        }
+    }
+
+    @Operation(summary = "Restaurer une pièce archivée")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Pièce restaurée"),
+            @ApiResponse(responseCode = "400", description = "Pièce introuvable")
+    })
+    @PutMapping("/{id}/restore")
+    public ResponseEntity<?> restore(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(pieceDetacheService.restore(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("message", e.getMessage()));
         }
     }
 }

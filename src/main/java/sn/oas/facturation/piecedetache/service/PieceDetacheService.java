@@ -11,8 +11,6 @@ public interface PieceDetacheService {
 
     List<PieceDetache> getAllPieces();
 
-    List<PieceDetache> filterByStatut(StatutPiece statut);
-
     List<PieceDetache> filterByType(TypePiece type);
 
     List<PieceDetache> searchPieces(String keyword);
@@ -24,4 +22,6 @@ public interface PieceDetacheService {
     PieceDetache update(Long id, PieceDetacheRequest request);
 
     void delete(Long id);
+
+    PieceDetache restore(Long id);
 }

@@ -57,8 +57,8 @@ public class AlerteServiceImpl implements AlerteService {
 
         return Optional.of(new AlerteStockResponse(
                 pdp.getId(),
-                pdp.getNumeroDeSerie(),
                 pdp.getReference(),
+                pdp.getDesignation(),
                 pdp.getCategorie(),
                 pdp.getStockMagasin(),
                 pdp.getStockAtelier(),

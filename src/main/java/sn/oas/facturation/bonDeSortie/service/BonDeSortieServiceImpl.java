@@ -122,7 +122,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
             int stockMagasinDisponible = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0;
             if (stockMagasinDisponible < quantite) {
                 throw new IllegalArgumentException(
-                        "Stock magasin insuffisant pour la pièce " + pdp.getReference()
+                        "Stock magasin insuffisant pour la pièce " + pdp.getDesignation()
                         + ". Disponible : " + stockMagasinDisponible + ", demandé : " + quantite);
             }
 

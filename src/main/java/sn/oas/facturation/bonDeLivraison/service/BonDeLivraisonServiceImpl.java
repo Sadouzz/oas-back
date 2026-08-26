@@ -166,7 +166,7 @@ public class BonDeLivraisonServiceImpl implements BonDeLivraisonService {
                 }
 
                 for (LigneFacturationPiece ligne : bl.getLignesFacturationPieces()) {
-                    String ref = ligne.getPiece() != null ? ligne.getPiece().getReference() : "N/A";
+                    String ref = ligne.getPiece() != null ? ligne.getPiece().getDesignation() : "N/A";
                     tablePieces.addCell(new Phrase(ref, fontTexte));
                     tablePieces.addCell(new Phrase(String.valueOf(ligne.getQuantite()), fontTexte));
                     tablePieces.addCell(new Phrase(String.valueOf(ligne.getPrix()), fontTexte));
@@ -246,7 +246,7 @@ public class BonDeLivraisonServiceImpl implements BonDeLivraisonService {
                 .lignesPieces(bl.getLignesFacturationPieces().stream().map(ligne -> LigneFacturationPieceResponse.builder()
                         .id(ligne.getId())
                         .pieceId(ligne.getPiece() != null ? ligne.getPiece().getId() : null)
-                        .designationPiece(ligne.getPiece() != null ? ligne.getPiece().getReference() : null)
+                        .designationPiece(ligne.getPiece() != null ? ligne.getPiece().getDesignation() : null)
                         .quantite(ligne.getQuantite())
                         .prix(ligne.getPrix())
                         .montantTotal(ligne.getQuantite() * ligne.getPrix())

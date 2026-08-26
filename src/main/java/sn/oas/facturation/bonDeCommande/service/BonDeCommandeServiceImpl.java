@@ -143,17 +143,17 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
         } else if (ligneReq.getTypePiece() != null) {
             if (ligneReq.getTypePiece() == TypePiece.PDS) {
                 ligne.setDesignationPds(ligneReq.getDesignationPds());
-                ligne.setReferencePds(ligneReq.getReference());
+                ligne.setReferencePds(ligneReq.getDesignation());
                 ligne.setCategoriePds(ligneReq.getCategorie());
             } else {
                 PieceDetache nouvellePiece;
                 if (ligneReq.getTypePiece() == TypePiece.PDP) {
                     nouvellePiece = PDP.builder()
-                            .numeroDeSerie(ligneReq.getNumeroDeSerie())
                             .reference(ligneReq.getReference())
+                            .designation(ligneReq.getDesignation())
                             .categorie(ligneReq.getCategorie())
-                            .pourcentage(ligneReq.getPourcentage() != null ? ligneReq.getPourcentage() : 0.0)
-                            .statut(StatutPiece.ACTIF)
+                            // .pourcentage(ligneReq.getPourcentage() != null ? ligneReq.getPourcentage() : 0.0)
+                            // .statut(StatutPiece.ACTIF)
 
                             .prix(ligneReq.getPrixUnitaire())
                             .qteReelle(0)
@@ -163,11 +163,11 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                             .build();
                 } else {
                     nouvellePiece = PDG.builder()
-                            .numeroDeSerie(ligneReq.getNumeroDeSerie())
                             .reference(ligneReq.getReference())
+                            .designation(ligneReq.getDesignation())
                             .categorie(ligneReq.getCategorie())
-                            .pourcentage(ligneReq.getPourcentage() != null ? ligneReq.getPourcentage() : 0.0)
-                            .statut(StatutPiece.ACTIF)
+                            // .pourcentage(ligneReq.getPourcentage() != null ? ligneReq.getPourcentage() : 0.0)
+                            // .statut(StatutPiece.ACTIF)
 
                             .build();
                 }
@@ -571,7 +571,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                         .id(ligne.getId())
                         .pieceDetacheeId(ligne.getPieceDetachee() != null ? ligne.getPieceDetachee().getId() : null)
                         .designationPiece(ligne.getPieceDetachee() != null ? ligne.getPieceDetachee().getCategorie() : ligne.getDesignationPds())
-                        .reference(ligne.getPieceDetachee() != null ? ligne.getPieceDetachee().getReference() : ligne.getReferencePds())
+                        .reference(ligne.getPieceDetachee() != null ? ligne.getPieceDetachee().getDesignation() : ligne.getReferencePds())
                         .categorie(ligne.getPieceDetachee() != null ? ligne.getPieceDetachee().getCategorie() : ligne.getCategoriePds())
                         .quantite(ligne.getQuantite())
                         .quantiteRecue(ligne.getQuantiteRecue())

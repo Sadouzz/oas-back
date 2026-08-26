@@ -30,15 +30,13 @@ class PieceDetacheServiceTest {
     void create_pdg_savesSuccessfully() {
         PieceDetacheRequest request = new PieceDetacheRequest(
                 TypePiece.PDG,
-                "SN-PDG-001",
                 "REF-001",
                 "Moteur",
-                10.0,
-                StatutPiece.ACTIF,
+                "Moteur",
                 null, null, null
         );
 
-        when(pieceDetacheRepository.existsByNumeroDeSerie("SN-PDG-001")).thenReturn(false);
+        when(pieceDetacheRepository.existsByReference("REF-001")).thenReturn(false);
         when(pieceDetacheRepository.save(any(PDG.class))).thenAnswer(invocation -> {
             PDG saved = invocation.getArgument(0);
             saved.setId(1L);
@@ -48,23 +46,21 @@ class PieceDetacheServiceTest {
         var result = pieceDetacheService.create(request);
 
         assertNotNull(result);
-        assertEquals("SN-PDG-001", result.getNumeroDeSerie());
+        assertEquals("REF-001", result.getReference());
         verify(pieceDetacheRepository).save(any(PDG.class));
     }
 
     @Test
-    void create_duplicateNumeroDeSerie_throwsIllegalArgumentException() {
+    void create_duplicateReference_throwsIllegalArgumentException() {
         PieceDetacheRequest request = new PieceDetacheRequest(
                 TypePiece.PDS,
-                "SN-DUP",
                 "REF-002",
                 "Carrosserie",
-                5.0,
-                StatutPiece.ACTIF,
+                "Carrosserie",
                 null, null, null
         );
 
-        when(pieceDetacheRepository.existsByNumeroDeSerie("SN-DUP")).thenReturn(true);
+        when(pieceDetacheRepository.existsByReference("REF-002")).thenReturn(true);
 
         assertThrows(IllegalArgumentException.class, () -> pieceDetacheService.create(request));
         verify(pieceDetacheRepository, never()).save(any());

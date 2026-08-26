@@ -5,11 +5,11 @@ import sn.oas.facturation.piecedetache.data.enums.TypePiece;
 
 public record PieceDetacheRequest(
         TypePiece type,
-        String numeroDeSerie,
         String reference,
+        String designation,
         String categorie,
-        Double pourcentage,
-        StatutPiece statut,
+        // Double pourcentage,
+        // StatutPiece statut,
         Integer stockMagasin,
         Double prix,
         Integer seuilMinimum

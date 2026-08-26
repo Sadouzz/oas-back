@@ -193,7 +193,7 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
                         .map(lp -> LigneFacturationPieceResponse.builder()
                                 .id(lp.getId())
                                 .pieceId(lp.getPiece() != null ? lp.getPiece().getId() : null)
-                                .designationPiece(lp.getPiece() != null ? lp.getPiece().getReference() : "Pièce inconnue")
+                                .designationPiece(lp.getPiece() != null ? lp.getPiece().getDesignation() : "Pièce inconnue")
                                 .quantite(lp.getQuantite())
                                 .prix(lp.getPrix())
                                 .montantTotal(lp.getPrix() * lp.getQuantite())

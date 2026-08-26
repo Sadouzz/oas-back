@@ -534,7 +534,7 @@ public class ProformaServiceImpl implements ProformaService {
                 }
 
                 for (LigneFacturationPiece ligne : p.getLignesFacturationPieces()) {
-                    String ref = ligne.getPiece() != null ? ligne.getPiece().getReference() : "N/A";
+                    String ref = ligne.getPiece() != null ? ligne.getPiece().getDesignation() : "N/A";
                     tablePieces.addCell(new Phrase(ref, fontTexte));
                     tablePieces.addCell(new Phrase(String.valueOf(ligne.getQuantite()), fontTexte));
                     tablePieces.addCell(new Phrase(String.valueOf(ligne.getPrix()), fontTexte));
@@ -736,7 +736,7 @@ public class ProformaServiceImpl implements ProformaService {
                         .map(lp -> LigneFacturationPieceResponse.builder()
                                 .id(lp.getId())
                                 .pieceId(lp.getPiece() != null ? lp.getPiece().getId() : null)
-                                .designationPiece(lp.getPiece() != null ? lp.getPiece().getReference() : null)
+                                .designationPiece(lp.getPiece() != null ? lp.getPiece().getDesignation() : null)
                                 .quantite(lp.getQuantite())
                                 .prix(lp.getPrix())
                                 .montantTotal(lp.getQuantite() * lp.getPrix())
@@ -784,7 +784,7 @@ public class ProformaServiceImpl implements ProformaService {
                         .map(lp -> LigneFacturationPieceResponse.builder()
                                 .id(lp.getId())
                                 .pieceId(lp.getPiece() != null ? lp.getPiece().getId() : null)
-                                .designationPiece(lp.getPiece() != null ? lp.getPiece().getReference() : null)
+                                .designationPiece(lp.getPiece() != null ? lp.getPiece().getDesignation() : null)
                                 .quantite(lp.getQuantite())
                                 .prix(lp.getPrix())
                                 .montantTotal(lp.getQuantite() * lp.getPrix())
