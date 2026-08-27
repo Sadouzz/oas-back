@@ -22,6 +22,7 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
 
     private final PieceDetacheRepository pieceDetacheRepository;
     private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
+    private final sn.oas.facturation.piecedetache.repository.CategorieRepository categorieRepository;
 
 
     @Override
@@ -91,13 +92,11 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
         }
 
         if (request.designation() != null) piece.setDesignation(request.designation());
-        if (request.categorie() != null) piece.setCategorie(request.categorie());
-        // if (request.pourcentage() != null) piece.setPourcentage(request.pourcentage());
-        // if (request.statut() != null) piece.setStatut(request.statut());
-
+        if (request.categorie() != null) piece.setCategorie(categorieRepository.findByNom(request.categorie()).orElse(null));
         if (piece instanceof PDP pdp) {
-            if (request.prix() != null) pdp.setPrix(request.prix());
+            if (request.prix() != null) pdp.setPrixUnitaire(request.prix());
             if (request.seuilMinimum() != null) pdp.setSeuilMinimum(request.seuilMinimum());
+            if (request.stockMagasin() != null) pdp.setStockMagasin(request.stockMagasin().doubleValue());
         }
 
 
@@ -160,18 +159,16 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
 
         return switch (request.type()) {
             case PDP -> {
-                int stockMagasin = request.stockMagasin();
+                Double stockMagasin = request.stockMagasin() != null ? request.stockMagasin() : 0.0;
                 yield PDP.builder()
                         .numero(numero)
                         .reference(request.reference())
                         .designation(request.designation())
-                        .categorie(request.categorie())
-                        // .pourcentage(request.pourcentage())
-                        // .statut(statut)
-                        .stockAtelier(0)
+                        .categorie(request.categorie() != null ? categorieRepository.findByNom(request.categorie()).orElse(null) : null)
+                        .stockAtelier(0.0)
                         .stockMagasin(stockMagasin)
                         .qteReelle(stockMagasin)
-                        .prix(request.prix())
+                        .prixUnitaire(request.prix())
                         .seuilMinimum(request.seuilMinimum())
                         .build();
             }
@@ -179,17 +176,13 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
                     .numero(numero)
                     .reference(request.reference())
                     .designation(request.designation())
-                    .categorie(request.categorie())
-                    // .pourcentage(request.pourcentage())
-                    // .statut(statut)
+                    .categorie(request.categorie() != null ? categorieRepository.findByNom(request.categorie()).orElse(null) : null)
                     .build();
             case PDS -> PDS.builder()
                     .numero(numero)
                     .reference(request.reference())
                     .designation(request.designation())
-                    .categorie(request.categorie())
-                    // .pourcentage(request.pourcentage())
-                    // .statut(statut)
+                    .categorie(request.categorie() != null ? categorieRepository.findByNom(request.categorie()).orElse(null) : null)
                     .build();
         };
     }

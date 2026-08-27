@@ -8,9 +8,7 @@ public record PieceDetacheRequest(
         String reference,
         String designation,
         String categorie,
-        // Double pourcentage,
-        // StatutPiece statut,
         Integer stockMagasin,
         Double prix,
-        Integer seuilMinimum
+        Double seuilMinimum
 ) {}

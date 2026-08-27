@@ -2,7 +2,7 @@ package sn.oas.facturation.piecedetache.dto;
 
 public record InventaireRequest(
         Long pieceId,
-        Integer stockMagasinPhysique,
-        Integer stockAtelierPhysique,
+        Double stockMagasinPhysique,
+        Double stockAtelierPhysique,
         String motif
 ) {}

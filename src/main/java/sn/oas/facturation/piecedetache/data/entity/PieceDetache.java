@@ -11,6 +11,8 @@ import java.time.LocalDateTime;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -32,6 +34,8 @@ import sn.oas.facturation.piecedetache.data.enums.TypePiece;
 @EntityListeners(TenantListener.class)
 @FilterDef(name = "garageFilter", parameters = @ParamDef(name = "garageId", type = Long.class))
 @Filter(name = "garageFilter", condition = "garage_id = :garageId")
+@SQLDelete(sql = "UPDATE pieces_detachees SET deleted = true WHERE id=?")
+@SQLRestriction("deleted = false")
 public abstract class PieceDetache implements TenantAware {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -52,15 +56,34 @@ public abstract class PieceDetache implements TenantAware {
     @Column(name = "numero_serie", nullable = false, unique = true)
     private String reference;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "categorie_id")
+    private Categorie categorie;
+
     @Column(name = "reference", nullable = false, columnDefinition = "varchar(255) default 'N/A'")
     @lombok.Builder.Default
     private String legacyReference = "N/A";
 
     @Column(columnDefinition = "varchar(255) default 'N/A'", nullable = false)
     private String designation;
+    
+    @Column(name = "prix_gros")
+    private Double prixGros;
+
+    @Column(name = "prix_unitaire")
+    private Double prixUnitaire;
+    
+    @Column(name = "stock_magasin")
+    @lombok.Builder.Default
+    private Double stockMagasin = 0.0;
+    
+    @Column(name = "stock_atelier")
+    @lombok.Builder.Default
+    private Double stockAtelier = 0.0;
 
     @Column(nullable = false)
-    private String categorie;
+    @lombok.Builder.Default
+    private Boolean deleted = false;
 
     @Column(nullable = false, columnDefinition = "double precision default 0.0")
     @lombok.Builder.Default

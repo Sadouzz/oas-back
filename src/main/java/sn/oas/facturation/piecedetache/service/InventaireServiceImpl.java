@@ -31,24 +31,24 @@ public class InventaireServiceImpl implements InventaireService {
         PDP pdp = getPDP(request.pieceId());
         validerRequest(request);
 
-        int magasinTheorique = pdp.getStockMagasin();
-        int atelierTheorique = pdp.getStockAtelier();
-        int ecartMagasin = request.stockMagasinPhysique() - magasinTheorique;
-        int ecartAtelier = request.stockAtelierPhysique() - atelierTheorique;
+        Double stockMagasin = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0.0;
+        Double stockAtelier = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0.0;
+        Double ecartMagasin = request.stockMagasinPhysique() - stockMagasin;
+        Double ecartAtelier = request.stockAtelierPhysique() - stockAtelier;
 
         boolean aUnEcart = ecartMagasin != 0 || ecartAtelier != 0;
 
         if (!aUnEcart) {
             return new InventaireResponse(
                     pdp.getId(), pdp.getReference(), pdp.getDesignation(),
-                    magasinTheorique, atelierTheorique,
+                    stockMagasin, stockAtelier,
                     request.stockMagasinPhysique(), request.stockAtelierPhysique(),
-                    0, 0, false, null
+                    0.0, 0.0, false, (StockMouvement) null
             );
         }
 
         Agent agent = getAgentConnecte();
-        int quantite = Math.abs(ecartMagasin) + Math.abs(ecartAtelier);
+        Double quantite = Math.abs(ecartMagasin) + Math.abs(ecartAtelier);
 
         pdp.setStockMagasin(request.stockMagasinPhysique());
         pdp.setStockAtelier(request.stockAtelierPhysique());
@@ -58,8 +58,8 @@ public class InventaireServiceImpl implements InventaireService {
         StockMouvement mouvement = stockMouvementRepository.save(StockMouvement.builder()
                 .type(TypeMouvement.INVENTAIRE)
                 .quantite(quantite)
-                .stockMagasinAvant(magasinTheorique)
-                .stockAtelierAvant(atelierTheorique)
+                .stockMagasinAvant(stockMagasin)
+                .stockAtelierAvant(stockAtelier)
                 .stockMagasinApres(request.stockMagasinPhysique())
                 .stockAtelierApres(request.stockAtelierPhysique())
                 .motif(request.motif())
@@ -69,7 +69,7 @@ public class InventaireServiceImpl implements InventaireService {
 
         return new InventaireResponse(
                 pdp.getId(), pdp.getReference(), pdp.getDesignation(),
-                magasinTheorique, atelierTheorique,
+                stockMagasin, stockAtelier,
                 request.stockMagasinPhysique(), request.stockAtelierPhysique(),
                 ecartMagasin, ecartAtelier, true, mouvement
         );

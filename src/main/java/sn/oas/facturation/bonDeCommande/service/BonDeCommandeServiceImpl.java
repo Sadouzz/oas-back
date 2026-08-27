@@ -58,6 +58,8 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
     private final sn.oas.facturation.bonDeSortie.service.BonDeSortieService bonDeSortieService;
     private final sn.oas.facturation.proforma.repository.ProformaRepository proformaRepository;
     private final PdfGeneratorService pdfGeneratorService;
+
+    private final sn.oas.facturation.piecedetache.repository.CategorieRepository categorieRepository;
     private final UserRepository userRepository;
     private final BonDeLivraisonRepository bonDeLivraisonRepository;
     private final StockService stockService;
@@ -151,23 +153,19 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                     nouvellePiece = PDP.builder()
                             .reference(ligneReq.getReference())
                             .designation(ligneReq.getDesignation())
-                            .categorie(ligneReq.getCategorie())
-                            // .pourcentage(ligneReq.getPourcentage() != null ? ligneReq.getPourcentage() : 0.0)
-                            // .statut(StatutPiece.ACTIF)
+                            .categorie(ligneReq.getCategorie() != null ? categorieRepository.findByNom(ligneReq.getCategorie()).orElse(null) : null)
 
-                            .prix(ligneReq.getPrixUnitaire())
-                            .qteReelle(0)
-                            .stockAtelier(0)
-                            .stockMagasin(0)
-                            .seuilMinimum(1)
+                            .prixUnitaire(ligneReq.getPrixUnitaire())
+                            .qteReelle(0.0)
+                            .stockAtelier(0.0)
+                            .stockMagasin(0.0)
+                            .seuilMinimum(1.0)
                             .build();
                 } else {
                     nouvellePiece = PDG.builder()
                             .reference(ligneReq.getReference())
                             .designation(ligneReq.getDesignation())
-                            .categorie(ligneReq.getCategorie())
-                            // .pourcentage(ligneReq.getPourcentage() != null ? ligneReq.getPourcentage() : 0.0)
-                            // .statut(StatutPiece.ACTIF)
+                            .categorie(ligneReq.getCategorie() != null ? categorieRepository.findByNom(ligneReq.getCategorie()).orElse(null) : null)
 
                             .build();
                 }
@@ -317,13 +315,13 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                             piece = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
                         }
                         if (piece instanceof PDP pdp) {
-                            int stockAtelier = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0;
-                            int stockMagasin = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0;
-                            int manquantAtelier = Math.max(0, lp.getQuantite() - stockAtelier);
-                            int aSortirMagasin = Math.min(manquantAtelier, stockMagasin);
+                            Double stockAtelier = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0.0;
+                            Double stockMagasin = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0.0;
+                            Double manquantAtelier = Math.max(0.0, lp.getQuantite() - stockAtelier);
+                            Double aSortirMagasin = Math.min(manquantAtelier, stockMagasin);
                             
                             if (aSortirMagasin > 0) {
-                                lignesPieces.add(new sn.oas.facturation.bonDeSortie.dto.LignePieceRequest(pdp.getId(), aSortirMagasin));
+                                lignesPieces.add(new sn.oas.facturation.bonDeSortie.dto.LignePieceRequest(pdp.getId(), aSortirMagasin.intValue()));
                             }
                         }
                     }
@@ -461,12 +459,12 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                             piece = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
                         }
                         if (piece instanceof PDP pdp) {
-                            int stockAtelier = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0;
-                            int stockMagasin = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0;
-                            int manquantAtelier = Math.max(0, lp.getQuantite() - stockAtelier);
-                            int aSortirMagasin = Math.min(manquantAtelier, stockMagasin);
+                            Double stockAtelier = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0.0;
+                            Double stockMagasin = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0.0;
+                            Double manquantAtelier = Math.max(0.0, lp.getQuantite() - stockAtelier);
+                            Double aSortirMagasin = Math.min(manquantAtelier, stockMagasin);
                             if (aSortirMagasin > 0) {
-                                lignesPieces.add(new sn.oas.facturation.bonDeSortie.dto.LignePieceRequest(pdp.getId(), aSortirMagasin));
+                                lignesPieces.add(new sn.oas.facturation.bonDeSortie.dto.LignePieceRequest(pdp.getId(), aSortirMagasin.intValue()));
                             }
                         }
                     }
@@ -570,9 +568,9 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                 .lignes(bc.getLignes().stream().map(ligne -> LigneBonDeCommandeResponse.builder()
                         .id(ligne.getId())
                         .pieceDetacheeId(ligne.getPieceDetachee() != null ? ligne.getPieceDetachee().getId() : null)
-                        .designationPiece(ligne.getPieceDetachee() != null ? ligne.getPieceDetachee().getCategorie() : ligne.getDesignationPds())
-                        .reference(ligne.getPieceDetachee() != null ? ligne.getPieceDetachee().getDesignation() : ligne.getReferencePds())
-                        .categorie(ligne.getPieceDetachee() != null ? ligne.getPieceDetachee().getCategorie() : ligne.getCategoriePds())
+                        .designationPiece(ligne.getPieceDetachee() != null ? ligne.getPieceDetachee().getDesignation() : ligne.getDesignationPds())
+                        .reference(ligne.getPieceDetachee() != null ? ligne.getPieceDetachee().getReference() : ligne.getReferencePds())
+                        .categorie(ligne.getPieceDetachee() != null && ligne.getPieceDetachee().getCategorie() != null ? ligne.getPieceDetachee().getCategorie().getNom() : ligne.getCategoriePds())
                         .quantite(ligne.getQuantite())
                         .quantiteRecue(ligne.getQuantiteRecue())
                         .prixUnitaire(ligne.getPrixUnitaire().doubleValue())

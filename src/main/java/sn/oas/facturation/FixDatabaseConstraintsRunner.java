@@ -40,6 +40,20 @@ public class FixDatabaseConstraintsRunner implements CommandLineRunner {
             log.warn("Impossible de supprimer la contrainte users_type_check sur la table users : {}", e.getMessage());
         }
 
+        try {
+            jdbcTemplate.execute("UPDATE pieces_detachees SET prix_unitaire = prix WHERE prix IS NOT NULL AND prix_unitaire IS NULL");
+            log.info("Valeurs de prix transférées vers prix_unitaire avec succès.");
+        } catch (Exception e) {
+            log.warn("Impossible de transférer les valeurs de prix : {}", e.getMessage());
+        }
+
+        try {
+            jdbcTemplate.execute("ALTER TABLE pieces_detachees ALTER COLUMN categorie DROP NOT NULL");
+            log.info("Contrainte NOT NULL supprimée sur la colonne categorie de pieces_detachees.");
+        } catch (Exception e) {
+            log.warn("Impossible de supprimer la contrainte NOT NULL sur categorie : {}", e.getMessage());
+        }
+
         // --- NEW FIX: DROP OBSOLETE FOREIGN KEYS TO mecaniciens TABLE ---
         try {
             // Delete bad data that prevents foreign key creation

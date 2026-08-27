@@ -76,12 +76,12 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                     throw new IllegalArgumentException(
                             "La quantité doit être supérieure à zéro pour la pièce id=" + ligneReq.pieceId());
                 }
-                Integer prixPiece = (pdp.getPrix() != null) ? pdp.getPrix().intValue() : 0;
+                Double prixPiece = pdp.getPrixUnitaire() != null ? pdp.getPrixUnitaire() : 0.0;
                 LigneBonDeSortiePiece ligne = LigneBonDeSortiePiece.builder()
                         .bonDeSortie(bon)
                         .piece(pdp)
                         .quantite(ligneReq.quantite())
-                        .prix(prixPiece)
+                        .prix(prixPiece.intValue())
                         .build();
                 bon.getLignesBonDeSortiePieces().add(ligne);
             }
@@ -117,17 +117,17 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
 
         for (LigneBonDeSortiePiece ligne : bon.getLignesBonDeSortiePieces()) {
             PDP pdp = ligne.getPiece();
-            int quantite = ligne.getQuantite();
+            double quantite = (double) ligne.getQuantite();
 
-            int stockMagasinDisponible = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0;
+            Double stockMagasinDisponible = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0.0;
             if (stockMagasinDisponible < quantite) {
                 throw new IllegalArgumentException(
                         "Stock magasin insuffisant pour la pièce " + pdp.getDesignation()
                         + ". Disponible : " + stockMagasinDisponible + ", demandé : " + quantite);
             }
 
-            int magasinAvant = stockMagasinDisponible;
-            int atelierAvant = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0;
+            Double magasinAvant = stockMagasinDisponible;
+            Double atelierAvant = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0.0;
 
             pdp.setStockMagasin(magasinAvant - quantite);
             pdp.setStockAtelier(atelierAvant + quantite);
@@ -135,7 +135,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
             pieceDetacheRepository.save(pdp);
 
             stockMouvementRepository.save(StockMouvement.builder()
-                    .type(TypeMouvement.SORTIE)
+                    .type(TypeMouvement.SORTIE_MAGASIN_VERS_ATELIER)
                     .quantite(quantite)
                     .stockMagasinAvant(magasinAvant)
                     .stockAtelierAvant(atelierAvant)

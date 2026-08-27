@@ -16,7 +16,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class AlerteServiceImpl implements AlerteService {
 
-    private static final int SEUIL_GLOBAL = 10;
+    private static final Double SEUIL_GLOBAL = 10.0;
 
     private final PieceDetacheRepository pieceDetacheRepository;
 
@@ -44,7 +44,7 @@ public class AlerteServiceImpl implements AlerteService {
     }
 
     private Optional<AlerteStockResponse> evaluer(PDP pdp) {
-        int seuil = pdp.getSeuilMinimum() != null ? pdp.getSeuilMinimum() : SEUIL_GLOBAL;
+        Double seuil = pdp.getSeuilMinimum() != null ? pdp.getSeuilMinimum() : SEUIL_GLOBAL;
 
         TypeAlerte type;
         if (pdp.getStockMagasin() == 0) {
@@ -59,7 +59,7 @@ public class AlerteServiceImpl implements AlerteService {
                 pdp.getId(),
                 pdp.getReference(),
                 pdp.getDesignation(),
-                pdp.getCategorie(),
+                pdp.getCategorie() != null ? pdp.getCategorie().getNom() : null,
                 pdp.getStockMagasin(),
                 pdp.getStockAtelier(),
                 pdp.getQteReelle(),
