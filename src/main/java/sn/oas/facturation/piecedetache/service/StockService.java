@@ -21,5 +21,5 @@ public interface StockService {
 
     List<StockMouvement> getHistoriquePieceByType(Long pieceId, TypeMouvement type);
 
-    List<StockMouvement> getHistoriqueGlobal(LocalDateTime debut, LocalDateTime fin);
+    List<StockMouvement> getHistoriqueGlobal(LocalDateTime debut, LocalDateTime fin, Long pieceId, String categorie, TypeMouvement type);
 }

@@ -144,8 +144,8 @@ public class StockServiceImpl implements StockService {
     }
 
     @Override
-    public List<StockMouvement> getHistoriqueGlobal(LocalDateTime debut, LocalDateTime fin) {
-        return stockMouvementRepository.findByDateOperationBetweenOrderByDateOperationDesc(debut, fin);
+    public List<StockMouvement> getHistoriqueGlobal(LocalDateTime debut, LocalDateTime fin, Long pieceId, String categorie, TypeMouvement type) {
+        return stockMouvementRepository.findFiltered(debut, fin, pieceId, categorie, type);
     }
 
     private PDP getPDP(Long pieceId) {

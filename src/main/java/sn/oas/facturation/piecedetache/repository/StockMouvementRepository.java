@@ -22,6 +22,18 @@ public interface StockMouvementRepository extends JpaRepository<StockMouvement, 
 
     List<StockMouvement> findByPieceAndDateOperationBetweenOrderByDateOperationDesc(PDP piece, LocalDateTime debut, LocalDateTime fin);
 
+    @Query("SELECT s FROM StockMouvement s WHERE s.dateOperation BETWEEN :debut AND :fin " +
+           "AND (:pieceId IS NULL OR s.piece.id = :pieceId) " +
+           "AND (:categorie IS NULL OR s.piece.categorie = :categorie) " +
+           "AND (:type IS NULL OR s.type = :type) " +
+           "ORDER BY s.dateOperation DESC")
+    List<StockMouvement> findFiltered(
+            @Param("debut") LocalDateTime debut,
+            @Param("fin") LocalDateTime fin,
+            @Param("pieceId") Long pieceId,
+            @Param("categorie") String categorie,
+            @Param("type") TypeMouvement type);
+
     @Query("SELECT s FROM StockMouvement s WHERE LOWER(s.motif) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<StockMouvement> searchMouvements(@Param("keyword") String keyword);
 }

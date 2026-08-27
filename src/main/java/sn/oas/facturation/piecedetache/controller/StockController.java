@@ -71,13 +71,16 @@ public class StockController {
         return ResponseEntity.ok(stockService.getHistoriquePiece(pieceId));
     }
 
-    @Operation(summary = "Historique global des mouvements", description = "Retourne tous les mouvements de stock sur une période donnée (format ISO : 2026-01-01T00:00:00).")
+    @Operation(summary = "Historique global des mouvements", description = "Retourne tous les mouvements de stock sur une période donnée (format ISO : 2026-01-01T00:00:00), avec possibilité de filtrer par pièce, catégorie ou type de mouvement.")
     @ApiResponse(responseCode = "200", description = "Historique retourné")
     @GetMapping("/historique")
     public ResponseEntity<List<StockMouvement>> historiqueGlobal(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime debut,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fin) {
-        return ResponseEntity.ok(stockService.getHistoriqueGlobal(debut, fin));
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fin,
+            @RequestParam(required = false) Long pieceId,
+            @RequestParam(required = false) String categorie,
+            @RequestParam(required = false) TypeMouvement type) {
+        return ResponseEntity.ok(stockService.getHistoriqueGlobal(debut, fin, pieceId, categorie, type));
     }
 
     @Operation(summary = "Toutes les alertes", description = "Retourne les PDP en rupture de stock (stockMagasin = 0) et en stock faible (stockMagasin ≤ seuil).")
