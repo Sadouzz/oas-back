@@ -10,8 +10,8 @@ public class DropConstraint {
         
         try (Connection conn = DriverManager.getConnection(url, user, password);
              Statement stmt = conn.createStatement()) {
-            stmt.execute("ALTER TABLE document_sequences DROP CONSTRAINT IF EXISTS document_sequences_document_type_check;");
-            System.out.println("Constraint document_sequences_document_type_check dropped successfully.");
+            stmt.execute("ALTER TABLE stock_mouvements DROP CONSTRAINT IF EXISTS stock_mouvements_type_check;");
+            System.out.println("Constraint stock_mouvements_type_check dropped successfully.");
         } catch (Exception e) {
             e.printStackTrace();
         }
