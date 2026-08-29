@@ -131,4 +131,8 @@ public abstract class PieceDetache implements TenantAware {
             this.type = TypePiece.PDS;
         }
     }
+
+    public String getNumeroDeSerie() {
+        return this.reference;
+    }
 }

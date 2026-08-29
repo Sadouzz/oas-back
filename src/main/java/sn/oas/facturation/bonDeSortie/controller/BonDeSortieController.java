@@ -53,6 +53,24 @@ public class BonDeSortieController {
         return ResponseEntity.ok(bonDeSortieService.getById(id));
     }
 
+    @Operation(summary = "Retourner une pièce d'un bon de sortie non validé", description = "Retire la pièce du bon de sortie et recrédite le stock magasin.")
+    @PutMapping("/{id}/retour-piece/{pieceId}")
+    public ResponseEntity<BonDeSortie> retournerPiece(@PathVariable Long id, @PathVariable Long pieceId) {
+        return ResponseEntity.ok(bonDeSortieService.retournerPiece(id, pieceId));
+    }
+
+    @Operation(summary = "Obtenir l'historique d'un bon de sortie", description = "Retourne la liste chronologique des événements (SORTIE, SORTIE ATELIER, RETOUR) sur ce bon.")
+    @GetMapping("/{id}/historique")
+    public ResponseEntity<List<sn.oas.facturation.bonDeSortie.data.entity.BonDeSortieHistorique>> getHistorique(@PathVariable Long id) {
+        return ResponseEntity.ok(bonDeSortieService.getHistorique(id));
+    }
+
+    @Operation(summary = "Obtenir l'historique global de tous les bons de sortie", description = "Retourne la liste chronologique de tous les mouvements sur l'ensemble des bons de sortie.")
+    @GetMapping("/historique-global")
+    public ResponseEntity<List<sn.oas.facturation.bonDeSortie.data.entity.BonDeSortieHistorique>> getAllHistorique() {
+        return ResponseEntity.ok(bonDeSortieService.getAllHistorique());
+    }
+
     @Operation(summary = "Lister les bons de sortie", description = "Retourne tous les bons. Filtrable par statut (EN_ATTENTE/VALIDE), clientId ou vehiculeId.")
     @ApiResponse(responseCode = "200", description = "Liste retournée")
     @GetMapping

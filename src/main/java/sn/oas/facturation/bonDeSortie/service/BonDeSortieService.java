@@ -21,4 +21,10 @@ public interface BonDeSortieService {
     List<BonDeSortie> getByClient(Long clientId);
 
     List<BonDeSortie> getByVehicule(Long vehiculeId);
+
+    BonDeSortie retournerPiece(Long id, Long pieceId);
+
+    List<sn.oas.facturation.bonDeSortie.data.entity.BonDeSortieHistorique> getHistorique(Long id);
+
+    List<sn.oas.facturation.bonDeSortie.data.entity.BonDeSortieHistorique> getAllHistorique();
 }

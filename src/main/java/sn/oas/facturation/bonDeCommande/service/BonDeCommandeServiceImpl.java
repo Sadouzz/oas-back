@@ -290,12 +290,15 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
             if (piece != null) {
                 piece = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
                 if (piece instanceof PDP pdp) {
-                    pdp.setQteReelle((pdp.getQteReelle() != null ? pdp.getQteReelle() : 0) + ligne.getQuantite());
-                    pdp.setStockMagasin((pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0) + ligne.getQuantite());
+                    EntreeStockRequest entreeReq = new EntreeStockRequest(
+                            pdp.getId(),
+                            ligne.getQuantite(),
+                            "Réception totale BC " + bonDeCommande.getNumero()
+                    );
+                    stockService.entree(entreeReq);
                 } else if (piece instanceof PDG pdg) {
-                    // Les pièces de type PDG (Pièce Détachée Générique) ne gèrent pas le stock ici
+                    // Les pièces de type PDG ne gèrent pas le stock ici
                 }
-                pieceDetacheRepository.save(piece);
             }
         }
         

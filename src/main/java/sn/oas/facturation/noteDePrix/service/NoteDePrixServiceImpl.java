@@ -34,6 +34,7 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
     private final PDPRepository pdpRepository;
     private final MainDoeuvreRepository mainDoeuvreRepository;
     private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
+    private final sn.oas.facturation.piecedetache.repository.StockMouvementRepository stockMouvementRepository;
 
     @Override
     @Transactional
@@ -96,6 +97,35 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
         note.setMontantTotal(montantTotalHT);
 
         NoteDePrix saved = noteDePrixRepository.save(note);
+
+        // Mouvement de stock : La Note de prix diminue le stock réel (SORTIE RÉELLE)
+        for (LigneFacturationPiece lfp : saved.getLignesFacturationPieces()) {
+            if (lfp.getPiece() != null && lfp.getPiece() instanceof PDP pdp) {
+                double qteReelleAvant = pdp.getQteReelle() != null ? pdp.getQteReelle() : (pdp.getStockMagasin() + pdp.getStockAtelier());
+                pdp.setQteReelle(Math.max(0.0, qteReelleAvant - lfp.getQuantite()));
+                pdpRepository.save(pdp);
+
+                stockMouvementRepository.save(sn.oas.facturation.piecedetache.data.entity.StockMouvement.builder()
+                        .type(sn.oas.facturation.piecedetache.data.enums.TypeMouvement.SORTIE_REELLE)
+                        .quantite((double) lfp.getQuantite())
+                        .stockMagasinAvant(pdp.getStockMagasin())
+                        .stockAtelierAvant(pdp.getStockAtelier())
+                        .stockMagasinApres(pdp.getStockMagasin())
+                        .stockAtelierApres(pdp.getStockAtelier())
+                        .stockReelApres(pdp.getQteReelle())
+                        .prenom(saved.getClient() != null ? saved.getClient().getFirstName() : "")
+                        .nom(saved.getClient() != null ? saved.getClient().getLastName() : "")
+                        .numDocument(saved.getNumero())
+                        .typeDocument("Note de prix")
+                        .numeroSerie(pdp.getReference())
+                        .immatriculation(saved.getVehicule() != null ? saved.getVehicule().getImmatriculation() : "")
+                        .motif("Note de prix " + saved.getNumero())
+                        .piece(pdp)
+                        .garage(saved.getGarage())
+                        .build());
+            }
+        }
+
         return mapToResponse(saved);
     }
 

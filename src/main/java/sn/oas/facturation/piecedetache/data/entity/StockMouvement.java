@@ -56,6 +56,24 @@ public class StockMouvement implements TenantAware {
     @Column(name = "stock_atelier_apres", nullable = false)
     private Double stockAtelierApres;
 
+    @Column(name = "stock_reel_apres")
+    private Double stockReelApres;
+
+    private String prenom;
+
+    private String nom;
+
+    @Column(name = "num_document")
+    private String numDocument;
+
+    @Column(name = "type_document")
+    private String typeDocument;
+
+    @Column(name = "numero_serie")
+    private String numeroSerie;
+
+    private String immatriculation;
+
     private String motif;
 
     @Column(name = "date_operation", nullable = false, updatable = false)

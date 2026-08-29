@@ -25,7 +25,8 @@ public class PDP extends PieceDetache {
     protected void calculateQteReelle() {
         this.setStockAtelier(this.getStockAtelier() == null ? 0.0 : this.getStockAtelier());
         this.setStockMagasin(this.getStockMagasin() == null ? 0.0 : this.getStockMagasin());
-        this.qteReelle = this.getStockAtelier() + this.getStockMagasin();
-        // this.setQuantite(this.qteReelle); // Keep PieceDetache quantite in sync (field removed)
+        if (this.qteReelle == null) {
+            this.qteReelle = this.getStockAtelier() + this.getStockMagasin();
+        }
     }
 }

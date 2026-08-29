@@ -53,6 +53,8 @@ public class FactureServiceImpl implements FactureService {
     private final UserRepository userRepository;
     private final AgentNotificationService agentNotificationService;
     private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
+    private final sn.oas.facturation.piecedetache.repository.PieceDetacheRepository pieceDetacheRepository;
+    private final sn.oas.facturation.piecedetache.repository.StockMouvementRepository stockMouvementRepository;
 
     @Override
     @Transactional
@@ -134,6 +136,38 @@ public class FactureServiceImpl implements FactureService {
 
         facture = factureRepository.save(facture);
 
+        // Mouvement de stock : La facture diminue le stock réel (SORTIE RÉELLE)
+        for (LigneFacturationPiece lfp : facture.getLignesFacturationPieces()) {
+            if (lfp.getPiece() != null) {
+                sn.oas.facturation.piecedetache.data.entity.PieceDetache p = (sn.oas.facturation.piecedetache.data.entity.PieceDetache) org.hibernate.Hibernate.unproxy(lfp.getPiece());
+                if (p instanceof sn.oas.facturation.piecedetache.data.entity.PDP pdp) {
+                    double qteReelleAvant = pdp.getQteReelle() != null ? pdp.getQteReelle() : (pdp.getStockMagasin() + pdp.getStockAtelier());
+                    pdp.setQteReelle(Math.max(0.0, qteReelleAvant - lfp.getQuantite()));
+                    pieceDetacheRepository.save(pdp);
+
+                    stockMouvementRepository.save(sn.oas.facturation.piecedetache.data.entity.StockMouvement.builder()
+                            .type(sn.oas.facturation.piecedetache.data.enums.TypeMouvement.SORTIE_REELLE)
+                            .quantite((double) lfp.getQuantite())
+                            .stockMagasinAvant(pdp.getStockMagasin())
+                            .stockAtelierAvant(pdp.getStockAtelier())
+                            .stockMagasinApres(pdp.getStockMagasin())
+                            .stockAtelierApres(pdp.getStockAtelier())
+                            .stockReelApres(pdp.getQteReelle())
+                            .prenom(facture.getClient() != null ? facture.getClient().getFirstName() : "")
+                            .nom(facture.getClient() != null ? facture.getClient().getLastName() : "")
+                            .numDocument(facture.getNumero())
+                            .typeDocument("Facture")
+                            .numeroSerie(pdp.getReference())
+                            .immatriculation(facture.getVehicule() != null ? facture.getVehicule().getImmatriculation() : "")
+                            .motif("Facture " + facture.getNumero())
+                            .piece(pdp)
+                            .agent(agent)
+                            .garage(facture.getGarage())
+                            .build());
+                }
+            }
+        }
+
         // Update OrdreReparation status to EN_ATTENTE_PAIEMENT
         if (ordreReparation != null && ordreReparation.getStatut() != sn.oas.facturation.ordreReparation.data.enums.StatutOrdreReparation.EN_ATTENTE_PAIEMENT) {
             ordreReparation.setStatut(sn.oas.facturation.ordreReparation.data.enums.StatutOrdreReparation.EN_ATTENTE_PAIEMENT);
@@ -164,6 +198,7 @@ public class FactureServiceImpl implements FactureService {
                 .vehicule(vehicule)
                 .ordreReparation(ordreReparation)
                 .agent(null)
+                .garage(ordreReparation.getGarage())
                 .kilometrage(vehicule != null && vehicule.getKilometrage() != null ? vehicule.getKilometrage() : 0.0)
                 .remarque("Facture générée automatiquement depuis la Fiche Atelier " + ordreReparation.getNumero())
                 .build();
@@ -207,10 +242,36 @@ public class FactureServiceImpl implements FactureService {
 
         facture = factureRepository.save(facture);
 
-        // Update OrdreReparation status to EN_ATTENTE_PAIEMENT
-        // REMOVED: Since the facture is generated automatically when the Bon de Sortie is validated, 
-        // the repair hasn't even started yet! The Fiche Atelier must go to EN_ATTENTE_MECANICIEN (Step 7).
-        // It will only transition to payment later when the repair is done.
+        // Mouvement de stock : La facture diminue le stock réel (SORTIE RÉELLE)
+        for (LigneFacturationPiece lfp : facture.getLignesFacturationPieces()) {
+            if (lfp.getPiece() != null) {
+                sn.oas.facturation.piecedetache.data.entity.PieceDetache p = (sn.oas.facturation.piecedetache.data.entity.PieceDetache) org.hibernate.Hibernate.unproxy(lfp.getPiece());
+                if (p instanceof sn.oas.facturation.piecedetache.data.entity.PDP pdp) {
+                    double qteReelleAvant = pdp.getQteReelle() != null ? pdp.getQteReelle() : (pdp.getStockMagasin() + pdp.getStockAtelier());
+                    pdp.setQteReelle(Math.max(0.0, qteReelleAvant - lfp.getQuantite()));
+                    pieceDetacheRepository.save(pdp);
+
+                    stockMouvementRepository.save(sn.oas.facturation.piecedetache.data.entity.StockMouvement.builder()
+                            .type(sn.oas.facturation.piecedetache.data.enums.TypeMouvement.SORTIE_REELLE)
+                            .quantite((double) lfp.getQuantite())
+                            .stockMagasinAvant(pdp.getStockMagasin())
+                            .stockAtelierAvant(pdp.getStockAtelier())
+                            .stockMagasinApres(pdp.getStockMagasin())
+                            .stockAtelierApres(pdp.getStockAtelier())
+                            .stockReelApres(pdp.getQteReelle())
+                            .prenom(facture.getClient() != null ? facture.getClient().getFirstName() : "")
+                            .nom(facture.getClient() != null ? facture.getClient().getLastName() : "")
+                            .numDocument(facture.getNumero())
+                            .typeDocument("Facture")
+                            .numeroSerie(pdp.getReference())
+                            .immatriculation(facture.getVehicule() != null ? facture.getVehicule().getImmatriculation() : "")
+                            .motif("Facture auto " + facture.getNumero())
+                            .piece(pdp)
+                            .garage(facture.getGarage())
+                            .build());
+                }
+            }
+        }
 
         agentNotificationService.notifyRole(Role.AGENT, 
             "Nouvelle Facture Auto", 

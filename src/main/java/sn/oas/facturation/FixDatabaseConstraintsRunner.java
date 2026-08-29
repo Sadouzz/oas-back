@@ -41,6 +41,13 @@ public class FixDatabaseConstraintsRunner implements CommandLineRunner {
         }
 
         try {
+            jdbcTemplate.execute("ALTER TABLE stock_mouvements DROP CONSTRAINT IF EXISTS stock_mouvements_type_check");
+            log.info("Contrainte stock_mouvements_type_check supprimée avec succès sur stock_mouvements");
+        } catch (Exception e) {
+            log.warn("Impossible de supprimer la contrainte stock_mouvements_type_check : {}", e.getMessage());
+        }
+
+        try {
             jdbcTemplate.execute("UPDATE pieces_detachees SET prix_unitaire = prix WHERE prix IS NOT NULL AND prix_unitaire IS NULL");
             log.info("Valeurs de prix transférées vers prix_unitaire avec succès.");
         } catch (Exception e) {
