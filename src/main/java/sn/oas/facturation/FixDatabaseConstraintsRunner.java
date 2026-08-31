@@ -19,7 +19,15 @@ public class FixDatabaseConstraintsRunner implements CommandLineRunner {
     @Override
     public void run(String... args) {
         log.info("--- Vérification et correction des contraintes CHECK dans la base de données ---");
-        String[] tables = {"proformas", "factures", "avoirs_ht", "avoirs_ttc", "bons_de_livraison", "notes_de_prix", "ordres_reparation", "bons_de_sortie"};
+
+        try {
+            jdbcTemplate.execute("ALTER TABLE IF EXISTS bons_de_livraison RENAME TO bons_de_reception");
+            log.info("Table bons_de_livraison renommée en bons_de_reception avec succès");
+        } catch (Exception e) {
+            log.warn("Impossible de renommer la table bons_de_livraison en bons_de_reception : {}", e.getMessage());
+        }
+
+        String[] tables = {"proformas", "factures", "avoirs_ht", "avoirs_ttc", "bons_de_reception", "notes_de_prix", "ordres_reparation", "bons_de_sortie"};
         
         for (String table : tables) {
             try {

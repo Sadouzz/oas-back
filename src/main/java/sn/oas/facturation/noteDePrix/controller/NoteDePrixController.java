@@ -12,7 +12,7 @@ import sn.oas.facturation.noteDePrix.service.NoteDePrixService;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/notes-prix")
+@RequestMapping({"/api/notes-prix", "/api/notes-de-prix"})
 @RequiredArgsConstructor
 @Tag(name = "Notes de Prix", description = "API pour la gestion des notes de prix (Factures HT)")
 public class NoteDePrixController {

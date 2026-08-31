@@ -259,14 +259,15 @@ public class FactureServiceImpl implements FactureService {
                             .stockMagasinApres(pdp.getStockMagasin())
                             .stockAtelierApres(pdp.getStockAtelier())
                             .stockReelApres(pdp.getQteReelle())
-                            .prenom(facture.getClient() != null ? facture.getClient().getFirstName() : "")
-                            .nom(facture.getClient() != null ? facture.getClient().getLastName() : "")
+                            .prenom(facture.getAgent() != null ? facture.getAgent().getFirstName() : "")
+                            .nom(facture.getAgent() != null ? facture.getAgent().getLastName() : "")
                             .numDocument(facture.getNumero())
                             .typeDocument("Facture")
                             .numeroSerie(pdp.getReference())
                             .immatriculation(facture.getVehicule() != null ? facture.getVehicule().getImmatriculation() : "")
                             .motif("Facture auto " + facture.getNumero())
                             .piece(pdp)
+                            .agent(facture.getAgent())
                             .garage(facture.getGarage())
                             .build());
                 }

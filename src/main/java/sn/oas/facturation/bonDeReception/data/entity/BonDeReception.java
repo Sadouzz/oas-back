@@ -1,4 +1,4 @@
-package sn.oas.facturation.bonDeLivraison.data.entity;
+package sn.oas.facturation.bonDeReception.data.entity;
 
 import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
@@ -15,11 +15,11 @@ import lombok.experimental.SuperBuilder;
 import sn.oas.facturation.facturation.data.entity.FactureTTC;
 
 @Entity
-@Table(name = "bons_de_livraison")
+@Table(name = "bons_de_reception")
 @Data
 @NoArgsConstructor
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
-public class BonDeLivraison extends FactureTTC {
+public class BonDeReception extends FactureTTC {
 
 }

@@ -6,7 +6,8 @@ public enum DocumentType {
     PF,  // Proforma
     BS,  // Bon de Sortie
     BC,  // Bon de Commande
-    BL,  // Bon de Livraison
+    BR,  // Bon de Réception
+    BL,  // Bon de Réception (alias)
     RC,  // Reçu
     AH,  // Avoir HT
     AT,  // Avoir TTC

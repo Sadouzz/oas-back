@@ -14,9 +14,12 @@ public interface AvoirTTCRepository extends JpaRepository<AvoirTTC, Long> {
     @Query("SELECT a FROM AvoirTTC a WHERE " +
             "LOWER(a.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(a.remarque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(a.vehicule.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(a.vehicule.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(a.vehicule.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(a.client.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(a.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(a.ordreReparation.vehicule.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(a.ordreReparation.vehicule.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(a.ordreReparation.vehicule.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(a.ordreReparation.vehicule.client.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(a.ordreReparation.vehicule.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<AvoirTTC> searchAvoirsTTC(@Param("keyword") String keyword);

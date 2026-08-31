@@ -112,8 +112,8 @@ class FacturationApplicationTests {
 		);
 
 		// 2. Execute reception
-		sn.oas.facturation.bonDeCommande.dto.BonDeLivraisonRequest request = new sn.oas.facturation.bonDeCommande.dto.BonDeLivraisonRequest();
-		sn.oas.facturation.bonDeCommande.dto.BonDeLivraisonRequest.LigneLivraison ligne = new sn.oas.facturation.bonDeCommande.dto.BonDeLivraisonRequest.LigneLivraison();
+		sn.oas.facturation.bonDeCommande.dto.ReceptionBonDeCommandeRequest request = new sn.oas.facturation.bonDeCommande.dto.ReceptionBonDeCommandeRequest();
+		sn.oas.facturation.bonDeCommande.dto.ReceptionBonDeCommandeRequest.LigneReception ligne = new sn.oas.facturation.bonDeCommande.dto.ReceptionBonDeCommandeRequest.LigneReception();
 		ligne.setLigneId(16L); // ligne_bon_de_commande id for piece_id=1
 		ligne.setQuantiteRecue(210); // user requested: "j'avais commandé 210 articles... stock devait devenir 240"
 		request.setLignes(java.util.List.of(ligne));

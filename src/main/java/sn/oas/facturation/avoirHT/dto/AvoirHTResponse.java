@@ -17,6 +17,7 @@ public class AvoirHTResponse {
     private LocalDateTime dateCreation;
     private LocalDateTime dateModification;
     private BigDecimal montantHT;
+    private BigDecimal montantTotal;
     
     private Long agentId;
     private String agentNom;

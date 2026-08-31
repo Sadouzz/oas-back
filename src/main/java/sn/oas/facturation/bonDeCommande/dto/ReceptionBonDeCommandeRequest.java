@@ -5,12 +5,12 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-public class BonDeLivraisonRequest {
+public class ReceptionBonDeCommandeRequest {
 
-    private List<LigneLivraison> lignes;
+    private List<LigneReception> lignes;
 
     @Data
-    public static class LigneLivraison {
+    public static class LigneReception {
         private Long ligneId;
         private Integer quantiteRecue;
     }

@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import sn.oas.facturation.avoirHT.dto.AvoirHTCreateRequest;
 import sn.oas.facturation.avoirHT.dto.AvoirHTResponse;
 import sn.oas.facturation.avoirHT.service.AvoirHTService;
 
@@ -20,6 +21,12 @@ import java.util.List;
 public class AvoirHTController {
 
     private final AvoirHTService avoirHTService;
+
+    @PostMapping
+    @Operation(summary = "Créer un avoir HT")
+    public ResponseEntity<AvoirHTResponse> create(@RequestBody AvoirHTCreateRequest request) {
+        return new ResponseEntity<>(avoirHTService.create(request), HttpStatus.CREATED);
+    }
 
     @GetMapping("/{id}")
     @Operation(summary = "Récupérer un avoir HT par son ID")

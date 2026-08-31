@@ -1,17 +1,17 @@
-package sn.oas.facturation.bonDeLivraison.repository;
+package sn.oas.facturation.bonDeReception.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import sn.oas.facturation.bonDeLivraison.data.entity.BonDeLivraison;
+import sn.oas.facturation.bonDeReception.data.entity.BonDeReception;
 
 import java.util.List;
 
 @Repository
-public interface BonDeLivraisonRepository extends JpaRepository<BonDeLivraison, Long> {
+public interface BonDeReceptionRepository extends JpaRepository<BonDeReception, Long> {
 
-    @Query("SELECT b FROM BonDeLivraison b WHERE " +
+    @Query("SELECT b FROM BonDeReception b WHERE " +
             "LOWER(b.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(b.remarque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(b.ordreReparation.vehicule.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
@@ -19,7 +19,7 @@ public interface BonDeLivraisonRepository extends JpaRepository<BonDeLivraison, 
             "LOWER(b.ordreReparation.vehicule.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(b.ordreReparation.vehicule.client.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(b.ordreReparation.vehicule.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
-    List<BonDeLivraison> searchBonsDeLivraison(@Param("keyword") String keyword);
+    List<BonDeReception> searchBonsDeReception(@Param("keyword") String keyword);
     
-    List<BonDeLivraison> findTop5ByOrderByDateCreationDesc();
+    List<BonDeReception> findTop5ByOrderByDateCreationDesc();
 }

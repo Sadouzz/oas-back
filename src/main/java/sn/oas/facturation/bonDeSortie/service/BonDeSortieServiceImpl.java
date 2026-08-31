@@ -24,7 +24,8 @@ import sn.oas.facturation.bonDeSortie.repository.BonDeSortieRepository;
 import sn.oas.facturation.piecedetache.repository.PieceDetacheRepository;
 import sn.oas.facturation.piecedetache.repository.StockMouvementRepository;
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
-import sn.oas.facturation.vehicule.repository.VehiculeRepository;import sn.oas.facturation.ordreReparation.data.entity.OrdreReparation;
+import sn.oas.facturation.vehicule.repository.VehiculeRepository;
+import sn.oas.facturation.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.ordreReparation.data.enums.StatutOrdreReparation;
 import sn.oas.facturation.ordreReparation.repository.OrdreReparationRepository;
 import sn.oas.facturation.notification.service.AgentNotificationService;
@@ -90,11 +91,12 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
 
         if (request.ordreReparationId() != null) {
             OrdreReparation fiche = ordreReparationRepository.findById(request.ordreReparationId())
-                .orElseThrow(() -> new IllegalArgumentException("Fiche atelier introuvable"));
+                    .orElseThrow(() -> new IllegalArgumentException("Fiche atelier introuvable"));
             bon.setOrdreReparation(fiche);
         }
 
-        // Mouvement de stock à la création du BS : stockMagasin diminue, stockAtelier augmente, qteReelle inchangée
+        // Mouvement de stock à la création du BS : stockMagasin diminue, stockAtelier
+        // augmente, qteReelle inchangée
         if (bon.getLignesBonDeSortiePieces() != null) {
             for (LigneBonDeSortiePiece ligne : bon.getLignesBonDeSortiePieces()) {
                 PDP pdp = ligne.getPiece();
@@ -104,7 +106,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                 if (stockMagasinDisponible < quantite) {
                     throw new IllegalArgumentException(
                             "Stock magasin insuffisant pour la pièce " + pdp.getDesignation()
-                            + ". Disponible : " + stockMagasinDisponible + ", demandé : " + quantite);
+                                    + ". Disponible : " + stockMagasinDisponible + ", demandé : " + quantite);
                 }
 
                 Double magasinAvant = stockMagasinDisponible;
@@ -122,8 +124,8 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                         .stockMagasinApres(pdp.getStockMagasin())
                         .stockAtelierApres(pdp.getStockAtelier())
                         .stockReelApres(pdp.getQteReelle())
-                        .prenom(bon.getClient() != null ? bon.getClient().getFirstName() : (agentEmetteur != null ? agentEmetteur.getFirstName() : ""))
-                        .nom(bon.getClient() != null ? bon.getClient().getLastName() : (agentEmetteur != null ? agentEmetteur.getLastName() : ""))
+                        .prenom(agentEmetteur != null ? agentEmetteur.getFirstName() : "")
+                        .nom(agentEmetteur != null ? agentEmetteur.getLastName() : "")
                         .numDocument(bon.getReference())
                         .typeDocument("Bon de sortie")
                         .numeroSerie(pdp.getReference())
@@ -142,15 +144,16 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
         if (saved.getLignesBonDeSortiePieces() != null && !saved.getLignesBonDeSortiePieces().isEmpty()) {
             for (LigneBonDeSortiePiece ligne : saved.getLignesBonDeSortiePieces()) {
                 PDP pdp = ligne.getPiece();
-                bonDeSortieHistoriqueRepository.save(sn.oas.facturation.bonDeSortie.data.entity.BonDeSortieHistorique.builder()
+                bonDeSortieHistoriqueRepository.save(sn.oas.facturation.bonDeSortie.data.entity.BonDeSortieHistorique
+                        .builder()
                         .bonDeSortie(saved)
                         .piece(pdp)
                         .quantite((double) ligne.getQuantite())
                         .stockMagasin(pdp.getStockMagasin())
                         .stockAtelier(pdp.getStockAtelier())
                         .qteReelle(pdp.getQteReelle())
-                        .prenom(saved.getClient() != null ? saved.getClient().getFirstName() : (agentEmetteur != null ? agentEmetteur.getFirstName() : ""))
-                        .nom(saved.getClient() != null ? saved.getClient().getLastName() : (agentEmetteur != null ? agentEmetteur.getLastName() : ""))
+                        .prenom(agentEmetteur != null ? agentEmetteur.getFirstName() : "")
+                        .nom(agentEmetteur != null ? agentEmetteur.getLastName() : "")
                         .numBs(saved.getReference())
                         .numeroSerie(pdp != null ? pdp.getReference() : "")
                         .immatriculation(saved.getVehicule() != null ? saved.getVehicule().getImmatriculation() : "")
@@ -162,10 +165,11 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                         .build());
             }
         } else {
-            bonDeSortieHistoriqueRepository.save(sn.oas.facturation.bonDeSortie.data.entity.BonDeSortieHistorique.builder()
+            bonDeSortieHistoriqueRepository.save(sn.oas.facturation.bonDeSortie.data.entity.BonDeSortieHistorique
+                    .builder()
                     .bonDeSortie(saved)
-                    .prenom(saved.getClient() != null ? saved.getClient().getFirstName() : (agentEmetteur != null ? agentEmetteur.getFirstName() : ""))
-                    .nom(saved.getClient() != null ? saved.getClient().getLastName() : (agentEmetteur != null ? agentEmetteur.getLastName() : ""))
+                    .prenom(agentEmetteur != null ? agentEmetteur.getFirstName() : "")
+                    .nom(agentEmetteur != null ? agentEmetteur.getLastName() : "")
                     .numBs(saved.getReference())
                     .immatriculation(saved.getVehicule() != null ? saved.getVehicule().getImmatriculation() : "")
                     .statut("SORTIE")
@@ -179,9 +183,10 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
             OrdreReparation fiche = saved.getOrdreReparation();
             fiche.setBonDeSortie(saved);
             ordreReparationRepository.save(fiche);
-            agentNotificationService.notifyRole(Role.AGENT_MAGASIN, 
-                    "Nouveau Bon de Sortie", 
-                    "Le bon de sortie " + saved.getReference() + " est en attente de validation pour la fiche " + fiche.getNumero());
+            agentNotificationService.notifyRole(Role.AGENT_MAGASIN,
+                    "Nouveau Bon de Sortie",
+                    "Le bon de sortie " + saved.getReference() + " est en attente de validation pour la fiche "
+                            + fiche.getNumero());
         }
         return saved;
     }
@@ -196,7 +201,8 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
             throw new IllegalStateException("Le bon de sortie " + bon.getReference() + " est déjà validé");
         }
 
-        // A la validation du BS : stockAtelier diminue (la pièce va sur le véhicule), qteReelle reste le même
+        // A la validation du BS : stockAtelier diminue (la pièce va sur le véhicule),
+        // qteReelle reste le même
         for (LigneBonDeSortiePiece ligne : bon.getLignesBonDeSortiePieces()) {
             PDP pdp = ligne.getPiece();
             double quantite = (double) ligne.getQuantite();
@@ -215,8 +221,8 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                     .stockMagasinApres(pdp.getStockMagasin())
                     .stockAtelierApres(pdp.getStockAtelier())
                     .stockReelApres(pdp.getQteReelle())
-                    .prenom(bon.getClient() != null ? bon.getClient().getFirstName() : (agentValidateur != null ? agentValidateur.getFirstName() : ""))
-                    .nom(bon.getClient() != null ? bon.getClient().getLastName() : (agentValidateur != null ? agentValidateur.getLastName() : ""))
+                    .prenom(agentValidateur != null ? agentValidateur.getFirstName() : "")
+                    .nom(agentValidateur != null ? agentValidateur.getLastName() : "")
                     .numDocument(bon.getReference())
                     .typeDocument("Bon de sortie")
                     .numeroSerie(pdp.getReference())
@@ -236,15 +242,16 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
         if (bon.getLignesBonDeSortiePieces() != null && !bon.getLignesBonDeSortiePieces().isEmpty()) {
             for (LigneBonDeSortiePiece ligne : bon.getLignesBonDeSortiePieces()) {
                 PDP pdp = ligne.getPiece();
-                bonDeSortieHistoriqueRepository.save(sn.oas.facturation.bonDeSortie.data.entity.BonDeSortieHistorique.builder()
+                bonDeSortieHistoriqueRepository.save(sn.oas.facturation.bonDeSortie.data.entity.BonDeSortieHistorique
+                        .builder()
                         .bonDeSortie(bon)
                         .piece(pdp)
                         .quantite((double) ligne.getQuantite())
                         .stockMagasin(pdp.getStockMagasin())
                         .stockAtelier(pdp.getStockAtelier())
                         .qteReelle(pdp.getQteReelle())
-                        .prenom(bon.getClient() != null ? bon.getClient().getFirstName() : (agentValidateur != null ? agentValidateur.getFirstName() : ""))
-                        .nom(bon.getClient() != null ? bon.getClient().getLastName() : (agentValidateur != null ? agentValidateur.getLastName() : ""))
+                        .prenom(agentValidateur != null ? agentValidateur.getFirstName() : "")
+                        .nom(agentValidateur != null ? agentValidateur.getLastName() : "")
                         .numBs(bon.getReference())
                         .numeroSerie(pdp != null ? pdp.getReference() : "")
                         .immatriculation(bon.getVehicule() != null ? bon.getVehicule().getImmatriculation() : "")
@@ -256,32 +263,34 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                         .build());
             }
         } else {
-            bonDeSortieHistoriqueRepository.save(sn.oas.facturation.bonDeSortie.data.entity.BonDeSortieHistorique.builder()
-                    .bonDeSortie(bon)
-                    .prenom(bon.getClient() != null ? bon.getClient().getFirstName() : (agentValidateur != null ? agentValidateur.getFirstName() : ""))
-                    .nom(bon.getClient() != null ? bon.getClient().getLastName() : (agentValidateur != null ? agentValidateur.getLastName() : ""))
-                    .numBs(bon.getReference())
-                    .immatriculation(bon.getVehicule() != null ? bon.getVehicule().getImmatriculation() : "")
-                    .statut("SORTIE ATELIER")
-                    .motif("Validation du bon de sortie " + bon.getReference())
-                    .agent(agentValidateur)
-                    .garage(bon.getGarage())
-                    .build());
+            bonDeSortieHistoriqueRepository
+                    .save(sn.oas.facturation.bonDeSortie.data.entity.BonDeSortieHistorique.builder()
+                            .bonDeSortie(bon)
+                            .prenom(agentValidateur != null ? agentValidateur.getFirstName() : "")
+                            .nom(agentValidateur != null ? agentValidateur.getLastName() : "")
+                            .numBs(bon.getReference())
+                            .immatriculation(bon.getVehicule() != null ? bon.getVehicule().getImmatriculation() : "")
+                            .statut("SORTIE ATELIER")
+                            .motif("Validation du bon de sortie " + bon.getReference())
+                            .agent(agentValidateur)
+                            .garage(bon.getGarage())
+                            .build());
         }
-        
+
         if (bon.getOrdreReparation() != null) {
             OrdreReparation fiche = bon.getOrdreReparation();
             // Advancing the status if it's in one of the states waiting for parts
-            if (fiche.getStatut() == StatutOrdreReparation.EN_ATTENTE_SORTIE || 
-                fiche.getStatut() == StatutOrdreReparation.PROFORMA_VALIDE || 
-                fiche.getStatut() == StatutOrdreReparation.EN_ATTENTE_COMMANDE) {
-                
+            if (fiche.getStatut() == StatutOrdreReparation.EN_ATTENTE_SORTIE ||
+                    fiche.getStatut() == StatutOrdreReparation.PROFORMA_VALIDE ||
+                    fiche.getStatut() == StatutOrdreReparation.EN_ATTENTE_COMMANDE) {
+
                 fiche.setStatut(StatutOrdreReparation.EN_ATTENTE_MECANICIEN);
-                agentNotificationService.notifyRole(Role.CHEF_ATELIER, 
-                    "Mécanicien à assigner", 
-                    "Le bon de sortie " + bon.getReference() + " a été validé. La fiche " + fiche.getNumero() + " est prête. Veuillez assigner les mécaniciens finaux.");
+                agentNotificationService.notifyRole(Role.CHEF_ATELIER,
+                        "Mécanicien à assigner",
+                        "Le bon de sortie " + bon.getReference() + " a été validé. La fiche " + fiche.getNumero()
+                                + " est prête. Veuillez assigner les mécaniciens finaux.");
                 ordreReparationRepository.save(fiche);
-                
+
                 // Génération automatique de la facture
                 factureService.createFactureAuto(fiche);
             }
@@ -335,8 +344,8 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                 .stockMagasinApres(pdp.getStockMagasin())
                 .stockAtelierApres(pdp.getStockAtelier())
                 .stockReelApres(pdp.getQteReelle())
-                .prenom(bon.getClient() != null ? bon.getClient().getFirstName() : (agentConnecte != null ? agentConnecte.getFirstName() : ""))
-                .nom(bon.getClient() != null ? bon.getClient().getLastName() : (agentConnecte != null ? agentConnecte.getLastName() : ""))
+                .prenom(agentConnecte != null ? agentConnecte.getFirstName() : "")
+                .nom(agentConnecte != null ? agentConnecte.getLastName() : "")
                 .numDocument(bon.getReference())
                 .typeDocument("Bon de sortie")
                 .numeroSerie(pdp.getReference())
@@ -355,14 +364,15 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                 .stockMagasin(pdp.getStockMagasin())
                 .stockAtelier(pdp.getStockAtelier())
                 .qteReelle(pdp.getQteReelle())
-                .prenom(bon.getClient() != null ? bon.getClient().getFirstName() : (agentConnecte != null ? agentConnecte.getFirstName() : ""))
-                .nom(bon.getClient() != null ? bon.getClient().getLastName() : (agentConnecte != null ? agentConnecte.getLastName() : ""))
+                .prenom(agentConnecte != null ? agentConnecte.getFirstName() : "")
+                .nom(agentConnecte != null ? agentConnecte.getLastName() : "")
                 .numBs(bon.getReference())
                 .numeroSerie(pdp.getReference())
                 .immatriculation(bon.getVehicule() != null ? bon.getVehicule().getImmatriculation() : "")
                 .designation(pdp.getDesignation())
                 .statut("RETOUR")
-                .motif("Retour de la pièce " + pdp.getReference() + " (" + pdp.getDesignation() + ") - Qté: " + (int)quantite)
+                .motif("Retour de la pièce " + pdp.getReference() + " (" + pdp.getDesignation() + ") - Qté: "
+                        + (int) quantite)
                 .agent(agentConnecte)
                 .garage(bon.getGarage())
                 .build());
@@ -407,7 +417,8 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
     }
 
     private String genererReference() {
-        return documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.BS);
+        return documentNumberGeneratorService
+                .generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.BS);
     }
 
     private void validerRequest(BonDeSortieRequest request) {
@@ -458,6 +469,5 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
         }
         return agent;
     }
-
 
 }

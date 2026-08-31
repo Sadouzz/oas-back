@@ -9,7 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sn.oas.facturation.bonDeCommande.dto.BonDeCommandeCreateRequest;
-import sn.oas.facturation.bonDeCommande.dto.BonDeLivraisonRequest;
+import sn.oas.facturation.bonDeCommande.dto.ReceptionBonDeCommandeRequest;
 import sn.oas.facturation.bonDeCommande.dto.BonDeCommandeResponse;
 import sn.oas.facturation.bonDeCommande.dto.BonDeCommandeUpdateRequest;
 import sn.oas.facturation.bonDeCommande.service.BonDeCommandeService;
@@ -74,11 +74,11 @@ public class BonDeCommandeController {
         return ResponseEntity.ok(bonDeCommandeService.receptionner(id));
     }
 
-    @PostMapping("/{id}/receptionner-livraison")
-    @Operation(summary = "Réceptionner un bon de commande avec les quantités du bon de livraison")
-    public ResponseEntity<BonDeCommandeResponse> receptionnerAvecLivraison(
+    @PostMapping({"/{id}/receptionner-reception", "/{id}/receptionner-livraison"})
+    @Operation(summary = "Réceptionner un bon de commande avec les quantités du bon de réception")
+    public ResponseEntity<BonDeCommandeResponse> receptionnerAvecReception(
             @PathVariable Long id,
-            @RequestBody BonDeLivraisonRequest request) {
+            @RequestBody ReceptionBonDeCommandeRequest request) {
         return ResponseEntity.ok(bonDeCommandeService.receptionnerAvecQuantites(id, request));
     }
 

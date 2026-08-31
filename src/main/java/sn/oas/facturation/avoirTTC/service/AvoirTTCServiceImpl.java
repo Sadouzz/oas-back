@@ -6,20 +6,43 @@ import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import sn.oas.facturation.auth.data.entity.Agent;
+import sn.oas.facturation.auth.data.entity.Client;
+import sn.oas.facturation.auth.data.entity.User;
+import sn.oas.facturation.auth.repository.UserRepository;
 import sn.oas.facturation.avoirTTC.data.entity.AvoirTTC;
+import sn.oas.facturation.avoirTTC.dto.AvoirTTCCreateRequest;
 import sn.oas.facturation.avoirTTC.dto.AvoirTTCResponse;
 import sn.oas.facturation.avoirTTC.repository.AvoirTTCRepository;
 import sn.oas.facturation.facturation.data.entity.LigneFacturationMainDoeuvre;
 import sn.oas.facturation.facturation.data.entity.LigneFacturationPiece;
+import sn.oas.facturation.facturation.data.enums.StatutFacturation;
+import sn.oas.facturation.facturation.dto.LigneFacturationMainDoeuvreRequest;
 import sn.oas.facturation.facturation.dto.LigneFacturationMainDoeuvreResponse;
+import sn.oas.facturation.facturation.dto.LigneFacturationPieceRequest;
 import sn.oas.facturation.facturation.dto.LigneFacturationPieceResponse;
+import sn.oas.facturation.garage.data.entity.Garage;
+import sn.oas.facturation.main_doeuvre.data.entity.MainDoeuvre;
+import sn.oas.facturation.main_doeuvre.repository.MainDoeuvreRepository;
+import sn.oas.facturation.piecedetache.data.entity.PDP;
+import sn.oas.facturation.piecedetache.data.entity.PieceDetache;
+import sn.oas.facturation.piecedetache.data.entity.StockMouvement;
+import sn.oas.facturation.piecedetache.data.enums.TypeMouvement;
+import sn.oas.facturation.piecedetache.repository.PieceDetacheRepository;
+import sn.oas.facturation.piecedetache.repository.StockMouvementRepository;
+import sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService;
+import sn.oas.facturation.shared.documentNumber.DocumentType;
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
+import sn.oas.facturation.vehicule.repository.VehiculeRepository;
 
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -29,6 +52,191 @@ import java.util.stream.Collectors;
 public class AvoirTTCServiceImpl implements AvoirTTCService {
 
     private final AvoirTTCRepository avoirTTCRepository;
+    private final UserRepository userRepository;
+    private final VehiculeRepository vehiculeRepository;
+    private final PieceDetacheRepository pieceDetacheRepository;
+    private final StockMouvementRepository stockMouvementRepository;
+    private final MainDoeuvreRepository mainDoeuvreRepository;
+    private final sn.oas.facturation.garage.repository.GarageRepository garageRepository;
+    private final DocumentNumberGeneratorService documentNumberGeneratorService;
+
+    private Agent getAgentConnecte() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getName() != null) {
+            User user = userRepository.findByUsername(auth.getName())
+                    .or(() -> userRepository.findByEmail(auth.getName()))
+                    .orElse(null);
+            return (user instanceof Agent) ? (Agent) user : null;
+        }
+        return null;
+    }
+
+    private Garage getGarageConnecte(Agent agent) {
+        if (agent != null && agent.getGarage() != null) {
+            return agent.getGarage();
+        }
+        org.springframework.web.context.request.ServletRequestAttributes attributes = 
+                (org.springframework.web.context.request.ServletRequestAttributes) org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+        if (attributes != null) {
+            String garageIdHeader = attributes.getRequest().getHeader("X-Garage-ID");
+            if (garageIdHeader != null && !garageIdHeader.isEmpty()) {
+                try {
+                    Garage g = garageRepository.findById(Long.parseLong(garageIdHeader)).orElse(null);
+                    if (g != null) return g;
+                } catch (Exception ignored) {}
+            }
+        }
+        Garage g = documentNumberGeneratorService.getCurrentGarage();
+        if (g != null) return g;
+        return garageRepository.findAll().stream().findFirst().orElse(null);
+    }
+
+    @Override
+    @Transactional
+    public AvoirTTCResponse create(AvoirTTCCreateRequest request) {
+        Client client = null;
+        if (request.getClientId() != null) {
+            client = (Client) userRepository.findById(request.getClientId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Client introuvable avec l'id : " + request.getClientId()));
+        }
+
+        Vehicule vehicule = null;
+        if (request.getVehiculeId() != null) {
+            vehicule = vehiculeRepository.findById(request.getVehiculeId())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Véhicule introuvable avec l'id : " + request.getVehiculeId()));
+        }
+
+        Agent agent = getAgentConnecte();
+        Garage garage = getGarageConnecte(agent);
+        String numero = documentNumberGeneratorService.generateNextNumber(garage, DocumentType.AT);
+
+        BigDecimal montantHT = BigDecimal.ZERO;
+        List<LigneFacturationPiece> lignesPieces = new ArrayList<>();
+        List<LigneFacturationMainDoeuvre> lignesMainDoeuvre = new ArrayList<>();
+
+        AvoirTTC avoirTTC = AvoirTTC.builder()
+                .numero(numero)
+                .client(client)
+                .vehicule(vehicule)
+                .agent(agent)
+                .garage(garage)
+                .kilometrage(request.getKilometrage() != null ? request.getKilometrage() : 0.0)
+                .remarque(request.getRemarque())
+                .statut(StatutFacturation.ACCEPTE)
+                .montantTotal(BigDecimal.ZERO)
+                .montantHT(BigDecimal.ZERO)
+                .montantTVA(BigDecimal.ZERO)
+                .montantTimbre(BigDecimal.ZERO)
+                .montantTTC(BigDecimal.ZERO)
+                .build();
+
+        if (request.getLignesPieces() != null) {
+            for (LigneFacturationPieceRequest lpReq : request.getLignesPieces()) {
+                PDP pdp = null;
+                String designationPds = lpReq.getDesignationPds();
+                boolean isCustom = Boolean.TRUE.equals(lpReq.getIsCustom()) || lpReq.getPieceId() == null;
+
+                if (lpReq.getPieceId() != null) {
+                    PieceDetache pd = pieceDetacheRepository.findById(lpReq.getPieceId()).orElse(null);
+                    if (pd instanceof PDP p) {
+                        pdp = p;
+                        if (designationPds == null || designationPds.isBlank()) {
+                            designationPds = pdp.getDesignation();
+                        }
+                    }
+                }
+
+                int quantite = lpReq.getQuantite() != null ? lpReq.getQuantite() : 1;
+                int prix = lpReq.getPrix() != null ? lpReq.getPrix() : 0;
+
+                LigneFacturationPiece lfp = LigneFacturationPiece.builder()
+                        .facturation(avoirTTC)
+                        .piece(pdp)
+                        .isCustom(isCustom)
+                        .designationPds(designationPds)
+                        .quantite(quantite)
+                        .prix(prix)
+                        .build();
+
+                lignesPieces.add(lfp);
+                montantHT = montantHT.add(BigDecimal.valueOf((long) quantite * prix));
+
+                // Mouvement de stock : Augmentation du stock magasin et stock réel (ENTRÉE)
+                if (pdp != null) {
+                    Double magasinAvant = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0.0;
+                    Double atelierAvant = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0.0;
+
+                    pdp.setStockMagasin(magasinAvant + quantite);
+                    pdp.setQteReelle(pdp.getStockMagasin() + pdp.getStockAtelier());
+                    pieceDetacheRepository.save(pdp);
+
+                    stockMouvementRepository.save(StockMouvement.builder()
+                            .type(TypeMouvement.ENTREE)
+                            .quantite((double) quantite)
+                            .stockMagasinAvant(magasinAvant)
+                            .stockAtelierAvant(atelierAvant)
+                            .stockMagasinApres(pdp.getStockMagasin())
+                            .stockAtelierApres(pdp.getStockAtelier())
+                            .stockReelApres(pdp.getQteReelle())
+                            .prenom(agent != null ? agent.getFirstName() : "")
+                            .nom(agent != null ? agent.getLastName() : "")
+                            .numDocument(numero)
+                            .typeDocument("Avoir TTC")
+                            .numeroSerie(pdp.getReference())
+                            .immatriculation(vehicule != null ? vehicule.getImmatriculation() : "")
+                            .motif("Retour pièce Avoir " + numero)
+                            .piece(pdp)
+                            .agent(agent)
+                            .garage(avoirTTC.getGarage())
+                            .build());
+                }
+            }
+        }
+
+        if (request.getLignesMainDoeuvres() != null) {
+            for (LigneFacturationMainDoeuvreRequest lmReq : request.getLignesMainDoeuvres()) {
+                MainDoeuvre md = null;
+                if (lmReq.getMainDoeuvreId() != null) {
+                    md = mainDoeuvreRepository.findById(lmReq.getMainDoeuvreId()).orElse(null);
+                }
+
+                int nbreHeure = lmReq.getNbreHeure() != null ? lmReq.getNbreHeure() : 1;
+                int tarifHoraire = lmReq.getTarifHoraire() != null ? lmReq.getTarifHoraire()
+                        : (md != null && md.getPrix() != null ? md.getPrix().intValue() : 0);
+
+                LigneFacturationMainDoeuvre lfm = LigneFacturationMainDoeuvre.builder()
+                        .facturation(avoirTTC)
+                        .mainDoeuvre(md)
+                        .nbreHeure(nbreHeure)
+                        .tarifHoraire(tarifHoraire)
+                        .build();
+
+                lignesMainDoeuvre.add(lfm);
+                montantHT = montantHT.add(BigDecimal.valueOf((long) nbreHeure * tarifHoraire));
+            }
+        }
+
+        BigDecimal montantTVA = BigDecimal.ZERO;
+        if (Boolean.TRUE.equals(request.getAppliquerTVA())) {
+            montantTVA = montantHT.multiply(BigDecimal.valueOf(0.18));
+        }
+
+        BigDecimal montantTimbre = request.getMontantTimbre() != null ? request.getMontantTimbre() : BigDecimal.ZERO;
+        BigDecimal montantTTC = montantHT.add(montantTVA).add(montantTimbre);
+
+        avoirTTC.setMontantHT(montantHT);
+        avoirTTC.setMontantTVA(montantTVA);
+        avoirTTC.setMontantTimbre(montantTimbre);
+        avoirTTC.setMontantTTC(montantTTC);
+        avoirTTC.setMontantTotal(montantTTC);
+        avoirTTC.setLignesFacturationPieces(lignesPieces);
+        avoirTTC.setLignesFacturationMainDoeuvres(lignesMainDoeuvre);
+
+        AvoirTTC saved = avoirTTCRepository.save(avoirTTC);
+        return mapToResponse(saved);
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -97,22 +305,36 @@ public class AvoirTTCServiceImpl implements AvoirTTCService {
             document.add(new Paragraph("N° : " + a.getNumero(), fontSousTitre));
             document.add(new Paragraph("Date : " + a.getDateCreation(), fontTexte));
             if (a.getAgent() != null) {
-                document.add(new Paragraph("Agent : " + a.getAgent().getFirstName() + " " + a.getAgent().getLastName(), fontTexte));
+                document.add(new Paragraph("Agent : " + a.getAgent().getFirstName() + " " + a.getAgent().getLastName(),
+                        fontTexte));
             }
-            if (a.getOrdreReparation() != null && a.getOrdreReparation().getVehicule() != null) {
-                Vehicule v = a.getOrdreReparation().getVehicule();
-                if (v.getClient() != null) {
-                    document.add(new Paragraph("Client : " + v.getClient().getFirstName() + " " + v.getClient().getLastName(), fontTexte));
-                }
-                document.add(new Paragraph("Véhicule : " + v.getMarque() + " " + v.getModele() + " (Immat: " + v.getImmatriculation() + ")", fontTexte));
+
+            Client client = a.getClient();
+            if (client == null && a.getOrdreReparation() != null && a.getOrdreReparation().getVehicule() != null) {
+                client = a.getOrdreReparation().getVehicule().getClient();
             }
-            
+
+            Vehicule v = a.getVehicule();
+            if (v == null && a.getOrdreReparation() != null) {
+                v = a.getOrdreReparation().getVehicule();
+            }
+
+            if (client != null) {
+                document.add(
+                        new Paragraph("Client : " + client.getFirstName() + " " + client.getLastName(), fontTexte));
+            }
+            if (v != null) {
+                document.add(new Paragraph("Véhicule : " + (v.getMarque() != null ? v.getMarque() : "") + " "
+                        + (v.getModele() != null ? v.getModele() : "") + " (Immat: " + v.getImmatriculation() + ")",
+                        fontTexte));
+            }
+
             document.add(new Paragraph("Kilométrage : " + a.getKilometrage(), fontTexte));
             if (a.getBonDeCommande() != null) {
                 document.add(new Paragraph("Réf. Bon de Commande : " + a.getBonDeCommande().getNumero(), fontTexte));
             }
             document.add(new Paragraph("Remarque : " + (a.getRemarque() != null ? a.getRemarque() : ""), fontTexte));
-            
+
             document.add(new Paragraph(" "));
 
             if (a.getLignesFacturationPieces() != null && !a.getLignesFacturationPieces().isEmpty()) {
@@ -121,9 +343,9 @@ public class AvoirTTCServiceImpl implements AvoirTTCService {
 
                 PdfPTable tablePieces = new PdfPTable(4);
                 tablePieces.setWidthPercentage(100);
-                tablePieces.setWidths(new float[]{4f, 2f, 2f, 2f});
+                tablePieces.setWidths(new float[] { 4f, 2f, 2f, 2f });
 
-                String[] headersPieces = {"Désignation", "Quantité", "Prix Unitaire", "Total"};
+                String[] headersPieces = { "Désignation", "Quantité", "Prix Unitaire", "Total" };
                 for (String header : headersPieces) {
                     PdfPCell cell = new PdfPCell(new Phrase(header, fontHeader));
                     cell.setBackgroundColor(Color.DARK_GRAY);
@@ -132,7 +354,8 @@ public class AvoirTTCServiceImpl implements AvoirTTCService {
                 }
 
                 for (LigneFacturationPiece ligne : a.getLignesFacturationPieces()) {
-                    String ref = ligne.getPiece() != null ? ligne.getPiece().getDesignation() : "N/A";
+                    String ref = ligne.getPiece() != null ? ligne.getPiece().getDesignation()
+                            : (ligne.getDesignationPds() != null ? ligne.getDesignationPds() : "N/A");
                     tablePieces.addCell(new Phrase(ref, fontTexte));
                     tablePieces.addCell(new Phrase(String.valueOf(ligne.getQuantite()), fontTexte));
                     tablePieces.addCell(new Phrase(String.valueOf(ligne.getPrix()), fontTexte));
@@ -148,9 +371,9 @@ public class AvoirTTCServiceImpl implements AvoirTTCService {
 
                 PdfPTable tableMo = new PdfPTable(4);
                 tableMo.setWidthPercentage(100);
-                tableMo.setWidths(new float[]{4f, 2f, 2f, 2f});
+                tableMo.setWidths(new float[] { 4f, 2f, 2f, 2f });
 
-                String[] headersMo = {"Catégorie", "Heures", "Tarif Horaire", "Total"};
+                String[] headersMo = { "Catégorie", "Heures", "Tarif Horaire", "Total" };
                 for (String header : headersMo) {
                     PdfPCell cell = new PdfPCell(new Phrase(header, fontHeader));
                     cell.setBackgroundColor(Color.DARK_GRAY);
@@ -159,11 +382,14 @@ public class AvoirTTCServiceImpl implements AvoirTTCService {
                 }
 
                 for (LigneFacturationMainDoeuvre ligne : a.getLignesFacturationMainDoeuvres()) {
-                    String cat = ligne.getMainDoeuvre() != null ? ligne.getMainDoeuvre().getCategorie().getNom() : "N/A";
+                    String cat = ligne.getMainDoeuvre() != null && ligne.getMainDoeuvre().getCategorie() != null
+                            ? ligne.getMainDoeuvre().getCategorie().getNom()
+                            : "N/A";
                     tableMo.addCell(new Phrase(cat, fontTexte));
                     tableMo.addCell(new Phrase(String.valueOf(ligne.getNbreHeure()), fontTexte));
                     tableMo.addCell(new Phrase(String.valueOf(ligne.getTarifHoraire()), fontTexte));
-                    tableMo.addCell(new Phrase(String.valueOf(ligne.getNbreHeure() * ligne.getTarifHoraire()), fontTexte));
+                    tableMo.addCell(
+                            new Phrase(String.valueOf(ligne.getNbreHeure() * ligne.getTarifHoraire()), fontTexte));
                 }
                 document.add(tableMo);
                 document.add(new Paragraph(" "));
@@ -172,7 +398,7 @@ public class AvoirTTCServiceImpl implements AvoirTTCService {
             document.add(new Paragraph("Montant HT : " + a.getMontantHT(), fontSousTitre));
             document.add(new Paragraph("TVA : " + a.getMontantTVA(), fontTexte));
             document.add(new Paragraph("Timbre : " + a.getMontantTimbre(), fontTexte));
-            
+
             Paragraph totalTTC = new Paragraph("Montant Total TTC : " + a.getMontantTTC(), fontTitre);
             totalTTC.setSpacingBefore(10);
             totalTTC.setAlignment(Element.ALIGN_RIGHT);
@@ -189,6 +415,16 @@ public class AvoirTTCServiceImpl implements AvoirTTCService {
     }
 
     private AvoirTTCResponse mapToResponse(AvoirTTC a) {
+        Client client = a.getClient();
+        if (client == null && a.getOrdreReparation() != null && a.getOrdreReparation().getVehicule() != null) {
+            client = a.getOrdreReparation().getVehicule().getClient();
+        }
+
+        Vehicule vehicule = a.getVehicule();
+        if (vehicule == null && a.getOrdreReparation() != null) {
+            vehicule = a.getOrdreReparation().getVehicule();
+        }
+
         return AvoirTTCResponse.builder()
                 .id(a.getId())
                 .numero(a.getNumero())
@@ -198,40 +434,46 @@ public class AvoirTTCServiceImpl implements AvoirTTCService {
                 .montantTVA(a.getMontantTVA())
                 .montantTTC(a.getMontantTTC())
                 .montantTimbre(a.getMontantTimbre())
-                .montantTotal(a.getMontantTTC()) // Utiliser montantTTC comme total dans le DTO pour un AvoirTTC
+                .montantTotal(a.getMontantTTC())
                 .agentId(a.getAgent() != null ? a.getAgent().getId() : null)
                 .agentNom(a.getAgent() != null ? a.getAgent().getFirstName() + " " + a.getAgent().getLastName() : null)
                 .remarque(a.getRemarque())
                 .kilometrage(a.getKilometrage())
-                .clientId((a.getOrdreReparation() != null && a.getOrdreReparation().getVehicule() != null && a.getOrdreReparation().getVehicule().getClient() != null) ? a.getOrdreReparation().getVehicule().getClient().getId() : null)
-                .clientNom((a.getOrdreReparation() != null && a.getOrdreReparation().getVehicule() != null && a.getOrdreReparation().getVehicule().getClient() != null) ? a.getOrdreReparation().getVehicule().getClient().getFirstName() + " " + a.getOrdreReparation().getVehicule().getClient().getLastName() : null)
-                .vehiculeId((a.getOrdreReparation() != null && a.getOrdreReparation().getVehicule() != null) ? a.getOrdreReparation().getVehicule().getId() : null)
-                .immatriculation((a.getOrdreReparation() != null && a.getOrdreReparation().getVehicule() != null) ? a.getOrdreReparation().getVehicule().getImmatriculation() : null)
-                .numeroChassis((a.getOrdreReparation() != null && a.getOrdreReparation().getVehicule() != null) ? a.getOrdreReparation().getVehicule().getNumeroChassis() : null)
-                .marque((a.getOrdreReparation() != null && a.getOrdreReparation().getVehicule() != null) ? a.getOrdreReparation().getVehicule().getMarque() : null)
-                .modele((a.getOrdreReparation() != null && a.getOrdreReparation().getVehicule() != null) ? a.getOrdreReparation().getVehicule().getModele() : null)
-                .annee((a.getOrdreReparation() != null && a.getOrdreReparation().getVehicule() != null) ? a.getOrdreReparation().getVehicule().getAnnee() : null)
+                .clientId(client != null ? client.getId() : null)
+                .clientNom(client != null ? client.getFirstName() + " " + client.getLastName() : null)
+                .vehiculeId(vehicule != null ? vehicule.getId() : null)
+                .immatriculation(vehicule != null ? vehicule.getImmatriculation() : null)
+                .numeroChassis(vehicule != null ? vehicule.getNumeroChassis() : null)
+                .marque(vehicule != null ? vehicule.getMarque() : null)
+                .modele(vehicule != null ? vehicule.getModele() : null)
+                .annee(vehicule != null ? vehicule.getAnnee() : null)
                 .numeroBonDeCommande(a.getBonDeCommande() != null ? a.getBonDeCommande().getNumero() : null)
-                .lignesPieces(a.getLignesFacturationPieces() == null ? List.of() : a.getLignesFacturationPieces().stream()
-                        .map(lp -> LigneFacturationPieceResponse.builder()
-                                .id(lp.getId())
-                                .pieceId(lp.getPiece() != null ? lp.getPiece().getId() : null)
-                                .designationPiece(lp.getPiece() != null ? lp.getPiece().getDesignation() : null)
-                                .quantite(lp.getQuantite())
-                                .prix(lp.getPrix())
-                                .montantTotal(lp.getQuantite() * lp.getPrix())
-                                .build())
-                        .collect(Collectors.toList()))
-                .lignesMainDoeuvres(a.getLignesFacturationMainDoeuvres() == null ? List.of() : a.getLignesFacturationMainDoeuvres().stream()
-                        .map(lm -> LigneFacturationMainDoeuvreResponse.builder()
-                                .id(lm.getId())
-                                .mainDoeuvreId(lm.getMainDoeuvre() != null ? lm.getMainDoeuvre().getId() : null)
-                                .descriptionMainDoeuvre(lm.getMainDoeuvre() != null ? lm.getMainDoeuvre().getCategorie().getNom() : null)
-                                .nbreHeure(lm.getNbreHeure())
-                                .tarifHoraire(lm.getTarifHoraire())
-                                .montantTotal(lm.getNbreHeure() * lm.getTarifHoraire())
-                                .build())
-                        .collect(Collectors.toList()))
+                .lignesPieces(a.getLignesFacturationPieces() == null ? List.of()
+                        : a.getLignesFacturationPieces().stream()
+                                .map(lp -> LigneFacturationPieceResponse.builder()
+                                        .id(lp.getId())
+                                        .pieceId(lp.getPiece() != null ? lp.getPiece().getId() : null)
+                                        .designationPiece(lp.getPiece() != null ? lp.getPiece().getDesignation()
+                                                : lp.getDesignationPds())
+                                        .quantite(lp.getQuantite())
+                                        .prix(lp.getPrix())
+                                        .montantTotal(lp.getQuantite() * lp.getPrix())
+                                        .build())
+                                .collect(Collectors.toList()))
+                .lignesMainDoeuvres(a.getLignesFacturationMainDoeuvres() == null ? List.of()
+                        : a.getLignesFacturationMainDoeuvres().stream()
+                                .map(lm -> LigneFacturationMainDoeuvreResponse.builder()
+                                        .id(lm.getId())
+                                        .mainDoeuvreId(lm.getMainDoeuvre() != null ? lm.getMainDoeuvre().getId() : null)
+                                        .descriptionMainDoeuvre(lm.getMainDoeuvre() != null
+                                                && lm.getMainDoeuvre().getCategorie() != null
+                                                        ? lm.getMainDoeuvre().getCategorie().getNom()
+                                                        : null)
+                                        .nbreHeure(lm.getNbreHeure())
+                                        .tarifHoraire(lm.getTarifHoraire())
+                                        .montantTotal(lm.getNbreHeure() * lm.getTarifHoraire())
+                                        .build())
+                                .collect(Collectors.toList()))
                 .build();
     }
 }

@@ -1,17 +1,8 @@
 package sn.oas.facturation.avoirTTC.data.entity;
 
 import jakarta.persistence.*;
-import org.hibernate.annotations.Filter;
-import org.hibernate.annotations.FilterDef;
-import org.hibernate.annotations.ParamDef;
-import sn.oas.facturation.shared.tenant.TenantAware;
-import sn.oas.facturation.shared.tenant.TenantListener;
-import sn.oas.facturation.garage.data.entity.Garage;
-
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import sn.oas.facturation.auth.data.entity.Client;
+import sn.oas.facturation.vehicule.data.entity.Vehicule;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
@@ -26,5 +17,13 @@ import sn.oas.facturation.facturation.data.entity.FactureTTC;
 @EqualsAndHashCode(callSuper = true)
 public class AvoirTTC extends FactureTTC {
 
-    // HÃƒÂ©rite de tous les champs de FactureTTC (montantHT, montantTVA, montantTTC, montantTimbre, etc.)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "client_id")
+    private Client client;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vehicule_id")
+    private Vehicule vehicule;
+
+    // Herite de tous les champs de FactureTTC (montantHT, montantTVA, montantTTC, montantTimbre, etc.)
 }

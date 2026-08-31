@@ -17,6 +17,13 @@ public class NoteDePrixResponse {
     private LocalDateTime dateCreation;
     private BigDecimal montantHT;
     private BigDecimal montantTotal;
+    private BigDecimal montantPaye;
+    private BigDecimal resteAPayer;
+    private String statutPaiement;
+    private String modePaiement;
+    private String numeroBonDeCommande;
+    private BigDecimal montantAutre;
+
     private Long clientId;
     private String clientNom;
     private Long vehiculeId;

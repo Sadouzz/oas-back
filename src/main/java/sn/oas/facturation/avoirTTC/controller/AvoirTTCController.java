@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import sn.oas.facturation.avoirTTC.dto.AvoirTTCCreateRequest;
 import sn.oas.facturation.avoirTTC.dto.AvoirTTCResponse;
 import sn.oas.facturation.avoirTTC.service.AvoirTTCService;
 
@@ -20,6 +21,12 @@ import java.util.List;
 public class AvoirTTCController {
 
     private final AvoirTTCService avoirTTCService;
+
+    @PostMapping
+    @Operation(summary = "Créer un avoir TTC")
+    public ResponseEntity<AvoirTTCResponse> create(@RequestBody AvoirTTCCreateRequest request) {
+        return new ResponseEntity<>(avoirTTCService.create(request), HttpStatus.CREATED);
+    }
 
     @GetMapping("/{id}")
     @Operation(summary = "Récupérer un avoir TTC par son ID")

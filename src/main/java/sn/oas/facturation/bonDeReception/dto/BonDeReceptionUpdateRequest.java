@@ -1,22 +1,26 @@
-package sn.oas.facturation.noteDePrix.dto;
+package sn.oas.facturation.bonDeReception.dto;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import sn.oas.facturation.facturation.dto.LigneFacturationMainDoeuvreRequest;
 import sn.oas.facturation.facturation.dto.LigneFacturationPieceRequest;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 @Data
-public class NoteDePrixRequest {
-    private Long clientId;
-    private Long vehiculeId;
-    private Long ordreReparationId;
+public class BonDeReceptionUpdateRequest {
+    
+    private Long bonDeCommandeId;
+    
+    @NotNull(message = "Le kilométrage est obligatoire")
     private Double kilometrage;
+
     private String remarque;
-    private String numeroBonDeCommande;
-    private BigDecimal montantAutre;
-    private String modePaiement;
+
+    @Valid
     private List<LigneFacturationPieceRequest> lignesPieces;
+
+    @Valid
     private List<LigneFacturationMainDoeuvreRequest> lignesMainDoeuvres;
 }

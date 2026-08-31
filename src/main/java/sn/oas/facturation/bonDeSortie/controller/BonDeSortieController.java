@@ -61,7 +61,8 @@ public class BonDeSortieController {
 
     @Operation(summary = "Obtenir l'historique d'un bon de sortie", description = "Retourne la liste chronologique des événements (SORTIE, SORTIE ATELIER, RETOUR) sur ce bon.")
     @GetMapping("/{id}/historique")
-    public ResponseEntity<List<sn.oas.facturation.bonDeSortie.data.entity.BonDeSortieHistorique>> getHistorique(@PathVariable Long id) {
+    public ResponseEntity<List<sn.oas.facturation.bonDeSortie.data.entity.BonDeSortieHistorique>> getHistorique(
+            @PathVariable Long id) {
         return ResponseEntity.ok(bonDeSortieService.getHistorique(id));
     }
 
@@ -78,9 +79,12 @@ public class BonDeSortieController {
             @RequestParam(required = false) StatutBon statut,
             @RequestParam(required = false) Long clientId,
             @RequestParam(required = false) Long vehiculeId) {
-        if (statut != null) return ResponseEntity.ok(bonDeSortieService.getByStatut(statut));
-        if (clientId != null) return ResponseEntity.ok(bonDeSortieService.getByClient(clientId));
-        if (vehiculeId != null) return ResponseEntity.ok(bonDeSortieService.getByVehicule(vehiculeId));
+        if (statut != null)
+            return ResponseEntity.ok(bonDeSortieService.getByStatut(statut));
+        if (clientId != null)
+            return ResponseEntity.ok(bonDeSortieService.getByClient(clientId));
+        if (vehiculeId != null)
+            return ResponseEntity.ok(bonDeSortieService.getByVehicule(vehiculeId));
         return ResponseEntity.ok(bonDeSortieService.getAll());
     }
 }

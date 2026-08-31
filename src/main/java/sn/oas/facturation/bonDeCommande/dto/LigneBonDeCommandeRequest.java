@@ -5,9 +5,10 @@ import sn.oas.facturation.piecedetache.data.enums.TypePiece;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 
-
 @Data
 public class LigneBonDeCommandeRequest {
+
+    private Long id;
 
     // Cas PDP ou PDG existant
     private Long pieceDetacheeId;

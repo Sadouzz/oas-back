@@ -1,4 +1,4 @@
-package sn.oas.facturation.bonDeLivraison.dto;
+package sn.oas.facturation.bonDeReception.dto;
 
 import lombok.Builder;
 import lombok.Data;
@@ -11,7 +11,7 @@ import java.util.List;
 
 @Data
 @Builder
-public class BonDeLivraisonResponse {
+public class BonDeReceptionResponse {
     private Long id;
     private String numero;
     private LocalDateTime dateCreation;

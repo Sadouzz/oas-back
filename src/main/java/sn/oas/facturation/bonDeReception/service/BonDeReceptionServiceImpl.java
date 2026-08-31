@@ -1,4 +1,4 @@
-package sn.oas.facturation.bonDeLivraison.service;
+package sn.oas.facturation.bonDeReception.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -10,18 +10,17 @@ import sn.oas.facturation.auth.data.entity.User;
 import sn.oas.facturation.auth.repository.UserRepository;
 import sn.oas.facturation.bonDeCommande.data.entity.BonDeCommande;
 import sn.oas.facturation.bonDeCommande.repository.BonDeCommandeRepository;
-import sn.oas.facturation.bonDeLivraison.data.entity.BonDeLivraison;
-import sn.oas.facturation.bonDeLivraison.dto.BonDeLivraisonCreateRequest;
-import sn.oas.facturation.bonDeLivraison.dto.BonDeLivraisonResponse;
-import sn.oas.facturation.bonDeLivraison.dto.BonDeLivraisonUpdateRequest;
-import sn.oas.facturation.bonDeLivraison.repository.BonDeLivraisonRepository;
+import sn.oas.facturation.bonDeReception.data.entity.BonDeReception;
+import sn.oas.facturation.bonDeReception.dto.BonDeReceptionCreateRequest;
+import sn.oas.facturation.bonDeReception.dto.BonDeReceptionResponse;
+import sn.oas.facturation.bonDeReception.dto.BonDeReceptionUpdateRequest;
+import sn.oas.facturation.bonDeReception.repository.BonDeReceptionRepository;
 import sn.oas.facturation.facturation.data.entity.LigneFacturationMainDoeuvre;
 import sn.oas.facturation.facturation.data.entity.LigneFacturationPiece;
 import sn.oas.facturation.facturation.dto.LigneFacturationMainDoeuvreRequest;
 import sn.oas.facturation.facturation.dto.LigneFacturationMainDoeuvreResponse;
 import sn.oas.facturation.facturation.dto.LigneFacturationPieceRequest;
 import sn.oas.facturation.facturation.dto.LigneFacturationPieceResponse;
-
 
 import com.lowagie.text.Document;
 import com.lowagie.text.Element;
@@ -50,9 +49,9 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class BonDeLivraisonServiceImpl implements BonDeLivraisonService {
+public class BonDeReceptionServiceImpl implements BonDeReceptionService {
 
-    private final BonDeLivraisonRepository bonDeLivraisonRepository;
+    private final BonDeReceptionRepository bonDeReceptionRepository;
     private final BonDeCommandeRepository bonDeCommandeRepository;
     private final UserRepository userRepository;
 
@@ -61,40 +60,41 @@ public class BonDeLivraisonServiceImpl implements BonDeLivraisonService {
 
     @Override
     @Transactional
-    public BonDeLivraisonResponse create(BonDeLivraisonCreateRequest request) {
-        throw new UnsupportedOperationException("Les bons de livraison sont générés automatiquement lors de la réception d'un bon de commande.");
+    public BonDeReceptionResponse create(BonDeReceptionCreateRequest request) {
+        throw new UnsupportedOperationException(
+                "Les bons de réception sont générés automatiquement lors de la réception d'un bon de commande.");
     }
 
     @Override
     @Transactional
-    public BonDeLivraisonResponse update(Long id, BonDeLivraisonUpdateRequest request) {
-        throw new UnsupportedOperationException("Un bon de livraison ne peut pas être modifié.");
+    public BonDeReceptionResponse update(Long id, BonDeReceptionUpdateRequest request) {
+        throw new UnsupportedOperationException("Un bon de réception ne peut pas être modifié.");
     }
 
     @Override
-    public BonDeLivraisonResponse getById(Long id) {
-        BonDeLivraison bonDeLivraison = bonDeLivraisonRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Bon de livraison non trouvé"));
-        return mapToResponse(bonDeLivraison);
+    public BonDeReceptionResponse getById(Long id) {
+        BonDeReception bonDeReception = bonDeReceptionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Bon de réception non trouvé"));
+        return mapToResponse(bonDeReception);
     }
 
     @Override
-    public List<BonDeLivraisonResponse> getAll() {
-        return bonDeLivraisonRepository.findAll().stream()
+    public List<BonDeReceptionResponse> getAll() {
+        return bonDeReceptionRepository.findAll().stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<BonDeLivraisonResponse> search(String keyword) {
-        return bonDeLivraisonRepository.searchBonsDeLivraison(keyword).stream()
+    public List<BonDeReceptionResponse> search(String keyword) {
+        return bonDeReceptionRepository.searchBonsDeReception(keyword).stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public List<BonDeLivraisonResponse> getRecentBonsDeLivraison() {
-        return bonDeLivraisonRepository.findTop5ByOrderByDateCreationDesc().stream()
+    public List<BonDeReceptionResponse> getRecentBonsDeReception() {
+        return bonDeReceptionRepository.findTop5ByOrderByDateCreationDesc().stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -102,17 +102,17 @@ public class BonDeLivraisonServiceImpl implements BonDeLivraisonService {
     @Override
     @Transactional
     public void delete(Long id) {
-        if (!bonDeLivraisonRepository.existsById(id)) {
-            throw new RuntimeException("Bon de livraison non trouvé");
+        if (!bonDeReceptionRepository.existsById(id)) {
+            throw new RuntimeException("Bon de réception non trouvé");
         }
-        bonDeLivraisonRepository.deleteById(id);
+        bonDeReceptionRepository.deleteById(id);
     }
 
     @Override
     @Transactional(readOnly = true)
     public byte[] generatePdf(Long id) {
-        BonDeLivraison bl = bonDeLivraisonRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Bon de livraison non trouvé"));
+        BonDeReception bl = bonDeReceptionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Bon de réception non trouvé"));
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Document document = new Document();
@@ -128,7 +128,7 @@ public class BonDeLivraisonServiceImpl implements BonDeLivraisonService {
             Font fontHeader = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 10, Color.WHITE);
 
             // En-tête
-            Paragraph titre = new Paragraph("BON DE LIVRAISON", fontTitre);
+            Paragraph titre = new Paragraph("BON DE RÉCEPTION", fontTitre);
             titre.setAlignment(Element.ALIGN_CENTER);
             titre.setSpacingAfter(20);
             document.add(titre);
@@ -137,7 +137,8 @@ public class BonDeLivraisonServiceImpl implements BonDeLivraisonService {
             document.add(new Paragraph("N° : " + bl.getNumero(), fontSousTitre));
             document.add(new Paragraph("Date : " + bl.getDateCreation(), fontTexte));
             if (bl.getAgent() != null) {
-                document.add(new Paragraph("Agent : " + bl.getAgent().getFirstName() + " " + bl.getAgent().getLastName(), fontTexte));
+                document.add(new Paragraph(
+                        "Agent : " + bl.getAgent().getFirstName() + " " + bl.getAgent().getLastName(), fontTexte));
             }
 
             if (bl.getBonDeCommande() != null) {
@@ -145,7 +146,7 @@ public class BonDeLivraisonServiceImpl implements BonDeLivraisonService {
             }
             document.add(new Paragraph("Kilométrage : " + bl.getKilometrage(), fontTexte));
             document.add(new Paragraph("Remarque : " + (bl.getRemarque() != null ? bl.getRemarque() : ""), fontTexte));
-            
+
             document.add(new Paragraph(" "));
 
             // Tableau Pièces
@@ -155,9 +156,9 @@ public class BonDeLivraisonServiceImpl implements BonDeLivraisonService {
 
                 PdfPTable tablePieces = new PdfPTable(4);
                 tablePieces.setWidthPercentage(100);
-                tablePieces.setWidths(new float[]{4f, 2f, 2f, 2f});
+                tablePieces.setWidths(new float[] { 4f, 2f, 2f, 2f });
 
-                String[] headersPieces = {"Désignation", "Quantité", "Prix Unitaire", "Total"};
+                String[] headersPieces = { "Désignation", "Quantité", "Prix Unitaire", "Total" };
                 for (String header : headersPieces) {
                     PdfPCell cell = new PdfPCell(new Phrase(header, fontHeader));
                     cell.setBackgroundColor(Color.DARK_GRAY);
@@ -183,9 +184,9 @@ public class BonDeLivraisonServiceImpl implements BonDeLivraisonService {
 
                 PdfPTable tableMo = new PdfPTable(4);
                 tableMo.setWidthPercentage(100);
-                tableMo.setWidths(new float[]{4f, 2f, 2f, 2f});
+                tableMo.setWidths(new float[] { 4f, 2f, 2f, 2f });
 
-                String[] headersMo = {"Catégorie", "Heures", "Tarif Horaire", "Total"};
+                String[] headersMo = { "Catégorie", "Heures", "Tarif Horaire", "Total" };
                 for (String header : headersMo) {
                     PdfPCell cell = new PdfPCell(new Phrase(header, fontHeader));
                     cell.setBackgroundColor(Color.DARK_GRAY);
@@ -194,11 +195,13 @@ public class BonDeLivraisonServiceImpl implements BonDeLivraisonService {
                 }
 
                 for (LigneFacturationMainDoeuvre ligne : bl.getLignesFacturationMainDoeuvres()) {
-                    String cat = ligne.getMainDoeuvre() != null ? ligne.getMainDoeuvre().getCategorie().getNom() : "N/A";
+                    String cat = ligne.getMainDoeuvre() != null ? ligne.getMainDoeuvre().getCategorie().getNom()
+                            : "N/A";
                     tableMo.addCell(new Phrase(cat, fontTexte));
                     tableMo.addCell(new Phrase(String.valueOf(ligne.getNbreHeure()), fontTexte));
                     tableMo.addCell(new Phrase(String.valueOf(ligne.getTarifHoraire()), fontTexte));
-                    tableMo.addCell(new Phrase(String.valueOf(ligne.getNbreHeure() * ligne.getTarifHoraire()), fontTexte));
+                    tableMo.addCell(
+                            new Phrase(String.valueOf(ligne.getNbreHeure() * ligne.getTarifHoraire()), fontTexte));
                 }
                 document.add(tableMo);
                 document.add(new Paragraph(" "));
@@ -209,7 +212,7 @@ public class BonDeLivraisonServiceImpl implements BonDeLivraisonService {
             document.add(new Paragraph("TVA : " + bl.getMontantTVA(), fontTexte));
             document.add(new Paragraph("Timbre : " + bl.getMontantTimbre(), fontTexte));
             document.add(new Paragraph("Montant TTC : " + bl.getMontantTTC(), fontSousTitre));
-            
+
             Paragraph total = new Paragraph("Montant Total à Payer : " + bl.getMontantTotal(), fontTitre);
             total.setSpacingBefore(10);
             total.setAlignment(Element.ALIGN_RIGHT);
@@ -225,8 +228,8 @@ public class BonDeLivraisonServiceImpl implements BonDeLivraisonService {
         return baos.toByteArray();
     }
 
-    private BonDeLivraisonResponse mapToResponse(BonDeLivraison bl) {
-        return BonDeLivraisonResponse.builder()
+    private BonDeReceptionResponse mapToResponse(BonDeReception bl) {
+        return BonDeReceptionResponse.builder()
                 .id(bl.getId())
                 .numero(bl.getNumero())
                 .dateCreation(bl.getDateCreation())
@@ -237,30 +240,35 @@ public class BonDeLivraisonServiceImpl implements BonDeLivraisonService {
                 .montantTimbre(bl.getMontantTimbre())
                 .montantTotal(bl.getMontantTotal())
                 .agentId(bl.getAgent() != null ? bl.getAgent().getId() : null)
-                .agentNom(bl.getAgent() != null ? bl.getAgent().getFirstName() + " " + bl.getAgent().getLastName() : null)
+                .agentNom(
+                        bl.getAgent() != null ? bl.getAgent().getFirstName() + " " + bl.getAgent().getLastName() : null)
                 .remarque(bl.getRemarque())
                 .kilometrage(bl.getKilometrage())
                 .bonDeCommandeId(bl.getBonDeCommande() != null ? bl.getBonDeCommande().getId() : null)
                 .bonDeCommandeNumero(bl.getBonDeCommande() != null ? bl.getBonDeCommande().getNumero() : null)
 
-                .lignesPieces(bl.getLignesFacturationPieces().stream().map(ligne -> LigneFacturationPieceResponse.builder()
-                        .id(ligne.getId())
-                        .pieceId(ligne.getPiece() != null ? ligne.getPiece().getId() : null)
-                        .designationPiece(ligne.getPiece() != null ? ligne.getPiece().getDesignation() : null)
-                        .quantite(ligne.getQuantite())
-                        .prix(ligne.getPrix())
-                        .montantTotal(ligne.getQuantite() * ligne.getPrix())
-                        .build()
-                ).collect(Collectors.toList()))
-                .lignesMainDoeuvres(bl.getLignesFacturationMainDoeuvres().stream().map(ligne -> LigneFacturationMainDoeuvreResponse.builder()
-                        .id(ligne.getId())
-                        .mainDoeuvreId(ligne.getMainDoeuvre() != null ? ligne.getMainDoeuvre().getId() : null)
-                        .descriptionMainDoeuvre(ligne.getMainDoeuvre() != null ? ligne.getMainDoeuvre().getCategorie().getNom() : null)
-                        .nbreHeure(ligne.getNbreHeure())
-                        .tarifHoraire(ligne.getTarifHoraire())
-                        .montantTotal(ligne.getNbreHeure() * ligne.getTarifHoraire())
-                        .build()
-                ).collect(Collectors.toList()))
+                .lignesPieces(bl.getLignesFacturationPieces().stream()
+                        .map(ligne -> LigneFacturationPieceResponse.builder()
+                                .id(ligne.getId())
+                                .pieceId(ligne.getPiece() != null ? ligne.getPiece().getId() : null)
+                                .designationPiece(ligne.getPiece() != null ? ligne.getPiece().getDesignation() : null)
+                                .quantite(ligne.getQuantite())
+                                .prix(ligne.getPrix())
+                                .montantTotal(ligne.getQuantite() * ligne.getPrix())
+                                .build())
+                        .collect(Collectors.toList()))
+                .lignesMainDoeuvres(bl.getLignesFacturationMainDoeuvres().stream()
+                        .map(ligne -> LigneFacturationMainDoeuvreResponse.builder()
+                                .id(ligne.getId())
+                                .mainDoeuvreId(ligne.getMainDoeuvre() != null ? ligne.getMainDoeuvre().getId() : null)
+                                .descriptionMainDoeuvre(
+                                        ligne.getMainDoeuvre() != null ? ligne.getMainDoeuvre().getCategorie().getNom()
+                                                : null)
+                                .nbreHeure(ligne.getNbreHeure())
+                                .tarifHoraire(ligne.getTarifHoraire())
+                                .montantTotal(ligne.getNbreHeure() * ligne.getTarifHoraire())
+                                .build())
+                        .collect(Collectors.toList()))
                 .build();
     }
 }

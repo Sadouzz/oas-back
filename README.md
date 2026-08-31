@@ -21,7 +21,7 @@ The project is structured into features/domains under `src/main/java/sn/oas/fact
 
 - `auth` & `security`: Handles JWT generation, validation, and Spring Security configurations.
 - `facturation`, `facture`, `devisPrevisionnel`, `proforma`: Core billing and estimation modules.
-- `bonDeCommande`, `bonDeLivraison`, `bonDeSortie`: Order and delivery management.
+- `bonDeCommande`, `bonDeReception`, `bonDeSortie`: Order and delivery management.
 - `client`, `fournisseur`: Stakeholder management.
 - `vehicule`, `ficheAtelier`, `mecanicien`, `main_doeuvre`, `piecedetache`: Auto repair shop specific modules.
 - `shared`, `config`: Global configurations, exceptions, and shared utilities.
