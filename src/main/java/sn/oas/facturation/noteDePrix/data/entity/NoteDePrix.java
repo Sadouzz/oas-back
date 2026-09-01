@@ -32,10 +32,6 @@ import java.math.BigDecimal;
 public class NoteDePrix extends FactureHT implements TenantAware {
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "garage_id")
-    private Garage garage;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id", nullable = true)
     private Client client;
 

@@ -16,6 +16,9 @@ public class NoteDePrixRequest {
     private String remarque;
     private String numeroBonDeCommande;
     private BigDecimal montantAutre;
+    private BigDecimal montantPaye;
+    private BigDecimal resteAPayer;
+    private String statutPaiement;
     private String modePaiement;
     private List<LigneFacturationPieceRequest> lignesPieces;
     private List<LigneFacturationMainDoeuvreRequest> lignesMainDoeuvres;

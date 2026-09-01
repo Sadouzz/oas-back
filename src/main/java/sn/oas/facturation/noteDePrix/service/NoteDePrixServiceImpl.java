@@ -23,10 +23,17 @@ import sn.oas.facturation.noteDePrix.dto.NoteDePrixResponse;
 import sn.oas.facturation.noteDePrix.repository.NoteDePrixRepository;
 import sn.oas.facturation.piecedetache.data.entity.PDP;
 import sn.oas.facturation.piecedetache.repository.PDPRepository;
+import sn.oas.facturation.piecedetache.repository.PieceDetacheRepository;
+import sn.oas.facturation.piecedetache.data.entity.PieceDetache;
 import sn.oas.facturation.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.ordreReparation.repository.OrdreReparationRepository;
 import sn.oas.facturation.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.vehicule.repository.VehiculeRepository;
+import sn.oas.facturation.garage.data.entity.Garage;
+import sn.oas.facturation.garage.repository.GarageRepository;
+import sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService;
+import sn.oas.facturation.shared.documentNumber.DocumentType;
+import sn.oas.facturation.piecedetache.repository.StockMouvementRepository;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -40,12 +47,14 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
     private final NoteDePrixRepository noteDePrixRepository;
     private final OrdreReparationRepository ordreReparationRepository;
     private final PDPRepository pdpRepository;
+    private final PieceDetacheRepository pieceDetacheRepository;
     private final MainDoeuvreRepository mainDoeuvreRepository;
     private final ClientRepository clientRepository;
     private final VehiculeRepository vehiculeRepository;
     private final UserRepository userRepository;
-    private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
-    private final sn.oas.facturation.piecedetache.repository.StockMouvementRepository stockMouvementRepository;
+    private final DocumentNumberGeneratorService documentNumberGeneratorService;
+    private final StockMouvementRepository stockMouvementRepository;
+    private final GarageRepository garageRepository;
 
     private Agent getAgentConnecte() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -58,6 +67,26 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
         return null;
     }
 
+    private Garage getGarageConnecte(Agent agent) {
+        if (agent != null && agent.getGarage() != null) {
+            return agent.getGarage();
+        }
+        org.springframework.web.context.request.ServletRequestAttributes attributes = 
+                (org.springframework.web.context.request.ServletRequestAttributes) org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+        if (attributes != null) {
+            String garageIdHeader = attributes.getRequest().getHeader("X-Garage-ID");
+            if (garageIdHeader != null && !garageIdHeader.isEmpty()) {
+                try {
+                    Garage g = garageRepository.findById(Long.parseLong(garageIdHeader)).orElse(null);
+                    if (g != null) return g;
+                } catch (Exception ignored) {}
+            }
+        }
+        Garage g = documentNumberGeneratorService.getCurrentGarage();
+        if (g != null) return g;
+        return garageRepository.findAll().stream().findFirst().orElse(null);
+    }
+
     @Override
     @Transactional
     public NoteDePrixResponse createNoteDePrix(NoteDePrixRequest request) {
@@ -66,10 +95,14 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
             fiche = ordreReparationRepository.findById(request.getOrdreReparationId()).orElse(null);
         }
 
+        Agent agentConnecte = getAgentConnecte();
+        Garage garage = (fiche != null && fiche.getGarage() != null) ? fiche.getGarage() : getGarageConnecte(agentConnecte);
+
         NoteDePrix note = NoteDePrix.builder()
-                .numero(documentNumberGeneratorService
-                        .generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.NP))
+                .numero(documentNumberGeneratorService.generateNextNumber(garage, DocumentType.NP))
                 .ordreReparation(fiche)
+                .agent(agentConnecte)
+                .garage(garage)
                 .kilometrage(request.getKilometrage())
                 .remarque(request.getRemarque())
                 .statut(StatutFacturation.EN_ATTENTE)
@@ -83,7 +116,10 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
             for (var lp : request.getLignesPieces()) {
                 PDP piece = null;
                 if (lp.getPieceId() != null) {
-                    piece = pdpRepository.findById(lp.getPieceId()).orElse(null);
+                    PieceDetache pd = pieceDetacheRepository.findById(lp.getPieceId()).orElse(null);
+                    if (pd instanceof PDP p) {
+                        piece = p;
+                    }
                 }
                 LigneFacturationPiece ligne = LigneFacturationPiece.builder()
                         .facturation(note)
@@ -139,9 +175,6 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
             }
         }
 
-        Agent agentConnecte = getAgentConnecte();
-        note.setAgent(agentConnecte);
-
         Client client = null;
         if (request.getClientId() != null) {
             client = clientRepository.findById(request.getClientId()).orElse(null);
@@ -171,10 +204,6 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
         note.setMontantPaye(BigDecimal.ZERO);
         note.setResteAPayer(totalFinal);
         note.setStatutPaiement(sn.oas.facturation.facture.data.enums.StatutPaiement.NON_PAYE);
-
-        if (fiche != null) {
-            note.setGarage(fiche.getGarage());
-        }
 
         NoteDePrix saved = noteDePrixRepository.save(note);
         // Mouvement de stock : La Note de prix diminue le stock réel (SORTIE RÉELLE)
@@ -220,21 +249,34 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
             note.setOrdreReparation(ordreReparationRepository.findById(request.getOrdreReparationId())
                     .orElse(note.getOrdreReparation()));
         }
-        if (request.getKilometrage() != null)
+        if (request.getKilometrage() != null) {
             note.setKilometrage(request.getKilometrage());
-        if (request.getRemarque() != null)
+        }
+        if (request.getRemarque() != null) {
             note.setRemarque(request.getRemarque());
-
-        note.getLignesFacturationPieces().clear();
-        note.getLignesFacturationMainDoeuvres().clear();
-
-        BigDecimal montantTotalHT = BigDecimal.ZERO;
+        }
+        if (request.getClientId() != null) {
+            clientRepository.findById(request.getClientId()).ifPresent(note::setClient);
+        }
+        if (request.getVehiculeId() != null) {
+            vehiculeRepository.findById(request.getVehiculeId()).ifPresent(note::setVehicule);
+        }
+        if (request.getModePaiement() != null) {
+            note.setModePaiement(request.getModePaiement());
+        }
+        if (request.getNumeroBonDeCommande() != null) {
+            note.setNumeroBonDeCommande(request.getNumeroBonDeCommande());
+        }
 
         if (request.getLignesPieces() != null) {
+            note.getLignesFacturationPieces().clear();
             for (var lp : request.getLignesPieces()) {
                 PDP piece = null;
                 if (lp.getPieceId() != null) {
-                    piece = pdpRepository.findById(lp.getPieceId()).orElse(null);
+                    PieceDetache pd = pieceDetacheRepository.findById(lp.getPieceId()).orElse(null);
+                    if (pd instanceof PDP p) {
+                        piece = p;
+                    }
                 }
                 LigneFacturationPiece ligne = LigneFacturationPiece.builder()
                         .facturation(note)
@@ -242,13 +284,12 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
                         .quantite(lp.getQuantite() != null ? lp.getQuantite() : 1)
                         .prix(lp.getPrix() != null ? lp.getPrix() : 0)
                         .build();
-                int ligneTotal = ligne.getPrix() * ligne.getQuantite();
-                montantTotalHT = montantTotalHT.add(BigDecimal.valueOf(ligneTotal));
                 note.getLignesFacturationPieces().add(ligne);
             }
         }
 
         if (request.getLignesMainDoeuvres() != null) {
+            note.getLignesFacturationMainDoeuvres().clear();
             for (var lm : request.getLignesMainDoeuvres()) {
                 MainDoeuvre md = null;
                 if (lm.getMainDoeuvreId() != null) {
@@ -260,14 +301,50 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
                         .nbreHeure(lm.getNbreHeure() != null ? lm.getNbreHeure() : 1)
                         .tarifHoraire(lm.getTarifHoraire() != null ? lm.getTarifHoraire() : 0)
                         .build();
-                int ligneTotal = ligne.getNbreHeure() * ligne.getTarifHoraire();
-                montantTotalHT = montantTotalHT.add(BigDecimal.valueOf(ligneTotal));
                 note.getLignesFacturationMainDoeuvres().add(ligne);
             }
         }
 
-        note.setMontantHT(montantTotalHT);
-        note.setMontantTotal(montantTotalHT);
+        if (request.getMontantAutre() != null) {
+            note.setMontantAutre(request.getMontantAutre());
+        }
+
+        // Recalculate totals if lines or montantAutre were updated
+        if (request.getLignesPieces() != null || request.getLignesMainDoeuvres() != null || request.getMontantAutre() != null) {
+            BigDecimal piecesSum = note.getLignesFacturationPieces().stream()
+                    .map(l -> BigDecimal.valueOf((long) (l.getPrix() != null ? l.getPrix() : 0) * (l.getQuantite() != null ? l.getQuantite() : 0)))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal moSum = note.getLignesFacturationMainDoeuvres().stream()
+                    .map(l -> BigDecimal.valueOf((long) (l.getTarifHoraire() != null ? l.getTarifHoraire() : 0) * (l.getNbreHeure() != null ? l.getNbreHeure() : 0)))
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal totalHT = piecesSum.add(moSum).add(note.getMontantAutre() != null ? note.getMontantAutre() : BigDecimal.ZERO);
+            note.setMontantHT(totalHT);
+            note.setMontantTotal(totalHT);
+            BigDecimal paye = note.getMontantPaye() != null ? note.getMontantPaye() : BigDecimal.ZERO;
+            BigDecimal reste = totalHT.subtract(paye).max(BigDecimal.ZERO);
+            note.setResteAPayer(reste);
+            if (reste.compareTo(BigDecimal.ZERO) == 0 && totalHT.compareTo(BigDecimal.ZERO) > 0) {
+                note.setStatutPaiement(sn.oas.facturation.facture.data.enums.StatutPaiement.PAYE);
+            } else if (paye.compareTo(BigDecimal.ZERO) > 0) {
+                note.setStatutPaiement(sn.oas.facturation.facture.data.enums.StatutPaiement.PARTIEL);
+            } else {
+                note.setStatutPaiement(sn.oas.facturation.facture.data.enums.StatutPaiement.NON_PAYE);
+            }
+        }
+
+        if (request.getMontantPaye() != null) {
+            note.setMontantPaye(request.getMontantPaye());
+            BigDecimal total = note.getMontantTotal() != null ? note.getMontantTotal() : BigDecimal.ZERO;
+            BigDecimal reste = total.subtract(request.getMontantPaye()).max(BigDecimal.ZERO);
+            note.setResteAPayer(reste);
+            if (reste.compareTo(BigDecimal.ZERO) == 0 && total.compareTo(BigDecimal.ZERO) > 0) {
+                note.setStatutPaiement(sn.oas.facturation.facture.data.enums.StatutPaiement.PAYE);
+            } else if (request.getMontantPaye().compareTo(BigDecimal.ZERO) > 0) {
+                note.setStatutPaiement(sn.oas.facturation.facture.data.enums.StatutPaiement.PARTIEL);
+            } else {
+                note.setStatutPaiement(sn.oas.facturation.facture.data.enums.StatutPaiement.NON_PAYE);
+            }
+        }
 
         return mapToResponse(noteDePrixRepository.save(note));
     }
@@ -294,6 +371,15 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
     private NoteDePrixResponse mapToResponse(NoteDePrix note) {
         if (note == null) return null;
 
+        Long agentId = null;
+        String agentNom = null;
+        if (note.getAgent() != null) {
+            agentId = note.getAgent().getId();
+            String fn = note.getAgent().getFirstName() != null ? note.getAgent().getFirstName() : "";
+            String ln = note.getAgent().getLastName() != null ? note.getAgent().getLastName() : "";
+            agentNom = (fn + " " + ln).trim();
+        }
+
         Long clientId = null;
         String clientNom = null;
         if (note.getClient() != null) {
@@ -311,13 +397,25 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
 
         Long vehiculeId = null;
         String vehiculeImmat = null;
+        String marque = null;
+        String modele = null;
+        String numeroChassis = null;
         if (note.getVehicule() != null) {
             vehiculeId = note.getVehicule().getId();
             vehiculeImmat = note.getVehicule().getImmatriculation();
+            marque = note.getVehicule().getMarque();
+            modele = note.getVehicule().getModele();
+            numeroChassis = note.getVehicule().getNumeroChassis();
         } else if (note.getOrdreReparation() != null && note.getOrdreReparation().getVehicule() != null) {
             vehiculeId = note.getOrdreReparation().getVehicule().getId();
             vehiculeImmat = note.getOrdreReparation().getVehicule().getImmatriculation();
+            marque = note.getOrdreReparation().getVehicule().getMarque();
+            modele = note.getOrdreReparation().getVehicule().getModele();
+            numeroChassis = note.getOrdreReparation().getVehicule().getNumeroChassis();
         }
+
+        Long ordreReparationId = note.getOrdreReparation() != null ? note.getOrdreReparation().getId() : null;
+        String numeroOrdreReparation = note.getOrdreReparation() != null ? note.getOrdreReparation().getNumero() : null;
 
         List<LigneFacturationPieceResponse> piecesResp = (note.getLignesFacturationPieces() == null) ? new ArrayList<>()
                 : note.getLignesFacturationPieces().stream()
@@ -325,7 +423,7 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
                             int q = lp.getQuantite() != null ? lp.getQuantite() : 0;
                             int p = lp.getPrix() != null ? lp.getPrix() : 0;
                             return LigneFacturationPieceResponse.builder()
-                                    .id(lp.getId())
+                                     .id(lp.getId())
                                     .pieceId(lp.getPiece() != null ? lp.getPiece().getId() : null)
                                     .designationPiece(
                                             lp.getPiece() != null ? lp.getPiece().getDesignation() : "Pièce")
@@ -367,13 +465,21 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
                 .modePaiement(note.getModePaiement())
                 .numeroBonDeCommande(note.getNumeroBonDeCommande())
                 .montantAutre(note.getMontantAutre() != null ? note.getMontantAutre() : BigDecimal.ZERO)
+                .agentId(agentId)
+                .agentNom(agentNom)
                 .clientId(clientId)
                 .clientNom(clientNom)
                 .vehiculeId(vehiculeId)
                 .vehiculeImmatriculation(vehiculeImmat)
+                .immatriculation(vehiculeImmat)
+                .marque(marque)
+                .modele(modele)
+                .numeroChassis(numeroChassis)
                 .kilometrage(note.getKilometrage())
                 .remarque(note.getRemarque())
                 .statut(note.getStatut() != null ? note.getStatut().name() : null)
+                .ordreReparationId(ordreReparationId)
+                .numeroOrdreReparation(numeroOrdreReparation)
                 .lignesPieces(piecesResp)
                 .lignesMainDoeuvres(moResp)
                 .build();
