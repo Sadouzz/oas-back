@@ -83,19 +83,23 @@ public class WebSecurityConfig {
                                 "/api/fournisseurs",
                                 "/api/fournisseurs/**",
                                 "/api/client/marketplace/produits",
-                                "/api/client/marketplace/produits/**")
+                                "/api/client/marketplace/produits/**",
+                                "/api/admin/garages/**")
                         .permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/api/admin/garages", "/api/admin/garages/**")
-                        .hasAnyAuthority("ROLE_SUPER_AGENT", "SUPER_AGENT", "CLIENT", "ROLE_CLIENT")
+                        // .requestMatchers("/api/admin/garages", "/api/admin/garages/**")
+                        // .hasAnyAuthority("ROLE_SUPER_AGENT", "SUPER_AGENT", "CLIENT", "ROLE_CLIENT")
                         .requestMatchers("/api/admin/users/**")
                         .hasAnyAuthority("ROLE_SUPER_AGENT", "SUPER_AGENT", "ROLE_MASTER", "MASTER")
                         .requestMatchers("/api/admin/**")
-                        .hasAnyAuthority("ROLE_SUPER_AGENT", "SUPER_AGENT", "ROLE_MASTER", "MASTER", "ROLE_CHEF_ATELIER", "CHEF_ATELIER", "ROLE_AGENT_MAGASIN", "AGENT_MAGASIN", "ROLE_AGENT", "AGENT", "CLIENT", "ROLE_CLIENT")
+                        .hasAnyAuthority("ROLE_SUPER_AGENT", "SUPER_AGENT", "ROLE_MASTER", "MASTER",
+                                "ROLE_CHEF_ATELIER", "CHEF_ATELIER", "ROLE_AGENT_MAGASIN", "AGENT_MAGASIN",
+                                "ROLE_AGENT", "AGENT", "CLIENT", "ROLE_CLIENT")
                         .requestMatchers("/api/technicien/**")
                         .hasAnyAuthority("ROLE_TECHNICIEN", "TECHNICIEN")
                         .requestMatchers("/api/ordres-reparation", "/api/ordres-reparation/**")
-                        .hasAnyAuthority("ROLE_SUPER_AGENT", "SUPER_AGENT", "ROLE_MASTER", "MASTER", "ROLE_CHEF_ATELIER", "CHEF_ATELIER")
+                        .hasAnyAuthority("ROLE_SUPER_AGENT", "SUPER_AGENT", "ROLE_MASTER", "MASTER",
+                                "ROLE_CHEF_ATELIER", "CHEF_ATELIER")
 
                         .anyRequest().authenticated());
 
