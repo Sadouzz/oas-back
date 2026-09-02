@@ -59,7 +59,13 @@ public class ProduitAdminController {
 
     @GetMapping("/search")
     @Operation(summary = "Admin: rechercher un produit")
-    public ResponseEntity<List<Produit>> search(@RequestParam String keyword) {
+    public ResponseEntity<?> search(
+            @RequestParam String keyword,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        if (page != null && size != null) {
+            return ResponseEntity.ok(produitService.search(keyword, page, size));
+        }
         return ResponseEntity.ok(produitService.search(keyword));
     }
 

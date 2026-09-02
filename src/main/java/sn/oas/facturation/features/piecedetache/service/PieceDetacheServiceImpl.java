@@ -21,6 +21,7 @@ import java.util.HashSet;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 @Service
 @RequiredArgsConstructor
@@ -55,10 +56,26 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
     }
 
     @Override
+    public Page<PieceDetache> filterByType(TypePiece type, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        Page<PieceDetache> pageResult = pieceDetacheRepository.findByType(type, pageable);
+        setEstUtiliseFlag(pageResult.getContent());
+        return pageResult;
+    }
+
+    @Override
     public List<PieceDetache> searchPieces(String keyword) {
         List<PieceDetache> pieces = pieceDetacheRepository.searchPieces(keyword);
         setEstUtiliseFlag(pieces);
         return pieces;
+    }
+
+    @Override
+    public Page<PieceDetache> searchPieces(String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        Page<PieceDetache> pageResult = pieceDetacheRepository.searchPieces(keyword, pageable);
+        setEstUtiliseFlag(pageResult.getContent());
+        return pageResult;
     }
 
     private void setEstUtiliseFlag(List<PieceDetache> pieces) {

@@ -146,6 +146,13 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
 
     @Override
     @Transactional(readOnly = true)
+    public Page<DevisPrevisionnel> search(String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, org.springframework.data.domain.Sort.by("id").descending());
+        return devisPrevisionnelRepository.searchDevis(keyword, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public byte[] generatePdf(Long id) {
         DevisPrevisionnel devis = getById(id);
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();

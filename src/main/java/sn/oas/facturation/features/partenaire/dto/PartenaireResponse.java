@@ -14,4 +14,11 @@ public class PartenaireResponse {
     private boolean archived;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    public static PartenaireResponse from(sn.oas.facturation.features.partenaire.data.entity.Partenaire partenaire) {
+        if (partenaire == null) return null;
+        PartenaireResponse response = new PartenaireResponse();
+        org.springframework.beans.BeanUtils.copyProperties(partenaire, response);
+        return response;
+    }
 }

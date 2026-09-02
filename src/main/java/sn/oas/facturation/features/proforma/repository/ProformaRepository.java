@@ -23,6 +23,17 @@ public interface ProformaRepository extends JpaRepository<Proforma, Long> {
             "LOWER(p.ordreReparation.vehicule.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<Proforma> searchProformas(@Param("keyword") String keyword);
 
+    @Query("SELECT p FROM Proforma p WHERE " +
+            "LOWER(p.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(p.remarque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(p.bonDeCommande.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(p.ordreReparation.vehicule.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(p.ordreReparation.vehicule.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(p.ordreReparation.vehicule.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(p.ordreReparation.vehicule.client.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(p.ordreReparation.vehicule.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    org.springframework.data.domain.Page<Proforma> searchProformas(@Param("keyword") String keyword, org.springframework.data.domain.Pageable pageable);
+
     List<Proforma> findTop5ByOrderByDateCreationDesc();
 
     Optional<Proforma> findByOrdreReparationId(Long ordreReparationId);

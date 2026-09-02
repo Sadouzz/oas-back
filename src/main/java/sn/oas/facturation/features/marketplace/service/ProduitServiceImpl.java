@@ -80,6 +80,13 @@ public class ProduitServiceImpl implements ProduitService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<Produit> search(String keyword, int page, int size) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by("id").descending());
+        return produitRepository.searchDisponibles(keyword, pageable);
+    }
+
+    @Override
     @Transactional
     public Produit toggleDisponibilite(Long id, Boolean disponible) {
         Produit produit = getById(id);

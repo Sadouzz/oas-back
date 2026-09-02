@@ -33,7 +33,7 @@ public class TechnicienController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         if (keyword != null && !keyword.trim().isEmpty()) {
-            return ResponseEntity.ok(technicienService.searchTechniciens(keyword));
+            return ResponseEntity.ok(technicienService.searchTechniciens(keyword.trim(), page, size));
         }
         return ResponseEntity.ok(technicienService.getAllTechniciens(page, size));
     }

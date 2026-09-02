@@ -1,19 +1,22 @@
 package sn.oas.facturation.features.avoirHT.service;
 
+import org.springframework.data.domain.Page;
+import sn.oas.facturation.features.avoirHT.data.entity.AvoirHT;
 import sn.oas.facturation.features.avoirHT.dto.AvoirHTCreateRequest;
-import sn.oas.facturation.features.avoirHT.dto.AvoirHTResponse;
 
 import java.util.List;
 
 public interface AvoirHTService {
-    AvoirHTResponse create(AvoirHTCreateRequest request);
-    AvoirHTResponse getById(Long id);
+    AvoirHT create(AvoirHTCreateRequest request);
+    AvoirHT getById(Long id);
 
-    List<AvoirHTResponse> getAll();
+    Page<AvoirHT> getAll(int page, int size);
+    List<AvoirHT> getAll();
 
-    List<AvoirHTResponse> search(String keyword);
+    List<AvoirHT> search(String keyword);
+    Page<AvoirHT> search(String keyword, int page, int size);
 
-    List<AvoirHTResponse> getRecentAvoirs();
+    List<AvoirHT> getRecentAvoirs();
 
     void delete(Long id);
 

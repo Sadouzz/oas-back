@@ -156,14 +156,34 @@ public class StockServiceImpl implements StockService {
     }
 
     @Override
+    public org.springframework.data.domain.Page<StockMouvement> getHistoriquePiece(Long pieceId, int page, int size) {
+        PDP pdp = getPDP(pieceId);
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        return stockMouvementRepository.findByPieceOrderByDateOperationDesc(pdp, pageable);
+    }
+
+    @Override
     public List<StockMouvement> getHistoriquePieceByType(Long pieceId, TypeMouvement type) {
         PDP pdp = getPDP(pieceId);
         return stockMouvementRepository.findByPieceAndTypeOrderByDateOperationDesc(pdp, type);
     }
 
     @Override
+    public org.springframework.data.domain.Page<StockMouvement> getHistoriquePieceByType(Long pieceId, TypeMouvement type, int page, int size) {
+        PDP pdp = getPDP(pieceId);
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        return stockMouvementRepository.findByPieceAndTypeOrderByDateOperationDesc(pdp, type, pageable);
+    }
+
+    @Override
     public List<StockMouvement> getHistoriqueGlobal(LocalDateTime debut, LocalDateTime fin, Long pieceId, String categorie, TypeMouvement type) {
         return stockMouvementRepository.findFiltered(debut, fin, pieceId, categorie, type);
+    }
+
+    @Override
+    public org.springframework.data.domain.Page<StockMouvement> getHistoriqueGlobal(LocalDateTime debut, LocalDateTime fin, Long pieceId, String categorie, TypeMouvement type, int page, int size) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        return stockMouvementRepository.findFiltered(debut, fin, pieceId, categorie, type, pageable);
     }
 
     private PDP getPDP(Long pieceId) {

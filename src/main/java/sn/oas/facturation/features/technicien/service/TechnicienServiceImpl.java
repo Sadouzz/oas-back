@@ -53,6 +53,12 @@ public class TechnicienServiceImpl implements TechnicienService {
         return technicienRepository.searchTechniciens(keyword);
     }
 
+    @Override
+    public Page<Technicien> searchTechniciens(String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, org.springframework.data.domain.Sort.by("id").descending());
+        return technicienRepository.searchTechniciens(keyword, pageable);
+    }
+
     @Transactional
     @Override
     public void createTechnicien(TechnicienRequest request) {

@@ -10,13 +10,22 @@ import java.util.List;
 
 @Repository
 public interface ClientRepository extends JpaRepository<Client, Long> {
-    @Query("SELECT u FROM User u WHERE " +
-            "LOWER(u.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(u.matricule) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(u.phone) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    @Query("SELECT c FROM Client c WHERE " +
+            "LOWER(c.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.matricule) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.phone) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.email) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<Client> searchClients(@Param("keyword") String keyword);
+
+    @Query("SELECT c FROM Client c WHERE " +
+            "LOWER(c.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.matricule) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.phone) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.email) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    org.springframework.data.domain.Page<Client> searchClients(@Param("keyword") String keyword, org.springframework.data.domain.Pageable pageable);
+
     List<Client> findTop5ByOrderByCreatedAtDesc();
 
     @Query("SELECT MAX(c.matricule) FROM Client c WHERE c.matricule LIKE 'CLT-%'")

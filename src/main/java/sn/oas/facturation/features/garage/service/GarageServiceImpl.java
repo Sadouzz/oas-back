@@ -22,12 +22,12 @@ public class GarageServiceImpl implements GarageService {
 
     @Override
     @Transactional
-    public GarageResponse createGarage(GarageRequest request) {
+    public Garage createGarage(GarageRequest request) {
         if (garageRepository.findByPrefixeIgnoreCase(request.prefixe()).isPresent()) {
-            throw new IllegalArgumentException("Un garage avec ce préfixe existe déjà.");
+            throw new sn.oas.facturation.shared.exception.ResourceAlreadyExistsException("Un garage avec ce préfixe existe déjà.");
         }
         if (garageRepository.findByNomIgnoreCase(request.nom()).isPresent()) {
-            throw new IllegalArgumentException("Un garage avec ce nom existe déjà.");
+            throw new sn.oas.facturation.shared.exception.ResourceAlreadyExistsException("Un garage avec ce nom existe déjà.");
         }
 
         Garage garage = Garage.builder()
@@ -40,21 +40,21 @@ public class GarageServiceImpl implements GarageService {
                 .archived(false)
                 .build();
 
-        return GarageResponse.fromEntity(garageRepository.save(garage));
+        return garageRepository.save(garage);
     }
 
     @Override
     @Transactional
-    public GarageResponse updateGarage(Long id, GarageRequest request) {
+    public Garage updateGarage(Long id, GarageRequest request) {
         Garage garage = getGarageEntityById(id);
 
         if (!garage.getPrefixe().equalsIgnoreCase(request.prefixe()) &&
                 garageRepository.findByPrefixeIgnoreCase(request.prefixe()).isPresent()) {
-            throw new IllegalArgumentException("Un garage avec ce préfixe existe déjà.");
+            throw new sn.oas.facturation.shared.exception.ResourceAlreadyExistsException("Un garage avec ce préfixe existe déjà.");
         }
         if (!garage.getNom().equalsIgnoreCase(request.nom()) &&
                 garageRepository.findByNomIgnoreCase(request.nom()).isPresent()) {
-            throw new IllegalArgumentException("Un garage avec ce nom existe déjà.");
+            throw new sn.oas.facturation.shared.exception.ResourceAlreadyExistsException("Un garage avec ce nom existe déjà.");
         }
 
         garage.setNom(request.nom());
@@ -64,31 +64,29 @@ public class GarageServiceImpl implements GarageService {
         garage.setNumeroWhatsapp(request.numeroWhatsapp());
         garage.setEmail(request.email());
 
-        return GarageResponse.fromEntity(garageRepository.save(garage));
+        return garageRepository.save(garage);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public GarageResponse getGarageById(Long id) {
-        return GarageResponse.fromEntity(getGarageEntityById(id));
+    public Garage getGarageById(Long id) {
+        return getGarageEntityById(id);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public org.springframework.data.domain.Page<GarageResponse> getAllGarages(boolean includeArchived, int page, int size) {
+    public org.springframework.data.domain.Page<Garage> getAllGarages(boolean includeArchived, int page, int size) {
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
-        org.springframework.data.domain.Page<Garage> pageResult = includeArchived
+        return includeArchived
                 ? garageRepository.findAll(pageable)
                 : garageRepository.findByArchivedFalse(pageable);
-        return pageResult.map(GarageResponse::fromEntity);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<GarageResponse> getAllGarages(boolean includeArchived) {
+    public List<Garage> getAllGarages(boolean includeArchived) {
         return garageRepository.findAll().stream()
                 .filter(g -> includeArchived || !g.isArchived())
-                .map(GarageResponse::fromEntity)
                 .collect(Collectors.toList());
     }
 
@@ -112,6 +110,6 @@ public class GarageServiceImpl implements GarageService {
     @Transactional(readOnly = true)
     public Garage getGarageEntityById(Long id) {
         return garageRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Garage non trouvé avec l'id : " + id));
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Garage non trouvé avec l'id : " + id));
     }
 }

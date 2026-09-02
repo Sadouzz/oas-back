@@ -30,20 +30,17 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
-    public List<NotificationResponse> getClientNotifications(Client client) {
-        return notificationRepository.findByClientIdOrderByDateCreationDesc(client.getId())
-                .stream()
-                .map(NotificationResponse::of)
-                .collect(Collectors.toList());
+    public List<Notification> getClientNotifications(Client client) {
+        return notificationRepository.findByClientIdOrderByDateCreationDesc(client.getId());
     }
 
     @Transactional
     @Override
     public void markAsRead(Client client, Long notificationId) {
         Notification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new RuntimeException("Notification non trouvée"));
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Notification non trouvée avec l'identifiant " + notificationId));
         if (!notification.getClient().getId().equals(client.getId())) {
-            throw new IllegalArgumentException("Accès non autorisé à cette notification");
+            throw new sn.oas.facturation.shared.exception.ForbiddenException("Accès non autorisé à cette notification");
         }
         notification.setLu(true);
         notificationRepository.save(notification);

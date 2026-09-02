@@ -14,4 +14,6 @@ public interface MainDoeuvreService {
     MainDoeuvre updateMainDoeuvre(Long id, MainDoeuvreRequest request);
     void deleteMainDoeuvre(Long id);
     MainDoeuvre archiveMainDoeuvre(Long id, boolean archived);
+    List<MainDoeuvre> searchMainDoeuvres(String keyword);
+    Page<MainDoeuvre> searchMainDoeuvres(String keyword, int page, int size);
 }

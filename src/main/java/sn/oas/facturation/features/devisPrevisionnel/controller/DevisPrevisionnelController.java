@@ -10,6 +10,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import sn.oas.facturation.features.auth.data.entity.Client;
+import sn.oas.facturation.features.client.service.ClientService;
 import sn.oas.facturation.features.devisPrevisionnel.data.entity.DevisPrevisionnel;
 import sn.oas.facturation.features.devisPrevisionnel.dto.DevisPrevisionnelRequest;
 import sn.oas.facturation.features.devisPrevisionnel.service.DevisPrevisionnelService;
@@ -23,6 +25,7 @@ import java.util.List;
 public class DevisPrevisionnelController {
 
     private final DevisPrevisionnelService devisPrevisionnelService;
+    private final ClientService clientService;
 
     @Operation(summary = "Créer un devis prévisionnel")
     @ApiResponses({
@@ -31,7 +34,7 @@ public class DevisPrevisionnelController {
     })
     @PostMapping
     public ResponseEntity<DevisPrevisionnel> creer(@RequestBody DevisPrevisionnelRequest request) {
-        return ResponseEntity.ok(devisPrevisionnelService.creer(request));
+        return new ResponseEntity<>(devisPrevisionnelService.creer(request), HttpStatus.CREATED);
     }
 
     @Operation(summary = "Modifier un devis prévisionnel")
@@ -48,7 +51,7 @@ public class DevisPrevisionnelController {
     @Operation(summary = "Supprimer un devis prévisionnel")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Devis supprimé avec succès"),
-            @ApiResponse(responseCode = "400", description = "Devis introuvable")
+            @ApiResponse(responseCode = "404", description = "Devis introuvable")
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> supprimer(@PathVariable Long id) {
@@ -56,10 +59,10 @@ public class DevisPrevisionnelController {
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "Obtenir un devis prévisionnel par ID")
+    @Operation(summary = "Obtenir un devis par son ID")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Devis trouvé"),
-            @ApiResponse(responseCode = "400", description = "Devis introuvable")
+            @ApiResponse(responseCode = "404", description = "Devis introuvable")
     })
     @GetMapping("/{id}")
     public ResponseEntity<DevisPrevisionnel> getById(@PathVariable Long id) {
@@ -72,9 +75,13 @@ public class DevisPrevisionnelController {
         return ResponseEntity.ok(devisPrevisionnelService.getById(id));
     }
 
-    @Operation(summary = "Obtenir un devis prévisionnel par ID de Fiche Atelier")
+    @Operation(summary = "Obtenir un devis par l'ID de la fiche atelier")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Devis trouvé"),
+            @ApiResponse(responseCode = "204", description = "Aucun devis lié à cette fiche atelier")
+    })
     @GetMapping("/fiche-atelier/{ficheAtelierId}")
-    public ResponseEntity<DevisPrevisionnel> getByFicheAtelier(@PathVariable Long ficheAtelierId) {
+    public ResponseEntity<DevisPrevisionnel> getByFicheAtelierId(@PathVariable Long ficheAtelierId) {
         return devisPrevisionnelService.getByFicheAtelierId(ficheAtelierId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.noContent().build());
@@ -91,7 +98,7 @@ public class DevisPrevisionnelController {
             @RequestParam(defaultValue = "10") int size) {
 
         if (keyword != null && !keyword.trim().isEmpty())
-            return ResponseEntity.ok(devisPrevisionnelService.search(keyword));
+            return ResponseEntity.ok(devisPrevisionnelService.search(keyword.trim(), page, size));
         if (clientId != null)
             return ResponseEntity.ok(devisPrevisionnelService.getByClient(clientId));
         if (vehiculeId != null)
@@ -125,5 +132,27 @@ public class DevisPrevisionnelController {
     @PutMapping("/{id}/annuler")
     public ResponseEntity<DevisPrevisionnel> annuler(@PathVariable Long id) {
         return ResponseEntity.ok(devisPrevisionnelService.annuler(id));
+    }
+
+    // --- Client endpoints ---
+    @Operation(summary = "Lister les devis prévisionnels du client connecté")
+    @GetMapping("/me")
+    public ResponseEntity<List<DevisPrevisionnel>> getMyDevis() {
+        Client client = clientService.getClientConnecte();
+        return ResponseEntity.ok(devisPrevisionnelService.getClientDevis(client));
+    }
+
+    @Operation(summary = "Accepter un devis prévisionnel par le client")
+    @PutMapping("/{id}/client-accepter")
+    public ResponseEntity<DevisPrevisionnel> clientAccepter(@PathVariable Long id) {
+        Client client = clientService.getClientConnecte();
+        return ResponseEntity.ok(devisPrevisionnelService.clientAccepter(client, id));
+    }
+
+    @Operation(summary = "Refuser un devis prévisionnel par le client")
+    @PutMapping("/{id}/client-refuser")
+    public ResponseEntity<DevisPrevisionnel> clientRefuser(@PathVariable Long id) {
+        Client client = clientService.getClientConnecte();
+        return ResponseEntity.ok(devisPrevisionnelService.clientRefuser(client, id));
     }
 }

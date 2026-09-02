@@ -1,18 +1,18 @@
 package sn.oas.facturation.features.ficheAtelier.service;
 
-import sn.oas.facturation.features.ficheAtelier.data.dto.FicheAtelierRequest;
-import sn.oas.facturation.features.ficheAtelier.data.dto.FicheAtelierResponse;
-
 import org.springframework.data.domain.Page;
+import sn.oas.facturation.features.ficheAtelier.data.dto.FicheAtelierRequest;
+import sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier;
+
 import java.util.List;
 
 public interface FicheAtelierService {
-    FicheAtelierResponse create(FicheAtelierRequest request);
-    FicheAtelierResponse update(Long id, FicheAtelierRequest request);
-    FicheAtelierResponse getById(Long id);
-    FicheAtelierResponse getByRendezVousId(Long rendezVousId);
-    Page<FicheAtelierResponse> getAll(int page, int size);
-    List<FicheAtelierResponse> getAll();
+    FicheAtelier create(FicheAtelierRequest request);
+    FicheAtelier update(Long id, FicheAtelierRequest request);
+    FicheAtelier getById(Long id);
+    FicheAtelier getByRendezVousId(Long rendezVousId);
+    Page<FicheAtelier> getAll(int page, int size);
+    List<FicheAtelier> getAll();
     void delete(Long id);
-    FicheAtelierResponse signForExit(Long id, String signature);
+    FicheAtelier signForExit(Long id, String signature);
 }

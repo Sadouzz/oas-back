@@ -25,31 +25,43 @@ public class AvoirTTCController {
     @PostMapping
     @Operation(summary = "Créer un avoir TTC")
     public ResponseEntity<AvoirTTCResponse> create(@RequestBody AvoirTTCCreateRequest request) {
-        return new ResponseEntity<>(avoirTTCService.create(request), HttpStatus.CREATED);
+        return new ResponseEntity<>(AvoirTTCResponse.from(avoirTTCService.create(request)), HttpStatus.CREATED);
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Récupérer un avoir TTC par son ID")
     public ResponseEntity<AvoirTTCResponse> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(avoirTTCService.getById(id));
+        return ResponseEntity.ok(AvoirTTCResponse.from(avoirTTCService.getById(id)));
     }
 
     @GetMapping
-    @Operation(summary = "Récupérer tous les avoirs TTC")
-    public ResponseEntity<List<AvoirTTCResponse>> getAll() {
-        return ResponseEntity.ok(avoirTTCService.getAll());
+    @Operation(summary = "Récupérer tous les avoirs TTC ou rechercher par mot-clé")
+    public ResponseEntity<?> getAll(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            return ResponseEntity.ok(avoirTTCService.search(keyword.trim(), page, size).map(AvoirTTCResponse::from));
+        }
+        return ResponseEntity.ok(avoirTTCService.getAll(page, size).map(AvoirTTCResponse::from));
     }
 
     @GetMapping("/search")
     @Operation(summary = "Rechercher des avoirs TTC")
-    public ResponseEntity<List<AvoirTTCResponse>> search(@RequestParam String keyword) {
-        return ResponseEntity.ok(avoirTTCService.search(keyword));
+    public ResponseEntity<?> search(
+            @RequestParam String keyword,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        if (page != null && size != null) {
+            return ResponseEntity.ok(avoirTTCService.search(keyword.trim(), page, size).map(AvoirTTCResponse::from));
+        }
+        return ResponseEntity.ok(avoirTTCService.search(keyword).stream().map(AvoirTTCResponse::from).toList());
     }
 
     @GetMapping("/recent")
     @Operation(summary = "Récupérer les avoirs TTC récents")
     public ResponseEntity<List<AvoirTTCResponse>> getRecent() {
-        return ResponseEntity.ok(avoirTTCService.getRecentAvoirs());
+        return ResponseEntity.ok(avoirTTCService.getRecentAvoirs().stream().map(AvoirTTCResponse::from).toList());
     }
 
     @DeleteMapping("/{id}")

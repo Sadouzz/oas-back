@@ -15,12 +15,19 @@ public interface PieceDetacheRepository extends JpaRepository<PieceDetache, Long
     boolean existsByReference(String reference);
 
     List<PieceDetache> findByType(TypePiece type);
+    org.springframework.data.domain.Page<PieceDetache> findByType(TypePiece type, org.springframework.data.domain.Pageable pageable);
 
     @Query("SELECT p FROM PieceDetache p WHERE " +
             "LOWER(p.reference) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(p.designation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(p.categorie) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+            "LOWER(p.categorie.nom) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<PieceDetache> searchPieces(@Param("keyword") String keyword);
+
+    @Query("SELECT p FROM PieceDetache p WHERE " +
+            "LOWER(p.reference) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(p.designation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(p.categorie.nom) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    org.springframework.data.domain.Page<PieceDetache> searchPieces(@Param("keyword") String keyword, org.springframework.data.domain.Pageable pageable);
 
     @Query(value = "SELECT CASE WHEN COUNT(*) > 0 THEN true ELSE false END FROM (" +
             "SELECT 1 FROM lignes_ordre_reparation_piece WHERE piece_id = :id UNION ALL " +

@@ -25,31 +25,43 @@ public class AvoirHTController {
     @PostMapping
     @Operation(summary = "Créer un avoir HT")
     public ResponseEntity<AvoirHTResponse> create(@RequestBody AvoirHTCreateRequest request) {
-        return new ResponseEntity<>(avoirHTService.create(request), HttpStatus.CREATED);
+        return new ResponseEntity<>(AvoirHTResponse.from(avoirHTService.create(request)), HttpStatus.CREATED);
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Récupérer un avoir HT par son ID")
     public ResponseEntity<AvoirHTResponse> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(avoirHTService.getById(id));
+        return ResponseEntity.ok(AvoirHTResponse.from(avoirHTService.getById(id)));
     }
 
     @GetMapping
-    @Operation(summary = "Récupérer tous les avoirs HT")
-    public ResponseEntity<List<AvoirHTResponse>> getAll() {
-        return ResponseEntity.ok(avoirHTService.getAll());
+    @Operation(summary = "Récupérer tous les avoirs HT ou rechercher par mot-clé")
+    public ResponseEntity<?> getAll(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            return ResponseEntity.ok(avoirHTService.search(keyword.trim(), page, size).map(AvoirHTResponse::from));
+        }
+        return ResponseEntity.ok(avoirHTService.getAll(page, size).map(AvoirHTResponse::from));
     }
 
     @GetMapping("/search")
     @Operation(summary = "Rechercher des avoirs HT")
-    public ResponseEntity<List<AvoirHTResponse>> search(@RequestParam String keyword) {
-        return ResponseEntity.ok(avoirHTService.search(keyword));
+    public ResponseEntity<?> search(
+            @RequestParam String keyword,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        if (page != null && size != null) {
+            return ResponseEntity.ok(avoirHTService.search(keyword.trim(), page, size).map(AvoirHTResponse::from));
+        }
+        return ResponseEntity.ok(avoirHTService.search(keyword).stream().map(AvoirHTResponse::from).toList());
     }
 
     @GetMapping("/recent")
     @Operation(summary = "Récupérer les avoirs HT récents")
     public ResponseEntity<List<AvoirHTResponse>> getRecent() {
-        return ResponseEntity.ok(avoirHTService.getRecentAvoirs());
+        return ResponseEntity.ok(avoirHTService.getRecentAvoirs().stream().map(AvoirHTResponse::from).toList());
     }
 
     @DeleteMapping("/{id}")

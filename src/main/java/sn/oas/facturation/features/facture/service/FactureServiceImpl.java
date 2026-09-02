@@ -47,10 +47,14 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import sn.oas.facturation.features.auth.data.enums.Role;
 import sn.oas.facturation.features.notification.service.AgentNotificationService;
+import sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService;
+import sn.oas.facturation.shared.documentNumber.DocumentType;
+import sn.oas.facturation.shared.exception.ResourceNotFoundException;
 
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -64,21 +68,21 @@ public class FactureServiceImpl implements FactureService {
     private final VehiculeRepository vehiculeRepository;
     private final UserRepository userRepository;
     private final AgentNotificationService agentNotificationService;
-    private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
+    private final DocumentNumberGeneratorService documentNumberGeneratorService;
     private final PieceDetacheRepository pieceDetacheRepository;
     private final StockMouvementRepository stockMouvementRepository;
 
     @Override
     @Transactional
-    public FactureResponse createFacture(FactureCreateRequest request) {
+    public Facture createFacture(FactureCreateRequest request) {
         Client client = (Client) userRepository.findById(request.getClientId())
-                .orElseThrow(() -> new IllegalArgumentException("Client introuvable"));
+                .orElseThrow(() -> new ResourceNotFoundException("Client introuvable avec l'id : " + request.getClientId()));
         
         Vehicule vehicule = vehiculeRepository.findById(request.getVehiculeId())
-                .orElseThrow(() -> new IllegalArgumentException("Véhicule introuvable"));
+                .orElseThrow(() -> new ResourceNotFoundException("Véhicule introuvable avec l'id : " + request.getVehiculeId()));
 
         OrdreReparation ordreReparation = ordreReparationRepository.findById(request.getOrdreReparationId())
-                .orElseThrow(() -> new IllegalArgumentException("Fiche Atelier introuvable"));
+                .orElseThrow(() -> new ResourceNotFoundException("Fiche Atelier / Ordre de réparation introuvable avec l'id : " + request.getOrdreReparationId()));
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         Agent agent = null;
@@ -89,7 +93,7 @@ public class FactureServiceImpl implements FactureService {
             agent = (user instanceof Agent) ? (Agent) user : null;
         }
 
-        String numero = documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.FC);
+        String numero = documentNumberGeneratorService.generateNextNumber(DocumentType.FC);
 
         Facture facture = Facture.builder()
                 .numero(numero)
@@ -184,25 +188,23 @@ public class FactureServiceImpl implements FactureService {
         if (ordreReparation != null && ordreReparation.getStatut() != StatutOrdreReparation.EN_ATTENTE_PAIEMENT) {
             ordreReparation.setStatut(StatutOrdreReparation.EN_ATTENTE_PAIEMENT);
             ordreReparationRepository.save(ordreReparation);
-        }
-
-        agentNotificationService.notifyRole(Role.AGENT, 
+        }        agentNotificationService.notifyRole(Role.AGENT, 
             "Nouvelle Facture", 
             "La facture " + facture.getNumero() + " a été générée et est en attente de paiement.");
 
-        return mapToResponse(facture);
+        return facture;
     }
 
     @Override
     @Transactional
-    public FactureResponse createFactureAuto(OrdreReparation ordreReparation) {
+    public Facture createFactureAuto(OrdreReparation ordreReparation) {
         Client client = null;
         Vehicule vehicule = ordreReparation.getVehicule();
         if (vehicule != null) {
             client = vehicule.getClient();
         }
 
-        String numero = documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.FC);
+        String numero = documentNumberGeneratorService.generateNextNumber(DocumentType.FC);
 
         Facture facture = Facture.builder()
                 .numero(numero)
@@ -215,35 +217,53 @@ public class FactureServiceImpl implements FactureService {
                 .remarque("Facture générée automatiquement depuis la Fiche Atelier " + ordreReparation.getNumero())
                 .build();
 
-        BigDecimal ht = BigDecimal.ZERO;
-        
-        for (LigneOrdreReparationPiece ligneFiche : ordreReparation.getLignesOrdreReparationPieces()) {
-            LigneFacturationPiece lfp = LigneFacturationPiece.builder()
-                    .facturation(facture)
-                    .piece(ligneFiche.getPiece())
-                    .quantite(ligneFiche.getQuantite())
-                    .prix(ligneFiche.getPrix())
-                    .build();
-            facture.getLignesFacturationPieces().add(lfp);
-            ht = ht.add(BigDecimal.valueOf((long) ligneFiche.getQuantite() * ligneFiche.getPrix()));
+        facture = factureRepository.save(facture);
+
+        // Copy pieces
+        BigDecimal montantHT = BigDecimal.ZERO;
+        List<LigneFacturationPiece> lignesPieces = new ArrayList<>();
+        List<LigneFacturationMainDoeuvre> lignesMainDoeuvre = new ArrayList<>();
+
+        if (ordreReparation.getLignesOrdreReparationPieces() != null) {
+            for (sn.oas.facturation.features.ordreReparation.data.entity.LigneOrdreReparationPiece pieceUtilisee : ordreReparation.getLignesOrdreReparationPieces()) {
+                int q = pieceUtilisee.getQuantite() != null ? pieceUtilisee.getQuantite() : 1;
+                int p = pieceUtilisee.getPrix() != null ? pieceUtilisee.getPrix() : 0;
+                LigneFacturationPiece lignePiece = LigneFacturationPiece.builder()
+                        .facturation(facture)
+                        .piece(pieceUtilisee.getPiece())
+                        .isCustom(pieceUtilisee.getIsCustom())
+                        .designationPds(pieceUtilisee.getDesignationPds())
+                        .quantite(q)
+                        .prix(p)
+                        .build();
+                lignesPieces.add(lignePiece);
+                montantHT = montantHT.add(BigDecimal.valueOf((long) q * p));
+            }
         }
 
-        for (LigneOrdreReparationMainDoeuvre ligneFiche : ordreReparation.getLignesOrdreReparationMainDoeuvres()) {
-            LigneFacturationMainDoeuvre lfm = LigneFacturationMainDoeuvre.builder()
-                    .facturation(facture)
-                    .mainDoeuvre(ligneFiche.getMainDoeuvre())
-                    .nbreHeure(ligneFiche.getNbreHeure())
-                    .tarifHoraire(ligneFiche.getPrix())
-                    .build();
-            facture.getLignesFacturationMainDoeuvres().add(lfm);
-            ht = ht.add(BigDecimal.valueOf((long) ligneFiche.getNbreHeure() * ligneFiche.getPrix()));
+        // Copy MO
+        if (ordreReparation.getLignesOrdreReparationMainDoeuvres() != null) {
+            for (sn.oas.facturation.features.ordreReparation.data.entity.LigneOrdreReparationMainDoeuvre mo : ordreReparation.getLignesOrdreReparationMainDoeuvres()) {
+                int h = mo.getNbreHeure() != null ? mo.getNbreHeure() : 1;
+                int t = mo.getPrix() != null ? mo.getPrix() : 0;
+                LigneFacturationMainDoeuvre ligneMO = LigneFacturationMainDoeuvre.builder()
+                        .facturation(facture)
+                        .mainDoeuvre(mo.getMainDoeuvre())
+                        .nbreHeure(h)
+                        .tarifHoraire(t)
+                        .build();
+                lignesMainDoeuvre.add(ligneMO);
+                montantHT = montantHT.add(BigDecimal.valueOf((long) h * t));
+            }
         }
 
-        BigDecimal tva = BigDecimal.ZERO;
-        BigDecimal timbre = BigDecimal.ZERO;
-        BigDecimal ttc = ht.add(tva).add(timbre);
+        BigDecimal tva = montantHT.multiply(BigDecimal.valueOf(0.18));
+        BigDecimal timbre = BigDecimal.valueOf(100);
+        BigDecimal ttc = montantHT.add(tva).add(timbre);
 
-        facture.setMontantHT(ht);
+        facture.setLignesFacturationPieces(lignesPieces);
+        facture.setLignesFacturationMainDoeuvres(lignesMainDoeuvre);
+        facture.setMontantHT(montantHT);
         facture.setMontantTVA(tva);
         facture.setMontantTimbre(timbre);
         facture.setMontantTTC(ttc);
@@ -251,7 +271,6 @@ public class FactureServiceImpl implements FactureService {
         facture.setMontantPaye(BigDecimal.ZERO);
         facture.setResteAPayer(ttc);
         facture.setStatutPaiement(StatutPaiement.NON_PAYE);
-
         facture = factureRepository.save(facture);
 
         // Mouvement de stock : La facture diminue le stock réel (SORTIE RÉELLE)
@@ -290,53 +309,53 @@ public class FactureServiceImpl implements FactureService {
             "Nouvelle Facture Auto", 
             "La facture " + facture.getNumero() + " a été générée automatiquement et est en attente de paiement.");
 
-        return mapToResponse(facture);
+        return facture;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public FactureResponse getById(Long id) {
-        Facture f = factureRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Facture non trouvée avec l'id : " + id));
-        return mapToResponse(f);
+    public Facture getById(Long id) {
+        return factureRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Facture non trouvée avec l'id : " + id));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<FactureResponse> getAll(int page, int size) {
-        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
-        return factureRepository.findAll(pageable).map(this::mapToResponse);
+    public Page<Facture> getAll(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return factureRepository.findAll(pageable);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<FactureResponse> getAll() {
-        return factureRepository.findAll().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public List<Facture> getAll() {
+        return factureRepository.findAll();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<FactureResponse> search(String keyword) {
-        return factureRepository.searchFactures(keyword).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public List<Facture> search(String keyword) {
+        return factureRepository.searchFactures(keyword);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<FactureResponse> getRecentFactures() {
-        return factureRepository.findTop5ByOrderByDateCreationDesc().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public Page<Facture> search(String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return factureRepository.searchFactures(keyword, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Facture> getRecentFactures() {
+        return factureRepository.findTop5ByOrderByDateCreationDesc();
     }
 
     @Override
     @Transactional
     public void delete(Long id) {
         if (!factureRepository.existsById(id)) {
-            throw new IllegalArgumentException("Facture non trouvée avec l'id : " + id);
+            throw new ResourceNotFoundException("Facture non trouvée avec l'id : " + id);
         }
         factureRepository.deleteById(id);
     }
@@ -345,7 +364,7 @@ public class FactureServiceImpl implements FactureService {
     @Transactional(readOnly = true)
     public byte[] generatePdf(Long id) {
         Facture f = factureRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Facture non trouvée avec l'id : " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Facture non trouvée avec l'id : " + id));
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Document document = new Document();
@@ -463,84 +482,18 @@ public class FactureServiceImpl implements FactureService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<FactureResponse> getClientFactures(Client client) {
-        return factureRepository.findByClientIdOrderByDateCreationDesc(client.getId()).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public List<Facture> getClientFactures(Client client) {
+        return factureRepository.findByClientIdOrderByDateCreationDesc(client.getId());
     }
 
     @Override
     @Transactional(readOnly = true)
-    public FactureResponse getClientFactureById(Client client, Long id) {
+    public Facture getClientFactureById(Client client, Long id) {
         Facture f = factureRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Facture non trouvée avec l'id : " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Facture non trouvée avec l'id : " + id));
         if (f.getClient() == null || !f.getClient().getId().equals(client.getId())) {
-            throw new IllegalArgumentException("Accès non autorisé à cette facture");
+            throw new sn.oas.facturation.shared.exception.ForbiddenException("Accès non autorisé à cette facture");
         }
-        return mapToResponse(f);
-    }
-
-    private FactureResponse mapToResponse(Facture f) {
-        return FactureResponse.builder()
-                .id(f.getId())
-                .numero(f.getNumero())
-                .dateCreation(f.getDateCreation())
-                .dateModification(f.getDateModification())
-                .montantHT(f.getMontantHT())
-                .montantTVA(f.getMontantTVA())
-                .montantTTC(f.getMontantTTC())
-                .montantTimbre(f.getMontantTimbre())
-                .montantAutre(f.getMontantAutre())
-                .montantTotal(f.getMontantTotal())
-                .montantPaye(f.getMontantPaye())
-                .resteAPayer(f.getResteAPayer())
-                .statutPaiement(f.getStatutPaiement())
-                .agentId(f.getAgent() != null ? f.getAgent().getId() : null)
-                .agentNom(f.getAgent() != null ? f.getAgent().getFirstName() + " " + f.getAgent().getLastName() : null)
-                .remarque(f.getRemarque())
-                .kilometrage(f.getKilometrage())
-                .clientId(f.getClient() != null ? f.getClient().getId() : null)
-                .clientNom(f.getClient() != null ? f.getClient().getFirstName() + " " + f.getClient().getLastName() : null)
-                .vehiculeId(f.getVehicule() != null ? f.getVehicule().getId() : null)
-                .immatriculation(f.getVehicule() != null ? f.getVehicule().getImmatriculation() : null)
-                .numeroChassis(f.getVehicule() != null ? f.getVehicule().getNumeroChassis() : null)
-                .marque(f.getVehicule() != null ? f.getVehicule().getMarque() : null)
-                .modele(f.getVehicule() != null ? f.getVehicule().getModele() : null)
-                .annee(f.getVehicule() != null ? f.getVehicule().getAnnee() : null)
-                .numeroBonDeCommande(f.getNumeroBonDeCommande())
-                .ordreReparationId(f.getOrdreReparation() != null ? f.getOrdreReparation().getId() : null)
-                .numeroOrdreReparation(f.getOrdreReparation() != null ? f.getOrdreReparation().getNumero() : null)
-                .lignesPieces(f.getLignesFacturationPieces() == null ? List.of() : f.getLignesFacturationPieces().stream()
-                        .map(lp -> LigneFacturationPieceResponse.builder()
-                                .id(lp.getId())
-                                .pieceId(lp.getPiece() != null ? lp.getPiece().getId() : null)
-                                .designationPiece(lp.getPiece() != null ? lp.getPiece().getDesignation() : null)
-                                .quantite(lp.getQuantite())
-                                .prix(lp.getPrix())
-                                .montantTotal(lp.getQuantite() * lp.getPrix())
-                                .build())
-                        .collect(Collectors.toList()))
-                .lignesMainDoeuvres(f.getLignesFacturationMainDoeuvres() == null ? List.of() : f.getLignesFacturationMainDoeuvres().stream()
-                        .map(lm -> LigneFacturationMainDoeuvreResponse.builder()
-                                .id(lm.getId())
-                                .mainDoeuvreId(lm.getMainDoeuvre() != null ? lm.getMainDoeuvre().getId() : null)
-                                .descriptionMainDoeuvre(lm.getMainDoeuvre() != null ? lm.getMainDoeuvre().getCategorie().getNom() : null)
-                                .nbreHeure(lm.getNbreHeure())
-                                .tarifHoraire(lm.getTarifHoraire())
-                                .montantTotal(lm.getNbreHeure() * lm.getTarifHoraire())
-                                .build())
-                        .collect(Collectors.toList()))
-                .recus(f.getRecus() == null ? List.of() : f.getRecus().stream()
-                        .map(r -> RecuResponse.builder()
-                                .id(r.getId())
-                                .numero(r.getNumero())
-                                .factureId(f.getId())
-                                .montant(r.getMontant())
-                                .modePaiement(r.getModePaiement())
-                                .remarque(r.getRemarque())
-                                .datePaiement(r.getDatePaiement())
-                                .build())
-                        .collect(Collectors.toList()))
-                .build();
+        return f;
     }
 }

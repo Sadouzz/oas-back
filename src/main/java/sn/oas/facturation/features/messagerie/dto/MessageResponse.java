@@ -12,11 +12,16 @@ public record MessageResponse(
         LocalDateTime dateEnvoi,
         boolean lu
 ) {
+    public static MessageResponse from(Message m) {
+        return of(m);
+    }
+
     public static MessageResponse of(Message m) {
+        if (m == null) return null;
         return new MessageResponse(
                 m.getId(),
-                m.getExpediteur().getId(),
-                m.getExpediteur().getFirstName() + " " + m.getExpediteur().getLastName(),
+                m.getExpediteur() != null ? m.getExpediteur().getId() : null,
+                m.getExpediteur() != null ? (m.getExpediteur().getFirstName() + " " + m.getExpediteur().getLastName()).trim() : null,
                 m.getContenu(),
                 m.getDateEnvoi(),
                 m.isLu()

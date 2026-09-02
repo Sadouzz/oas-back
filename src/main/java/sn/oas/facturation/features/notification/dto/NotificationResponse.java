@@ -12,6 +12,11 @@ public record NotificationResponse(
         LocalDateTime dateCreation
 ) {
     public static NotificationResponse of(Notification n) {
+        return from(n);
+    }
+
+    public static NotificationResponse from(Notification n) {
+        if (n == null) return null;
         return new NotificationResponse(
                 n.getId(),
                 n.getTitre(),

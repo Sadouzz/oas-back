@@ -13,12 +13,14 @@ import sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparat
 import sn.oas.facturation.features.ordreReparation.repository.OrdreReparationRepository;
 import sn.oas.facturation.features.recu.data.entity.Recu;
 import sn.oas.facturation.features.recu.dto.RecuRequest;
-import sn.oas.facturation.features.recu.dto.RecuResponse;
 import sn.oas.facturation.features.recu.repository.RecuRepository;
+import sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService;
+import sn.oas.facturation.shared.documentNumber.DocumentType;
+import sn.oas.facturation.shared.exception.BadRequestException;
+import sn.oas.facturation.shared.exception.ResourceNotFoundException;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -28,27 +30,27 @@ public class RecuServiceImpl implements RecuService {
     private final RecuRepository recuRepository;
     private final FactureRepository factureRepository;
     private final OrdreReparationRepository ordreReparationRepository;
-    private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
+    private final DocumentNumberGeneratorService documentNumberGeneratorService;
 
     @Override
     @Transactional
-    public RecuResponse create(RecuRequest request) {
+    public Recu create(RecuRequest request) {
         Facture facture = factureRepository.findById(request.getFactureId())
-                .orElseThrow(() -> new IllegalArgumentException("Facture introuvable"));
+                .orElseThrow(() -> new ResourceNotFoundException("Facture introuvable avec l'id : " + request.getFactureId()));
 
         if (facture.getStatutPaiement() == StatutPaiement.PAYE) {
-            throw new IllegalStateException("Cette facture est déjà totalement payée");
+            throw new BadRequestException("Cette facture est déjà totalement payée");
         }
 
-        if (request.getMontant().compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Le montant doit être supérieur à zéro");
+        if (request.getMontant() == null || request.getMontant().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BadRequestException("Le montant doit être supérieur à zéro");
         }
 
         if (request.getMontant().compareTo(facture.getResteAPayer()) > 0) {
-            throw new IllegalArgumentException("Le montant du reçu dépasse le reste à payer (" + facture.getResteAPayer() + ")");
+            throw new BadRequestException("Le montant du reçu dépasse le reste à payer (" + facture.getResteAPayer() + ")");
         }
 
-        String numero = documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.RC);
+        String numero = documentNumberGeneratorService.generateNextNumber(DocumentType.RC);
 
         Recu recu = Recu.builder()
                 .numero(numero)
@@ -81,41 +83,21 @@ public class RecuServiceImpl implements RecuService {
 
         factureRepository.save(facture);
 
-        return mapToResponse(recu);
+        return recu;
     }
 
     @Override
-    public List<RecuResponse> getByFacture(Long factureId) {
-        return recuRepository.findByFactureIdOrderByDatePaiementDesc(factureId)
-                .stream().map(this::mapToResponse).collect(Collectors.toList());
+    public List<Recu> getByFacture(Long factureId) {
+        return recuRepository.findByFactureIdOrderByDatePaiementDesc(factureId);
     }
 
     @Override
-    public List<RecuResponse> getClientRecus(Client client) {
-        return recuRepository.findByFactureClientIdOrderByDatePaiementDesc(client.getId())
-                .stream().map(this::mapToResponse).collect(Collectors.toList());
+    public List<Recu> getClientRecus(Client client) {
+        return recuRepository.findByFactureClientIdOrderByDatePaiementDesc(client.getId());
     }
 
     @Override
-    public List<RecuResponse> getAll() {
-        return recuRepository.findAll()
-                .stream().map(this::mapToResponse)
-                .sorted((a, b) -> b.getId().compareTo(a.getId()))
-                .collect(Collectors.toList());
-    }
-
-    private RecuResponse mapToResponse(Recu r) {
-        return RecuResponse.builder()
-                .id(r.getId())
-                .numero(r.getNumero())
-                .factureId(r.getFacture().getId())
-                .numeroFacture(r.getFacture().getNumero())
-                .clientNom(r.getFacture().getClient() != null ? r.getFacture().getClient().getFirstName() + " " + r.getFacture().getClient().getLastName() : null)
-                .numeroOrdreReparation(r.getFacture().getOrdreReparation() != null ? r.getFacture().getOrdreReparation().getNumero() : null)
-                .montant(r.getMontant())
-                .modePaiement(r.getModePaiement())
-                .remarque(r.getRemarque())
-                .datePaiement(r.getDatePaiement())
-                .build();
+    public List<Recu> getAll() {
+        return recuRepository.findAll();
     }
 }

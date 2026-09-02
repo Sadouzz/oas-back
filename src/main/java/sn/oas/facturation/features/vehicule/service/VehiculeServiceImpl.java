@@ -1,10 +1,10 @@
 package sn.oas.facturation.features.vehicule.service;
 
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.oas.facturation.features.auth.data.entity.Client;
@@ -12,6 +12,8 @@ import sn.oas.facturation.features.client.repository.ClientRepository;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.features.vehicule.dto.VehiculeRequest;
 import sn.oas.facturation.features.vehicule.repository.VehiculeRepository;
+import sn.oas.facturation.shared.exception.ResourceAlreadyExistsException;
+import sn.oas.facturation.shared.exception.ResourceNotFoundException;
 
 import java.util.List;
 
@@ -24,25 +26,25 @@ public class VehiculeServiceImpl implements VehiculeService {
 
     @Override
     public Page<Vehicule> getAllVehicules(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
         return vehiculeRepository.findAll(pageable);
     }
 
     @Override
     public Vehicule getVehiculeById(Long id) {
         return vehiculeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Véhicule introuvable avec l'id : " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Véhicule non trouvé avec l'id : " + id));
     }
 
     @Transactional
     @Override
     public Vehicule createVehicule(VehiculeRequest request) {
         if (request.immatriculation() != null && vehiculeRepository.existsByImmatriculation(request.immatriculation())) {
-            throw new IllegalArgumentException("Immatriculation déjà existante : " + request.immatriculation());
+            throw new ResourceAlreadyExistsException("Immatriculation déjà existante : " + request.immatriculation());
         }
 
         Client client = clientRepository.findById(request.clientId())
-                .orElseThrow(() -> new RuntimeException("Client non trouvé avec l'id : " + request.clientId()));
+                .orElseThrow(() -> new ResourceNotFoundException("Client non trouvé avec l'id : " + request.clientId()));
 
         Vehicule vehicule = Vehicule.builder()
                 .immatriculation(request.immatriculation())
@@ -61,18 +63,18 @@ public class VehiculeServiceImpl implements VehiculeService {
     @Override
     public Vehicule updateVehicule(Long id, VehiculeRequest request) {
         Vehicule vehicule = vehiculeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Véhicule non trouvé"));
+                .orElseThrow(() -> new ResourceNotFoundException("Véhicule non trouvé avec l'id : " + id));
 
         if (request.immatriculation() != null && !request.immatriculation().equalsIgnoreCase(vehicule.getImmatriculation())) {
             if (vehiculeRepository.existsByImmatriculation(request.immatriculation())) {
-                throw new IllegalArgumentException("Immatriculation déjà existante : " + request.immatriculation());
+                throw new ResourceAlreadyExistsException("Immatriculation déjà existante : " + request.immatriculation());
             }
             vehicule.setImmatriculation(request.immatriculation());
         }
 
         if (request.clientId() != null && !request.clientId().equals(vehicule.getClient().getId())) {
             Client client = clientRepository.findById(request.clientId())
-                    .orElseThrow(() -> new RuntimeException("Client non trouvé avec l'id : " + request.clientId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Client non trouvé avec l'id : " + request.clientId()));
             vehicule.setClient(client);
         }
 
@@ -89,7 +91,7 @@ public class VehiculeServiceImpl implements VehiculeService {
     @Override
     public void deleteVehicule(Long id) {
         if (!vehiculeRepository.existsById(id)) {
-            throw new RuntimeException("Véhicule non trouvé");
+            throw new ResourceNotFoundException("Véhicule non trouvé avec l'id : " + id);
         }
         vehiculeRepository.deleteById(id);
     }
@@ -97,6 +99,12 @@ public class VehiculeServiceImpl implements VehiculeService {
     @Override
     public List<Vehicule> searchVehicules(String keyword) {
         return vehiculeRepository.searchVehicules(keyword);
+    }
+
+    @Override
+    public Page<Vehicule> searchVehicules(String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        return vehiculeRepository.searchVehicules(keyword, pageable);
     }
 
     @Override

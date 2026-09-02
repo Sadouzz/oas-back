@@ -18,4 +18,12 @@ public interface TechnicienRepository extends JpaRepository<Technicien, Long> {
             "LOWER(t.phone) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(t.email) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<Technicien> searchTechniciens(@Param("keyword") String keyword);
+
+    @Query("SELECT t FROM Technicien t WHERE " +
+            "LOWER(t.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(t.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(t.matricule) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(t.phone) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(t.email) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    org.springframework.data.domain.Page<Technicien> searchTechniciens(@Param("keyword") String keyword, org.springframework.data.domain.Pageable pageable);
 }

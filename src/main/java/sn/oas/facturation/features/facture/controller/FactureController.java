@@ -3,13 +3,16 @@ package sn.oas.facturation.features.facture.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import sn.oas.facturation.features.facture.dto.FactureResponse;
+import sn.oas.facturation.features.auth.data.entity.Client;
+import sn.oas.facturation.features.client.service.ClientService;
 import sn.oas.facturation.features.facture.dto.FactureCreateRequest;
+import sn.oas.facturation.features.facture.dto.FactureResponse;
 import sn.oas.facturation.features.facture.service.FactureService;
 
 import java.util.List;
@@ -21,41 +24,49 @@ import java.util.List;
 public class FactureController {
 
     private final FactureService factureService;
+    private final ClientService clientService;
 
     @PostMapping("/creer")
     @Operation(summary = "Créer une nouvelle facture à partir d'une fiche atelier")
     public ResponseEntity<FactureResponse> createFacture(@RequestBody FactureCreateRequest request) {
-        return ResponseEntity.ok(factureService.createFacture(request));
+        return new ResponseEntity<>(FactureResponse.from(factureService.createFacture(request)), HttpStatus.CREATED);
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Récupérer une facture par son ID")
     public ResponseEntity<FactureResponse> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(factureService.getById(id));
+        return ResponseEntity.ok(FactureResponse.from(factureService.getById(id)));
     }
 
     @GetMapping
-    @Operation(summary = "Récupérer toutes les factures ou rechercher par mot-clé")
-    public ResponseEntity<?> getAll(
+    @Operation(summary = "Récupérer toutes les factures ou rechercher par mot-clé avec pagination")
+    public ResponseEntity<Page<FactureResponse>> getAll(
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         if (keyword != null && !keyword.trim().isEmpty()) {
-            return ResponseEntity.ok(factureService.search(keyword));
+            return ResponseEntity.ok(factureService.search(keyword.trim(), page, size).map(FactureResponse::from));
         }
-        return ResponseEntity.ok(factureService.getAll(page, size));
+        return ResponseEntity.ok(factureService.getAll(page, size).map(FactureResponse::from));
     }
 
     @GetMapping("/search")
     @Operation(summary = "Rechercher des factures")
     public ResponseEntity<List<FactureResponse>> search(@RequestParam String keyword) {
-        return ResponseEntity.ok(factureService.search(keyword));
+        return ResponseEntity.ok(factureService.search(keyword).stream().map(FactureResponse::from).toList());
     }
 
     @GetMapping("/recent")
     @Operation(summary = "Récupérer les factures récentes")
     public ResponseEntity<List<FactureResponse>> getRecent() {
-        return ResponseEntity.ok(factureService.getRecentFactures());
+        return ResponseEntity.ok(factureService.getRecentFactures().stream().map(FactureResponse::from).toList());
+    }
+
+    @GetMapping("/me")
+    @Operation(summary = "Lister l'historique de facturation du client connecté")
+    public ResponseEntity<List<FactureResponse>> getMyFactures() {
+        Client client = clientService.getClientConnecte();
+        return ResponseEntity.ok(factureService.getClientFactures(client).stream().map(FactureResponse::from).toList());
     }
 
     @DeleteMapping("/{id}")
@@ -68,14 +79,10 @@ public class FactureController {
     @GetMapping("/{id}/pdf")
     @Operation(summary = "Générer le PDF d'une facture")
     public ResponseEntity<byte[]> generatePdf(@PathVariable Long id) {
-        try {
-            byte[] pdfBytes = factureService.generatePdf(id);
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_PDF);
-            headers.setContentDispositionFormData("attachment", "Facture_" + id + ".pdf");
-            return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
-        } catch (UnsupportedOperationException e) {
-            return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
-        }
+        byte[] pdfBytes = factureService.generatePdf(id);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDispositionFormData("attachment", "Facture_" + id + ".pdf");
+        return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
     }
 }

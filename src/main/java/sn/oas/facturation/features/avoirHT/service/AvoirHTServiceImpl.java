@@ -94,7 +94,7 @@ public class AvoirHTServiceImpl implements AvoirHTService {
 
     @Override
     @Transactional
-    public AvoirHTResponse create(AvoirHTCreateRequest request) {
+    public AvoirHT create(AvoirHTCreateRequest request) {
         Client client = null;
         if (request.getClientId() != null) {
             client = (Client) userRepository.findById(request.getClientId())
@@ -221,47 +221,53 @@ public class AvoirHTServiceImpl implements AvoirHTService {
         avoirHT.setLignesFacturationPieces(lignesPieces);
         avoirHT.setLignesFacturationMainDoeuvres(lignesMainDoeuvre);
 
-        AvoirHT saved = avoirHTRepository.save(avoirHT);
-        return mapToResponse(saved);
+        return avoirHTRepository.save(avoirHT);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public AvoirHTResponse getById(Long id) {
-        AvoirHT a = avoirHTRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Avoir HT non trouvé avec l'id : " + id));
-        return mapToResponse(a);
+    public AvoirHT getById(Long id) {
+        return avoirHTRepository.findById(id)
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Avoir HT non trouvé avec l'id : " + id));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<AvoirHTResponse> getAll() {
-        return avoirHTRepository.findAll().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public org.springframework.data.domain.Page<AvoirHT> getAll(int page, int size) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by("id").descending());
+        return avoirHTRepository.findAll(pageable);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<AvoirHTResponse> search(String keyword) {
-        return avoirHTRepository.searchAvoirsHT(keyword).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public List<AvoirHT> getAll() {
+        return avoirHTRepository.findAll();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<AvoirHTResponse> getRecentAvoirs() {
-        return avoirHTRepository.findTop5ByOrderByDateCreationDesc().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public List<AvoirHT> search(String keyword) {
+        return avoirHTRepository.searchAvoirsHT(keyword);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<AvoirHT> search(String keyword, int page, int size) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by("id").descending());
+        return avoirHTRepository.searchAvoirsHT(keyword, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AvoirHT> getRecentAvoirs() {
+        return avoirHTRepository.findTop5ByOrderByDateCreationDesc();
     }
 
     @Override
     @Transactional
     public void delete(Long id) {
         if (!avoirHTRepository.existsById(id)) {
-            throw new IllegalArgumentException("Avoir HT non trouvé avec l'id : " + id);
+            throw new sn.oas.facturation.shared.exception.ResourceNotFoundException("Avoir HT non trouvé avec l'id : " + id);
         }
         avoirHTRepository.deleteById(id);
     }
@@ -270,7 +276,7 @@ public class AvoirHTServiceImpl implements AvoirHTService {
     @Transactional(readOnly = true)
     public byte[] generatePdf(Long id) {
         AvoirHT a = avoirHTRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Avoir HT non trouvé avec l'id : " + id));
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Avoir HT non trouvé avec l'id : " + id));
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Document document = new Document();
@@ -395,65 +401,5 @@ public class AvoirHTServiceImpl implements AvoirHTService {
         }
 
         return baos.toByteArray();
-    }
-
-    private AvoirHTResponse mapToResponse(AvoirHT a) {
-        Client client = a.getClient();
-        if (client == null && a.getOrdreReparation() != null && a.getOrdreReparation().getVehicule() != null) {
-            client = a.getOrdreReparation().getVehicule().getClient();
-        }
-
-        Vehicule vehicule = a.getVehicule();
-        if (vehicule == null && a.getOrdreReparation() != null) {
-            vehicule = a.getOrdreReparation().getVehicule();
-        }
-
-        return AvoirHTResponse.builder()
-                .id(a.getId())
-                .numero(a.getNumero())
-                .dateCreation(a.getDateCreation())
-                .dateModification(a.getDateModification())
-                .montantHT(a.getMontantHT())
-                .montantTotal(a.getMontantTotal() != null ? a.getMontantTotal() : a.getMontantHT())
-                .agentId(a.getAgent() != null ? a.getAgent().getId() : null)
-                .agentNom(a.getAgent() != null ? a.getAgent().getFirstName() + " " + a.getAgent().getLastName() : null)
-                .remarque(a.getRemarque())
-                .kilometrage(a.getKilometrage())
-                .clientId(client != null ? client.getId() : null)
-                .clientNom(client != null ? client.getFirstName() + " " + client.getLastName() : null)
-                .vehiculeId(vehicule != null ? vehicule.getId() : null)
-                .immatriculation(vehicule != null ? vehicule.getImmatriculation() : null)
-                .numeroChassis(vehicule != null ? vehicule.getNumeroChassis() : null)
-                .marque(vehicule != null ? vehicule.getMarque() : null)
-                .modele(vehicule != null ? vehicule.getModele() : null)
-                .annee(vehicule != null ? vehicule.getAnnee() : null)
-                .numeroBonDeCommande(a.getBonDeCommande() != null ? a.getBonDeCommande().getNumero() : null)
-                .lignesPieces(a.getLignesFacturationPieces() == null ? List.of()
-                        : a.getLignesFacturationPieces().stream()
-                                .map(lp -> LigneFacturationPieceResponse.builder()
-                                        .id(lp.getId())
-                                        .pieceId(lp.getPiece() != null ? lp.getPiece().getId() : null)
-                                        .designationPiece(lp.getPiece() != null ? lp.getPiece().getDesignation()
-                                                : lp.getDesignationPds())
-                                        .quantite(lp.getQuantite())
-                                        .prix(lp.getPrix())
-                                        .montantTotal(lp.getQuantite() * lp.getPrix())
-                                        .build())
-                                .collect(Collectors.toList()))
-                .lignesMainDoeuvres(a.getLignesFacturationMainDoeuvres() == null ? List.of()
-                        : a.getLignesFacturationMainDoeuvres().stream()
-                                .map(lm -> LigneFacturationMainDoeuvreResponse.builder()
-                                        .id(lm.getId())
-                                        .mainDoeuvreId(lm.getMainDoeuvre() != null ? lm.getMainDoeuvre().getId() : null)
-                                        .descriptionMainDoeuvre(lm.getMainDoeuvre() != null
-                                                && lm.getMainDoeuvre().getCategorie() != null
-                                                        ? lm.getMainDoeuvre().getCategorie().getNom()
-                                                        : null)
-                                        .nbreHeure(lm.getNbreHeure())
-                                        .tarifHoraire(lm.getTarifHoraire())
-                                        .montantTotal(lm.getNbreHeure() * lm.getTarifHoraire())
-                                        .build())
-                                .collect(Collectors.toList()))
-                .build();
     }
 }

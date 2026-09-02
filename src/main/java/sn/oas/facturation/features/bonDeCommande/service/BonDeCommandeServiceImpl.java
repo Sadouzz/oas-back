@@ -80,7 +80,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
 
     @Override
     @Transactional
-    public BonDeCommandeResponse create(BonDeCommandeCreateRequest request) {
+    public BonDeCommande create(BonDeCommandeCreateRequest request) {
         log.info("Création d'un nouveau bon de commande");
 
         // Récupération de l'agent connecté depuis le contexte de sécurité
@@ -141,21 +141,24 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                 "Nouveau Bon de Commande",
                 "Le bon de commande " + saved.getNumero() + " a été créé et est en attente.");
 
-        return mapToResponse(saved);
+        return saved;
     }
 
     private LigneBonDeCommandePiece buildLigneFromRequest(LigneBonDeCommandeRequest ligneReq,
             BonDeCommande bonDeCommande) {
+        BigDecimal pu = ligneReq.getPrixUnitaire() != null ? BigDecimal.valueOf(ligneReq.getPrixUnitaire()) : BigDecimal.ZERO;
+        BigDecimal montant = pu.multiply(BigDecimal.valueOf(ligneReq.getQuantite() != null ? ligneReq.getQuantite() : 0));
+
         LigneBonDeCommandePiece ligne = LigneBonDeCommandePiece.builder()
                 .bonDeCommande(bonDeCommande)
                 .quantite(ligneReq.getQuantite())
-                .prixUnitaire(BigDecimal.valueOf(ligneReq.getPrixUnitaire()))
-                .montant(BigDecimal.valueOf(ligneReq.getQuantite() * ligneReq.getPrixUnitaire()))
+                .prixUnitaire(pu)
+                .montant(montant)
                 .build();
 
         if (ligneReq.getPieceDetacheeId() != null) {
             PieceDetache piece = pieceDetacheRepository.findById(ligneReq.getPieceDetacheeId())
-                    .orElseThrow(() -> new RuntimeException(
+                    .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException(
                             "Pièce détachée non trouvée avec l'id " + ligneReq.getPieceDetacheeId()));
             ligne.setPieceDetachee(piece);
         } else if (ligneReq.getTypePiece() != null) {
@@ -172,8 +175,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                             .categorie(ligneReq.getCategorie() != null
                                     ? categorieRepository.findByNom(ligneReq.getCategorie()).orElse(null)
                                     : null)
-
-                            .prixUnitaire(ligneReq.getPrixUnitaire())
+                            .prixUnitaire(ligneReq.getPrixUnitaire() != null ? ligneReq.getPrixUnitaire() : 0.0)
                             .qteReelle(0.0)
                             .stockAtelier(0.0)
                             .stockMagasin(0.0)
@@ -186,14 +188,14 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                             .categorie(ligneReq.getCategorie() != null
                                     ? categorieRepository.findByNom(ligneReq.getCategorie()).orElse(null)
                                     : null)
-
+                            .prixUnitaire(ligneReq.getPrixUnitaire() != null ? ligneReq.getPrixUnitaire() : 0.0)
                             .build();
                 }
                 nouvellePiece = pieceDetacheRepository.save(nouvellePiece);
                 ligne.setPieceDetachee(nouvellePiece);
             }
         } else {
-            throw new RuntimeException("Informations de pièce détachée incomplètes pour la ligne de commande.");
+            throw new sn.oas.facturation.shared.exception.BadRequestException("Informations de pièce détachée incomplètes pour la ligne de commande.");
         }
 
         return ligne;
@@ -201,18 +203,18 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
 
     @Override
     @Transactional
-    public BonDeCommandeResponse update(Long id, BonDeCommandeUpdateRequest request) {
+    public BonDeCommande update(Long id, BonDeCommandeUpdateRequest request) {
         log.info("Mise à jour du bon de commande id: {}", id);
         BonDeCommande bonDeCommande = bonDeCommandeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Bon de commande non trouvé"));
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Bon de commande non trouvé avec l'id : " + id));
 
         if (bonDeCommande.getStatut() == StatutBonCommande.ANNULE) {
-            throw new RuntimeException("Un bon de commande annulé ne peut pas être modifié.");
+            throw new sn.oas.facturation.shared.exception.BadRequestException("Un bon de commande annulé ne peut pas être modifié.");
         }
 
         if (request.getFournisseurId() != null) {
             Fournisseur fournisseur = fournisseurRepository.findById(request.getFournisseurId())
-                    .orElseThrow(() -> new RuntimeException("Fournisseur non trouvé"));
+                    .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Fournisseur non trouvé avec l'id : " + request.getFournisseurId()));
             bonDeCommande.setFournisseur(fournisseur);
         } else {
             bonDeCommande.setFournisseur(null);
@@ -220,7 +222,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
 
         if (request.getVehiculeId() != null) {
             Vehicule vehicule = vehiculeRepository.findById(request.getVehiculeId())
-                    .orElseThrow(() -> new RuntimeException("Véhicule non trouvé"));
+                    .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Véhicule non trouvé avec l'id : " + request.getVehiculeId()));
             bonDeCommande.setVehicule(vehicule);
         } else {
             bonDeCommande.setVehicule(null);
@@ -249,10 +251,10 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                             : (oldLigne.getDesignationPds() != null ? oldLigne.getDesignationPds() : "Ligne " + oldLigne.getId());
 
                     if (matchingReq == null) {
-                        throw new RuntimeException("Impossible de supprimer la ligne '" + desc + "' car " + recu + " pièce(s) ont déjà été reçue(s).");
+                        throw new sn.oas.facturation.shared.exception.BadRequestException("Impossible de supprimer la ligne '" + desc + "' car " + recu + " pièce(s) ont déjà été reçue(s).");
                     }
                     if (matchingReq.getQuantite() == null || matchingReq.getQuantite() < recu) {
-                        throw new RuntimeException("La quantité pour '" + desc + "' (" + matchingReq.getQuantite() + ") ne peut pas être inférieure à la quantité déjà reçue (" + recu + ").");
+                        throw new sn.oas.facturation.shared.exception.BadRequestException("La quantité pour '" + desc + "' (" + matchingReq.getQuantite() + ") ne peut pas être inférieure à la quantité déjà reçue (" + recu + ").");
                     }
                 }
             }
@@ -271,7 +273,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                     ligne.setMontant(BigDecimal.valueOf(ligneReq.getQuantite() * ligneReq.getPrixUnitaire()));
                     if (ligneReq.getPieceDetacheeId() != null) {
                         PieceDetache piece = pieceDetacheRepository.findById(ligneReq.getPieceDetacheeId())
-                                .orElseThrow(() -> new RuntimeException("Pièce détachée non trouvée avec l'id : " + ligneReq.getPieceDetacheeId()));
+                                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Pièce détachée non trouvée avec l'id : " + ligneReq.getPieceDetacheeId()));
                         ligne.setPieceDetachee(piece);
                         ligne.setDesignationPds(null);
                         ligne.setReferencePds(null);
@@ -305,65 +307,64 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
             bonDeCommande.setStatut(toutRecu ? StatutBonCommande.RECU : StatutBonCommande.INCOMPLET);
         }
 
-        return mapToResponse(bonDeCommandeRepository.save(bonDeCommande));
+        return bonDeCommandeRepository.save(bonDeCommande);
     }
 
     @Override
-    public BonDeCommandeResponse getById(Long id) {
-        BonDeCommande bonDeCommande = bonDeCommandeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Bon de commande non trouvé"));
-        return mapToResponse(bonDeCommande);
+    public BonDeCommande getById(Long id) {
+        return bonDeCommandeRepository.findById(id)
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Bon de commande non trouvé avec l'id : " + id));
     }
 
     @Override
-    public org.springframework.data.domain.Page<BonDeCommandeResponse> getAll(int page, int size) {
-        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
-        return bonDeCommandeRepository.findAll(pageable).map(this::mapToResponse);
+    public Page<BonDeCommande> getAll(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return bonDeCommandeRepository.findAll(pageable);
     }
 
     @Override
-    public List<BonDeCommandeResponse> getAll() {
-        return bonDeCommandeRepository.findAll().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public List<BonDeCommande> getAll() {
+        return bonDeCommandeRepository.findAll();
     }
 
     @Override
-    public List<BonDeCommandeResponse> search(String keyword) {
-        return bonDeCommandeRepository.searchBonsDeCommande(keyword).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public List<BonDeCommande> search(String keyword) {
+        return bonDeCommandeRepository.searchBonsDeCommande(keyword);
     }
 
     @Override
-    public List<BonDeCommandeResponse> getRecentBonDeCommandes() {
-        return bonDeCommandeRepository.findTop5ByOrderByDateCommandeDesc().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public Page<BonDeCommande> search(String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return bonDeCommandeRepository.searchBonsDeCommande(keyword, pageable);
+    }
+
+    @Override
+    public List<BonDeCommande> getRecentBonDeCommandes() {
+        return bonDeCommandeRepository.findTop5ByOrderByDateCommandeDesc();
     }
 
     @Override
     @Transactional
-    public BonDeCommandeResponse envoyer(Long id) {
+    public BonDeCommande envoyer(Long id) {
         BonDeCommande bonDeCommande = bonDeCommandeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Bon de commande non trouvé"));
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Bon de commande non trouvé avec l'id : " + id));
 
         if (bonDeCommande.getStatut() != StatutBonCommande.EN_ATTENTE) {
-            throw new RuntimeException("Le bon de commande doit être en attente pour être envoyé.");
+            throw new sn.oas.facturation.shared.exception.BadRequestException("Le bon de commande doit être en attente pour être envoyé.");
         }
 
         if (bonDeCommande.getFournisseur() == null) {
-            throw new RuntimeException("Veuillez d'abord assigner un fournisseur au bon de commande.");
+            throw new sn.oas.facturation.shared.exception.BadRequestException("Veuillez d'abord assigner un fournisseur au bon de commande.");
         }
 
         bonDeCommande.setStatut(StatutBonCommande.ENVOYE);
         bonDeCommande.setDateModification(LocalDateTime.now());
-        return mapToResponse(bonDeCommandeRepository.save(bonDeCommande));
+        return bonDeCommandeRepository.save(bonDeCommande);
     }
 
     @Override
     @Transactional
-    public BonDeCommandeResponse receptionner(Long id) {
+    public BonDeCommande receptionner(Long id) {
         BonDeCommande bonDeCommande = bonDeCommandeRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Bon de commande non trouvé"));
 
@@ -449,18 +450,18 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                 "Bon de Commande Réceptionné",
                 "Le bon de commande " + bonDeCommande.getNumero() + " a été réceptionné totalement.");
 
-        return mapToResponse(bonDeCommandeRepository.save(bonDeCommande));
+        return bonDeCommandeRepository.save(bonDeCommande);
     }
 
     @Override
     @Transactional
-    public BonDeCommandeResponse receptionnerAvecQuantites(Long id, ReceptionBonDeCommandeRequest request) {
+    public BonDeCommande receptionnerAvecQuantites(Long id, ReceptionBonDeCommandeRequest request) {
         BonDeCommande bonDeCommande = bonDeCommandeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Bon de commande non trouvé"));
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Bon de commande non trouvé avec l'id : " + id));
 
         if (bonDeCommande.getStatut() != StatutBonCommande.ENVOYE
                 && bonDeCommande.getStatut() != StatutBonCommande.INCOMPLET) {
-            throw new RuntimeException("Le bon de commande doit être envoyé ou incomplet pour être réceptionné.");
+            throw new sn.oas.facturation.shared.exception.BadRequestException("Le bon de commande doit être envoyé ou incomplet pour être réceptionné.");
         }
 
         bonDeCommande.setDateModification(LocalDateTime.now());
@@ -496,7 +497,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
 
                     int currentRecue = ligne.getQuantiteRecue() != null ? ligne.getQuantiteRecue() : 0;
                     if (currentRecue + ll.getQuantiteRecue() > ligne.getQuantite()) {
-                        throw new RuntimeException(
+                        throw new sn.oas.facturation.shared.exception.BadRequestException(
                                 "La quantité reçue dépasse la quantité commandée pour la ligne " + ligne.getId());
                     }
                     ligne.setQuantiteRecue(currentRecue + ll.getQuantiteRecue());
@@ -527,24 +528,20 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
             }
         }
 
-        boolean toutRecu = true;
-        for (LigneBonDeCommandePiece ligne : bonDeCommande.getLignes()) {
-            int recu = ligne.getQuantiteRecue() != null ? ligne.getQuantiteRecue() : 0;
-            if (recu < ligne.getQuantite()) {
-                toutRecu = false;
-                break;
-            }
+        if (!bonDeReception.getLignesFacturationPieces().isEmpty()) {
+            bonDeReception.setMontantHT(montantHT);
+            BigDecimal tva = bonDeCommande.getTvaApplicable() != null && bonDeCommande.getTvaApplicable()
+                    ? montantHT.multiply(new BigDecimal("0.18"))
+                    : BigDecimal.ZERO;
+            bonDeReception.setMontantTVA(tva);
+            bonDeReception.setMontantTTC(montantHT.add(tva));
+            bonDeReception.setMontantTotal(bonDeReception.getMontantTTC().add(bonDeReception.getMontantTimbre() != null ? bonDeReception.getMontantTimbre() : BigDecimal.ZERO));
+            bonDeReceptionRepository.save(bonDeReception);
         }
-        bonDeCommande.setStatut(toutRecu ? StatutBonCommande.RECU : StatutBonCommande.INCOMPLET);
 
-        bonDeReception.setMontantHT(montantHT);
-        BigDecimal tva = bonDeCommande.getTvaApplicable() ? montantHT.multiply(new BigDecimal("0.18"))
-                : BigDecimal.ZERO;
-        bonDeReception.setMontantTVA(tva);
-        bonDeReception.setMontantTTC(montantHT.add(tva));
-        bonDeReception.setMontantTimbre(BigDecimal.ZERO);
-        bonDeReception.setMontantTotal(bonDeReception.getMontantTTC().add(bonDeReception.getMontantTimbre()));
-        bonDeReceptionRepository.save(bonDeReception);
+        boolean toutRecu = bonDeCommande.getLignes().stream()
+                .allMatch(l -> l.getQuantiteRecue() != null && l.getQuantiteRecue() >= l.getQuantite());
+        bonDeCommande.setStatut(toutRecu ? StatutBonCommande.RECU : StatutBonCommande.INCOMPLET);
 
         if (toutRecu && bonDeCommande.getVehicule() != null) {
             List<OrdreReparation> fiches = ordreReparationRepository
@@ -605,44 +602,44 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                 "Le bon de commande " + bonDeCommande.getNumero() + " a été "
                         + (toutRecu ? "réceptionné" : "partiellement réceptionné") + ".");
 
-        return mapToResponse(bonDeCommandeRepository.save(bonDeCommande));
+        return bonDeCommandeRepository.save(bonDeCommande);
     }
 
     @Override
     @Transactional
-    public BonDeCommandeResponse assignerFournisseur(Long id, Long fournisseurId) {
+    public BonDeCommande assignerFournisseur(Long id, Long fournisseurId) {
         BonDeCommande bonDeCommande = bonDeCommandeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Bon de commande non trouvé"));
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Bon de commande non trouvé avec l'id : " + id));
         if (bonDeCommande.getStatut() != StatutBonCommande.EN_ATTENTE) {
-            throw new RuntimeException("Le fournisseur ne peut être modifié que sur un bon en attente.");
+            throw new sn.oas.facturation.shared.exception.BadRequestException("Le fournisseur ne peut être modifié que sur un bon en attente.");
         }
         Fournisseur fournisseur = fournisseurRepository.findById(fournisseurId)
-                .orElseThrow(() -> new RuntimeException("Fournisseur non trouvé"));
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Fournisseur non trouvé avec l'id : " + fournisseurId));
         bonDeCommande.setFournisseur(fournisseur);
         bonDeCommande.setDateModification(LocalDateTime.now());
-        return mapToResponse(bonDeCommandeRepository.save(bonDeCommande));
+        return bonDeCommandeRepository.save(bonDeCommande);
     }
 
     @Override
     @Transactional
-    public BonDeCommandeResponse annuler(Long id) {
+    public BonDeCommande annuler(Long id) {
         BonDeCommande bonDeCommande = bonDeCommandeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Bon de commande non trouvé"));
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Bon de commande non trouvé avec l'id : " + id));
 
         if (bonDeCommande.getStatut() == StatutBonCommande.RECU) {
-            throw new RuntimeException("Un bon de commande déjà reçu ne peut pas être annulé.");
+            throw new sn.oas.facturation.shared.exception.BadRequestException("Un bon de commande déjà reçu ne peut pas être annulé.");
         }
 
         bonDeCommande.setStatut(StatutBonCommande.ANNULE);
         bonDeCommande.setDateModification(LocalDateTime.now());
-        return mapToResponse(bonDeCommandeRepository.save(bonDeCommande));
+        return bonDeCommandeRepository.save(bonDeCommande);
     }
 
     @Override
     @Transactional
     public void delete(Long id) {
         BonDeCommande bonDeCommande = bonDeCommandeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Bon de commande non trouvé"));
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Bon de commande non trouvé avec l'id : " + id));
 
         boolean receptionCommencee = bonDeCommande.getStatut() == StatutBonCommande.RECU
                 || bonDeCommande.getStatut() == StatutBonCommande.INCOMPLET
@@ -650,7 +647,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                         .anyMatch(l -> l.getQuantiteRecue() != null && l.getQuantiteRecue() > 0));
 
         if (receptionCommencee) {
-            throw new RuntimeException("Impossible de supprimer ce bon de commande car la réception des pièces a déjà commencé.");
+            throw new sn.oas.facturation.shared.exception.BadRequestException("Impossible de supprimer ce bon de commande car la réception des pièces a déjà commencé.");
         }
 
         bonDeCommandeRepository.delete(bonDeCommande);
@@ -660,44 +657,10 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
     @Transactional(readOnly = true)
     public byte[] generatePdf(Long id) {
         BonDeCommande bonDeCommande = bonDeCommandeRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Bon de commande non trouvé"));
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Bon de commande non trouvé avec l'id : " + id));
         // Accéder à la collection pour forcer le chargement paresseux (lazy loading) si
         // nécessaire
         bonDeCommande.getLignes().size();
         return pdfGeneratorService.genererBonDeCommandePdf(bonDeCommande);
-    }
-
-    private BonDeCommandeResponse mapToResponse(BonDeCommande bc) {
-        return BonDeCommandeResponse.builder()
-                .id(bc.getId())
-                .numero(bc.getNumero())
-                .dateCommande(bc.getDateCommande())
-                .statut(bc.getStatut().name())
-                .fournisseurId(bc.getFournisseur() != null ? bc.getFournisseur().getId() : null)
-                .fournisseurNom(bc.getFournisseur() != null ? bc.getFournisseur().getNomEntreprise() : null)
-                .vehiculeId(bc.getVehicule() != null ? bc.getVehicule().getId() : null)
-                .immatriculationVehicule(bc.getVehicule() != null ? bc.getVehicule().getImmatriculation() : null)
-                .montantHT(bc.getMontantHT())
-                .montantTVA(bc.getMontantTVA())
-                .montantTTC(bc.getMontantTTC())
-                .tvaApplicable(bc.getTvaApplicable())
-                .paye(bc.getPaye())
-                .observation(bc.getObservation())
-                .lignes(bc.getLignes().stream().map(ligne -> LigneBonDeCommandeResponse.builder()
-                        .id(ligne.getId())
-                        .pieceDetacheeId(ligne.getPieceDetachee() != null ? ligne.getPieceDetachee().getId() : null)
-                        .designationPiece(ligne.getPieceDetachee() != null ? ligne.getPieceDetachee().getDesignation()
-                                : ligne.getDesignationPds())
-                        .reference(ligne.getPieceDetachee() != null ? ligne.getPieceDetachee().getReference()
-                                : ligne.getReferencePds())
-                        .categorie(ligne.getPieceDetachee() != null && ligne.getPieceDetachee().getCategorie() != null
-                                ? ligne.getPieceDetachee().getCategorie().getNom()
-                                : ligne.getCategoriePds())
-                        .quantite(ligne.getQuantite())
-                        .quantiteRecue(ligne.getQuantiteRecue())
-                        .prixUnitaire(ligne.getPrixUnitaire().doubleValue())
-                        .montant(ligne.getMontant().doubleValue())
-                        .build()).collect(Collectors.toList()))
-                .build();
     }
 }

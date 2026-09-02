@@ -21,33 +21,33 @@ public class FicheAtelierController {
 
     @PostMapping
     public ResponseEntity<FicheAtelierResponse> create(@Valid @RequestBody FicheAtelierRequest request) {
-        return new ResponseEntity<>(ficheAtelierService.create(request), HttpStatus.CREATED);
+        return new ResponseEntity<>(FicheAtelierResponse.from(ficheAtelierService.create(request)), HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<FicheAtelierResponse> update(@PathVariable Long id, @Valid @RequestBody FicheAtelierRequest request) {
-        return ResponseEntity.ok(ficheAtelierService.update(id, request));
+        return ResponseEntity.ok(FicheAtelierResponse.from(ficheAtelierService.update(id, request)));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<FicheAtelierResponse> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(ficheAtelierService.getById(id));
+        return ResponseEntity.ok(FicheAtelierResponse.from(ficheAtelierService.getById(id)));
     }
 
     @GetMapping("/rendezvous/{rendezVousId}")
     public ResponseEntity<FicheAtelierResponse> getByRendezVousId(@PathVariable Long rendezVousId) {
-        FicheAtelierResponse response = ficheAtelierService.getByRendezVousId(rendezVousId);
-        if (response == null) {
+        var fiche = ficheAtelierService.getByRendezVousId(rendezVousId);
+        if (fiche == null) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(FicheAtelierResponse.from(fiche));
     }
 
     @GetMapping
     public ResponseEntity<?> getAll(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(ficheAtelierService.getAll(page, size));
+        return ResponseEntity.ok(ficheAtelierService.getAll(page, size).map(FicheAtelierResponse::from));
     }
 
     @DeleteMapping("/{id}")
@@ -62,6 +62,6 @@ public class FicheAtelierController {
         if (signature == null || signature.trim().isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
-        return ResponseEntity.ok(ficheAtelierService.signForExit(id, signature));
+        return ResponseEntity.ok(FicheAtelierResponse.from(ficheAtelierService.signForExit(id, signature)));
     }
 }

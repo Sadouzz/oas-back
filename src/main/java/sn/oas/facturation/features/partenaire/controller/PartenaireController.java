@@ -20,22 +20,22 @@ public class PartenaireController {
     public ResponseEntity<?> getAll(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(partenaireService.getAllPartenaires(page, size));
+        return ResponseEntity.ok(partenaireService.getAllPartenaires(page, size).map(PartenaireResponse::from));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<PartenaireResponse> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(partenaireService.getPartenaireById(id));
+        return ResponseEntity.ok(PartenaireResponse.from(partenaireService.getPartenaireById(id)));
     }
 
     @PostMapping("/create")
     public ResponseEntity<PartenaireResponse> create(@RequestBody PartenaireRequest request) {
-        return ResponseEntity.ok(partenaireService.createPartenaire(request));
+        return ResponseEntity.ok(PartenaireResponse.from(partenaireService.createPartenaire(request)));
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<PartenaireResponse> update(@PathVariable Long id, @RequestBody PartenaireRequest request) {
-        return ResponseEntity.ok(partenaireService.updatePartenaire(id, request));
+        return ResponseEntity.ok(PartenaireResponse.from(partenaireService.updatePartenaire(id, request)));
     }
 
     @DeleteMapping("/{id}")
@@ -46,11 +46,11 @@ public class PartenaireController {
 
     @PatchMapping("/{id}/archive")
     public ResponseEntity<PartenaireResponse> archive(@PathVariable Long id) {
-        return ResponseEntity.ok(partenaireService.archivePartenaire(id));
+        return ResponseEntity.ok(PartenaireResponse.from(partenaireService.archivePartenaire(id)));
     }
 
     @PatchMapping("/{id}/unarchive")
     public ResponseEntity<PartenaireResponse> unarchive(@PathVariable Long id) {
-        return ResponseEntity.ok(partenaireService.unarchivePartenaire(id));
+        return ResponseEntity.ok(PartenaireResponse.from(partenaireService.unarchivePartenaire(id)));
     }
 }

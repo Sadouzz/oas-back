@@ -30,6 +30,11 @@ public class AlerteServiceImpl implements AlerteService {
     }
 
     @Override
+    public org.springframework.data.domain.Page<AlerteStockResponse> getAlertes(int page, int size) {
+        return paginate(getAlertes(), page, size);
+    }
+
+    @Override
     public List<AlerteStockResponse> getRuptures() {
         return getAlertes().stream()
                 .filter(a -> a.typeAlerte() == TypeAlerte.RUPTURE)
@@ -37,10 +42,27 @@ public class AlerteServiceImpl implements AlerteService {
     }
 
     @Override
+    public org.springframework.data.domain.Page<AlerteStockResponse> getRuptures(int page, int size) {
+        return paginate(getRuptures(), page, size);
+    }
+
+    @Override
     public List<AlerteStockResponse> getStocksFaibles() {
         return getAlertes().stream()
                 .filter(a -> a.typeAlerte() == TypeAlerte.STOCK_FAIBLE)
                 .toList();
+    }
+
+    @Override
+    public org.springframework.data.domain.Page<AlerteStockResponse> getStocksFaibles(int page, int size) {
+        return paginate(getStocksFaibles(), page, size);
+    }
+
+    private org.springframework.data.domain.Page<AlerteStockResponse> paginate(List<AlerteStockResponse> list, int page, int size) {
+        int fromIndex = Math.min(page * size, list.size());
+        int toIndex = Math.min(fromIndex + size, list.size());
+        List<AlerteStockResponse> subList = list.subList(fromIndex, toIndex);
+        return new org.springframework.data.domain.PageImpl<>(subList, org.springframework.data.domain.PageRequest.of(page, size), list.size());
     }
 
     private Optional<AlerteStockResponse> evaluer(PDP pdp) {

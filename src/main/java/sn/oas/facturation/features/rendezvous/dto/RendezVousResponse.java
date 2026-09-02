@@ -17,11 +17,15 @@ public record RendezVousResponse(
         String commentaire,
         LocalDateTime dateCreation,
         boolean hasFicheAtelier) {
+    public static RendezVousResponse of(RendezVous rv) {
+        return of(rv, false);
+    }
+
     public static RendezVousResponse of(RendezVous rv, boolean hasFicheAtelier) {
         return new RendezVousResponse(
                 rv.getId(),
-                rv.getClient().getId(),
-                rv.getClient().getFirstName() + " " + rv.getClient().getLastName(),
+                rv.getClient() != null ? rv.getClient().getId() : null,
+                rv.getClient() != null ? (rv.getClient().getFirstName() + " " + rv.getClient().getLastName()).trim() : "",
                 rv.getVehicule() != null ? rv.getVehicule().getId() : null,
                 rv.getVehicule() != null ? rv.getVehicule().getImmatriculation() : null,
                 rv.getDateRendezVous(),

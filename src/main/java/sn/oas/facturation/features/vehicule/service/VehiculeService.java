@@ -14,6 +14,7 @@ public interface VehiculeService {
     Vehicule updateVehicule(Long id, VehiculeRequest request);
     void deleteVehicule(Long id);
     List<Vehicule> searchVehicules(String keyword);
+    Page<Vehicule> searchVehicules(String keyword, int page, int size);
     List<Vehicule> getVehiculesByClient(Long clientId);
     List<Vehicule> getRecentVehicules();
 }

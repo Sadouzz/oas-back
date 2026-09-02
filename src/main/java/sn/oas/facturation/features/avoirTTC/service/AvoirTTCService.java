@@ -1,19 +1,22 @@
 package sn.oas.facturation.features.avoirTTC.service;
 
+import org.springframework.data.domain.Page;
+import sn.oas.facturation.features.avoirTTC.data.entity.AvoirTTC;
 import sn.oas.facturation.features.avoirTTC.dto.AvoirTTCCreateRequest;
-import sn.oas.facturation.features.avoirTTC.dto.AvoirTTCResponse;
 
 import java.util.List;
 
 public interface AvoirTTCService {
-    AvoirTTCResponse create(AvoirTTCCreateRequest request);
-    AvoirTTCResponse getById(Long id);
+    AvoirTTC create(AvoirTTCCreateRequest request);
+    AvoirTTC getById(Long id);
 
-    List<AvoirTTCResponse> getAll();
+    Page<AvoirTTC> getAll(int page, int size);
+    List<AvoirTTC> getAll();
 
-    List<AvoirTTCResponse> search(String keyword);
+    List<AvoirTTC> search(String keyword);
+    Page<AvoirTTC> search(String keyword, int page, int size);
 
-    List<AvoirTTCResponse> getRecentAvoirs();
+    List<AvoirTTC> getRecentAvoirs();
 
     void delete(Long id);
 

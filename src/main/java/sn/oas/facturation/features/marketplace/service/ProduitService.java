@@ -21,6 +21,7 @@ public interface ProduitService {
     List<Produit> getArchives();
 
     List<Produit> search(String keyword);
+    org.springframework.data.domain.Page<Produit> search(String keyword, int page, int size);
 
     Produit toggleDisponibilite(Long id, Boolean disponible);
 

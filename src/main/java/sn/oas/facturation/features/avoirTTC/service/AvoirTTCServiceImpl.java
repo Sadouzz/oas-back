@@ -94,7 +94,7 @@ public class AvoirTTCServiceImpl implements AvoirTTCService {
 
     @Override
     @Transactional
-    public AvoirTTCResponse create(AvoirTTCCreateRequest request) {
+    public AvoirTTC create(AvoirTTCCreateRequest request) {
         Client client = null;
         if (request.getClientId() != null) {
             client = (Client) userRepository.findById(request.getClientId())
@@ -235,47 +235,53 @@ public class AvoirTTCServiceImpl implements AvoirTTCService {
         avoirTTC.setLignesFacturationPieces(lignesPieces);
         avoirTTC.setLignesFacturationMainDoeuvres(lignesMainDoeuvre);
 
-        AvoirTTC saved = avoirTTCRepository.save(avoirTTC);
-        return mapToResponse(saved);
+        return avoirTTCRepository.save(avoirTTC);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public AvoirTTCResponse getById(Long id) {
-        AvoirTTC a = avoirTTCRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Avoir TTC non trouvé avec l'id : " + id));
-        return mapToResponse(a);
+    public AvoirTTC getById(Long id) {
+        return avoirTTCRepository.findById(id)
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Avoir TTC non trouvé avec l'id : " + id));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<AvoirTTCResponse> getAll() {
-        return avoirTTCRepository.findAll().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public org.springframework.data.domain.Page<AvoirTTC> getAll(int page, int size) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by("id").descending());
+        return avoirTTCRepository.findAll(pageable);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<AvoirTTCResponse> search(String keyword) {
-        return avoirTTCRepository.searchAvoirsTTC(keyword).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public List<AvoirTTC> getAll() {
+        return avoirTTCRepository.findAll();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<AvoirTTCResponse> getRecentAvoirs() {
-        return avoirTTCRepository.findTop5ByOrderByDateCreationDesc().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public List<AvoirTTC> search(String keyword) {
+        return avoirTTCRepository.searchAvoirsTTC(keyword);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<AvoirTTC> search(String keyword, int page, int size) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by("id").descending());
+        return avoirTTCRepository.searchAvoirsTTC(keyword, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AvoirTTC> getRecentAvoirs() {
+        return avoirTTCRepository.findTop5ByOrderByDateCreationDesc();
     }
 
     @Override
     @Transactional
     public void delete(Long id) {
         if (!avoirTTCRepository.existsById(id)) {
-            throw new IllegalArgumentException("Avoir TTC non trouvé avec l'id : " + id);
+            throw new sn.oas.facturation.shared.exception.ResourceNotFoundException("Avoir TTC non trouvé avec l'id : " + id);
         }
         avoirTTCRepository.deleteById(id);
     }
@@ -284,7 +290,7 @@ public class AvoirTTCServiceImpl implements AvoirTTCService {
     @Transactional(readOnly = true)
     public byte[] generatePdf(Long id) {
         AvoirTTC a = avoirTTCRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Avoir TTC non trouvé avec l'id : " + id));
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Avoir TTC non trouvé avec l'id : " + id));
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Document document = new Document();
@@ -413,68 +419,5 @@ public class AvoirTTCServiceImpl implements AvoirTTCService {
         }
 
         return baos.toByteArray();
-    }
-
-    private AvoirTTCResponse mapToResponse(AvoirTTC a) {
-        Client client = a.getClient();
-        if (client == null && a.getOrdreReparation() != null && a.getOrdreReparation().getVehicule() != null) {
-            client = a.getOrdreReparation().getVehicule().getClient();
-        }
-
-        Vehicule vehicule = a.getVehicule();
-        if (vehicule == null && a.getOrdreReparation() != null) {
-            vehicule = a.getOrdreReparation().getVehicule();
-        }
-
-        return AvoirTTCResponse.builder()
-                .id(a.getId())
-                .numero(a.getNumero())
-                .dateCreation(a.getDateCreation())
-                .dateModification(a.getDateModification())
-                .montantHT(a.getMontantHT())
-                .montantTVA(a.getMontantTVA())
-                .montantTTC(a.getMontantTTC())
-                .montantTimbre(a.getMontantTimbre())
-                .montantTotal(a.getMontantTTC())
-                .agentId(a.getAgent() != null ? a.getAgent().getId() : null)
-                .agentNom(a.getAgent() != null ? a.getAgent().getFirstName() + " " + a.getAgent().getLastName() : null)
-                .remarque(a.getRemarque())
-                .kilometrage(a.getKilometrage())
-                .clientId(client != null ? client.getId() : null)
-                .clientNom(client != null ? client.getFirstName() + " " + client.getLastName() : null)
-                .vehiculeId(vehicule != null ? vehicule.getId() : null)
-                .immatriculation(vehicule != null ? vehicule.getImmatriculation() : null)
-                .numeroChassis(vehicule != null ? vehicule.getNumeroChassis() : null)
-                .marque(vehicule != null ? vehicule.getMarque() : null)
-                .modele(vehicule != null ? vehicule.getModele() : null)
-                .annee(vehicule != null ? vehicule.getAnnee() : null)
-                .numeroBonDeCommande(a.getBonDeCommande() != null ? a.getBonDeCommande().getNumero() : null)
-                .lignesPieces(a.getLignesFacturationPieces() == null ? List.of()
-                        : a.getLignesFacturationPieces().stream()
-                                .map(lp -> LigneFacturationPieceResponse.builder()
-                                        .id(lp.getId())
-                                        .pieceId(lp.getPiece() != null ? lp.getPiece().getId() : null)
-                                        .designationPiece(lp.getPiece() != null ? lp.getPiece().getDesignation()
-                                                : lp.getDesignationPds())
-                                        .quantite(lp.getQuantite())
-                                        .prix(lp.getPrix())
-                                        .montantTotal(lp.getQuantite() * lp.getPrix())
-                                        .build())
-                                .collect(Collectors.toList()))
-                .lignesMainDoeuvres(a.getLignesFacturationMainDoeuvres() == null ? List.of()
-                        : a.getLignesFacturationMainDoeuvres().stream()
-                                .map(lm -> LigneFacturationMainDoeuvreResponse.builder()
-                                        .id(lm.getId())
-                                        .mainDoeuvreId(lm.getMainDoeuvre() != null ? lm.getMainDoeuvre().getId() : null)
-                                        .descriptionMainDoeuvre(lm.getMainDoeuvre() != null
-                                                && lm.getMainDoeuvre().getCategorie() != null
-                                                        ? lm.getMainDoeuvre().getCategorie().getNom()
-                                                        : null)
-                                        .nbreHeure(lm.getNbreHeure())
-                                        .tarifHoraire(lm.getTarifHoraire())
-                                        .montantTotal(lm.getNbreHeure() * lm.getTarifHoraire())
-                                        .build())
-                                .collect(Collectors.toList()))
-                .build();
     }
 }

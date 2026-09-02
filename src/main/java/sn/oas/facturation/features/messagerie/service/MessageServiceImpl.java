@@ -28,7 +28,7 @@ public class MessageServiceImpl implements MessageService {
 
     @Transactional
     @Override
-    public MessageResponse clientSendMessage(Client client, MessageRequest request) {
+    public Message clientSendMessage(Client client, MessageRequest request) {
         User destinataire = null;
         if (request.destinataireId() != null) {
             destinataire = userRepository.findById(request.destinataireId())
@@ -44,15 +44,14 @@ public class MessageServiceImpl implements MessageService {
                 .lu(false)
                 .build();
 
-        messageRepository.save(message);
-        return MessageResponse.of(message);
+        return messageRepository.save(message);
     }
 
     @Transactional
     @Override
-    public MessageResponse agentSendMessage(User agent, Long clientId, MessageRequest request) {
+    public Message agentSendMessage(User agent, Long clientId, MessageRequest request) {
         Client client = clientRepository.findById(clientId)
-                .orElseThrow(() -> new RuntimeException("Client non trouvé"));
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Client non trouvé avec l'id : " + clientId));
 
         Message message = Message.builder()
                 .numero(documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.MSG))
@@ -63,13 +62,12 @@ public class MessageServiceImpl implements MessageService {
                 .lu(false)
                 .build();
 
-        messageRepository.save(message);
-        return MessageResponse.of(message);
+        return messageRepository.save(message);
     }
 
     @Transactional
     @Override
-    public List<MessageResponse> getConversationMessages(Long clientId, User user) {
+    public List<Message> getConversationMessages(Long clientId, User user) {
         List<Message> messages = messageRepository.findByClientIdOrderByDateEnvoiAsc(clientId);
 
         boolean updated = false;
@@ -84,9 +82,7 @@ public class MessageServiceImpl implements MessageService {
             messageRepository.saveAll(messages);
         }
 
-        return messages.stream()
-                .map(MessageResponse::of)
-                .collect(Collectors.toList());
+        return messages;
     }
 
     @Override

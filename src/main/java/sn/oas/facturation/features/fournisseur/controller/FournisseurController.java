@@ -25,7 +25,7 @@ public class FournisseurController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         if (keyword != null && !keyword.trim().isEmpty()){
-            return ResponseEntity.ok(fournisseurService.searchFournisseur(keyword));
+            return ResponseEntity.ok(fournisseurService.searchFournisseur(keyword.trim(), page, size));
         }
         return ResponseEntity.ok(fournisseurService.getAllFournisseur(page, size));
     }

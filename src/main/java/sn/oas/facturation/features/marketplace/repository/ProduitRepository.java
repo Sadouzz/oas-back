@@ -24,5 +24,9 @@ public interface ProduitRepository extends JpaRepository<Produit, Long> {
             "(LOWER(p.nom) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     List<Produit> searchDisponibles(@Param("keyword") String keyword);
 
+    @Query("SELECT p FROM Produit p WHERE p.archive = false AND p.disponible = true AND " +
+            "(LOWER(p.nom) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(p.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    org.springframework.data.domain.Page<Produit> searchDisponibles(@Param("keyword") String keyword, org.springframework.data.domain.Pageable pageable);
+
     List<Produit> findTop5ByArchiveFalseAndDisponibleTrueOrderByIdDesc();
 }

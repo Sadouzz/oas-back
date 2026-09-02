@@ -24,5 +24,18 @@ public interface AvoirHTRepository extends JpaRepository<AvoirHT, Long> {
             "LOWER(a.ordreReparation.vehicule.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<AvoirHT> searchAvoirsHT(@Param("keyword") String keyword);
 
+    @Query("SELECT a FROM AvoirHT a WHERE " +
+            "LOWER(a.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(a.remarque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(a.vehicule.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(a.vehicule.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(a.vehicule.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(a.client.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(a.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(a.ordreReparation.vehicule.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(a.ordreReparation.vehicule.client.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(a.ordreReparation.vehicule.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    org.springframework.data.domain.Page<AvoirHT> searchAvoirsHT(@Param("keyword") String keyword, org.springframework.data.domain.Pageable pageable);
+
     List<AvoirHT> findTop5ByOrderByDateCreationDesc();
 }

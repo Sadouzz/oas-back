@@ -33,10 +33,10 @@ public class PieceDetacheController {
             @RequestParam(defaultValue = "10") int size) {
 
         if (keyword != null && !keyword.trim().isEmpty()) {
-            return ResponseEntity.ok(pieceDetacheService.searchPieces(keyword.trim()));
+            return ResponseEntity.ok(pieceDetacheService.searchPieces(keyword.trim(), page, size));
         }
         if (type != null) {
-            return ResponseEntity.ok(pieceDetacheService.filterByType(type));
+            return ResponseEntity.ok(pieceDetacheService.filterByType(type, page, size));
         }
         return ResponseEntity.ok(pieceDetacheService.getAllPieces(page, size));
     }

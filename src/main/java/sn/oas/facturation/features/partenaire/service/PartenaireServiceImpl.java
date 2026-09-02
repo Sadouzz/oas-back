@@ -19,69 +19,63 @@ public class PartenaireServiceImpl implements PartenaireService {
 
     private final PartenaireRepository partenaireRepository;
 
-    private PartenaireResponse mapToResponse(Partenaire partenaire) {
-        PartenaireResponse response = new PartenaireResponse();
-        BeanUtils.copyProperties(partenaire, response);
-        return response;
-    }
-
     @Override
-    public org.springframework.data.domain.Page<PartenaireResponse> getAllPartenaires(int page, int size) {
+    public org.springframework.data.domain.Page<Partenaire> getAllPartenaires(int page, int size) {
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
-        return partenaireRepository.findAll(pageable).map(this::mapToResponse);
+        return partenaireRepository.findAll(pageable);
     }
 
     @Override
-    public List<PartenaireResponse> getAllPartenaires() {
-        return partenaireRepository.findAll().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public List<Partenaire> getAllPartenaires() {
+        return partenaireRepository.findAll();
     }
 
     @Override
-    public PartenaireResponse getPartenaireById(Long id) {
-        Partenaire partenaire = partenaireRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Partenaire introuvable"));
-        return mapToResponse(partenaire);
+    public Partenaire getPartenaireById(Long id) {
+        return partenaireRepository.findById(id)
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Partenaire non trouvé avec l'id : " + id));
     }
 
     @Override
-    public PartenaireResponse createPartenaire(PartenaireRequest request) {
+    public Partenaire createPartenaire(PartenaireRequest request) {
         Partenaire partenaire = new Partenaire();
         BeanUtils.copyProperties(request, partenaire);
-        return mapToResponse(partenaireRepository.save(partenaire));
+        return partenaireRepository.save(partenaire);
     }
 
     @Override
-    public PartenaireResponse updatePartenaire(Long id, PartenaireRequest request) {
+    public Partenaire updatePartenaire(Long id, PartenaireRequest request) {
         Partenaire partenaire = partenaireRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Partenaire introuvable"));
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Partenaire non trouvé avec l'id : " + id));
         partenaire.setNom(request.getNom());
         partenaire.setDescription(request.getDescription());
         partenaire.setLogo(request.getLogo());
         partenaire.setType(request.getType());
         partenaire.setArchived(request.isArchived());
-        return mapToResponse(partenaireRepository.save(partenaire));
+        return partenaireRepository.save(partenaire);
     }
 
     @Override
     public void deletePartenaire(Long id) {
+        if (!partenaireRepository.existsById(id)) {
+            throw new sn.oas.facturation.shared.exception.ResourceNotFoundException("Partenaire non trouvé avec l'id : " + id);
+        }
         partenaireRepository.deleteById(id);
     }
 
     @Override
-    public PartenaireResponse archivePartenaire(Long id) {
+    public Partenaire archivePartenaire(Long id) {
         Partenaire partenaire = partenaireRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Partenaire introuvable"));
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Partenaire non trouvé avec l'id : " + id));
         partenaire.setArchived(true);
-        return mapToResponse(partenaireRepository.save(partenaire));
+        return partenaireRepository.save(partenaire);
     }
 
     @Override
-    public PartenaireResponse unarchivePartenaire(Long id) {
+    public Partenaire unarchivePartenaire(Long id) {
         Partenaire partenaire = partenaireRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Partenaire introuvable"));
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Partenaire non trouvé avec l'id : " + id));
         partenaire.setArchived(false);
-        return mapToResponse(partenaireRepository.save(partenaire));
+        return partenaireRepository.save(partenaire);
     }
 }

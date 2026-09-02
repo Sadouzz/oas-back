@@ -34,21 +34,21 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
 
     @Transactional
     @Override
-    public FicheAtelierResponse create(FicheAtelierRequest request) {
+    public FicheAtelier create(FicheAtelierRequest request) {
         Client client = clientRepository.findById(request.getClientId())
-                .orElseThrow(() -> new RuntimeException("Client non trouvé"));
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Client non trouvé avec l'id : " + request.getClientId()));
         
         Vehicule vehicule = vehiculeRepository.findById(request.getVehiculeId())
-                .orElseThrow(() -> new RuntimeException("Véhicule non trouvé"));
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Véhicule non trouvé avec l'id : " + request.getVehiculeId()));
 
         RendezVous rendezVous = null;
         if (request.getRendezVousId() != null) {
             rendezVous = rendezVousRepository.findById(request.getRendezVousId())
-                    .orElseThrow(() -> new RuntimeException("Rendez-vous non trouvé"));
+                    .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Rendez-vous non trouvé avec l'id : " + request.getRendezVousId()));
                     
             // Check if already exists
             if (ficheAtelierRepository.findByRendezVousId(rendezVous.getId()).isPresent()) {
-                throw new RuntimeException("Une fiche atelier existe déjà pour ce rendez-vous");
+                throw new sn.oas.facturation.shared.exception.ResourceAlreadyExistsException("Une fiche atelier existe déjà pour ce rendez-vous");
             }
         }
 
@@ -78,14 +78,14 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
         }
 
         FicheAtelier saved = ficheAtelierRepository.save(fiche);
-        return toResponse(saved);
+        return saved;
     }
 
     @Transactional
     @Override
-    public FicheAtelierResponse update(Long id, FicheAtelierRequest request) {
+    public FicheAtelier update(Long id, FicheAtelierRequest request) {
         FicheAtelier fiche = ficheAtelierRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Fiche Atelier non trouvée avec l'id : " + id));
 
         fiche.setNomChauffeur(request.getNomChauffeur());
         fiche.setTelephoneChauffeur(request.getTelephoneChauffeur());
@@ -100,78 +100,49 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
         fiche.setSignatureReceptionnaireBase64(request.getSignatureReceptionnaireBase64());
         fiche.setSignatureBase64(request.getSignatureBase64());
 
-        return toResponse(ficheAtelierRepository.save(fiche));
+        return ficheAtelierRepository.save(fiche);
     }
 
     @Transactional(readOnly = true)
     @Override
-    public FicheAtelierResponse getById(Long id) {
+    public FicheAtelier getById(Long id) {
         return ficheAtelierRepository.findById(id)
-                .map(this::toResponse)
-                .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Fiche Atelier non trouvée avec l'id : " + id));
     }
 
     @Transactional(readOnly = true)
     @Override
-    public FicheAtelierResponse getByRendezVousId(Long rendezVousId) {
+    public FicheAtelier getByRendezVousId(Long rendezVousId) {
         return ficheAtelierRepository.findByRendezVousId(rendezVousId)
-                .map(this::toResponse)
                 .orElse(null);
     }
 
     @Transactional(readOnly = true)
     @Override
-    public Page<FicheAtelierResponse> getAll(int page, int size) {
+    public Page<FicheAtelier> getAll(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return ficheAtelierRepository.findAll(pageable).map(this::toResponse);
+        return ficheAtelierRepository.findAll(pageable);
     }
 
     @Override
-    public List<FicheAtelierResponse> getAll() {
-        return ficheAtelierRepository.findAll().stream()
-                .map(this::toResponse)
-                .collect(Collectors.toList());
+    public List<FicheAtelier> getAll() {
+        return ficheAtelierRepository.findAll();
     }
 
     @Transactional
     @Override
     public void delete(Long id) {
+        if (!ficheAtelierRepository.existsById(id)) {
+            throw new sn.oas.facturation.shared.exception.ResourceNotFoundException("Fiche Atelier non trouvée avec l'id : " + id);
+        }
         ficheAtelierRepository.deleteById(id);
     }
 
     @Override
-    public FicheAtelierResponse signForExit(Long id, String signature) {
+    public FicheAtelier signForExit(Long id, String signature) {
         FicheAtelier fiche = ficheAtelierRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Fiche atelier non trouvée"));
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Fiche atelier non trouvée avec l'id : " + id));
         fiche.setSignatureSortieBase64(signature);
-        return toResponse(ficheAtelierRepository.save(fiche));
-    }
-
-    private FicheAtelierResponse toResponse(FicheAtelier fiche) {
-        return FicheAtelierResponse.builder()
-                .id(fiche.getId())
-                .rendezVousId(fiche.getRendezVous() != null ? fiche.getRendezVous().getId() : null)
-                .clientId(fiche.getClient() != null ? fiche.getClient().getId() : null)
-                .clientName(fiche.getClient() != null ? fiche.getClient().getFirstName() + " " + fiche.getClient().getLastName() : null)
-                .vehiculeId(fiche.getVehicule() != null ? fiche.getVehicule().getId() : null)
-                .vehiculeImmatriculation(fiche.getVehicule() != null ? fiche.getVehicule().getImmatriculation() : null)
-                .garageId(fiche.getGarage() != null ? fiche.getGarage().getId() : null)
-                .nomChauffeur(fiche.getNomChauffeur())
-                .telephoneChauffeur(fiche.getTelephoneChauffeur())
-                .niveauEssence(fiche.getNiveauEssence())
-                .kilometrage(fiche.getKilometrage())
-                .designationTravaux(fiche.getDesignationTravaux())
-                .lignesReception(fiche.getLignesReception())
-                .lignesDefauts(fiche.getLignesDefauts())
-                .nb(fiche.getNb())
-                .dateSortiePrevue(fiche.getDateSortiePrevue())
-                .garantie(fiche.getGarantie())
-                .signatureReceptionnaireBase64(fiche.getSignatureReceptionnaireBase64())
-                .signatureBase64(fiche.getSignatureBase64())
-                .signatureSortieBase64(fiche.getSignatureSortieBase64())
-                .createdAt(fiche.getCreatedAt())
-                .updatedAt(fiche.getUpdatedAt())
-                .hasOrdreReparation(ordreReparationRepository.existsByFicheAtelierId(fiche.getId()))
-                .build();
+        return ficheAtelierRepository.save(fiche);
     }
 }

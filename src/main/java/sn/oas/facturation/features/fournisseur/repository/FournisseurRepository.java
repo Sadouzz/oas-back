@@ -17,5 +17,12 @@ public interface FournisseurRepository extends JpaRepository<Fournisseur, Long> 
             "LOWER(f.matricule) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(f.nomEntreprise) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     List<Fournisseur> searchFournisseurs(@Param("keyword") String keyword);
+
+    @Query("SELECT f FROM Fournisseur f WHERE f.archived = false AND " +
+            "(LOWER(f.nom) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(f.prenom) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(f.matricule) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(f.nomEntreprise) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    org.springframework.data.domain.Page<Fournisseur> searchFournisseurs(@Param("keyword") String keyword, org.springframework.data.domain.Pageable pageable);
     boolean existsByMatricule(String matricule);
 }

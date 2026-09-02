@@ -12,6 +12,8 @@ import sn.oas.facturation.features.auth.dto.UserUpdateRequest;
 import sn.oas.facturation.features.auth.repository.UserRepository;
 import sn.oas.facturation.features.auth.service.UserService;
 import sn.oas.facturation.features.client.repository.ClientRepository;
+import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
+import sn.oas.facturation.features.vehicule.service.VehiculeService;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -25,6 +27,7 @@ public class ClientServiceImpl implements ClientService {
 
     private final ClientRepository clientRepository;
     private final UserService userService;
+    private final VehiculeService vehiculeService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -132,8 +135,13 @@ public class ClientServiceImpl implements ClientService {
 
     @Override
     public List<Client> searchClients(String keyword) {
-
         return clientRepository.searchClients(keyword);
+    }
+
+    @Override
+    public Page<Client> searchClients(String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return clientRepository.searchClients(keyword, pageable);
     }
 
     @Override

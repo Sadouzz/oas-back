@@ -20,10 +20,14 @@ public class MainDoeuvreController {
     private final MainDoeuvreService mainDoeuvreService;
 
     @GetMapping
-    @Operation(summary = "Lister toutes les main d'œuvres avec pagination")
+    @Operation(summary = "Lister toutes les main d'œuvres avec pagination ou rechercher par mot-clé")
     public ResponseEntity<?> getAllMainDoeuvres(
+            @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            return ResponseEntity.ok(mainDoeuvreService.searchMainDoeuvres(keyword.trim(), page, size));
+        }
         return ResponseEntity.ok(mainDoeuvreService.getAllMainDoeuvres(page, size));
     }
 

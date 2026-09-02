@@ -22,6 +22,17 @@ public interface FactureRepository extends JpaRepository<Facture, Long> {
             "LOWER(f.ordreReparation.vehicule.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<Facture> searchFactures(@Param("keyword") String keyword);
 
+    @Query("SELECT f FROM Facture f WHERE " +
+            "LOWER(f.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(f.remarque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(f.numeroBonDeCommande) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(f.ordreReparation.vehicule.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(f.ordreReparation.vehicule.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(f.ordreReparation.vehicule.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(f.ordreReparation.vehicule.client.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(f.ordreReparation.vehicule.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    org.springframework.data.domain.Page<Facture> searchFactures(@Param("keyword") String keyword, org.springframework.data.domain.Pageable pageable);
+
     List<Facture> findTop5ByOrderByDateCreationDesc();
     List<Facture> findByClientIdOrderByDateCreationDesc(Long clientId);
 }

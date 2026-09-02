@@ -15,4 +15,9 @@ public interface MainDoeuvreRepository extends JpaRepository<MainDoeuvre, Long> 
             "LOWER(m.description) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(m.categorie.nom) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<MainDoeuvre> searchMainDoeuvres(@Param("keyword") String keyword);
+
+    @Query("SELECT m FROM MainDoeuvre m WHERE " +
+            "LOWER(m.description) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(m.categorie.nom) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    org.springframework.data.domain.Page<MainDoeuvre> searchMainDoeuvres(@Param("keyword") String keyword, org.springframework.data.domain.Pageable pageable);
 }

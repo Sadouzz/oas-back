@@ -1,17 +1,18 @@
 package sn.oas.facturation.features.partenaire.service;
 
 import org.springframework.data.domain.Page;
-import java.util.List;
+import sn.oas.facturation.features.partenaire.data.entity.Partenaire;
 import sn.oas.facturation.features.partenaire.dto.PartenaireRequest;
-import sn.oas.facturation.features.partenaire.dto.PartenaireResponse;
+
+import java.util.List;
 
 public interface PartenaireService {
-    Page<PartenaireResponse> getAllPartenaires(int page, int size);
-    List<PartenaireResponse> getAllPartenaires();
-    PartenaireResponse getPartenaireById(Long id);
-    PartenaireResponse createPartenaire(PartenaireRequest request);
-    PartenaireResponse updatePartenaire(Long id, PartenaireRequest request);
+    Page<Partenaire> getAllPartenaires(int page, int size);
+    List<Partenaire> getAllPartenaires();
+    Partenaire getPartenaireById(Long id);
+    Partenaire createPartenaire(PartenaireRequest request);
+    Partenaire updatePartenaire(Long id, PartenaireRequest request);
     void deletePartenaire(Long id);
-    PartenaireResponse archivePartenaire(Long id);
-    PartenaireResponse unarchivePartenaire(Long id);
+    Partenaire archivePartenaire(Long id);
+    Partenaire unarchivePartenaire(Long id);
 }

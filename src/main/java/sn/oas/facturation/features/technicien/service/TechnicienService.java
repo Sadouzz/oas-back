@@ -15,6 +15,7 @@ public interface TechnicienService {
     Technicien updateTechnicien(Long id, TechnicienRequest request);
     void deleteTechnicien(Long id);
     List<Technicien> searchTechniciens(String keyword);
+    Page<Technicien> searchTechniciens(String keyword, int page, int size);
 
     /** Technicien actuellement authentifié (portail technicien). */
     Technicien getTechnicienConnecte();

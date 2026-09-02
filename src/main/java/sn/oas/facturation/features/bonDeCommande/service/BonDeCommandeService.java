@@ -1,41 +1,42 @@
 package sn.oas.facturation.features.bonDeCommande.service;
 
+import org.springframework.data.domain.Page;
+import sn.oas.facturation.features.bonDeCommande.data.entity.BonDeCommande;
 import sn.oas.facturation.features.bonDeCommande.dto.BonDeCommandeCreateRequest;
-import sn.oas.facturation.features.bonDeCommande.dto.BonDeCommandeResponse;
 import sn.oas.facturation.features.bonDeCommande.dto.BonDeCommandeUpdateRequest;
 import sn.oas.facturation.features.bonDeCommande.dto.ReceptionBonDeCommandeRequest;
 
-import org.springframework.data.domain.Page;
 import java.util.List;
 
 public interface BonDeCommandeService {
 
-    BonDeCommandeResponse create(BonDeCommandeCreateRequest request);
+    BonDeCommande create(BonDeCommandeCreateRequest request);
 
-    BonDeCommandeResponse update(
+    BonDeCommande update(
             Long id,
             BonDeCommandeUpdateRequest request
     );
 
-    BonDeCommandeResponse getById(Long id);
+    BonDeCommande getById(Long id);
 
-    Page<BonDeCommandeResponse> getAll(int page, int size);
+    Page<BonDeCommande> getAll(int page, int size);
 
-    List<BonDeCommandeResponse> getAll();
+    List<BonDeCommande> getAll();
 
-    List<BonDeCommandeResponse> search(String keyword);
+    List<BonDeCommande> search(String keyword);
+    Page<BonDeCommande> search(String keyword, int page, int size);
 
-    List<BonDeCommandeResponse> getRecentBonDeCommandes();
+    List<BonDeCommande> getRecentBonDeCommandes();
 
-    BonDeCommandeResponse envoyer(Long id);
+    BonDeCommande envoyer(Long id);
 
-    BonDeCommandeResponse receptionner(Long id);
+    BonDeCommande receptionner(Long id);
 
-    BonDeCommandeResponse receptionnerAvecQuantites(Long id, ReceptionBonDeCommandeRequest request);
+    BonDeCommande receptionnerAvecQuantites(Long id, ReceptionBonDeCommandeRequest request);
 
-    BonDeCommandeResponse assignerFournisseur(Long id, Long fournisseurId);
+    BonDeCommande assignerFournisseur(Long id, Long fournisseurId);
 
-    BonDeCommandeResponse annuler(Long id);
+    BonDeCommande annuler(Long id);
 
     byte[] generatePdf(Long id);
 

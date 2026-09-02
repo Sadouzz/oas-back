@@ -16,4 +16,5 @@ public interface FournisseurService {
     void unarchiveFournisseur(Long id);
     void deleteFournisseur(Long id);
     List<Fournisseur> searchFournisseur(String keyword);
+    Page<Fournisseur> searchFournisseur(String keyword, int page, int size);
 }

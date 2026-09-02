@@ -27,38 +27,50 @@ public class BonDeReceptionController {
     @PostMapping
     @Operation(summary = "Créer un bon de réception")
     public ResponseEntity<BonDeReceptionResponse> create(@Valid @RequestBody BonDeReceptionCreateRequest request) {
-        return new ResponseEntity<>(bonDeReceptionService.create(request), HttpStatus.CREATED);
+        return new ResponseEntity<>(BonDeReceptionResponse.from(bonDeReceptionService.create(request)), HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Mettre à jour un bon de réception")
     public ResponseEntity<BonDeReceptionResponse> update(@PathVariable Long id,
             @Valid @RequestBody BonDeReceptionUpdateRequest request) {
-        return ResponseEntity.ok(bonDeReceptionService.update(id, request));
+        return ResponseEntity.ok(BonDeReceptionResponse.from(bonDeReceptionService.update(id, request)));
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Récupérer un bon de réception par son ID")
     public ResponseEntity<BonDeReceptionResponse> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(bonDeReceptionService.getById(id));
+        return ResponseEntity.ok(BonDeReceptionResponse.from(bonDeReceptionService.getById(id)));
     }
 
     @GetMapping
-    @Operation(summary = "Récupérer tous les bons de réception")
-    public ResponseEntity<List<BonDeReceptionResponse>> getAll() {
-        return ResponseEntity.ok(bonDeReceptionService.getAll());
+    @Operation(summary = "Récupérer tous les bons de réception ou rechercher par mot-clé")
+    public ResponseEntity<?> getAll(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            return ResponseEntity.ok(bonDeReceptionService.search(keyword.trim(), page, size).map(BonDeReceptionResponse::from));
+        }
+        return ResponseEntity.ok(bonDeReceptionService.getAll(page, size).map(BonDeReceptionResponse::from));
     }
 
     @GetMapping("/search")
     @Operation(summary = "Rechercher des bons de réception")
-    public ResponseEntity<List<BonDeReceptionResponse>> search(@RequestParam String keyword) {
-        return ResponseEntity.ok(bonDeReceptionService.search(keyword));
+    public ResponseEntity<?> search(
+            @RequestParam String keyword,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        if (page != null && size != null) {
+            return ResponseEntity.ok(bonDeReceptionService.search(keyword.trim(), page, size).map(BonDeReceptionResponse::from));
+        }
+        return ResponseEntity.ok(bonDeReceptionService.search(keyword).stream().map(BonDeReceptionResponse::from).toList());
     }
 
     @GetMapping("/recent")
     @Operation(summary = "Récupérer les bons de réception récents")
     public ResponseEntity<List<BonDeReceptionResponse>> getRecent() {
-        return ResponseEntity.ok(bonDeReceptionService.getRecentBonsDeReception());
+        return ResponseEntity.ok(bonDeReceptionService.getRecentBonsDeReception().stream().map(BonDeReceptionResponse::from).toList());
     }
 
     @DeleteMapping("/{id}")

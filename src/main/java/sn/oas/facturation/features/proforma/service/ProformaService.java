@@ -1,32 +1,33 @@
 package sn.oas.facturation.features.proforma.service;
 
+import org.springframework.data.domain.Page;
 import sn.oas.facturation.features.auth.data.entity.Client;
-import sn.oas.facturation.features.facture.dto.FactureResponse;
+import sn.oas.facturation.features.facture.data.entity.Facture;
+import sn.oas.facturation.features.proforma.data.entity.Proforma;
 import sn.oas.facturation.features.proforma.dto.ProformaCreateRequest;
-import sn.oas.facturation.features.proforma.dto.ProformaResponse;
 import sn.oas.facturation.features.proforma.dto.ProformaUpdateRequest;
 
-import org.springframework.data.domain.Page;
 import java.util.List;
 
 public interface ProformaService {
-    ProformaResponse create(ProformaCreateRequest request);
-    ProformaResponse update(Long id, ProformaUpdateRequest request);
-    ProformaResponse getById(Long id);
-    Page<ProformaResponse> getAll(int page, int size);
-    List<ProformaResponse> getAll();
-    List<ProformaResponse> search(String keyword);
-    List<ProformaResponse> getRecentProformas();
-    ProformaResponse getByOrdreReparationId(Long ordreReparationId);
+    Proforma create(ProformaCreateRequest request);
+    Proforma update(Long id, ProformaUpdateRequest request);
+    Proforma getById(Long id);
+    Page<Proforma> getAll(int page, int size);
+    List<Proforma> getAll();
+    List<Proforma> search(String keyword);
+    Page<Proforma> search(String keyword, int page, int size);
+    List<Proforma> getRecentProformas();
+    Proforma getByOrdreReparationId(Long ordreReparationId);
     void delete(Long id);
 
-    ProformaResponse valider(Long id);
-    ProformaResponse validerEnvoi(Long id);
+    Proforma valider(Long id);
+    Proforma validerEnvoi(Long id);
     byte[] generatePdf(Long id);
-    FactureResponse convertToFacture(Long id);
+    Facture convertToFacture(Long id);
 
     // Client methods
-    List<ProformaResponse> getClientProformas(Client client);
-    ProformaResponse clientValider(Client client, Long id);
-    ProformaResponse clientRefuser(Client client, Long id);
+    List<Proforma> getClientProformas(Client client);
+    Proforma clientValider(Client client, Long id);
+    Proforma clientRefuser(Client client, Long id);
 }

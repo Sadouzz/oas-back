@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import sn.oas.facturation.features.auth.data.entity.Client;
+import sn.oas.facturation.features.client.service.ClientService;
 import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.features.ordreReparation.data.enums.TypePieceJointe;
 import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationRequest;
@@ -13,6 +15,7 @@ import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationLightDTO;
 import sn.oas.facturation.features.ordreReparation.dto.PieceJointeDiagnosticRequest;
 import sn.oas.facturation.features.ordreReparation.dto.PieceJointeDiagnosticResponse;
 import sn.oas.facturation.features.ordreReparation.dto.RemarqueDiagnosticResponse;
+import sn.oas.facturation.features.ordreReparation.repository.OrdreReparationRepository;
 import sn.oas.facturation.features.ordreReparation.service.OrdreReparationService;
 
 import java.util.List;
@@ -25,6 +28,8 @@ import java.util.Map;
 public class OrdreReparationController {
 
     private final OrdreReparationService ordreReparationService;
+    private final ClientService clientService;
+    private final OrdreReparationRepository ordreReparationRepository;
 
     @GetMapping
     @Operation(summary = "Lister toutes les fiches atelier avec pagination")
@@ -32,6 +37,19 @@ public class OrdreReparationController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         return ResponseEntity.ok(ordreReparationService.getAllOrdresReparation(page, size));
+    }
+
+    @GetMapping("/me")
+    @Operation(summary = "Lister l'historique des interventions/réparations du client connecté")
+    public ResponseEntity<List<OrdreReparation>> getMyInterventions() {
+        Client client = clientService.getClientConnecte();
+        return ResponseEntity.ok(ordreReparationRepository.findByVehiculeClientIdOrderByDateCreationDesc(client.getId()));
+    }
+
+    @GetMapping("/client/{clientId}")
+    @Operation(summary = "Lister l'historique des réparations d'un client")
+    public ResponseEntity<List<OrdreReparation>> getInterventionsByClient(@PathVariable Long clientId) {
+        return ResponseEntity.ok(ordreReparationRepository.findByVehiculeClientIdOrderByDateCreationDesc(clientId));
     }
 
     @GetMapping("/{id}")

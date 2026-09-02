@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import sn.oas.facturation.features.auth.data.entity.Client;
 import sn.oas.facturation.features.auth.dto.RegisterRequest;
 import sn.oas.facturation.features.auth.dto.UserUpdateRequest;
+import sn.oas.facturation.features.client.dto.ClientListResponse;
 import sn.oas.facturation.features.client.service.ClientService;
 
 import sn.oas.facturation.features.auth.service.AuthService;
@@ -29,22 +30,28 @@ public class ClientController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         if (keyword != null && !keyword.trim().isEmpty()) {
-            return ResponseEntity.ok(clientService.searchClients(keyword));
+            return ResponseEntity.ok(clientService.searchClients(keyword.trim(), page, size).map(ClientListResponse::from));
         }
-        return ResponseEntity.ok(clientService.getAllClients(page, size));
+        return ResponseEntity.ok(clientService.getAllClients(page, size).map(ClientListResponse::from));
+    }
+
+    @GetMapping("/me")
+    @Operation(summary = "Récupérer le profil du client connecté")
+    public ResponseEntity<ClientListResponse> getProfile() {
+        return ResponseEntity.ok(ClientListResponse.from(clientService.getClientConnecte()));
     }
 
     @GetMapping("/recent")
     @Operation(summary = "Récupérer les clients récents")
     public ResponseEntity<?> getRecentClients() {
-        return ResponseEntity.ok(clientService.getRecentClients());
+        return ResponseEntity.ok(clientService.getRecentClients().stream().map(ClientListResponse::from).toList());
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Récupérer un client par son ID")
     public ResponseEntity<?> getClientById(@PathVariable Long id) {
         try {
-            return ResponseEntity.ok(clientService.getClientById(id));
+            return ResponseEntity.ok(ClientListResponse.from(clientService.getClientById(id)));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -71,7 +78,7 @@ public class ClientController {
     public ResponseEntity<?> updateClient(@PathVariable Long id, @RequestBody UserUpdateRequest request) {
         try {
             Client client = clientService.updateClient(id, request);
-            return ResponseEntity.ok(client);
+            return ResponseEntity.ok(ClientListResponse.from(client));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

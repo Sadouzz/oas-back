@@ -20,6 +20,16 @@ public interface BonDeReceptionRepository extends JpaRepository<BonDeReception, 
             "LOWER(b.ordreReparation.vehicule.client.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(b.ordreReparation.vehicule.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<BonDeReception> searchBonsDeReception(@Param("keyword") String keyword);
-    
+
+    @Query("SELECT b FROM BonDeReception b WHERE " +
+            "LOWER(b.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(b.remarque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(b.ordreReparation.vehicule.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(b.ordreReparation.vehicule.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(b.ordreReparation.vehicule.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(b.ordreReparation.vehicule.client.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(b.ordreReparation.vehicule.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    org.springframework.data.domain.Page<BonDeReception> searchBonsDeReception(@Param("keyword") String keyword, org.springframework.data.domain.Pageable pageable);
+
     List<BonDeReception> findTop5ByOrderByDateCreationDesc();
 }

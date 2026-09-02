@@ -14,8 +14,10 @@ public interface PieceDetacheService {
     List<PieceDetache> getAllPieces();
 
     List<PieceDetache> filterByType(TypePiece type);
+    Page<PieceDetache> filterByType(TypePiece type, int page, int size);
 
     List<PieceDetache> searchPieces(String keyword);
+    Page<PieceDetache> searchPieces(String keyword, int page, int size);
 
     PieceDetache getById(Long id);
 

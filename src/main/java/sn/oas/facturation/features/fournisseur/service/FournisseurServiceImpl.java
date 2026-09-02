@@ -103,4 +103,10 @@ public class FournisseurServiceImpl implements FournisseurService{
     public List<Fournisseur> searchFournisseur(String keyword) {
         return fournisseurRepository.searchFournisseurs(keyword);
     }
+
+    @Override
+    public Page<Fournisseur> searchFournisseur(String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, org.springframework.data.domain.Sort.by("id").descending());
+        return fournisseurRepository.searchFournisseurs(keyword, pageable);
+    }
 }

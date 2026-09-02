@@ -49,50 +49,55 @@ public class BonDeReceptionServiceImpl implements BonDeReceptionService {
 
     @Override
     @Transactional
-    public BonDeReceptionResponse create(BonDeReceptionCreateRequest request) {
+    public BonDeReception create(BonDeReceptionCreateRequest request) {
         throw new UnsupportedOperationException(
                 "Les bons de réception sont générés automatiquement lors de la réception d'un bon de commande.");
     }
 
     @Override
     @Transactional
-    public BonDeReceptionResponse update(Long id, BonDeReceptionUpdateRequest request) {
+    public BonDeReception update(Long id, BonDeReceptionUpdateRequest request) {
         throw new UnsupportedOperationException("Un bon de réception ne peut pas être modifié.");
     }
 
     @Override
-    public BonDeReceptionResponse getById(Long id) {
-        BonDeReception bonDeReception = bonDeReceptionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Bon de réception non trouvé"));
-        return mapToResponse(bonDeReception);
+    public BonDeReception getById(Long id) {
+        return bonDeReceptionRepository.findById(id)
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Bon de réception non trouvé avec l'id : " + id));
     }
 
     @Override
-    public List<BonDeReceptionResponse> getAll() {
-        return bonDeReceptionRepository.findAll().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public org.springframework.data.domain.Page<BonDeReception> getAll(int page, int size) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by("id").descending());
+        return bonDeReceptionRepository.findAll(pageable);
     }
 
     @Override
-    public List<BonDeReceptionResponse> search(String keyword) {
-        return bonDeReceptionRepository.searchBonsDeReception(keyword).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public List<BonDeReception> getAll() {
+        return bonDeReceptionRepository.findAll();
     }
 
     @Override
-    public List<BonDeReceptionResponse> getRecentBonsDeReception() {
-        return bonDeReceptionRepository.findTop5ByOrderByDateCreationDesc().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public List<BonDeReception> search(String keyword) {
+        return bonDeReceptionRepository.searchBonsDeReception(keyword);
+    }
+
+    @Override
+    public org.springframework.data.domain.Page<BonDeReception> search(String keyword, int page, int size) {
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by("id").descending());
+        return bonDeReceptionRepository.searchBonsDeReception(keyword, pageable);
+    }
+
+    @Override
+    public List<BonDeReception> getRecentBonsDeReception() {
+        return bonDeReceptionRepository.findTop5ByOrderByDateCreationDesc();
     }
 
     @Override
     @Transactional
     public void delete(Long id) {
         if (!bonDeReceptionRepository.existsById(id)) {
-            throw new RuntimeException("Bon de réception non trouvé");
+            throw new sn.oas.facturation.shared.exception.ResourceNotFoundException("Bon de réception non trouvé avec l'id : " + id);
         }
         bonDeReceptionRepository.deleteById(id);
     }
@@ -101,7 +106,7 @@ public class BonDeReceptionServiceImpl implements BonDeReceptionService {
     @Transactional(readOnly = true)
     public byte[] generatePdf(Long id) {
         BonDeReception bl = bonDeReceptionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Bon de réception non trouvé"));
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Bon de réception non trouvé avec l'id : " + id));
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Document document = new Document();
@@ -145,64 +150,79 @@ public class BonDeReceptionServiceImpl implements BonDeReceptionService {
 
                 PdfPTable tablePieces = new PdfPTable(4);
                 tablePieces.setWidthPercentage(100);
-                tablePieces.setWidths(new float[] { 4f, 2f, 2f, 2f });
+                tablePieces.setWidths(new float[] { 4, 2, 2, 2 });
 
-                String[] headersPieces = { "Désignation", "Quantité", "Prix Unitaire", "Total" };
-                for (String header : headersPieces) {
-                    PdfPCell cell = new PdfPCell(new Phrase(header, fontHeader));
-                    cell.setBackgroundColor(Color.DARK_GRAY);
-                    cell.setPadding(5);
-                    tablePieces.addCell(cell);
+                PdfPCell cell1 = new PdfPCell(new Phrase("Désignation", fontHeader));
+                cell1.setBackgroundColor(Color.DARK_GRAY);
+                PdfPCell cell2 = new PdfPCell(new Phrase("Quantité", fontHeader));
+                cell2.setBackgroundColor(Color.DARK_GRAY);
+                PdfPCell cell3 = new PdfPCell(new Phrase("Prix Unitaire", fontHeader));
+                cell3.setBackgroundColor(Color.DARK_GRAY);
+                PdfPCell cell4 = new PdfPCell(new Phrase("Total", fontHeader));
+                cell4.setBackgroundColor(Color.DARK_GRAY);
+
+                tablePieces.addCell(cell1);
+                tablePieces.addCell(cell2);
+                tablePieces.addCell(cell3);
+                tablePieces.addCell(cell4);
+
+                for (LigneFacturationPiece lp : bl.getLignesFacturationPieces()) {
+                    String designation = lp.getPiece() != null ? lp.getPiece().getDesignation() : "-";
+                    tablePieces.addCell(new Phrase(designation, fontTexte));
+                    tablePieces.addCell(new Phrase(String.valueOf(lp.getQuantite()), fontTexte));
+                    tablePieces.addCell(new Phrase(String.valueOf(lp.getPrix()), fontTexte));
+                    tablePieces.addCell(new Phrase(String.valueOf(lp.getQuantite() * lp.getPrix()), fontTexte));
                 }
 
-                for (LigneFacturationPiece ligne : bl.getLignesFacturationPieces()) {
-                    String ref = ligne.getPiece() != null ? ligne.getPiece().getDesignation() : "N/A";
-                    tablePieces.addCell(new Phrase(ref, fontTexte));
-                    tablePieces.addCell(new Phrase(String.valueOf(ligne.getQuantite()), fontTexte));
-                    tablePieces.addCell(new Phrase(String.valueOf(ligne.getPrix()), fontTexte));
-                    tablePieces.addCell(new Phrase(String.valueOf(ligne.getQuantite() * ligne.getPrix()), fontTexte));
-                }
                 document.add(tablePieces);
                 document.add(new Paragraph(" "));
             }
 
-            // Tableau Main d'Oeuvre
+            // Tableau Main d'œuvre
             if (bl.getLignesFacturationMainDoeuvres() != null && !bl.getLignesFacturationMainDoeuvres().isEmpty()) {
-                document.add(new Paragraph("Main d'Œuvre :", fontSousTitre));
+                document.add(new Paragraph("Main d'œuvre :", fontSousTitre));
                 document.add(new Paragraph(" "));
 
                 PdfPTable tableMo = new PdfPTable(4);
                 tableMo.setWidthPercentage(100);
-                tableMo.setWidths(new float[] { 4f, 2f, 2f, 2f });
+                tableMo.setWidths(new float[] { 4, 2, 2, 2 });
 
-                String[] headersMo = { "Catégorie", "Heures", "Tarif Horaire", "Total" };
-                for (String header : headersMo) {
-                    PdfPCell cell = new PdfPCell(new Phrase(header, fontHeader));
-                    cell.setBackgroundColor(Color.DARK_GRAY);
-                    cell.setPadding(5);
-                    tableMo.addCell(cell);
+                PdfPCell cell1 = new PdfPCell(new Phrase("Description", fontHeader));
+                cell1.setBackgroundColor(Color.DARK_GRAY);
+                PdfPCell cell2 = new PdfPCell(new Phrase("Heures", fontHeader));
+                cell2.setBackgroundColor(Color.DARK_GRAY);
+                PdfPCell cell3 = new PdfPCell(new Phrase("Taux Horaire", fontHeader));
+                cell3.setBackgroundColor(Color.DARK_GRAY);
+                PdfPCell cell4 = new PdfPCell(new Phrase("Total", fontHeader));
+                cell4.setBackgroundColor(Color.DARK_GRAY);
+
+                tableMo.addCell(cell1);
+                tableMo.addCell(cell2);
+                tableMo.addCell(cell3);
+                tableMo.addCell(cell4);
+
+                for (LigneFacturationMainDoeuvre lm : bl.getLignesFacturationMainDoeuvres()) {
+                    String description = lm.getMainDoeuvre() != null && lm.getMainDoeuvre().getCategorie() != null
+                            ? lm.getMainDoeuvre().getCategorie().getNom()
+                            : "-";
+                    tableMo.addCell(new Phrase(description, fontTexte));
+                    tableMo.addCell(new Phrase(String.valueOf(lm.getNbreHeure()), fontTexte));
+                    tableMo.addCell(new Phrase(String.valueOf(lm.getTarifHoraire()), fontTexte));
+                    tableMo.addCell(new Phrase(String.valueOf(lm.getNbreHeure() * lm.getTarifHoraire()), fontTexte));
                 }
 
-                for (LigneFacturationMainDoeuvre ligne : bl.getLignesFacturationMainDoeuvres()) {
-                    String cat = ligne.getMainDoeuvre() != null ? ligne.getMainDoeuvre().getCategorie().getNom()
-                            : "N/A";
-                    tableMo.addCell(new Phrase(cat, fontTexte));
-                    tableMo.addCell(new Phrase(String.valueOf(ligne.getNbreHeure()), fontTexte));
-                    tableMo.addCell(new Phrase(String.valueOf(ligne.getTarifHoraire()), fontTexte));
-                    tableMo.addCell(
-                            new Phrase(String.valueOf(ligne.getNbreHeure() * ligne.getTarifHoraire()), fontTexte));
-                }
                 document.add(tableMo);
                 document.add(new Paragraph(" "));
             }
 
             // Totaux
-            document.add(new Paragraph("Montant HT : " + bl.getMontantHT(), fontSousTitre));
-            document.add(new Paragraph("TVA : " + bl.getMontantTVA(), fontTexte));
-            document.add(new Paragraph("Timbre : " + bl.getMontantTimbre(), fontTexte));
-            document.add(new Paragraph("Montant TTC : " + bl.getMontantTTC(), fontSousTitre));
-
-            Paragraph total = new Paragraph("Montant Total à Payer : " + bl.getMontantTotal(), fontTitre);
+            Paragraph total = new Paragraph(
+                    "Total HT : " + bl.getMontantHT() + " FCFA\n" +
+                            "TVA : " + bl.getMontantTVA() + " FCFA\n" +
+                            "Total TTC : " + bl.getMontantTTC() + " FCFA\n" +
+                            "Timbre : " + bl.getMontantTimbre() + " FCFA\n" +
+                            "TOTAL GÉNÉRAL : " + bl.getMontantTotal() + " FCFA",
+                    fontSousTitre);
             total.setSpacingBefore(10);
             total.setAlignment(Element.ALIGN_RIGHT);
             document.add(total);
@@ -215,49 +235,5 @@ public class BonDeReceptionServiceImpl implements BonDeReceptionService {
         }
 
         return baos.toByteArray();
-    }
-
-    private BonDeReceptionResponse mapToResponse(BonDeReception bl) {
-        return BonDeReceptionResponse.builder()
-                .id(bl.getId())
-                .numero(bl.getNumero())
-                .dateCreation(bl.getDateCreation())
-                .dateModification(bl.getDateModification())
-                .montantHT(bl.getMontantHT())
-                .montantTVA(bl.getMontantTVA())
-                .montantTTC(bl.getMontantTTC())
-                .montantTimbre(bl.getMontantTimbre())
-                .montantTotal(bl.getMontantTotal())
-                .agentId(bl.getAgent() != null ? bl.getAgent().getId() : null)
-                .agentNom(
-                        bl.getAgent() != null ? bl.getAgent().getFirstName() + " " + bl.getAgent().getLastName() : null)
-                .remarque(bl.getRemarque())
-                .kilometrage(bl.getKilometrage())
-                .bonDeCommandeId(bl.getBonDeCommande() != null ? bl.getBonDeCommande().getId() : null)
-                .bonDeCommandeNumero(bl.getBonDeCommande() != null ? bl.getBonDeCommande().getNumero() : null)
-
-                .lignesPieces(bl.getLignesFacturationPieces().stream()
-                        .map(ligne -> LigneFacturationPieceResponse.builder()
-                                .id(ligne.getId())
-                                .pieceId(ligne.getPiece() != null ? ligne.getPiece().getId() : null)
-                                .designationPiece(ligne.getPiece() != null ? ligne.getPiece().getDesignation() : null)
-                                .quantite(ligne.getQuantite())
-                                .prix(ligne.getPrix())
-                                .montantTotal(ligne.getQuantite() * ligne.getPrix())
-                                .build())
-                        .collect(Collectors.toList()))
-                .lignesMainDoeuvres(bl.getLignesFacturationMainDoeuvres().stream()
-                        .map(ligne -> LigneFacturationMainDoeuvreResponse.builder()
-                                .id(ligne.getId())
-                                .mainDoeuvreId(ligne.getMainDoeuvre() != null ? ligne.getMainDoeuvre().getId() : null)
-                                .descriptionMainDoeuvre(
-                                        ligne.getMainDoeuvre() != null ? ligne.getMainDoeuvre().getCategorie().getNom()
-                                                : null)
-                                .nbreHeure(ligne.getNbreHeure())
-                                .tarifHoraire(ligne.getTarifHoraire())
-                                .montantTotal(ligne.getNbreHeure() * ligne.getTarifHoraire())
-                                .build())
-                        .collect(Collectors.toList()))
-                .build();
     }
 }

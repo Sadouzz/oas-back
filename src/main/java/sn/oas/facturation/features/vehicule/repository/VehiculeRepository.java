@@ -23,5 +23,15 @@ public interface VehiculeRepository extends JpaRepository<Vehicule, Long> {
             "LOWER(v.client.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(v.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<Vehicule> searchVehicules(@Param("keyword") String keyword);
+
+    @Query("SELECT v FROM Vehicule v WHERE " +
+            "LOWER(v.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(v.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(v.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(v.numeroChassis) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(v.client.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(v.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    org.springframework.data.domain.Page<Vehicule> searchVehicules(@Param("keyword") String keyword, org.springframework.data.domain.Pageable pageable);
+
     List<Vehicule> findTop5ByOrderByCreatedAtDesc();
 }

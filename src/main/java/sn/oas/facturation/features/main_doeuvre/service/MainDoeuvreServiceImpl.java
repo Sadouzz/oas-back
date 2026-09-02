@@ -103,4 +103,15 @@ public class MainDoeuvreServiceImpl implements MainDoeuvreService {
         }
         mainDoeuvreRepository.deleteById(id);
     }
+
+    @Override
+    public List<MainDoeuvre> searchMainDoeuvres(String keyword) {
+        return mainDoeuvreRepository.searchMainDoeuvres(keyword);
+    }
+
+    @Override
+    public Page<MainDoeuvre> searchMainDoeuvres(String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, org.springframework.data.domain.Sort.by("id").descending());
+        return mainDoeuvreRepository.searchMainDoeuvres(keyword, pageable);
+    }
 }

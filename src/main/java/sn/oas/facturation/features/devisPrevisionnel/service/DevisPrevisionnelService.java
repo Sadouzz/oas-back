@@ -29,6 +29,7 @@ public interface DevisPrevisionnelService {
     List<DevisPrevisionnel> getClientDevis(Client client);
 
     List<DevisPrevisionnel> search(String keyword);
+    Page<DevisPrevisionnel> search(String keyword, int page, int size);
 
     byte[] generatePdf(Long id);
 

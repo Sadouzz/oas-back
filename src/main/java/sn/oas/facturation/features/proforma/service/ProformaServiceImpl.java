@@ -22,11 +22,8 @@ import sn.oas.facturation.features.client.repository.ClientRepository;
 import sn.oas.facturation.features.facturation.data.entity.LigneFacturationMainDoeuvre;
 import sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece;
 import sn.oas.facturation.features.facturation.dto.LigneFacturationMainDoeuvreRequest;
-import sn.oas.facturation.features.facturation.dto.LigneFacturationMainDoeuvreResponse;
 import sn.oas.facturation.features.facturation.dto.LigneFacturationPieceRequest;
-import sn.oas.facturation.features.facturation.dto.LigneFacturationPieceResponse;
 import sn.oas.facturation.features.facture.data.entity.Facture;
-import sn.oas.facturation.features.facture.dto.FactureResponse;
 import sn.oas.facturation.features.facture.repository.FactureRepository;
 import sn.oas.facturation.features.facturation.data.enums.StatutFacturation;
 import sn.oas.facturation.features.main_doeuvre.data.entity.MainDoeuvre;
@@ -36,7 +33,6 @@ import sn.oas.facturation.features.piecedetache.data.entity.PieceDetache;
 import sn.oas.facturation.features.piecedetache.repository.PieceDetacheRepository;
 import sn.oas.facturation.features.proforma.data.entity.Proforma;
 import sn.oas.facturation.features.proforma.dto.ProformaCreateRequest;
-import sn.oas.facturation.features.proforma.dto.ProformaResponse;
 import sn.oas.facturation.features.proforma.dto.ProformaUpdateRequest;
 import sn.oas.facturation.features.proforma.repository.ProformaRepository;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
@@ -46,6 +42,7 @@ import sn.oas.facturation.features.ordreReparation.repository.OrdreReparationRep
 import sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation;
 import sn.oas.facturation.features.auth.data.enums.Role;
 import sn.oas.facturation.features.notification.service.AgentNotificationService;
+import sn.oas.facturation.shared.exception.ResourceNotFoundException;
 
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
@@ -74,7 +71,7 @@ public class ProformaServiceImpl implements ProformaService {
 
     @Override
     @Transactional
-    public ProformaResponse create(ProformaCreateRequest request) {
+    public Proforma create(ProformaCreateRequest request) {
         log.info("Création d'un nouveau proforma");
 
         Client client = clientRepository.findById(request.getClientId())
@@ -265,12 +262,12 @@ public class ProformaServiceImpl implements ProformaService {
             "Nouveau Proforma", 
             "Le proforma " + saved.getNumero() + " a été généré et est en attente.");
 
-        return mapToResponse(saved);
+        return saved;
     }
 
     @Override
     @Transactional
-    public ProformaResponse update(Long id, ProformaUpdateRequest request) {
+    public Proforma update(Long id, ProformaUpdateRequest request) {
         log.info("Mise à jour du proforma id: {}", id);
         Proforma proforma = proformaRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Proforma non trouvé avec l'id : " + id));
@@ -395,71 +392,70 @@ public class ProformaServiceImpl implements ProformaService {
         proforma.setMontantTotal(proforma.getMontantTTC().add(proforma.getMontantTimbre()).add(autre));
         proforma.setDateModification(LocalDateTime.now());
 
-        return mapToResponse(proformaRepository.save(proforma));
+        return proformaRepository.save(proforma);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ProformaResponse getById(Long id) {
-        Proforma proforma = proformaRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Proforma non trouvé avec l'id : " + id));
-        return mapToResponse(proforma);
+    public Proforma getById(Long id) {
+        return proformaRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Proforma non trouvé avec l'id : " + id));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public org.springframework.data.domain.Page<ProformaResponse> getAll(int page, int size) {
-        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
-        return proformaRepository.findAll(pageable).map(this::mapToResponse);
+    public Page<Proforma> getAll(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return proformaRepository.findAll(pageable);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ProformaResponse> getAll() {
-        return proformaRepository.findAll().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public List<Proforma> getAll() {
+        return proformaRepository.findAll();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ProformaResponse> search(String keyword) {
-        return proformaRepository.searchProformas(keyword).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public List<Proforma> search(String keyword) {
+        return proformaRepository.searchProformas(keyword);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public ProformaResponse getByOrdreReparationId(Long ordreReparationId) {
+    public Page<Proforma> search(String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return proformaRepository.searchProformas(keyword, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Proforma getByOrdreReparationId(Long ordreReparationId) {
         return proformaRepository.findByOrdreReparationId(ordreReparationId)
-                .map(this::mapToResponse)
                 .orElse(null);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ProformaResponse> getRecentProformas() {
-        return proformaRepository.findTop5ByOrderByDateCreationDesc().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public List<Proforma> getRecentProformas() {
+        return proformaRepository.findTop5ByOrderByDateCreationDesc();
     }
 
     @Override
     @Transactional
     public void delete(Long id) {
         if (!proformaRepository.existsById(id)) {
-            throw new IllegalArgumentException("Proforma non trouvé avec l'id : " + id);
+            throw new ResourceNotFoundException("Proforma non trouvé avec l'id : " + id);
         }
         proformaRepository.deleteById(id);
     }
 
     @Override
     @Transactional
-    public ProformaResponse valider(Long id) {
+    public Proforma valider(Long id) {
         log.info("Validation du proforma id: {}", id);
         Proforma proforma = proformaRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Proforma non trouvé avec l'id : " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Proforma non trouvé avec l'id : " + id));
 
         proforma.setStatut(StatutFacturation.ACCEPTE);
         
@@ -469,25 +465,25 @@ public class ProformaServiceImpl implements ProformaService {
             ordreReparationRepository.save(ordreReparation);
         }
 
-        return mapToResponse(proformaRepository.save(proforma));
+        return proformaRepository.save(proforma);
     }
 
     @Override
     @Transactional
-    public ProformaResponse validerEnvoi(Long id) {
+    public Proforma validerEnvoi(Long id) {
         log.info("Validation et envoi au client du proforma id: {}", id);
         Proforma proforma = proformaRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Proforma non trouvé avec l'id : " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Proforma non trouvé avec l'id : " + id));
 
         proforma.setVisibleClient(true);
-        return mapToResponse(proformaRepository.save(proforma));
+        return proformaRepository.save(proforma);
     }
 
     @Override
     @Transactional(readOnly = true)
     public byte[] generatePdf(Long id) {
         Proforma p = proformaRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Proforma non trouvé avec l'id : " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Proforma non trouvé avec l'id : " + id));
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Document document = new Document();
@@ -605,10 +601,10 @@ public class ProformaServiceImpl implements ProformaService {
 
     @Override
     @Transactional
-    public FactureResponse convertToFacture(Long id) {
+    public Facture convertToFacture(Long id) {
         log.info("Conversion du proforma id: {} en facture finale", id);
         Proforma proforma = proformaRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Proforma non trouvé avec l'id : " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Proforma non trouvé avec l'id : " + id));
 
         Facture facture = Facture.builder()
                 .numero("FA-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
@@ -624,7 +620,6 @@ public class ProformaServiceImpl implements ProformaService {
                 .montantTVA(proforma.getMontantTVA())
                 .montantTTC(proforma.getMontantTTC())
                 .montantTimbre(proforma.getMontantTimbre())
-                // .montantAutre(proforma.getMontantAutre())
                 .montantTotal(proforma.getMontantTotal())
                 .lignesFacturationPieces(new ArrayList<>())
                 .lignesFacturationMainDoeuvres(new ArrayList<>())
@@ -648,31 +643,28 @@ public class ProformaServiceImpl implements ProformaService {
                     .build());
         }
 
-        Facture savedFacture = factureRepository.save(facture);
-        return mapToFactureResponse(savedFacture);
+        return factureRepository.save(facture);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<ProformaResponse> getClientProformas(Client client) {
-        return proformaRepository.findByClientIdOrderByDateCreationDesc(client.getId()).stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public List<Proforma> getClientProformas(Client client) {
+        return proformaRepository.findByClientIdOrderByDateCreationDesc(client.getId());
     }
 
     @Override
     @Transactional
-    public ProformaResponse clientValider(Client client, Long id) {
+    public Proforma clientValider(Client client, Long id) {
         log.info("Validation du proforma id: {} par le client: {}", id, client.getId());
         Proforma proforma = proformaRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Proforma non trouvé avec l'id : " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Proforma non trouvé avec l'id : " + id));
 
         if (proforma.getOrdreReparation() == null || proforma.getOrdreReparation().getVehicule() == null ||
             !proforma.getOrdreReparation().getVehicule().getClient().getId().equals(client.getId())) {
-            throw new IllegalArgumentException("Accès non autorisé à ce proforma");
+            throw new sn.oas.facturation.shared.exception.ForbiddenException("Accès non autorisé à ce proforma");
         }
         if (proforma.getVisibleClient() == null || !proforma.getVisibleClient()) {
-            throw new IllegalArgumentException("Ce proforma n'est pas encore disponible.");
+            throw new sn.oas.facturation.shared.exception.BadRequestException("Ce proforma n'est pas encore disponible.");
         }
 
         proforma.setStatut(StatutFacturation.ACCEPTE);
@@ -687,128 +679,26 @@ public class ProformaServiceImpl implements ProformaService {
             "Proforma Validé", 
             "Le proforma " + proforma.getNumero() + " a été validé par le client.");
 
-        return mapToResponse(proformaRepository.save(proforma));
+        return proformaRepository.save(proforma);
     }
 
     @Override
     @Transactional
-    public ProformaResponse clientRefuser(Client client, Long id) {
+    public Proforma clientRefuser(Client client, Long id) {
         log.info("Refus du proforma id: {} par le client: {}", id, client.getId());
         Proforma proforma = proformaRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Proforma non trouvé avec l'id : " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Proforma non trouvé avec l'id : " + id));
 
         if (proforma.getOrdreReparation() == null || proforma.getOrdreReparation().getVehicule() == null ||
             !proforma.getOrdreReparation().getVehicule().getClient().getId().equals(client.getId())) {
-            throw new IllegalArgumentException("Accès non autorisé à ce proforma");
+            throw new sn.oas.facturation.shared.exception.ForbiddenException("Accès non autorisé à ce proforma");
         }
         if (proforma.getVisibleClient() == null || !proforma.getVisibleClient()) {
-            throw new IllegalArgumentException("Ce proforma n'est pas encore disponible.");
+            throw new sn.oas.facturation.shared.exception.BadRequestException("Ce proforma n'est pas encore disponible.");
         }
 
         proforma.setStatut(StatutFacturation.REJETE);
-        
-        OrdreReparation ordreReparation = proforma.getOrdreReparation();
-        // Optionnel : ne pas changer le statut de la fiche atelier ou le remettre à EN_DIAGNOSTIC
-        // si le proforma est refusé. Pour l'instant on garde le statut actuel.
 
-        return mapToResponse(proformaRepository.save(proforma));
-    }
-
-    private ProformaResponse mapToResponse(Proforma p) {
-        return ProformaResponse.builder()
-                .id(p.getId())
-                .numero(p.getNumero())
-                .dateCreation(p.getDateCreation())
-                .dateModification(p.getDateModification())
-                .montantHT(p.getMontantHT())
-                .montantTVA(p.getMontantTVA())
-                .montantTTC(p.getMontantTTC())
-                .montantTimbre(p.getMontantTimbre())
-                .montantAutre(BigDecimal.ZERO)
-                .montantTotal(p.getMontantTotal())
-                .statut(p.getStatut() != null ? p.getStatut().name() : null)
-                .visibleClient(p.getVisibleClient() != null ? p.getVisibleClient() : Boolean.FALSE)
-                .agentId(p.getAgent() != null ? p.getAgent().getId() : null)
-                .agentNom(p.getAgent() != null ? p.getAgent().getFirstName() + " " + p.getAgent().getLastName() : null)
-                .remarque(p.getRemarque())
-                .kilometrage(p.getKilometrage())
-                .clientId(p.getOrdreReparation() != null && p.getOrdreReparation().getVehicule() != null ? p.getOrdreReparation().getVehicule().getClient().getId() : null)
-                .clientNom(p.getOrdreReparation() != null && p.getOrdreReparation().getVehicule() != null ? p.getOrdreReparation().getVehicule().getClient().getFirstName() + " " + p.getOrdreReparation().getVehicule().getClient().getLastName() : null)
-                .vehiculeId(p.getOrdreReparation() != null && p.getOrdreReparation().getVehicule() != null ? p.getOrdreReparation().getVehicule().getId() : null)
-                .immatriculation(p.getOrdreReparation() != null && p.getOrdreReparation().getVehicule() != null ? p.getOrdreReparation().getVehicule().getImmatriculation() : null)
-                .numeroChassis(p.getOrdreReparation() != null && p.getOrdreReparation().getVehicule() != null ? p.getOrdreReparation().getVehicule().getNumeroChassis() : null)
-                .marque(p.getOrdreReparation() != null && p.getOrdreReparation().getVehicule() != null ? p.getOrdreReparation().getVehicule().getMarque() : null)
-                .modele(p.getOrdreReparation() != null && p.getOrdreReparation().getVehicule() != null ? p.getOrdreReparation().getVehicule().getModele() : null)
-                .annee(p.getOrdreReparation() != null && p.getOrdreReparation().getVehicule() != null ? p.getOrdreReparation().getVehicule().getAnnee() : null)
-                .numeroBonDeCommande(p.getBonDeCommande() != null ? p.getBonDeCommande().getNumero() : null)
-                .lignesPieces(p.getLignesFacturationPieces() == null ? List.of() : p.getLignesFacturationPieces().stream()
-                        .map(lp -> LigneFacturationPieceResponse.builder()
-                                .id(lp.getId())
-                                .pieceId(lp.getPiece() != null ? lp.getPiece().getId() : null)
-                                .designationPiece(lp.getPiece() != null ? lp.getPiece().getDesignation() : null)
-                                .quantite(lp.getQuantite())
-                                .prix(lp.getPrix())
-                                .montantTotal(lp.getQuantite() * lp.getPrix())
-                                .build())
-                        .collect(Collectors.toList()))
-                .lignesMainDoeuvres(p.getLignesFacturationMainDoeuvres() == null ? List.of() : p.getLignesFacturationMainDoeuvres().stream()
-                        .map(lm -> LigneFacturationMainDoeuvreResponse.builder()
-                                .id(lm.getId())
-                                .mainDoeuvreId(lm.getMainDoeuvre() != null ? lm.getMainDoeuvre().getId() : null)
-                                .descriptionMainDoeuvre(lm.getMainDoeuvre() != null ? lm.getMainDoeuvre().getCategorie().getNom() : null)
-                                .nbreHeure(lm.getNbreHeure())
-                                .tarifHoraire(lm.getTarifHoraire())
-                                .montantTotal(lm.getNbreHeure() * lm.getTarifHoraire())
-                                .build())
-                        .collect(Collectors.toList()))
-                .build();
-    }
-
-    private FactureResponse mapToFactureResponse(Facture f) {
-        return FactureResponse.builder()
-                .id(f.getId())
-                .numero(f.getNumero())
-                .dateCreation(f.getDateCreation())
-                .dateModification(f.getDateModification())
-                .montantHT(f.getMontantHT())
-                .montantTVA(f.getMontantTVA())
-                .montantTTC(f.getMontantTTC())
-                .montantTimbre(f.getMontantTimbre())
-                .montantAutre(f.getMontantAutre())
-                .montantTotal(f.getMontantTotal())
-                .agentId(f.getAgent() != null ? f.getAgent().getId() : null)
-                .agentNom(f.getAgent() != null ? f.getAgent().getFirstName() + " " + f.getAgent().getLastName() : null)
-                .remarque(f.getRemarque())
-                .kilometrage(f.getKilometrage())
-                .clientId(f.getClient() != null ? f.getClient().getId() : null)
-                .clientNom(f.getClient() != null ? f.getClient().getFirstName() + " " + f.getClient().getLastName() : null)
-                .vehiculeId(f.getVehicule() != null ? f.getVehicule().getId() : null)
-                .immatriculation(f.getVehicule() != null ? f.getVehicule().getImmatriculation() : null)
-                .numeroChassis(f.getVehicule() != null ? f.getVehicule().getNumeroChassis() : null)
-                .marque(f.getVehicule() != null ? f.getVehicule().getMarque() : null)
-                .modele(f.getVehicule() != null ? f.getVehicule().getModele() : null)
-                .annee(f.getVehicule() != null ? f.getVehicule().getAnnee() : null)
-                .numeroBonDeCommande(f.getNumeroBonDeCommande())
-                .lignesPieces(f.getLignesFacturationPieces() == null ? List.of() : f.getLignesFacturationPieces().stream()
-                        .map(lp -> LigneFacturationPieceResponse.builder()
-                                .id(lp.getId())
-                                .pieceId(lp.getPiece() != null ? lp.getPiece().getId() : null)
-                                .designationPiece(lp.getPiece() != null ? lp.getPiece().getDesignation() : null)
-                                .quantite(lp.getQuantite())
-                                .prix(lp.getPrix())
-                                .montantTotal(lp.getQuantite() * lp.getPrix())
-                                .build())
-                        .collect(Collectors.toList()))
-                .lignesMainDoeuvres(f.getLignesFacturationMainDoeuvres() == null ? List.of() : f.getLignesFacturationMainDoeuvres().stream()
-                        .map(lm -> LigneFacturationMainDoeuvreResponse.builder()
-                                .id(lm.getId())
-                                .mainDoeuvreId(lm.getMainDoeuvre() != null ? lm.getMainDoeuvre().getId() : null)
-                                .descriptionMainDoeuvre(lm.getMainDoeuvre() != null ? lm.getMainDoeuvre().getCategorie().getNom() : null)
-                                .nbreHeure(lm.getNbreHeure())
-                                .tarifHoraire(lm.getTarifHoraire())
-                                .montantTotal(lm.getNbreHeure() * lm.getTarifHoraire())
-                                .build())
-                        .collect(Collectors.toList()))
-                .build();
+        return proformaRepository.save(proforma);
     }
 }

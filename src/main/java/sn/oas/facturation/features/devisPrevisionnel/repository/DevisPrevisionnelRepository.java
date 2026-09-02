@@ -26,4 +26,13 @@ public interface DevisPrevisionnelRepository extends JpaRepository<DevisPrevisio
             "LOWER(d.client.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(d.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<DevisPrevisionnel> searchDevis(@Param("keyword") String keyword);
+
+    @Query("SELECT d FROM DevisPrevisionnel d WHERE " +
+            "LOWER(d.notesReparation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(d.vehicule.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(d.vehicule.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(d.vehicule.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(d.client.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(d.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    org.springframework.data.domain.Page<DevisPrevisionnel> searchDevis(@Param("keyword") String keyword, org.springframework.data.domain.Pageable pageable);
 }

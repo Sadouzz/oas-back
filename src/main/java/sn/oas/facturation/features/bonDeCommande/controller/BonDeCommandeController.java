@@ -29,19 +29,19 @@ public class BonDeCommandeController {
     @PostMapping
     @Operation(summary = "Créer un nouveau bon de commande")
     public ResponseEntity<BonDeCommandeResponse> create(@Valid @RequestBody BonDeCommandeCreateRequest request) {
-        return new ResponseEntity<>(bonDeCommandeService.create(request), HttpStatus.CREATED);
+        return new ResponseEntity<>(BonDeCommandeResponse.from(bonDeCommandeService.create(request)), HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Mettre à jour un bon de commande")
     public ResponseEntity<BonDeCommandeResponse> update(@PathVariable Long id, @Valid @RequestBody BonDeCommandeUpdateRequest request) {
-        return ResponseEntity.ok(bonDeCommandeService.update(id, request));
+        return ResponseEntity.ok(BonDeCommandeResponse.from(bonDeCommandeService.update(id, request)));
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Récupérer un bon de commande par son ID")
     public ResponseEntity<BonDeCommandeResponse> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(bonDeCommandeService.getById(id));
+        return ResponseEntity.ok(BonDeCommandeResponse.from(bonDeCommandeService.getById(id)));
     }
 
     @GetMapping
@@ -51,33 +51,33 @@ public class BonDeCommandeController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         if (keyword != null && !keyword.trim().isEmpty()) {
-            return ResponseEntity.ok(bonDeCommandeService.search(keyword));
+            return ResponseEntity.ok(bonDeCommandeService.search(keyword.trim(), page, size).map(BonDeCommandeResponse::from));
         }
-        return ResponseEntity.ok(bonDeCommandeService.getAll(page, size));
+        return ResponseEntity.ok(bonDeCommandeService.getAll(page, size).map(BonDeCommandeResponse::from));
     }
 
     @GetMapping("/search")
     @Operation(summary = "Rechercher des bons de commande")
     public ResponseEntity<List<BonDeCommandeResponse>> search(@RequestParam String keyword) {
-        return ResponseEntity.ok(bonDeCommandeService.search(keyword));
+        return ResponseEntity.ok(bonDeCommandeService.search(keyword).stream().map(BonDeCommandeResponse::from).toList());
     }
 
     @GetMapping("/recent")
     @Operation(summary = "Récupérer les bons de commande récents")
     public ResponseEntity<List<BonDeCommandeResponse>> getRecentBonDeCommandes() {
-        return ResponseEntity.ok(bonDeCommandeService.getRecentBonDeCommandes());
+        return ResponseEntity.ok(bonDeCommandeService.getRecentBonDeCommandes().stream().map(BonDeCommandeResponse::from).toList());
     }
 
     @PostMapping("/{id}/envoyer")
     @Operation(summary = "Envoyer un bon de commande")
     public ResponseEntity<BonDeCommandeResponse> envoyer(@PathVariable Long id) {
-        return ResponseEntity.ok(bonDeCommandeService.envoyer(id));
+        return ResponseEntity.ok(BonDeCommandeResponse.from(bonDeCommandeService.envoyer(id)));
     }
 
     @PostMapping("/{id}/receptionner")
     @Operation(summary = "Réceptionner un bon de commande")
     public ResponseEntity<BonDeCommandeResponse> receptionner(@PathVariable Long id) {
-        return ResponseEntity.ok(bonDeCommandeService.receptionner(id));
+        return ResponseEntity.ok(BonDeCommandeResponse.from(bonDeCommandeService.receptionner(id)));
     }
 
     @PostMapping({"/{id}/receptionner-reception", "/{id}/receptionner-livraison"})
@@ -85,7 +85,7 @@ public class BonDeCommandeController {
     public ResponseEntity<BonDeCommandeResponse> receptionnerAvecReception(
             @PathVariable Long id,
             @RequestBody ReceptionBonDeCommandeRequest request) {
-        return ResponseEntity.ok(bonDeCommandeService.receptionnerAvecQuantites(id, request));
+        return ResponseEntity.ok(BonDeCommandeResponse.from(bonDeCommandeService.receptionnerAvecQuantites(id, request)));
     }
 
     @PostMapping("/{id}/assigner-fournisseur")
@@ -93,13 +93,13 @@ public class BonDeCommandeController {
     public ResponseEntity<BonDeCommandeResponse> assignerFournisseur(
             @PathVariable Long id,
             @RequestParam Long fournisseurId) {
-        return ResponseEntity.ok(bonDeCommandeService.assignerFournisseur(id, fournisseurId));
+        return ResponseEntity.ok(BonDeCommandeResponse.from(bonDeCommandeService.assignerFournisseur(id, fournisseurId)));
     }
 
     @PostMapping("/{id}/annuler")
     @Operation(summary = "Annuler un bon de commande")
     public ResponseEntity<BonDeCommandeResponse> annuler(@PathVariable Long id) {
-        return ResponseEntity.ok(bonDeCommandeService.annuler(id));
+        return ResponseEntity.ok(BonDeCommandeResponse.from(bonDeCommandeService.annuler(id)));
     }
 
     @DeleteMapping("/{id}")

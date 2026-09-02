@@ -16,6 +16,10 @@ public record GarageResponse(
         LocalDateTime updatedAt,
         boolean archived
 ) {
+    public static GarageResponse from(Garage garage) {
+        return fromEntity(garage);
+    }
+
     public static GarageResponse fromEntity(Garage garage) {
         if (garage == null) {
             return null;
