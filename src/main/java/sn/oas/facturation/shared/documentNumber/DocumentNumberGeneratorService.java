@@ -4,7 +4,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import sn.oas.facturation.garage.data.entity.Garage;
+import sn.oas.facturation.features.auth.data.entity.Agent;
+import sn.oas.facturation.features.auth.data.entity.User;
+import sn.oas.facturation.features.auth.data.enums.Role;
+import sn.oas.facturation.features.auth.repository.UserRepository;
+import sn.oas.facturation.features.garage.data.entity.Garage;
+import sn.oas.facturation.features.garage.repository.GarageRepository;
 
 import java.time.Year;
 
@@ -13,8 +18,8 @@ import java.time.Year;
 public class DocumentNumberGeneratorService {
 
     private final DocumentSequenceRepository documentSequenceRepository;
-    private final sn.oas.facturation.garage.repository.GarageRepository garageRepository;
-    private final sn.oas.facturation.auth.repository.UserRepository userRepository;
+    private final GarageRepository garageRepository;
+    private final UserRepository userRepository;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public String generateNextNumber(DocumentType type) {
@@ -57,20 +62,20 @@ public class DocumentNumberGeneratorService {
     public Garage getCurrentGarage() {
         org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
         if (auth != null) {
-            sn.oas.facturation.auth.data.entity.Agent agent = null;
-            if (auth.getPrincipal() instanceof sn.oas.facturation.auth.data.entity.Agent a) {
+            Agent agent = null;
+            if (auth.getPrincipal() instanceof Agent a) {
                 agent = a;
             } else if (auth.getName() != null) {
-                sn.oas.facturation.auth.data.entity.User user = userRepository.findByEmail(auth.getName())
+                User user = userRepository.findByEmail(auth.getName())
                         .or(() -> userRepository.findByUsername(auth.getName()))
                         .orElse(null);
-                if (user instanceof sn.oas.facturation.auth.data.entity.Agent a) {
+                if (user instanceof Agent a) {
                     agent = a;
                 }
             }
 
             if (agent != null) {
-                if (agent.getRole() == sn.oas.facturation.auth.data.enums.Role.SUPER_AGENT) {
+                if (agent.getRole() == Role.SUPER_AGENT) {
                     org.springframework.web.context.request.ServletRequestAttributes attributes = 
                         (org.springframework.web.context.request.ServletRequestAttributes) org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
                     if (attributes != null) {

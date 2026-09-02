@@ -6,38 +6,39 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
-import sn.oas.facturation.auth.data.entity.Agent;
-import sn.oas.facturation.auth.data.entity.Client;
-import sn.oas.facturation.auth.data.entity.Technicien;
-import sn.oas.facturation.auth.data.enums.Role;
-import sn.oas.facturation.auth.data.enums.Specialite;
-import sn.oas.facturation.auth.data.enums.TypeUser;
-import sn.oas.facturation.auth.repository.AgentRepository;
-import sn.oas.facturation.auth.repository.UserRepository;
-import sn.oas.facturation.client.repository.ClientRepository;
-import sn.oas.facturation.ficheAtelier.data.entity.FicheAtelier;
-import sn.oas.facturation.ficheAtelier.data.entity.LigneDefaut;
-import sn.oas.facturation.ficheAtelier.data.entity.LigneReception;
-import sn.oas.facturation.ficheAtelier.repository.FicheAtelierRepository;
-import sn.oas.facturation.garage.data.entity.Garage;
-import sn.oas.facturation.garage.repository.GarageRepository;
-import sn.oas.facturation.technicien.repository.TechnicienRepository;
-import sn.oas.facturation.messagerie.data.entity.Message;
-import sn.oas.facturation.messagerie.repository.MessageRepository;
-import sn.oas.facturation.rendezvous.data.entity.RendezVous;
-import sn.oas.facturation.rendezvous.data.enums.RendezVousStatus;
-import sn.oas.facturation.rendezvous.repository.RendezVousRepository;
+import sn.oas.facturation.features.auth.data.entity.Agent;
+import sn.oas.facturation.features.auth.data.entity.Client;
+import sn.oas.facturation.features.auth.data.entity.Technicien;
+import sn.oas.facturation.features.auth.data.enums.Role;
+import sn.oas.facturation.features.auth.data.enums.Specialite;
+import sn.oas.facturation.features.auth.data.enums.TypeUser;
+import sn.oas.facturation.features.auth.repository.AgentRepository;
+import sn.oas.facturation.features.auth.repository.UserRepository;
+import sn.oas.facturation.features.client.repository.ClientRepository;
+import sn.oas.facturation.features.blog.BlogDataSeeder;
+import sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier;
+import sn.oas.facturation.features.ficheAtelier.data.entity.LigneDefaut;
+import sn.oas.facturation.features.ficheAtelier.data.entity.LigneReception;
+import sn.oas.facturation.features.ficheAtelier.repository.FicheAtelierRepository;
+import sn.oas.facturation.features.garage.data.entity.Garage;
+import sn.oas.facturation.features.garage.repository.GarageRepository;
+import sn.oas.facturation.features.technicien.repository.TechnicienRepository;
+import sn.oas.facturation.features.messagerie.data.entity.Message;
+import sn.oas.facturation.features.messagerie.repository.MessageRepository;
+import sn.oas.facturation.features.rendezvous.data.entity.RendezVous;
+import sn.oas.facturation.features.rendezvous.data.enums.RendezVousStatus;
+import sn.oas.facturation.features.rendezvous.repository.RendezVousRepository;
 import sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService;
 import sn.oas.facturation.shared.documentNumber.DocumentType;
-import sn.oas.facturation.vehicule.data.entity.Vehicule;
-import sn.oas.facturation.vehicule.repository.VehiculeRepository;
+import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
+import sn.oas.facturation.features.vehicule.repository.VehiculeRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 /**
  * Seed de données de démonstration pour l'environnement local.
- * Suit le même principe d'idempotence que {@link sn.oas.facturation.blog.BlogDataSeeder} :
+ * Suit le même principe d'idempotence que {@link BlogDataSeeder} :
  * chaque bloc ne s'exécute que si sa table est vide, donc un redémarrage répété
  * ne duplique rien. Le module "Ordre de réparation" n'est volontairement pas
  * seedé ici (propriété exclusive de l'équipe qui le développe).
@@ -45,7 +46,7 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-@Order(20)
+@Order(1)
 public class DemoDataSeeder implements CommandLineRunner {
 
     private static final String DEMO_PASSWORD = "Passer@2026";

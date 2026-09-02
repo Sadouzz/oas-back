@@ -1,0 +1,300 @@
+package sn.oas.facturation.features.client.controller;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import sn.oas.facturation.features.auth.data.entity.Client;
+import sn.oas.facturation.features.client.service.ClientService;
+import sn.oas.facturation.features.devisPrevisionnel.data.entity.DevisPrevisionnel;
+import sn.oas.facturation.features.devisPrevisionnel.service.DevisPrevisionnelService;
+import sn.oas.facturation.features.facture.dto.FactureResponse;
+import sn.oas.facturation.features.facture.repository.FactureRepository;
+import sn.oas.facturation.features.facture.service.FactureService;
+import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
+import sn.oas.facturation.features.ordreReparation.repository.OrdreReparationRepository;
+import sn.oas.facturation.features.messagerie.dto.MessageRequest;
+import sn.oas.facturation.features.messagerie.dto.MessageResponse;
+import sn.oas.facturation.features.messagerie.service.MessageService;
+import sn.oas.facturation.features.notification.dto.NotificationResponse;
+import sn.oas.facturation.features.notification.service.NotificationService;
+import sn.oas.facturation.features.recu.dto.RecuResponse;
+import sn.oas.facturation.features.recu.service.RecuService;
+import sn.oas.facturation.features.rendezvous.dto.RendezVousRequest;
+import sn.oas.facturation.features.rendezvous.dto.RendezVousResponse;
+import sn.oas.facturation.features.rendezvous.service.RendezVousService;
+import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
+import sn.oas.facturation.features.vehicule.dto.VehiculeRequest;
+import sn.oas.facturation.features.vehicule.service.VehiculeService;
+import sn.oas.facturation.features.proforma.dto.ProformaResponse;
+import sn.oas.facturation.features.proforma.service.ProformaService;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/client")
+@RequiredArgsConstructor
+@Tag(name = "Portail Client", description = "API destinées à l'application mobile client (Flutter)")
+public class ClientPortalController {
+
+    private final ClientService clientService;
+    private final VehiculeService vehiculeService;
+    private final RendezVousService rendezvousService;
+    private final OrdreReparationRepository ordreReparationRepository;
+    private final FactureRepository factureRepository;
+    private final FactureService factureService;
+    private final RecuService recuService;
+    private final NotificationService notificationService;
+    private final MessageService messageService;
+    private final ProformaService proformaService;
+    private final DevisPrevisionnelService devisPrevisionnelService;
+
+    // --- Profil ---
+    @GetMapping("/me")
+    @Operation(summary = "Récupérer le profil du client connecté")
+    public ResponseEntity<Client> getProfile() {
+        return ResponseEntity.ok(clientService.getClientConnecte());
+    }
+
+    // --- Véhicules ---
+    @GetMapping("/vehicules")
+    @Operation(summary = "Lister les véhicules du client connecté")
+    public ResponseEntity<List<Vehicule>> getVehicules() {
+        Client client = clientService.getClientConnecte();
+        return ResponseEntity.ok(vehiculeService.getVehiculesByClient(client.getId()));
+    }
+
+    @PostMapping("/vehicules")
+    @Operation(summary = "Enregistrer un véhicule pour le client connecté")
+    public ResponseEntity<?> addVehicule(@RequestBody VehiculeRequest request) {
+        try {
+            Client client = clientService.getClientConnecte();
+            VehiculeRequest securedRequest = new VehiculeRequest(
+                    request.immatriculation(),
+                    request.annee(),
+                    request.modele(),
+                    request.marque(),
+                    request.kilometrage(),
+                    request.numeroChassis(),
+                    client.getId());
+            return ResponseEntity.ok(vehiculeService.createVehicule(securedRequest));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // --- Rendez-vous ---
+    @GetMapping("/rendezvous")
+    @Operation(summary = "Lister les rendez-vous du client connecté")
+    public ResponseEntity<List<RendezVousResponse>> getRendezVous() {
+        Client client = clientService.getClientConnecte();
+        return ResponseEntity.ok(rendezvousService.getClientRendezVous(client));
+    }
+
+    @PostMapping("/rendezvous")
+    @Operation(summary = "Prendre un rendez-vous pour le client connecté")
+    public ResponseEntity<?> bookRendezVous(@RequestBody RendezVousRequest request) {
+        try {
+            Client client = clientService.getClientConnecte();
+            return ResponseEntity.ok(rendezvousService.bookRendezVous(client, request));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/rendezvous/{id}/annuler")
+    @Operation(summary = "Annuler un rendez-vous")
+    public ResponseEntity<?> cancelRendezVous(@PathVariable Long id) {
+        try {
+            Client client = clientService.getClientConnecte();
+            return ResponseEntity.ok(rendezvousService.cancelRendezVous(client, id));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // --- Suivi des réparations/interventions ---
+    @GetMapping("/interventions")
+    @Operation(summary = "Lister l'historique des interventions/réparations")
+    public ResponseEntity<List<OrdreReparation>> getInterventions() {
+        Client client = clientService.getClientConnecte();
+        return ResponseEntity.ok(ordreReparationRepository.findByVehiculeClientIdOrderByDateCreationDesc(client.getId()));
+    }
+
+    @GetMapping("/interventions/{id}")
+    @Operation(summary = "Détail d'une intervention/réparation")
+    public ResponseEntity<?> getInterventionById(@PathVariable Long id) {
+        Client client = clientService.getClientConnecte();
+        OrdreReparation fiche = ordreReparationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Intervention non trouvée"));
+        if (!fiche.getVehicule().getClient().getId().equals(client.getId())) {
+            return ResponseEntity.badRequest().body("Accès non autorisé à cette intervention");
+        }
+        return ResponseEntity.ok(fiche);
+    }
+
+    // --- Facturation ---
+    @GetMapping("/factures")
+    @Operation(summary = "Lister l'historique de facturation du client connecté")
+    public ResponseEntity<List<FactureResponse>> getFactures() {
+        Client client = clientService.getClientConnecte();
+        return ResponseEntity.ok(factureService.getClientFactures(client));
+    }
+
+    @GetMapping("/factures/{id}")
+    @Operation(summary = "Récupérer le détail d'une facture")
+    public ResponseEntity<?> getFactureById(@PathVariable Long id) {
+        try {
+            Client client = clientService.getClientConnecte();
+            return ResponseEntity.ok(factureService.getClientFactureById(client, id));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // --- Proformas ---
+    @GetMapping("/proformas")
+    @Operation(summary = "Lister les proformas du client connecté")
+    public ResponseEntity<List<ProformaResponse>> getProformas() {
+        Client client = clientService.getClientConnecte();
+        return ResponseEntity.ok(proformaService.getClientProformas(client));
+    }
+
+    @PutMapping("/proformas/{id}/valider")
+    @Operation(summary = "Valider un proforma par le client")
+    public ResponseEntity<?> validerProforma(@PathVariable Long id) {
+        try {
+            Client client = clientService.getClientConnecte();
+            return ResponseEntity.ok(proformaService.clientValider(client, id));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/proformas/{id}/refuser")
+    @Operation(summary = "Refuser un proforma par le client")
+    public ResponseEntity<?> refuserProforma(@PathVariable Long id) {
+        try {
+            Client client = clientService.getClientConnecte();
+            return ResponseEntity.ok(proformaService.clientRefuser(client, id));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // --- Devis prévisionnels ---
+    @GetMapping("/devis-previsionnels")
+    @Operation(summary = "Lister les devis prévisionnels du client connecté")
+    public ResponseEntity<List<DevisPrevisionnel>> getDevisPrevisionnels() {
+        Client client = clientService.getClientConnecte();
+        return ResponseEntity.ok(devisPrevisionnelService.getClientDevis(client));
+    }
+
+    @GetMapping("/devis-previsionnels/{id}")
+    @Operation(summary = "Récupérer les détails d'un devis prévisionnel du client connecté")
+    public ResponseEntity<?> getDevisPrevisionnelDetails(@PathVariable Long id) {
+        try {
+            Client client = clientService.getClientConnecte();
+            DevisPrevisionnel devis = devisPrevisionnelService.getById(id);
+            if (!devis.getClient().getId().equals(client.getId())) {
+                return ResponseEntity.badRequest().body("Accès non autorisé à ce devis");
+            }
+            return ResponseEntity.ok(devis);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/devis-previsionnels/{id}/accepter")
+    @Operation(summary = "Accepter un devis prévisionnel par le client")
+    public ResponseEntity<?> accepterDevisPrevisionnel(@PathVariable Long id) {
+        try {
+            Client client = clientService.getClientConnecte();
+            return ResponseEntity.ok(devisPrevisionnelService.clientAccepter(client, id));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/devis-previsionnels/{id}/valider")
+    @Operation(summary = "Valider un devis prévisionnel par le client")
+    public ResponseEntity<?> validerDevisPrevisionnel(@PathVariable Long id) {
+        try {
+            Client client = clientService.getClientConnecte();
+            return ResponseEntity.ok(devisPrevisionnelService.clientAccepter(client, id));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/devis-previsionnels/{id}/refuser")
+    @Operation(summary = "Refuser un devis prévisionnel par le client")
+    public ResponseEntity<?> refuserDevisPrevisionnel(@PathVariable Long id) {
+        try {
+            Client client = clientService.getClientConnecte();
+            return ResponseEntity.ok(devisPrevisionnelService.clientRefuser(client, id));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // --- Reçus ---
+    @GetMapping("/recus")
+    @Operation(summary = "Lister l'historique des reçus de paiement du client connecté")
+    public ResponseEntity<List<RecuResponse>> getRecus() {
+        Client client = clientService.getClientConnecte();
+        return ResponseEntity.ok(recuService.getClientRecus(client));
+    }
+
+    // --- Notifications ---
+    @GetMapping("/notifications")
+    @Operation(summary = "Lister les notifications du client connecté")
+    public ResponseEntity<List<NotificationResponse>> getNotifications() {
+        Client client = clientService.getClientConnecte();
+        return ResponseEntity.ok(notificationService.getClientNotifications(client));
+    }
+
+    @PutMapping("/notifications/{id}/lu")
+    @Operation(summary = "Marquer une notification comme lue")
+    public ResponseEntity<?> markNotificationAsRead(@PathVariable Long id) {
+        try {
+            Client client = clientService.getClientConnecte();
+            notificationService.markAsRead(client, id);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/notifications/lu-tout")
+    @Operation(summary = "Marquer toutes les notifications comme lues")
+    public ResponseEntity<?> markAllNotificationsAsRead() {
+        try {
+            Client client = clientService.getClientConnecte();
+            notificationService.markAllAsRead(client);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // --- Messagerie Client ---
+    @GetMapping("/messages")
+    @Operation(summary = "Récupérer la discussion du client connecté")
+    public ResponseEntity<List<MessageResponse>> getMessages() {
+        Client client = clientService.getClientConnecte();
+        return ResponseEntity.ok(messageService.getConversationMessages(client.getId(), client));
+    }
+
+    @PostMapping("/messages")
+    @Operation(summary = "Envoyer un message de la part du client connecté")
+    public ResponseEntity<?> sendMessage(@RequestBody MessageRequest request) {
+        try {
+            Client client = clientService.getClientConnecte();
+            return ResponseEntity.ok(messageService.clientSendMessage(client, request));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+}

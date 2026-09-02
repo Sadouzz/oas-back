@@ -9,9 +9,12 @@ import org.hibernate.Session;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
-import sn.oas.facturation.auth.data.entity.Agent;
-import sn.oas.facturation.auth.data.entity.Technicien;
-import sn.oas.facturation.auth.data.enums.Role;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+import sn.oas.facturation.features.auth.data.entity.Agent;
+import sn.oas.facturation.features.auth.data.entity.Technicien;
+import sn.oas.facturation.features.auth.data.enums.Role;
 
 @Aspect
 @Component
@@ -27,8 +30,8 @@ public class GarageFilterAspect {
             if (auth != null && auth.getPrincipal() instanceof Agent) {
                 Agent agent = (Agent) auth.getPrincipal();
                 
-                org.springframework.web.context.request.ServletRequestAttributes attributes = 
-                        (org.springframework.web.context.request.ServletRequestAttributes) org.springframework.web.context.request.RequestContextHolder.getRequestAttributes();
+                ServletRequestAttributes attributes = 
+                        (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
                 String garageIdHeader = null;
                 if (attributes != null) {
                     garageIdHeader = attributes.getRequest().getHeader("X-Garage-ID");

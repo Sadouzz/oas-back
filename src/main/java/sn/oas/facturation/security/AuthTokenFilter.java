@@ -2,6 +2,7 @@ package sn.oas.facturation.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -11,7 +12,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import sn.oas.facturation.auth.service.CustomUserDetailsService;
+import sn.oas.facturation.features.auth.service.CustomUserDetailsService;
 import java.io.IOException;
 
 @Component
@@ -24,10 +25,6 @@ public class AuthTokenFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        
-        System.out.println("🔍 Incoming Request: " + request.getMethod() + " " + request.getRequestURI());
-        String headerAuth = request.getHeader("Authorization");
-        System.out.println("🔑 Authorization Header: " + (headerAuth != null ? "PRESENT" : "MISSING"));
 
         String jwt = parseJwt(request);
         if (jwt != null && jwtUtil.validateJwtToken(jwt)) {
@@ -43,8 +40,18 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 
     private String parseJwt(HttpServletRequest request) {
         String headerAuth = request.getHeader("Authorization");
-        return (headerAuth != null && headerAuth.startsWith("Bearer "))
-                ? headerAuth.substring(7)
-                : null;
+        if (headerAuth != null && headerAuth.startsWith("Bearer ")) {
+            return headerAuth.substring(7);
+        }
+
+        if (request.getCookies() != null) {
+            for (Cookie cookie : request.getCookies()) {
+                if ("token".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+
+        return null;
     }
 }

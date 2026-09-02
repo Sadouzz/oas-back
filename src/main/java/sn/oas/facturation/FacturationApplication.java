@@ -19,17 +19,4 @@ public class FacturationApplication {
 
 		SpringApplication.run(FacturationApplication.class, args);
 	}
-
-	@org.springframework.context.annotation.Bean
-	public org.springframework.boot.CommandLineRunner dropConstraint(javax.sql.DataSource dataSource) {
-		return args -> {
-			try (java.sql.Connection conn = dataSource.getConnection();
-				 java.sql.Statement stmt = conn.createStatement()) {
-				stmt.execute("ALTER TABLE document_sequences DROP CONSTRAINT IF EXISTS document_sequences_document_type_check;");
-				System.out.println("========== Constraint document_sequences_document_type_check dropped successfully ==========");
-			} catch (Exception e) {
-				System.err.println("Failed to drop constraint: " + e.getMessage());
-			}
-		};
-	}
 }

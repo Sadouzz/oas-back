@@ -5,11 +5,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import sn.oas.facturation.piecedetache.data.entity.PDG;
-import sn.oas.facturation.piecedetache.data.enums.StatutPiece;
-import sn.oas.facturation.piecedetache.data.enums.TypePiece;
-import sn.oas.facturation.piecedetache.dto.PieceDetacheRequest;
-import sn.oas.facturation.piecedetache.repository.PieceDetacheRepository;
+import sn.oas.facturation.features.piecedetache.data.entity.PDG;
+import sn.oas.facturation.features.piecedetache.data.enums.TypePiece;
+import sn.oas.facturation.features.piecedetache.dto.PieceDetacheRequest;
+import sn.oas.facturation.features.piecedetache.repository.PieceDetacheRepository;
+import sn.oas.facturation.features.piecedetache.service.PieceDetacheServiceImpl;
 
 import java.util.Optional;
 

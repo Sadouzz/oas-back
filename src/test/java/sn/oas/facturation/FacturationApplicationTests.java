@@ -5,6 +5,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import sn.oas.facturation.features.bonDeCommande.dto.ReceptionBonDeCommandeRequest;
+import sn.oas.facturation.features.bonDeCommande.service.BonDeCommandeService;
+import sn.oas.facturation.features.piecedetache.data.entity.PDP;
+import sn.oas.facturation.features.piecedetache.data.entity.PieceDetache;
+import sn.oas.facturation.features.piecedetache.repository.PieceDetacheRepository;
 
 import java.util.List;
 import java.util.Map;
@@ -85,10 +90,10 @@ class FacturationApplicationTests {
 	}
 
 	@Autowired
-	private sn.oas.facturation.bonDeCommande.service.BonDeCommandeService bonDeCommandeService;
+	private BonDeCommandeService bonDeCommandeService;
 
 	@Autowired
-	private sn.oas.facturation.piecedetache.repository.PieceDetacheRepository pieceDetacheRepository;
+	private PieceDetacheRepository pieceDetacheRepository;
 
 	@Test
 	@org.springframework.transaction.annotation.Transactional
@@ -112,8 +117,8 @@ class FacturationApplicationTests {
 		);
 
 		// 2. Execute reception
-		sn.oas.facturation.bonDeCommande.dto.ReceptionBonDeCommandeRequest request = new sn.oas.facturation.bonDeCommande.dto.ReceptionBonDeCommandeRequest();
-		sn.oas.facturation.bonDeCommande.dto.ReceptionBonDeCommandeRequest.LigneReception ligne = new sn.oas.facturation.bonDeCommande.dto.ReceptionBonDeCommandeRequest.LigneReception();
+		ReceptionBonDeCommandeRequest request = new ReceptionBonDeCommandeRequest();
+		ReceptionBonDeCommandeRequest.LigneReception ligne = new ReceptionBonDeCommandeRequest.LigneReception();
 		ligne.setLigneId(16L); // ligne_bon_de_commande id for piece_id=1
 		ligne.setQuantiteRecue(210); // user requested: "j'avais commandé 210 articles... stock devait devenir 240"
 		request.setLignes(java.util.List.of(ligne));
@@ -122,10 +127,10 @@ class FacturationApplicationTests {
 		bonDeCommandeService.receptionnerAvecQuantites(13L, request);
 
 		// 3. Assert and verify
-		sn.oas.facturation.piecedetache.data.entity.PieceDetache piece = pieceDetacheRepository.findById(1L).orElseThrow();
-		piece = (sn.oas.facturation.piecedetache.data.entity.PieceDetache) org.hibernate.Hibernate.unproxy(piece);
-		org.junit.jupiter.api.Assertions.assertTrue(piece instanceof sn.oas.facturation.piecedetache.data.entity.PDP);
-		sn.oas.facturation.piecedetache.data.entity.PDP pdp = (sn.oas.facturation.piecedetache.data.entity.PDP) piece;
+		PieceDetache piece = pieceDetacheRepository.findById(1L).orElseThrow();
+		piece = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
+		org.junit.jupiter.api.Assertions.assertTrue(piece instanceof PDP);
+		PDP pdp = (PDP) piece;
 
 		System.out.println("VERIFICATION STOCK: qte_reelle=" + pdp.getQteReelle() + ", magasin=" + pdp.getStockMagasin() + ", atelier=" + pdp.getStockAtelier());
 		org.junit.jupiter.api.Assertions.assertEquals(240, pdp.getQteReelle());

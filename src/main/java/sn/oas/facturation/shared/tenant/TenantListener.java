@@ -5,9 +5,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
-import sn.oas.facturation.auth.data.entity.Agent;
-import sn.oas.facturation.auth.data.enums.Role;
-import sn.oas.facturation.garage.data.entity.Garage;
+import sn.oas.facturation.features.auth.data.entity.Agent;
+import sn.oas.facturation.features.auth.data.enums.Role;
+import sn.oas.facturation.features.garage.data.entity.Garage;
 
 public class TenantListener {
 

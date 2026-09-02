@@ -2,7 +2,7 @@ package sn.oas.facturation.shared.documentNumber;
 
 import jakarta.persistence.*;
 import lombok.*;
-import sn.oas.facturation.garage.data.entity.Garage;
+import sn.oas.facturation.features.garage.data.entity.Garage;
 
 @Entity
 @Table(name = "document_sequences", uniqueConstraints = {
