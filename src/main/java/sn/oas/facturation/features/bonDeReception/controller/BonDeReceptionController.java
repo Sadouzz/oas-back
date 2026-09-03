@@ -10,6 +10,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sn.oas.facturation.features.bonDeReception.dto.BonDeReceptionCreateRequest;
+import sn.oas.facturation.features.bonDeReception.dto.BonDeReceptionListResponse;
 import sn.oas.facturation.features.bonDeReception.dto.BonDeReceptionResponse;
 import sn.oas.facturation.features.bonDeReception.dto.BonDeReceptionUpdateRequest;
 import sn.oas.facturation.features.bonDeReception.service.BonDeReceptionService;
@@ -50,9 +51,9 @@ public class BonDeReceptionController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         if (keyword != null && !keyword.trim().isEmpty()) {
-            return ResponseEntity.ok(bonDeReceptionService.search(keyword.trim(), page, size).map(BonDeReceptionResponse::from));
+            return ResponseEntity.ok(bonDeReceptionService.search(keyword.trim(), page, size).map(BonDeReceptionListResponse::from));
         }
-        return ResponseEntity.ok(bonDeReceptionService.getAll(page, size).map(BonDeReceptionResponse::from));
+        return ResponseEntity.ok(bonDeReceptionService.getAll(page, size).map(BonDeReceptionListResponse::from));
     }
 
     @GetMapping("/search")
@@ -62,15 +63,15 @@ public class BonDeReceptionController {
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size) {
         if (page != null && size != null) {
-            return ResponseEntity.ok(bonDeReceptionService.search(keyword.trim(), page, size).map(BonDeReceptionResponse::from));
+            return ResponseEntity.ok(bonDeReceptionService.search(keyword.trim(), page, size).map(BonDeReceptionListResponse::from));
         }
-        return ResponseEntity.ok(bonDeReceptionService.search(keyword).stream().map(BonDeReceptionResponse::from).toList());
+        return ResponseEntity.ok(bonDeReceptionService.search(keyword).stream().map(BonDeReceptionListResponse::from).toList());
     }
 
     @GetMapping("/recent")
     @Operation(summary = "Récupérer les bons de réception récents")
-    public ResponseEntity<List<BonDeReceptionResponse>> getRecent() {
-        return ResponseEntity.ok(bonDeReceptionService.getRecentBonsDeReception().stream().map(BonDeReceptionResponse::from).toList());
+    public ResponseEntity<List<BonDeReceptionListResponse>> getRecent() {
+        return ResponseEntity.ok(bonDeReceptionService.getRecentBonsDeReception().stream().map(BonDeReceptionListResponse::from).toList());
     }
 
     @DeleteMapping("/{id}")

@@ -14,6 +14,7 @@ import sn.oas.facturation.features.auth.data.entity.Client;
 import sn.oas.facturation.features.client.service.ClientService;
 import sn.oas.facturation.features.facture.dto.FactureResponse;
 import sn.oas.facturation.features.proforma.dto.ProformaCreateRequest;
+import sn.oas.facturation.features.proforma.dto.ProformaListResponse;
 import sn.oas.facturation.features.proforma.dto.ProformaResponse;
 import sn.oas.facturation.features.proforma.dto.ProformaUpdateRequest;
 import sn.oas.facturation.features.proforma.service.ProformaService;
@@ -68,26 +69,26 @@ public class ProformaController {
 
     @GetMapping
     @Operation(summary = "Récupérer tous les proformas ou rechercher par mot-clé avec pagination")
-    public ResponseEntity<Page<ProformaResponse>> getAll(
+    public ResponseEntity<Page<ProformaListResponse>> getAll(
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         if (keyword != null && !keyword.trim().isEmpty()) {
-            return ResponseEntity.ok(proformaService.search(keyword.trim(), page, size).map(ProformaResponse::from));
+            return ResponseEntity.ok(proformaService.search(keyword.trim(), page, size).map(ProformaListResponse::from));
         }
-        return ResponseEntity.ok(proformaService.getAll(page, size).map(ProformaResponse::from));
+        return ResponseEntity.ok(proformaService.getAll(page, size).map(ProformaListResponse::from));
     }
 
     @GetMapping("/search")
     @Operation(summary = "Rechercher des proformas")
-    public ResponseEntity<List<ProformaResponse>> search(@RequestParam String keyword) {
-        return ResponseEntity.ok(proformaService.search(keyword).stream().map(ProformaResponse::from).toList());
+    public ResponseEntity<List<ProformaListResponse>> search(@RequestParam String keyword) {
+        return ResponseEntity.ok(proformaService.search(keyword).stream().map(ProformaListResponse::from).toList());
     }
 
     @GetMapping("/recent")
     @Operation(summary = "Récupérer les proformas récents")
-    public ResponseEntity<List<ProformaResponse>> getRecent() {
-        return ResponseEntity.ok(proformaService.getRecentProformas().stream().map(ProformaResponse::from).toList());
+    public ResponseEntity<List<ProformaListResponse>> getRecent() {
+        return ResponseEntity.ok(proformaService.getRecentProformas().stream().map(ProformaListResponse::from).toList());
     }
 
     @DeleteMapping("/{id}")
@@ -116,9 +117,9 @@ public class ProformaController {
     // --- Client endpoints ---
     @GetMapping("/me")
     @Operation(summary = "Lister les proformas du client connecté")
-    public ResponseEntity<List<ProformaResponse>> getMyProformas() {
+    public ResponseEntity<List<ProformaListResponse>> getMyProformas() {
         Client client = clientService.getClientConnecte();
-        return ResponseEntity.ok(proformaService.getClientProformas(client).stream().map(ProformaResponse::from).toList());
+        return ResponseEntity.ok(proformaService.getClientProformas(client).stream().map(ProformaListResponse::from).toList());
     }
 
     @PutMapping("/{id}/client-valider")

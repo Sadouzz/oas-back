@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import sn.oas.facturation.features.auth.data.entity.Client;
 import sn.oas.facturation.features.client.service.ClientService;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
+import sn.oas.facturation.features.vehicule.dto.VehiculeListResponse;
 import sn.oas.facturation.features.vehicule.dto.VehiculeRequest;
 import sn.oas.facturation.features.vehicule.service.VehiculeService;
 
@@ -26,20 +27,22 @@ public class VehiculeController {
 
     @GetMapping
     @Operation(summary = "Lister tous les véhicules ou rechercher par mot-clé avec pagination")
-    public ResponseEntity<Page<Vehicule>> getVehicules(
+    public ResponseEntity<Page<VehiculeListResponse>> getVehicules(
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         if (keyword != null && !keyword.trim().isEmpty()) {
-            return ResponseEntity.ok(vehiculeService.searchVehicules(keyword.trim(), page, size));
+            return ResponseEntity
+                    .ok(vehiculeService.searchVehicules(keyword.trim(), page, size).map(VehiculeListResponse::from));
         }
-        return ResponseEntity.ok(vehiculeService.getAllVehicules(page, size));
+        return ResponseEntity.ok(vehiculeService.getAllVehicules(page, size).map(VehiculeListResponse::from));
     }
 
     @GetMapping("/recent")
     @Operation(summary = "Récupérer les véhicules récents")
-    public ResponseEntity<List<Vehicule>> getRecentVehicules() {
-        return ResponseEntity.ok(vehiculeService.getRecentVehicules());
+    public ResponseEntity<List<VehiculeListResponse>> getRecentVehicules() {
+        return ResponseEntity
+                .ok(vehiculeService.getRecentVehicules().stream().map(VehiculeListResponse::from).toList());
     }
 
     @GetMapping("/{id}")
@@ -69,15 +72,17 @@ public class VehiculeController {
 
     @GetMapping("/client/{clientId}")
     @Operation(summary = "Récupérer les véhicules d'un client")
-    public ResponseEntity<List<Vehicule>> getVehiculesByClient(@PathVariable Long clientId) {
-        return ResponseEntity.ok(vehiculeService.getVehiculesByClient(clientId));
+    public ResponseEntity<List<VehiculeListResponse>> getVehiculesByClient(@PathVariable Long clientId) {
+        return ResponseEntity
+                .ok(vehiculeService.getVehiculesByClient(clientId).stream().map(VehiculeListResponse::from).toList());
     }
 
     @GetMapping("/me")
     @Operation(summary = "Lister les véhicules du client connecté")
-    public ResponseEntity<List<Vehicule>> getMyVehicules() {
+    public ResponseEntity<List<VehiculeListResponse>> getMyVehicules() {
         Client client = clientService.getClientConnecte();
-        return ResponseEntity.ok(vehiculeService.getVehiculesByClient(client.getId()));
+        return ResponseEntity.ok(
+                vehiculeService.getVehiculesByClient(client.getId()).stream().map(VehiculeListResponse::from).toList());
     }
 
     @PostMapping("/me")

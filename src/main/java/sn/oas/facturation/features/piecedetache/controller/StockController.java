@@ -15,6 +15,7 @@ import sn.oas.facturation.features.piecedetache.dto.AjustementStockRequest;
 import sn.oas.facturation.features.piecedetache.dto.AlerteStockResponse;
 import sn.oas.facturation.features.piecedetache.dto.EntreeStockRequest;
 import sn.oas.facturation.features.piecedetache.dto.SortieStockRequest;
+import sn.oas.facturation.features.piecedetache.dto.StockMouvementListResponse;
 import sn.oas.facturation.features.piecedetache.service.AlerteService;
 import sn.oas.facturation.features.piecedetache.service.StockService;
 
@@ -62,21 +63,21 @@ public class StockController {
     @Operation(summary = "Historique des mouvements d'une pièce", description = "Retourne tous les mouvements d'une PDP avec pagination, filtrables par type (ENTREE, SORTIE, AJUSTEMENT, INVENTAIRE).")
     @ApiResponse(responseCode = "200", description = "Historique retourné")
     @GetMapping("/historique/{pieceId}")
-    public ResponseEntity<Page<StockMouvement>> historiquePiece(
+    public ResponseEntity<Page<StockMouvementListResponse>> historiquePiece(
             @PathVariable Long pieceId,
             @RequestParam(required = false) TypeMouvement type,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         if (type != null) {
-            return ResponseEntity.ok(stockService.getHistoriquePieceByType(pieceId, type, page, size));
+            return ResponseEntity.ok(stockService.getHistoriquePieceByType(pieceId, type, page, size).map(StockMouvementListResponse::from));
         }
-        return ResponseEntity.ok(stockService.getHistoriquePiece(pieceId, page, size));
+        return ResponseEntity.ok(stockService.getHistoriquePiece(pieceId, page, size).map(StockMouvementListResponse::from));
     }
 
     @Operation(summary = "Historique global des mouvements", description = "Retourne tous les mouvements de stock sur une période donnée avec pagination, avec possibilité de filtrer par pièce, catégorie ou type de mouvement.")
     @ApiResponse(responseCode = "200", description = "Historique retourné")
     @GetMapping("/historique")
-    public ResponseEntity<Page<StockMouvement>> historiqueGlobal(
+    public ResponseEntity<Page<StockMouvementListResponse>> historiqueGlobal(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime debut,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fin,
             @RequestParam(required = false) Long pieceId,
@@ -86,7 +87,7 @@ public class StockController {
             @RequestParam(defaultValue = "10") int size) {
         LocalDateTime d = debut != null ? debut : LocalDateTime.now().minusYears(5);
         LocalDateTime f = fin != null ? fin : LocalDateTime.now().plusDays(1);
-        return ResponseEntity.ok(stockService.getHistoriqueGlobal(d, f, pieceId, categorie, type, page, size));
+        return ResponseEntity.ok(stockService.getHistoriqueGlobal(d, f, pieceId, categorie, type, page, size).map(StockMouvementListResponse::from));
     }
 
     @Operation(summary = "Toutes les alertes", description = "Retourne les PDP en rupture de stock (stockMagasin = 0) et en stock faible (stockMagasin ≤ seuil) avec pagination.")

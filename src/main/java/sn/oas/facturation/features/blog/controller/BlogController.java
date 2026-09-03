@@ -9,6 +9,7 @@ import sn.oas.facturation.features.blog.data.entity.BlogComment;
 import sn.oas.facturation.features.blog.data.entity.BlogPost;
 import sn.oas.facturation.features.blog.data.enums.ReactionType;
 import sn.oas.facturation.features.blog.dto.BlogCommentRequest;
+import sn.oas.facturation.features.blog.dto.BlogPostListResponse;
 import sn.oas.facturation.features.blog.dto.BlogPostRequest;
 import sn.oas.facturation.features.blog.service.BlogPostService;
 
@@ -24,8 +25,8 @@ public class BlogController {
 
     @GetMapping
     @Operation(summary = "Lister les articles du blog")
-    public ResponseEntity<List<BlogPost>> getAllPosts() {
-        return ResponseEntity.ok(blogPostService.getAllPosts());
+    public ResponseEntity<List<BlogPostListResponse>> getAllPosts() {
+        return ResponseEntity.ok(blogPostService.getAllPosts().stream().map(BlogPostListResponse::from).toList());
     }
 
     @GetMapping("/{id}")

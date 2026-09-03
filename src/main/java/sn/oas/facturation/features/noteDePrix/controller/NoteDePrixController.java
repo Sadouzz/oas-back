@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import sn.oas.facturation.features.noteDePrix.dto.NoteDePrixListResponse;
 import sn.oas.facturation.features.noteDePrix.dto.NoteDePrixRequest;
 import sn.oas.facturation.features.noteDePrix.dto.NoteDePrixResponse;
 import sn.oas.facturation.features.noteDePrix.service.NoteDePrixService;
@@ -39,8 +40,8 @@ public class NoteDePrixController {
 
     @GetMapping
     @Operation(summary = "Lister toutes les notes de prix")
-    public ResponseEntity<List<NoteDePrixResponse>> getAllNotesDePrix() {
-        return ResponseEntity.ok(noteDePrixService.getAllNotesDePrix().stream().map(NoteDePrixResponse::from).toList());
+    public ResponseEntity<List<NoteDePrixListResponse>> getAllNotesDePrix() {
+        return ResponseEntity.ok(noteDePrixService.getAllNotesDePrix().stream().map(NoteDePrixListResponse::from).toList());
     }
 
     @DeleteMapping("/{id}")

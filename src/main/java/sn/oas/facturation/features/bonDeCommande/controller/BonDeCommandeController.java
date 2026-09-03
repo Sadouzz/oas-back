@@ -9,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sn.oas.facturation.features.bonDeCommande.dto.BonDeCommandeCreateRequest;
+import sn.oas.facturation.features.bonDeCommande.dto.BonDeCommandeListResponse;
 import sn.oas.facturation.features.bonDeCommande.dto.ReceptionBonDeCommandeRequest;
 import sn.oas.facturation.features.bonDeCommande.dto.BonDeCommandeResponse;
 import sn.oas.facturation.features.bonDeCommande.dto.BonDeCommandeUpdateRequest;
@@ -51,21 +52,21 @@ public class BonDeCommandeController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         if (keyword != null && !keyword.trim().isEmpty()) {
-            return ResponseEntity.ok(bonDeCommandeService.search(keyword.trim(), page, size).map(BonDeCommandeResponse::from));
+            return ResponseEntity.ok(bonDeCommandeService.search(keyword.trim(), page, size).map(BonDeCommandeListResponse::from));
         }
-        return ResponseEntity.ok(bonDeCommandeService.getAll(page, size).map(BonDeCommandeResponse::from));
+        return ResponseEntity.ok(bonDeCommandeService.getAll(page, size).map(BonDeCommandeListResponse::from));
     }
 
     @GetMapping("/search")
     @Operation(summary = "Rechercher des bons de commande")
-    public ResponseEntity<List<BonDeCommandeResponse>> search(@RequestParam String keyword) {
-        return ResponseEntity.ok(bonDeCommandeService.search(keyword).stream().map(BonDeCommandeResponse::from).toList());
+    public ResponseEntity<List<BonDeCommandeListResponse>> search(@RequestParam String keyword) {
+        return ResponseEntity.ok(bonDeCommandeService.search(keyword).stream().map(BonDeCommandeListResponse::from).toList());
     }
 
     @GetMapping("/recent")
     @Operation(summary = "Récupérer les bons de commande récents")
-    public ResponseEntity<List<BonDeCommandeResponse>> getRecentBonDeCommandes() {
-        return ResponseEntity.ok(bonDeCommandeService.getRecentBonDeCommandes().stream().map(BonDeCommandeResponse::from).toList());
+    public ResponseEntity<List<BonDeCommandeListResponse>> getRecentBonDeCommandes() {
+        return ResponseEntity.ok(bonDeCommandeService.getRecentBonDeCommandes().stream().map(BonDeCommandeListResponse::from).toList());
     }
 
     @PostMapping("/{id}/envoyer")

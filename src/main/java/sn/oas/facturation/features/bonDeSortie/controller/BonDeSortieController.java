@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import sn.oas.facturation.features.bonDeSortie.data.entity.BonDeSortie;
 import sn.oas.facturation.features.bonDeSortie.data.enums.StatutBon;
+import sn.oas.facturation.features.bonDeSortie.dto.BonDeSortieListResponse;
 import sn.oas.facturation.features.bonDeSortie.dto.BonDeSortieRequest;
 import sn.oas.facturation.features.bonDeSortie.service.BonDeSortieService;
 import sn.oas.facturation.features.bonDeSortie.data.entity.BonDeSortieHistorique;
@@ -76,16 +77,16 @@ public class BonDeSortieController {
     @Operation(summary = "Lister les bons de sortie", description = "Retourne tous les bons. Filtrable par statut (EN_ATTENTE/VALIDE), clientId ou vehiculeId.")
     @ApiResponse(responseCode = "200", description = "Liste retournée")
     @GetMapping
-    public ResponseEntity<List<BonDeSortie>> getAll(
+    public ResponseEntity<List<BonDeSortieListResponse>> getAll(
             @RequestParam(required = false) StatutBon statut,
             @RequestParam(required = false) Long clientId,
             @RequestParam(required = false) Long vehiculeId) {
         if (statut != null)
-            return ResponseEntity.ok(bonDeSortieService.getByStatut(statut));
+            return ResponseEntity.ok(bonDeSortieService.getByStatut(statut).stream().map(BonDeSortieListResponse::from).toList());
         if (clientId != null)
-            return ResponseEntity.ok(bonDeSortieService.getByClient(clientId));
+            return ResponseEntity.ok(bonDeSortieService.getByClient(clientId).stream().map(BonDeSortieListResponse::from).toList());
         if (vehiculeId != null)
-            return ResponseEntity.ok(bonDeSortieService.getByVehicule(vehiculeId));
-        return ResponseEntity.ok(bonDeSortieService.getAll());
+            return ResponseEntity.ok(bonDeSortieService.getByVehicule(vehiculeId).stream().map(BonDeSortieListResponse::from).toList());
+        return ResponseEntity.ok(bonDeSortieService.getAll().stream().map(BonDeSortieListResponse::from).toList());
     }
 }

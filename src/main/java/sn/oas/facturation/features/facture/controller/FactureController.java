@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import sn.oas.facturation.features.auth.data.entity.Client;
 import sn.oas.facturation.features.client.service.ClientService;
 import sn.oas.facturation.features.facture.dto.FactureCreateRequest;
+import sn.oas.facturation.features.facture.dto.FactureListResponse;
 import sn.oas.facturation.features.facture.dto.FactureResponse;
 import sn.oas.facturation.features.facture.service.FactureService;
 
@@ -40,33 +41,33 @@ public class FactureController {
 
     @GetMapping
     @Operation(summary = "Récupérer toutes les factures ou rechercher par mot-clé avec pagination")
-    public ResponseEntity<Page<FactureResponse>> getAll(
+    public ResponseEntity<Page<FactureListResponse>> getAll(
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         if (keyword != null && !keyword.trim().isEmpty()) {
-            return ResponseEntity.ok(factureService.search(keyword.trim(), page, size).map(FactureResponse::from));
+            return ResponseEntity.ok(factureService.search(keyword.trim(), page, size).map(FactureListResponse::from));
         }
-        return ResponseEntity.ok(factureService.getAll(page, size).map(FactureResponse::from));
+        return ResponseEntity.ok(factureService.getAll(page, size).map(FactureListResponse::from));
     }
 
     @GetMapping("/search")
     @Operation(summary = "Rechercher des factures")
-    public ResponseEntity<List<FactureResponse>> search(@RequestParam String keyword) {
-        return ResponseEntity.ok(factureService.search(keyword).stream().map(FactureResponse::from).toList());
+    public ResponseEntity<List<FactureListResponse>> search(@RequestParam String keyword) {
+        return ResponseEntity.ok(factureService.search(keyword).stream().map(FactureListResponse::from).toList());
     }
 
     @GetMapping("/recent")
     @Operation(summary = "Récupérer les factures récentes")
-    public ResponseEntity<List<FactureResponse>> getRecent() {
-        return ResponseEntity.ok(factureService.getRecentFactures().stream().map(FactureResponse::from).toList());
+    public ResponseEntity<List<FactureListResponse>> getRecent() {
+        return ResponseEntity.ok(factureService.getRecentFactures().stream().map(FactureListResponse::from).toList());
     }
 
     @GetMapping("/me")
     @Operation(summary = "Lister l'historique de facturation du client connecté")
-    public ResponseEntity<List<FactureResponse>> getMyFactures() {
+    public ResponseEntity<List<FactureListResponse>> getMyFactures() {
         Client client = clientService.getClientConnecte();
-        return ResponseEntity.ok(factureService.getClientFactures(client).stream().map(FactureResponse::from).toList());
+        return ResponseEntity.ok(factureService.getClientFactures(client).stream().map(FactureListResponse::from).toList());
     }
 
     @DeleteMapping("/{id}")

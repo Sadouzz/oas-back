@@ -2,9 +2,12 @@ package sn.oas.facturation.features.ficheAtelier.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import sn.oas.facturation.features.ficheAtelier.data.dto.FicheAtelierListResponse;
 import sn.oas.facturation.features.ficheAtelier.data.dto.FicheAtelierRequest;
 import sn.oas.facturation.features.ficheAtelier.data.dto.FicheAtelierResponse;
 import sn.oas.facturation.features.ficheAtelier.service.FicheAtelierService;
@@ -25,7 +28,8 @@ public class FicheAtelierController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<FicheAtelierResponse> update(@PathVariable Long id, @Valid @RequestBody FicheAtelierRequest request) {
+    public ResponseEntity<FicheAtelierResponse> update(@PathVariable Long id,
+            @Valid @RequestBody FicheAtelierRequest request) {
         return ResponseEntity.ok(FicheAtelierResponse.from(ficheAtelierService.update(id, request)));
     }
 
@@ -44,10 +48,10 @@ public class FicheAtelierController {
     }
 
     @GetMapping
-    public ResponseEntity<?> getAll(
+    public ResponseEntity<Page<FicheAtelierListResponse>> getAll(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(ficheAtelierService.getAll(page, size).map(FicheAtelierResponse::from));
+        return ResponseEntity.ok(ficheAtelierService.getAll(page, size).map(FicheAtelierListResponse::from));
     }
 
     @DeleteMapping("/{id}")
@@ -57,7 +61,8 @@ public class FicheAtelierController {
     }
 
     @PatchMapping("/{id}/signature-sortie")
-    public ResponseEntity<FicheAtelierResponse> signForExit(@PathVariable Long id, @RequestBody Map<String, String> request) {
+    public ResponseEntity<FicheAtelierResponse> signForExit(@PathVariable Long id,
+            @RequestBody Map<String, String> request) {
         String signature = request.get("signature");
         if (signature == null || signature.trim().isEmpty()) {
             return ResponseEntity.badRequest().build();

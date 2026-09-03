@@ -5,11 +5,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sn.oas.facturation.features.piecedetache.data.entity.PieceDetache;
-
 import sn.oas.facturation.features.piecedetache.data.enums.TypePiece;
+import sn.oas.facturation.features.piecedetache.dto.PieceDetacheListResponse;
 import sn.oas.facturation.features.piecedetache.dto.PieceDetacheRequest;
 import sn.oas.facturation.features.piecedetache.service.PieceDetacheService;
 
@@ -26,19 +27,19 @@ public class PieceDetacheController {
     @Operation(summary = "Lister les pièces", description = "Retourne toutes les pièces. Filtrable par type ou mot-clé avec pagination.")
     @ApiResponse(responseCode = "200", description = "Liste retournée avec succès")
     @GetMapping
-    public ResponseEntity<?> list(
+    public ResponseEntity<Page<PieceDetacheListResponse>> list(
             @RequestParam(required = false) TypePiece type,
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
         if (keyword != null && !keyword.trim().isEmpty()) {
-            return ResponseEntity.ok(pieceDetacheService.searchPieces(keyword.trim(), page, size));
+            return ResponseEntity.ok(pieceDetacheService.searchPieces(keyword.trim(), page, size).map(PieceDetacheListResponse::from));
         }
         if (type != null) {
-            return ResponseEntity.ok(pieceDetacheService.filterByType(type, page, size));
+            return ResponseEntity.ok(pieceDetacheService.filterByType(type, page, size).map(PieceDetacheListResponse::from));
         }
-        return ResponseEntity.ok(pieceDetacheService.getAllPieces(page, size));
+        return ResponseEntity.ok(pieceDetacheService.getAllPieces(page, size).map(PieceDetacheListResponse::from));
     }
 
     @Operation(summary = "Obtenir une pièce par ID")

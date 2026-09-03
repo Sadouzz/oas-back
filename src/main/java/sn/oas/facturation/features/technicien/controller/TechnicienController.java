@@ -3,9 +3,11 @@ package sn.oas.facturation.features.technicien.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sn.oas.facturation.features.auth.data.entity.Technicien;
+import sn.oas.facturation.features.technicien.dto.TechnicienListResponse;
 import sn.oas.facturation.features.technicien.dto.TechnicienRequest;
 import sn.oas.facturation.features.technicien.service.TechnicienService;
 
@@ -28,14 +30,14 @@ public class TechnicienController {
 
     @GetMapping
     @Operation(summary = "Lister tous les techniciens ou rechercher par mot-clé")
-    public ResponseEntity<?> getAllTechniciens(
+    public ResponseEntity<Page<TechnicienListResponse>> getAllTechniciens(
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         if (keyword != null && !keyword.trim().isEmpty()) {
-            return ResponseEntity.ok(technicienService.searchTechniciens(keyword.trim(), page, size));
+            return ResponseEntity.ok(technicienService.searchTechniciens(keyword.trim(), page, size).map(TechnicienListResponse::from));
         }
-        return ResponseEntity.ok(technicienService.getAllTechniciens(page, size));
+        return ResponseEntity.ok(technicienService.getAllTechniciens(page, size).map(TechnicienListResponse::from));
     }
 
     @GetMapping("/{id}")

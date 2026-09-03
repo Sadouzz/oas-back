@@ -11,6 +11,7 @@ import sn.oas.facturation.features.client.service.ClientService;
 import sn.oas.facturation.features.marketplace.data.entity.DemandeProduit;
 import sn.oas.facturation.features.marketplace.data.entity.Produit;
 import sn.oas.facturation.features.marketplace.dto.DemandeProduitRequest;
+import sn.oas.facturation.features.marketplace.dto.ProduitListResponse;
 import sn.oas.facturation.features.marketplace.service.DemandeProduitService;
 import sn.oas.facturation.features.marketplace.service.ProduitService;
 
@@ -28,8 +29,8 @@ public class ProduitClientController {
 
     @GetMapping("/produits")
     @Operation(summary = "Client: voir les produits disponibles")
-    public ResponseEntity<List<Produit>> getDisponibles() {
-        return ResponseEntity.ok(produitService.getDisponibles());
+    public ResponseEntity<List<ProduitListResponse>> getDisponibles() {
+        return ResponseEntity.ok(produitService.getDisponibles().stream().map(ProduitListResponse::from).toList());
     }
 
     @GetMapping("/produits/search")
@@ -52,8 +53,8 @@ public class ProduitClientController {
 
     @GetMapping("/produits/populaires")
     @Operation(summary = "Client: voir les produits mis en avant")
-    public ResponseEntity<List<Produit>> getPopulaires() {
-        return ResponseEntity.ok(produitService.getPopulaires());
+    public ResponseEntity<List<ProduitListResponse>> getPopulaires() {
+        return ResponseEntity.ok(produitService.getPopulaires().stream().map(ProduitListResponse::from).toList());
     }
 
     @PostMapping("/demandes")

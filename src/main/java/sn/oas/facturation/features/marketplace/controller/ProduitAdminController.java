@@ -7,6 +7,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sn.oas.facturation.features.marketplace.data.entity.Produit;
+import sn.oas.facturation.features.marketplace.dto.ProduitListResponse;
 import sn.oas.facturation.features.marketplace.dto.ProduitRequest;
 import sn.oas.facturation.features.marketplace.service.ProduitService;
 
@@ -41,8 +42,8 @@ public class ProduitAdminController {
 
     @GetMapping
     @Operation(summary = "Admin: lister tous les produits")
-    public ResponseEntity<List<Produit>> getAll() {
-        return ResponseEntity.ok(produitService.getAll());
+    public ResponseEntity<List<ProduitListResponse>> getAll() {
+        return ResponseEntity.ok(produitService.getAll().stream().map(ProduitListResponse::from).toList());
     }
 
     @GetMapping("/{id}")

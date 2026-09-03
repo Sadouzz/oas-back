@@ -3,9 +3,11 @@ package sn.oas.facturation.features.fournisseur.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sn.oas.facturation.features.fournisseur.data.entity.Fournisseur;
+import sn.oas.facturation.features.fournisseur.dto.FournisseurListResponse;
 import sn.oas.facturation.features.fournisseur.dto.FournisseurRequest;
 import sn.oas.facturation.features.fournisseur.service.FournisseurService;
 
@@ -20,14 +22,14 @@ public class FournisseurController {
 
     @GetMapping
     @Operation(summary = "Lister tous les fournisseurs ou rechercher par mot-clé")
-    public ResponseEntity<?> getFournisseurs(
+    public ResponseEntity<Page<FournisseurListResponse>> getFournisseurs(
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         if (keyword != null && !keyword.trim().isEmpty()){
-            return ResponseEntity.ok(fournisseurService.searchFournisseur(keyword.trim(), page, size));
+            return ResponseEntity.ok(fournisseurService.searchFournisseur(keyword.trim(), page, size).map(FournisseurListResponse::from));
         }
-        return ResponseEntity.ok(fournisseurService.getAllFournisseur(page, size));
+        return ResponseEntity.ok(fournisseurService.getAllFournisseur(page, size).map(FournisseurListResponse::from));
     }
 
     @GetMapping("/{id}")

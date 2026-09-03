@@ -6,10 +6,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sn.oas.facturation.features.auth.dto.RegisterRequest;
+import sn.oas.facturation.features.auth.dto.UserListResponse;
 import sn.oas.facturation.features.auth.dto.UserUpdateRequest;
 import sn.oas.facturation.features.auth.data.entity.User;
 import sn.oas.facturation.features.auth.service.AuthService;
 import sn.oas.facturation.features.auth.service.UserService;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/users")
@@ -22,11 +25,14 @@ public class UserManagementController {
 
     @GetMapping
     @Operation(summary = "Lister tous les utilisateurs ou rechercher par mot-clé")
-    public ResponseEntity<?> listUsers(@RequestParam(required = false) String keyword) {
+    public ResponseEntity<List<UserListResponse>> listUsers(@RequestParam(required = false) String keyword) {
+        List<User> users;
         if (keyword != null && !keyword.trim().isEmpty()) {
-            return ResponseEntity.ok(userService.searchUsers(keyword));
+            users = userService.searchUsers(keyword);
+        } else {
+            users = userService.getAllUsers();
         }
-        return ResponseEntity.ok(userService.getAllUsers());
+        return ResponseEntity.ok(users.stream().map(UserListResponse::from).toList());
     }
 
     @GetMapping("/{id}")

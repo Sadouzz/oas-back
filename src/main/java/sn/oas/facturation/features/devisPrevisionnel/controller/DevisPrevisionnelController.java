@@ -10,9 +10,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Page;
 import sn.oas.facturation.features.auth.data.entity.Client;
 import sn.oas.facturation.features.client.service.ClientService;
 import sn.oas.facturation.features.devisPrevisionnel.data.entity.DevisPrevisionnel;
+import sn.oas.facturation.features.devisPrevisionnel.dto.DevisPrevisionnelListResponse;
 import sn.oas.facturation.features.devisPrevisionnel.dto.DevisPrevisionnelRequest;
 import sn.oas.facturation.features.devisPrevisionnel.service.DevisPrevisionnelService;
 
@@ -98,18 +100,18 @@ public class DevisPrevisionnelController {
             @RequestParam(defaultValue = "10") int size) {
 
         if (keyword != null && !keyword.trim().isEmpty())
-            return ResponseEntity.ok(devisPrevisionnelService.search(keyword.trim(), page, size));
+            return ResponseEntity.ok(devisPrevisionnelService.search(keyword.trim(), page, size).map(DevisPrevisionnelListResponse::from));
         if (clientId != null)
-            return ResponseEntity.ok(devisPrevisionnelService.getByClient(clientId));
+            return ResponseEntity.ok(devisPrevisionnelService.getByClient(clientId).stream().map(DevisPrevisionnelListResponse::from).toList());
         if (vehiculeId != null)
-            return ResponseEntity.ok(devisPrevisionnelService.getByVehicule(vehiculeId));
-        return ResponseEntity.ok(devisPrevisionnelService.getAll(page, size));
+            return ResponseEntity.ok(devisPrevisionnelService.getByVehicule(vehiculeId).stream().map(DevisPrevisionnelListResponse::from).toList());
+        return ResponseEntity.ok(devisPrevisionnelService.getAll(page, size).map(DevisPrevisionnelListResponse::from));
     }
 
     @Operation(summary = "Rechercher des devis prévisionnels")
     @GetMapping("/search")
-    public ResponseEntity<List<DevisPrevisionnel>> search(@RequestParam String keyword) {
-        return ResponseEntity.ok(devisPrevisionnelService.search(keyword));
+    public ResponseEntity<List<DevisPrevisionnelListResponse>> search(@RequestParam String keyword) {
+        return ResponseEntity.ok(devisPrevisionnelService.search(keyword).stream().map(DevisPrevisionnelListResponse::from).toList());
     }
 
     @Operation(summary = "Générer le PDF d'un devis prévisionnel")
@@ -137,9 +139,9 @@ public class DevisPrevisionnelController {
     // --- Client endpoints ---
     @Operation(summary = "Lister les devis prévisionnels du client connecté")
     @GetMapping("/me")
-    public ResponseEntity<List<DevisPrevisionnel>> getMyDevis() {
+    public ResponseEntity<List<DevisPrevisionnelListResponse>> getMyDevis() {
         Client client = clientService.getClientConnecte();
-        return ResponseEntity.ok(devisPrevisionnelService.getClientDevis(client));
+        return ResponseEntity.ok(devisPrevisionnelService.getClientDevis(client).stream().map(DevisPrevisionnelListResponse::from).toList());
     }
 
     @Operation(summary = "Accepter un devis prévisionnel par le client")

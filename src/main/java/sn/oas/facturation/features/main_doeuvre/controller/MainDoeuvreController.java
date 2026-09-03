@@ -3,10 +3,12 @@ package sn.oas.facturation.features.main_doeuvre.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sn.oas.facturation.features.main_doeuvre.data.entity.MainDoeuvre;
+import sn.oas.facturation.features.main_doeuvre.dto.MainDoeuvreListResponse;
 import sn.oas.facturation.features.main_doeuvre.dto.MainDoeuvreRequest;
 import sn.oas.facturation.features.main_doeuvre.service.MainDoeuvreService;
 import java.util.List;
@@ -21,14 +23,14 @@ public class MainDoeuvreController {
 
     @GetMapping
     @Operation(summary = "Lister toutes les main d'œuvres avec pagination ou rechercher par mot-clé")
-    public ResponseEntity<?> getAllMainDoeuvres(
+    public ResponseEntity<Page<MainDoeuvreListResponse>> getAllMainDoeuvres(
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         if (keyword != null && !keyword.trim().isEmpty()) {
-            return ResponseEntity.ok(mainDoeuvreService.searchMainDoeuvres(keyword.trim(), page, size));
+            return ResponseEntity.ok(mainDoeuvreService.searchMainDoeuvres(keyword.trim(), page, size).map(MainDoeuvreListResponse::from));
         }
-        return ResponseEntity.ok(mainDoeuvreService.getAllMainDoeuvres(page, size));
+        return ResponseEntity.ok(mainDoeuvreService.getAllMainDoeuvres(page, size).map(MainDoeuvreListResponse::from));
     }
 
     @GetMapping("/{id}")

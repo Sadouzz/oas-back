@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sn.oas.facturation.features.marketplace.data.entity.DemandeProduit;
+import sn.oas.facturation.features.marketplace.dto.DemandeProduitListResponse;
 import sn.oas.facturation.features.marketplace.service.DemandeProduitService;
 
 import java.util.List;
@@ -20,8 +21,8 @@ public class DemandeProduitAdminController {
 
     @GetMapping
     @Operation(summary = "Admin: voir toutes les demandes")
-    public ResponseEntity<List<DemandeProduit>> getAll() {
-        return ResponseEntity.ok(demandeProduitService.getAll());
+    public ResponseEntity<List<DemandeProduitListResponse>> getAll() {
+        return ResponseEntity.ok(demandeProduitService.getAll().stream().map(DemandeProduitListResponse::from).toList());
     }
 
     @GetMapping("/{id}")
@@ -32,8 +33,8 @@ public class DemandeProduitAdminController {
 
     @GetMapping("/historique")
     @Operation(summary = "Admin: voir l'historique des demandes")
-    public ResponseEntity<List<DemandeProduit>> getHistorique() {
-        return ResponseEntity.ok(demandeProduitService.getHistoriqueTous());
+    public ResponseEntity<List<DemandeProduitListResponse>> getHistorique() {
+        return ResponseEntity.ok(demandeProduitService.getHistoriqueTous().stream().map(DemandeProduitListResponse::from).toList());
     }
 
     @PutMapping("/{id}/valider")
