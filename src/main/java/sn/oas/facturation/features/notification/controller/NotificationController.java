@@ -5,7 +5,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import sn.oas.facturation.features.auth.data.entity.Client;
+
+import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.service.ClientService;
 import sn.oas.facturation.features.notification.dto.NotificationResponse;
 import sn.oas.facturation.features.notification.service.NotificationService;

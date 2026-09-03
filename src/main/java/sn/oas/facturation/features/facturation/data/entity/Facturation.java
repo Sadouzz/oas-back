@@ -32,10 +32,10 @@ import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
-import sn.oas.facturation.features.auth.data.entity.Agent;
 import sn.oas.facturation.features.bonDeCommande.data.entity.BonDeCommande;
 import sn.oas.facturation.features.facturation.data.enums.StatutFacturation;
 import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
+import sn.oas.facturation.features.user.data.entity.Agent;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.EnumType;
 
@@ -59,6 +59,16 @@ public abstract class Facturation implements TenantAware  {
     @ManyToOne(fetch = jakarta.persistence.FetchType.LAZY)
     @jakarta.persistence.JoinColumn(name = "garage_id")
     private Garage garage;
+
+    @Override
+    public Garage getGarage() {
+        return this.garage;
+    }
+
+    @Override
+    public void setGarage(Garage garage) {
+        this.garage = garage;
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "facturation_seq")

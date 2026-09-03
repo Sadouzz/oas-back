@@ -27,16 +27,17 @@ import sn.oas.facturation.features.facture.repository.FactureRepository;
 import sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation;
 import sn.oas.facturation.features.piecedetache.data.entity.PDP;
 import sn.oas.facturation.features.piecedetache.data.entity.PieceDetache;
-import sn.oas.facturation.features.piecedetache.data.entity.StockMouvement;
+import sn.oas.facturation.features.piecedetache.data.entity.PieceMouvement;
 import sn.oas.facturation.features.piecedetache.data.enums.TypeMouvement;
 import sn.oas.facturation.features.piecedetache.repository.PieceDetacheRepository;
-import sn.oas.facturation.features.piecedetache.repository.StockMouvementRepository;
+import sn.oas.facturation.features.piecedetache.repository.PieceMouvementRepository;
 import sn.oas.facturation.features.recu.dto.RecuResponse;
+import sn.oas.facturation.features.user.data.entity.Agent;
+import sn.oas.facturation.features.user.data.entity.User;
+import sn.oas.facturation.features.user.data.enums.Role;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
-import sn.oas.facturation.features.auth.data.entity.Agent;
-import sn.oas.facturation.features.auth.data.entity.Client;
-import sn.oas.facturation.features.auth.data.entity.User;
-import sn.oas.facturation.features.auth.repository.UserRepository;
+import sn.oas.facturation.features.user.repository.UserRepository;
+import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.features.ordreReparation.data.entity.LigneOrdreReparationMainDoeuvre;
 import sn.oas.facturation.features.ordreReparation.data.entity.LigneOrdreReparationPiece;
@@ -45,7 +46,7 @@ import sn.oas.facturation.features.vehicule.repository.VehiculeRepository;
 import sn.oas.facturation.features.facture.dto.FactureCreateRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import sn.oas.facturation.features.auth.data.enums.Role;
+
 import sn.oas.facturation.features.notification.service.AgentNotificationService;
 import sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService;
 import sn.oas.facturation.shared.documentNumber.DocumentType;
@@ -70,7 +71,7 @@ public class FactureServiceImpl implements FactureService {
     private final AgentNotificationService agentNotificationService;
     private final DocumentNumberGeneratorService documentNumberGeneratorService;
     private final PieceDetacheRepository pieceDetacheRepository;
-    private final StockMouvementRepository stockMouvementRepository;
+    private final PieceMouvementRepository pieceMouvementRepository;
 
     @Override
     @Transactional
@@ -161,7 +162,7 @@ public class FactureServiceImpl implements FactureService {
                     pdp.setQteReelle(Math.max(0.0, qteReelleAvant - lfp.getQuantite()));
                     pieceDetacheRepository.save(pdp);
 
-                    stockMouvementRepository.save(StockMouvement.builder()
+                    pieceMouvementRepository.save(PieceMouvement.builder()
                             .type(TypeMouvement.SORTIE_REELLE)
                             .quantite((double) lfp.getQuantite())
                             .stockMagasinAvant(pdp.getStockMagasin())
@@ -282,7 +283,7 @@ public class FactureServiceImpl implements FactureService {
                     pdp.setQteReelle(Math.max(0.0, qteReelleAvant - lfp.getQuantite()));
                     pieceDetacheRepository.save(pdp);
 
-                    stockMouvementRepository.save(StockMouvement.builder()
+                    pieceMouvementRepository.save(PieceMouvement.builder()
                             .type(TypeMouvement.SORTIE_REELLE)
                             .quantite((double) lfp.getQuantite())
                             .stockMagasinAvant(pdp.getStockMagasin())

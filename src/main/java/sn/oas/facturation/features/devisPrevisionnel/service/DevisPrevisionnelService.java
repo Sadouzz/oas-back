@@ -1,6 +1,6 @@
 package sn.oas.facturation.features.devisPrevisionnel.service;
 
-import sn.oas.facturation.features.auth.data.entity.Client;
+import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.devisPrevisionnel.data.entity.DevisPrevisionnel;
 import sn.oas.facturation.features.devisPrevisionnel.dto.DevisPrevisionnelRequest;
 

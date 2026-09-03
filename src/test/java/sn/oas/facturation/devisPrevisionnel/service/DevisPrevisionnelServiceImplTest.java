@@ -5,9 +5,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import sn.oas.facturation.features.auth.data.entity.Client;
+
 import sn.oas.facturation.features.auth.service.AuthService;
-import sn.oas.facturation.features.auth.service.UserService;
+import sn.oas.facturation.features.user.service.UserService;
+import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.devisPrevisionnel.data.entity.DevisPrevisionnel;
 import sn.oas.facturation.features.devisPrevisionnel.repository.DevisPrevisionnelRepository;
 import sn.oas.facturation.features.devisPrevisionnel.service.DevisPrevisionnelServiceImpl;

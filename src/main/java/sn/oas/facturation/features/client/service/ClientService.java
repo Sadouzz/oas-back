@@ -1,7 +1,8 @@
 package sn.oas.facturation.features.client.service;
 
-import sn.oas.facturation.features.auth.data.entity.Client;
-import sn.oas.facturation.features.auth.dto.UserUpdateRequest;
+import sn.oas.facturation.features.client.data.entity.Client;
+import sn.oas.facturation.features.user.dto.request.UserUpdateRequest;
+
 import org.springframework.data.domain.Page;
 import java.util.List;
 

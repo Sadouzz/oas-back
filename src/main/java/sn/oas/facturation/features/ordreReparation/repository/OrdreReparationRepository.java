@@ -30,6 +30,9 @@ public interface OrdreReparationRepository extends JpaRepository<OrdreReparation
     OrdreReparation findTopByOrderByIdDesc();
     OrdreReparation findTopByNumeroStartingWithOrderByNumeroDesc(String prefix);
     boolean existsByVehiculeIdAndStatutNotIn(Long vehiculeId, List<StatutOrdreReparation> statuts);
+    long countByStatut(StatutOrdreReparation statut);
+    long countByStatutNotIn(List<StatutOrdreReparation> statuts);
+    List<OrdreReparation> findTop5ByOrderByIdDesc();
     boolean existsByFicheAtelierId(Long ficheAtelierId);
     java.util.Optional<OrdreReparation> findFirstByFicheAtelierId(Long ficheAtelierId);
     java.util.Optional<OrdreReparation> findFirstByVehiculeIdAndStatutNotIn(Long vehiculeId, List<StatutOrdreReparation> statuts);

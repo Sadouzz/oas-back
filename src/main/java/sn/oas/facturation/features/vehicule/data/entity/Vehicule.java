@@ -7,7 +7,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import jakarta.persistence.*;
 import lombok.*;
-import sn.oas.facturation.features.auth.data.entity.Client;
+import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.shared.entity.BaseEntity;
 

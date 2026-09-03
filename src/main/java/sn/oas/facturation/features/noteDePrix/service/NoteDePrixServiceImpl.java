@@ -5,10 +5,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import sn.oas.facturation.features.auth.data.entity.Agent;
-import sn.oas.facturation.features.auth.data.entity.Client;
-import sn.oas.facturation.features.auth.data.entity.User;
-import sn.oas.facturation.features.auth.repository.UserRepository;
+
+import sn.oas.facturation.features.user.repository.UserRepository;
+import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.repository.ClientRepository;
 import sn.oas.facturation.features.facturation.data.entity.LigneFacturationMainDoeuvre;
 import sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece;
@@ -17,8 +16,8 @@ import sn.oas.facturation.features.facturation.dto.LigneFacturationMainDoeuvreRe
 import sn.oas.facturation.features.facturation.dto.LigneFacturationPieceResponse;
 import sn.oas.facturation.features.facture.data.enums.StatutPaiement;
 import sn.oas.facturation.features.main_doeuvre.data.entity.MainDoeuvre;
-import sn.oas.facturation.features.piecedetache.data.entity.StockMouvement;
 import sn.oas.facturation.features.main_doeuvre.repository.MainDoeuvreRepository;
+import sn.oas.facturation.features.piecedetache.data.entity.PieceMouvement;
 import sn.oas.facturation.features.piecedetache.data.enums.TypeMouvement;
 import sn.oas.facturation.features.noteDePrix.data.entity.NoteDePrix;
 import sn.oas.facturation.features.noteDePrix.dto.NoteDePrixRequest;
@@ -36,7 +35,9 @@ import sn.oas.facturation.features.garage.data.entity.Garage;
 import sn.oas.facturation.features.garage.repository.GarageRepository;
 import sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService;
 import sn.oas.facturation.shared.documentNumber.DocumentType;
-import sn.oas.facturation.features.piecedetache.repository.StockMouvementRepository;
+import sn.oas.facturation.features.piecedetache.repository.PieceMouvementRepository;
+import sn.oas.facturation.features.user.data.entity.Agent;
+import sn.oas.facturation.features.user.data.entity.User;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -56,7 +57,7 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
     private final VehiculeRepository vehiculeRepository;
     private final UserRepository userRepository;
     private final DocumentNumberGeneratorService documentNumberGeneratorService;
-    private final StockMouvementRepository stockMouvementRepository;
+    private final PieceMouvementRepository pieceMouvementRepository;
     private final GarageRepository garageRepository;
 
     private Agent getAgentConnecte() {
@@ -217,7 +218,7 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
                 pdp.setQteReelle(Math.max(0.0, qteReelleAvant - lfp.getQuantite()));
                 pdpRepository.save(pdp);
 
-                stockMouvementRepository.save(StockMouvement.builder()
+                pieceMouvementRepository.save(PieceMouvement.builder()
                         .type(TypeMouvement.SORTIE_REELLE)
                         .quantite((double) lfp.getQuantite())
                         .stockMagasinAvant(pdp.getStockMagasin())

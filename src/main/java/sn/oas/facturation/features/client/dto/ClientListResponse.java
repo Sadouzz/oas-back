@@ -1,7 +1,7 @@
 package sn.oas.facturation.features.client.dto;
 
 import lombok.Builder;
-import sn.oas.facturation.features.auth.data.entity.Client;
+import sn.oas.facturation.features.client.data.entity.Client;
 
 import java.time.LocalDateTime;
 

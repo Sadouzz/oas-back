@@ -5,16 +5,17 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import sn.oas.facturation.features.auth.data.entity.Technicien;
-import sn.oas.facturation.features.auth.data.entity.User;
-import sn.oas.facturation.features.auth.data.enums.TypeUser;
-import sn.oas.facturation.features.auth.dto.RegisterRequest;
-import sn.oas.facturation.features.auth.repository.UserRepository;
+
+import sn.oas.facturation.features.auth.dto.request.RegisterRequest;
+import sn.oas.facturation.features.user.repository.UserRepository;
 import sn.oas.facturation.features.auth.service.AuthService;
 import sn.oas.facturation.features.garage.data.entity.Garage;
 import sn.oas.facturation.features.garage.repository.GarageRepository;
+import sn.oas.facturation.features.technicien.data.entity.Technicien;
 import sn.oas.facturation.features.technicien.dto.TechnicienRequest;
 import sn.oas.facturation.features.technicien.repository.TechnicienRepository;
+import sn.oas.facturation.features.user.data.entity.User;
+import sn.oas.facturation.features.user.data.enums.TypeUser;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;

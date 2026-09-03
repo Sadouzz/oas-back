@@ -8,9 +8,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import sn.oas.facturation.features.auth.data.entity.Agent;
-import sn.oas.facturation.features.auth.data.entity.User;
-import sn.oas.facturation.features.auth.repository.UserRepository;
+
+import sn.oas.facturation.features.user.repository.UserRepository;
 import sn.oas.facturation.features.bonDeCommande.data.entity.BonDeCommande;
 import sn.oas.facturation.features.bonDeCommande.data.entity.LigneBonDeCommandePiece;
 import sn.oas.facturation.features.bonDeCommande.data.enums.StatutBonCommande;
@@ -29,8 +28,9 @@ import sn.oas.facturation.features.bonDeSortie.service.BonDeSortieService;
 import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation;
 import sn.oas.facturation.features.ordreReparation.repository.OrdreReparationRepository;
+import sn.oas.facturation.features.pdfGenerator.service.PdfGeneratorService;
 import sn.oas.facturation.features.fournisseur.data.entity.Fournisseur;
-import sn.oas.facturation.features.piecedetache.repository.CategorieRepository;
+import sn.oas.facturation.features.categorie_pieces.repository.CategorieRepository;
 import sn.oas.facturation.features.fournisseur.repository.FournisseurRepository;
 import sn.oas.facturation.features.bonDeReception.repository.BonDeReceptionRepository;
 import sn.oas.facturation.features.bonDeReception.data.entity.BonDeReception;
@@ -43,6 +43,9 @@ import sn.oas.facturation.features.piecedetache.data.enums.TypePiece;
 import sn.oas.facturation.features.piecedetache.repository.PieceDetacheRepository;
 import sn.oas.facturation.features.proforma.data.entity.Proforma;
 import sn.oas.facturation.features.proforma.repository.ProformaRepository;
+import sn.oas.facturation.features.user.data.entity.Agent;
+import sn.oas.facturation.features.user.data.entity.User;
+import sn.oas.facturation.features.user.data.enums.Role;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.features.vehicule.repository.VehiculeRepository;
 
@@ -54,7 +57,6 @@ import java.util.stream.Collectors;
 
 import sn.oas.facturation.features.piecedetache.service.StockService;
 import sn.oas.facturation.features.piecedetache.dto.EntreeStockRequest;
-import sn.oas.facturation.features.auth.data.enums.Role;
 import sn.oas.facturation.features.notification.service.AgentNotificationService;
 
 @Service

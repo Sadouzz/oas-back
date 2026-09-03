@@ -12,19 +12,22 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import sn.oas.facturation.features.auth.data.entity.Agent;
-import sn.oas.facturation.features.auth.data.entity.Client;
-import sn.oas.facturation.features.auth.data.entity.Technicien;
-import sn.oas.facturation.features.auth.data.entity.User;
-import sn.oas.facturation.features.auth.data.enums.Role;
-import sn.oas.facturation.features.auth.data.enums.TypeUser;
-import sn.oas.facturation.features.auth.dto.AuthResponse;
-import sn.oas.facturation.features.auth.dto.LoginRequest;
-import sn.oas.facturation.features.auth.dto.RegisterRequest;
-import sn.oas.facturation.features.auth.repository.UserRepository;
+
+import sn.oas.facturation.features.auth.dto.request.LoginRequest;
+import sn.oas.facturation.features.auth.dto.request.RegisterRequest;
+import sn.oas.facturation.features.auth.dto.response.AuthResponse;
+import sn.oas.facturation.features.user.repository.UserRepository;
+import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.repository.ClientRepository;
+import sn.oas.facturation.features.connectionHistory.service.ConnectionHistoryService;
 import sn.oas.facturation.features.garage.data.entity.Garage;
 import sn.oas.facturation.features.garage.repository.GarageRepository;
+import sn.oas.facturation.features.technicien.data.entity.Technicien;
+import sn.oas.facturation.features.user.data.entity.Agent;
+import sn.oas.facturation.features.user.data.entity.User;
+import sn.oas.facturation.features.user.data.enums.Role;
+import sn.oas.facturation.features.user.data.enums.TypeUser;
+import sn.oas.facturation.features.user.service.UserService;
 import sn.oas.facturation.security.JwtUtil;
 
 @Service
@@ -51,7 +54,8 @@ public class AuthServiceImpl implements AuthService {
                     new UsernamePasswordAuthenticationToken(request.username(), request.password())
             );
             UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-            String token = jwtUtil.generateToken(userDetails.getUsername());
+            String accessToken = jwtUtil.generateToken(userDetails.getUsername());
+            String refreshToken = jwtUtil.generateRefreshToken(userDetails.getUsername());
             String role = userDetails.getAuthorities().stream()
                     .map(GrantedAuthority::getAuthority)
                     .findFirst()
@@ -68,7 +72,7 @@ public class AuthServiceImpl implements AuthService {
                 garageName = agent.getGarage().getNom();
             }
             
-            return AuthResponse.of(token, userDetails.getUsername(), role, garageId, garageName);
+            return AuthResponse.of(accessToken, refreshToken, userDetails.getUsername(), role, garageId, garageName);
         } catch (AuthenticationException e) {
             connectionHistoryService.saveConnectionLog(request.username(), ip, "FAILED");
             throw new BadCredentialsException("Username ou mot de passe incorrect");
@@ -76,12 +80,12 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public AuthResponse refreshToken(String currentToken) {
-        if (currentToken == null || !jwtUtil.validateJwtToken(currentToken)) {
-            throw new BadCredentialsException("Token invalide ou expiré pour le rafraîchissement");
+    public AuthResponse refreshToken(String currentRefreshToken) {
+        if (currentRefreshToken == null || !jwtUtil.validateJwtToken(currentRefreshToken)) {
+            throw new BadCredentialsException("Refresh token invalide ou expiré");
         }
 
-        String username = jwtUtil.getUsernameFromToken(currentToken);
+        String username = jwtUtil.getUsernameFromToken(currentRefreshToken);
         User user = userRepository.findByUsername(username)
                 .or(() -> userRepository.findByEmail(username))
                 .orElseThrow(() -> new BadCredentialsException("Utilisateur introuvable"));
@@ -90,7 +94,8 @@ public class AuthServiceImpl implements AuthService {
             throw new BadCredentialsException("Compte utilisateur désactivé");
         }
 
-        String newToken = jwtUtil.generateToken(username);
+        String newAccessToken = jwtUtil.generateToken(username);
+        String newRefreshToken = jwtUtil.generateRefreshToken(username);
         String role = user.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .findFirst()
@@ -103,7 +108,7 @@ public class AuthServiceImpl implements AuthService {
             garageName = agent.getGarage().getNom();
         }
 
-        return AuthResponse.of(newToken, username, role, garageId, garageName);
+        return AuthResponse.of(newAccessToken, newRefreshToken, username, role, garageId, garageName);
     }
 
     @Override

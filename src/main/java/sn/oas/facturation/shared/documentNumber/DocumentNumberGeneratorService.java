@@ -4,12 +4,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import sn.oas.facturation.features.auth.data.entity.Agent;
-import sn.oas.facturation.features.auth.data.entity.User;
-import sn.oas.facturation.features.auth.data.enums.Role;
-import sn.oas.facturation.features.auth.repository.UserRepository;
+
+import sn.oas.facturation.features.user.repository.UserRepository;
 import sn.oas.facturation.features.garage.data.entity.Garage;
 import sn.oas.facturation.features.garage.repository.GarageRepository;
+import sn.oas.facturation.features.user.data.entity.Agent;
+import sn.oas.facturation.features.user.data.entity.User;
+import sn.oas.facturation.features.user.data.enums.Role;
 
 import java.time.Year;
 

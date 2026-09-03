@@ -1,7 +1,7 @@
 package sn.oas.facturation.features.technicien.dto;
 
 import lombok.Data;
-import sn.oas.facturation.features.auth.data.enums.Specialite;
+import sn.oas.facturation.features.technicien.data.enums.SpecialiteTechnicien;
 
 /**
  * DTO de création/mise à jour d'un compte Technicien depuis l'écran staff
@@ -16,6 +16,6 @@ public class TechnicienRequest {
     private String lastName;
     private String email;
     private String adresse;
-    private Specialite specialite;
+    private SpecialiteTechnicien specialite;
     private Long garageId;
 }

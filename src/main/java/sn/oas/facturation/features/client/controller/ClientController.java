@@ -5,14 +5,14 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import sn.oas.facturation.features.auth.data.entity.Client;
-import sn.oas.facturation.features.auth.dto.RegisterRequest;
-import sn.oas.facturation.features.auth.dto.UserUpdateRequest;
+
+import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.dto.ClientListResponse;
 import sn.oas.facturation.features.client.service.ClientService;
-
+import sn.oas.facturation.features.user.data.enums.TypeUser;
+import sn.oas.facturation.features.user.dto.request.UserUpdateRequest;
+import sn.oas.facturation.features.auth.dto.request.RegisterRequest;
 import sn.oas.facturation.features.auth.service.AuthService;
-import sn.oas.facturation.features.auth.data.enums.TypeUser;
 
 @RestController
 @RequestMapping("/api/clients")

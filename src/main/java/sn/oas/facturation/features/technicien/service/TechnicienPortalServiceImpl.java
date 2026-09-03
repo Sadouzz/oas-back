@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import sn.oas.facturation.features.auth.data.entity.Technicien;
+
 import sn.oas.facturation.features.main_doeuvre.data.entity.MainDoeuvre;
 import sn.oas.facturation.features.main_doeuvre.repository.MainDoeuvreRepository;
 import sn.oas.facturation.features.ordreReparation.data.entity.LigneOrdreReparationMainDoeuvre;
@@ -19,6 +19,7 @@ import sn.oas.facturation.features.ordreReparation.repository.PieceJointeDiagnos
 import sn.oas.facturation.features.piecedetache.data.entity.PDP;
 import sn.oas.facturation.features.piecedetache.data.entity.PieceDetache;
 import sn.oas.facturation.features.piecedetache.repository.PieceDetacheRepository;
+import sn.oas.facturation.features.technicien.data.entity.Technicien;
 import sn.oas.facturation.features.technicien.dto.PannesRequest;
 import sn.oas.facturation.features.technicien.dto.TechnicienLigneMainDoeuvreRequest;
 import sn.oas.facturation.features.technicien.dto.TechnicienLignePieceRequest;

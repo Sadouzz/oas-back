@@ -1,8 +1,8 @@
 package sn.oas.facturation.features.technicien.dto;
 
 import lombok.Builder;
-import sn.oas.facturation.features.auth.data.entity.Technicien;
-import sn.oas.facturation.features.auth.data.enums.Specialite;
+import sn.oas.facturation.features.technicien.data.entity.Technicien;
+import sn.oas.facturation.features.technicien.data.enums.SpecialiteTechnicien;
 
 import java.time.LocalDateTime;
 
@@ -16,7 +16,7 @@ public record TechnicienListResponse(
         String lastName,
         String email,
         String adresse,
-        Specialite specialite,
+        SpecialiteTechnicien specialite,
         boolean enabled,
         LocalDateTime createdAt,
         GarageSummary garage

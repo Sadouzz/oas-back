@@ -1,12 +1,12 @@
 package sn.oas.facturation.features.avoirTTC.data.entity;
 
 import jakarta.persistence.*;
-import sn.oas.facturation.features.auth.data.entity.Client;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
+import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.facturation.data.entity.FactureTTC;
 
 @Entity

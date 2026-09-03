@@ -14,7 +14,9 @@ public class JwtUtil {
     @Value("${app.jwt.secret}")
     private String jwtSecret;
     @Value("${app.jwt.expiration}")
-    private int jwtExpirationMs;
+    private long jwtExpirationMs;
+    @Value("${app.jwt.refresh-expiration}")
+    private long jwtRefreshExpirationMs;
     private SecretKey key;
     // Initializes the key after the class is instantiated and the jwtSecret is injected,
     // preventing the repeated creation of the key and enhancing performance
@@ -22,12 +24,21 @@ public class JwtUtil {
     public void init() {
         this.key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
-    // Generate JWT token
+    // Generate JWT Access token (6 hours)
     public String generateToken(String username) {
         return Jwts.builder()
                 .subject(username)
                 .issuedAt(new Date())
-                .expiration(new Date((new Date()).getTime() + jwtExpirationMs))
+                .expiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
+                .signWith(key)
+                .compact();
+    }
+    // Generate JWT Refresh token (7 days)
+    public String generateRefreshToken(String username) {
+        return Jwts.builder()
+                .subject(username)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + jwtRefreshExpirationMs))
                 .signWith(key)
                 .compact();
     }

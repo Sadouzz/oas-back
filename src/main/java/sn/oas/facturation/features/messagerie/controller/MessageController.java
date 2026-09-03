@@ -5,14 +5,15 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import sn.oas.facturation.features.auth.data.entity.Agent;
-import sn.oas.facturation.features.auth.data.entity.Client;
+
 import sn.oas.facturation.features.auth.service.AuthService;
+import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.service.ClientService;
 import sn.oas.facturation.features.messagerie.dto.ClientConversationResponse;
 import sn.oas.facturation.features.messagerie.dto.MessageRequest;
 import sn.oas.facturation.features.messagerie.dto.MessageResponse;
 import sn.oas.facturation.features.messagerie.service.MessageService;
+import sn.oas.facturation.features.user.data.entity.Agent;
 
 import java.util.List;
 

@@ -6,23 +6,23 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
-import sn.oas.facturation.features.auth.data.entity.Agent;
-import sn.oas.facturation.features.auth.data.entity.Client;
-import sn.oas.facturation.features.auth.data.entity.Technicien;
-import sn.oas.facturation.features.auth.data.enums.Role;
-import sn.oas.facturation.features.auth.data.enums.Specialite;
-import sn.oas.facturation.features.auth.data.enums.TypeUser;
-import sn.oas.facturation.features.auth.repository.AgentRepository;
-import sn.oas.facturation.features.auth.repository.UserRepository;
+
+import sn.oas.facturation.features.user.repository.UserRepository;
+import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.repository.ClientRepository;
-import sn.oas.facturation.features.blog.BlogDataSeeder;
 import sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier;
 import sn.oas.facturation.features.ficheAtelier.data.entity.LigneDefaut;
 import sn.oas.facturation.features.ficheAtelier.data.entity.LigneReception;
 import sn.oas.facturation.features.ficheAtelier.repository.FicheAtelierRepository;
 import sn.oas.facturation.features.garage.data.entity.Garage;
 import sn.oas.facturation.features.garage.repository.GarageRepository;
+import sn.oas.facturation.features.technicien.data.entity.Technicien;
+import sn.oas.facturation.features.technicien.data.enums.SpecialiteTechnicien;
 import sn.oas.facturation.features.technicien.repository.TechnicienRepository;
+import sn.oas.facturation.features.user.data.entity.Agent;
+import sn.oas.facturation.features.user.data.enums.Role;
+import sn.oas.facturation.features.user.data.enums.TypeUser;
+import sn.oas.facturation.features.user.repository.AgentRepository;
 import sn.oas.facturation.features.messagerie.data.entity.Message;
 import sn.oas.facturation.features.messagerie.repository.MessageRepository;
 import sn.oas.facturation.features.rendezvous.data.entity.RendezVous;
@@ -268,13 +268,13 @@ public class DemoDataSeeder implements CommandLineRunner {
     // entière (login propre), donc idempotence par username comme pour Agent/Client.
 
     private void seedTechniciens(Garage dakar, Garage thies) {
-        record TSpec(String firstName, String lastName, String username, String phone, String email, Specialite specialite, Garage garage) {}
+        record TSpec(String firstName, String lastName, String username, String phone, String email, SpecialiteTechnicien specialite, Garage garage) {}
         List<TSpec> specs = List.of(
-                new TSpec("Alioune Badara", "Diouf", "alioune.diouf", "+221771111201", "alioune.diouf@orientautoservice.sn", Specialite.MECANIQUE_GENERALE, dakar),
-                new TSpec("Serigne", "Mbaye", "serigne.mbaye", "+221771111202", "serigne.mbaye@orientautoservice.sn", Specialite.ELECTRICITE_AUTO, dakar),
-                new TSpec("Modou", "Lô Ndoye", "modou.ndoye", "+221771111203", "modou.ndoye@orientautoservice.sn", Specialite.CARROSSERIE_PEINTURE, dakar),
-                new TSpec("Pape Abdou", "Fall", "pape.fall", "+221771111204", "pape.fall@orientautoservice.sn", Specialite.MECANIQUE_GENERALE, thies),
-                new TSpec("Lamine", "Gueye", "lamine.gueye", "+221771111205", "lamine.gueye@orientautoservice.sn", Specialite.DIAGNOSTIC_ELECTRONIQUE, thies)
+                new TSpec("Alioune Badara", "Diouf", "alioune.diouf", "+221771111201", "alioune.diouf@orientautoservice.sn", SpecialiteTechnicien.MECANIQUE_GENERALE, dakar),
+                new TSpec("Serigne", "Mbaye", "serigne.mbaye", "+221771111202", "serigne.mbaye@orientautoservice.sn", SpecialiteTechnicien.ELECTRICITE_AUTO, dakar),
+                new TSpec("Modou", "Lô Ndoye", "modou.ndoye", "+221771111203", "modou.ndoye@orientautoservice.sn", SpecialiteTechnicien.CARROSSERIE_PEINTURE, dakar),
+                new TSpec("Pape Abdou", "Fall", "pape.fall", "+221771111204", "pape.fall@orientautoservice.sn", SpecialiteTechnicien.MECANIQUE_GENERALE, thies),
+                new TSpec("Lamine", "Gueye", "lamine.gueye", "+221771111205", "lamine.gueye@orientautoservice.sn", SpecialiteTechnicien.DIAGNOSTIC_ELECTRONIQUE, thies)
         );
 
         boolean createdAny = false;

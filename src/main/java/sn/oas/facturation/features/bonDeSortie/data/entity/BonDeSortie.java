@@ -12,11 +12,10 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import sn.oas.facturation.features.auth.data.entity.Agent;
-import sn.oas.facturation.features.auth.data.entity.Client;
 import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
+import sn.oas.facturation.features.user.data.entity.Agent;
 import sn.oas.facturation.features.bonDeSortie.data.enums.StatutBon;
-
+import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 
 import java.time.LocalDateTime;

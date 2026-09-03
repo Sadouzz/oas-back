@@ -2,6 +2,7 @@ package sn.oas.facturation.features.partenaire.data.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import sn.oas.facturation.features.partenaire.data.enums.TypePartenaire;
 import sn.oas.facturation.shared.entity.BaseEntity;
 
 @Entity

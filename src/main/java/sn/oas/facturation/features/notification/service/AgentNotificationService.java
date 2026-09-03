@@ -1,8 +1,8 @@
 package sn.oas.facturation.features.notification.service;
 
-import sn.oas.facturation.features.auth.data.entity.Agent;
-import sn.oas.facturation.features.auth.data.enums.Role;
 import sn.oas.facturation.features.notification.dto.AgentNotificationResponse;
+import sn.oas.facturation.features.user.data.entity.Agent;
+import sn.oas.facturation.features.user.data.enums.Role;
 
 import java.util.List;
 

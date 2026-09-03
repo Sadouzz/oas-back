@@ -3,7 +3,8 @@ package sn.oas.facturation.features.ficheAtelier.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import sn.oas.facturation.features.auth.data.entity.Client;
+
+import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.repository.ClientRepository;
 import sn.oas.facturation.features.ficheAtelier.data.dto.FicheAtelierRequest;
 import sn.oas.facturation.features.ficheAtelier.data.dto.FicheAtelierResponse;

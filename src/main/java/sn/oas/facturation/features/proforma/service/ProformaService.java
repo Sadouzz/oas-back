@@ -1,7 +1,8 @@
 package sn.oas.facturation.features.proforma.service;
 
 import org.springframework.data.domain.Page;
-import sn.oas.facturation.features.auth.data.entity.Client;
+
+import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.facture.data.entity.Facture;
 import sn.oas.facturation.features.proforma.data.entity.Proforma;
 import sn.oas.facturation.features.proforma.dto.ProformaCreateRequest;

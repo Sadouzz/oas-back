@@ -5,24 +5,25 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import sn.oas.facturation.features.auth.data.entity.Agent;
-import sn.oas.facturation.features.auth.data.entity.User;
-import sn.oas.facturation.features.auth.repository.UserRepository;
+
+import sn.oas.facturation.features.user.repository.UserRepository;
 import sn.oas.facturation.features.piecedetache.data.entity.PDP;
 import sn.oas.facturation.features.piecedetache.data.entity.PieceDetache;
-import sn.oas.facturation.features.piecedetache.data.entity.StockMouvement;
+import sn.oas.facturation.features.piecedetache.data.entity.PieceMouvement;
 import sn.oas.facturation.features.piecedetache.data.enums.TypeMouvement;
 import sn.oas.facturation.features.piecedetache.dto.InventaireRequest;
 import sn.oas.facturation.features.piecedetache.dto.InventaireResponse;
 import sn.oas.facturation.features.piecedetache.repository.PieceDetacheRepository;
-import sn.oas.facturation.features.piecedetache.repository.StockMouvementRepository;
+import sn.oas.facturation.features.piecedetache.repository.PieceMouvementRepository;
+import sn.oas.facturation.features.user.data.entity.Agent;
+import sn.oas.facturation.features.user.data.entity.User;
 
 @Service
 @RequiredArgsConstructor
 public class InventaireServiceImpl implements InventaireService {
 
     private final PieceDetacheRepository pieceDetacheRepository;
-    private final StockMouvementRepository stockMouvementRepository;
+    private final PieceMouvementRepository pieceMouvementRepository;
     private final UserRepository userRepository;
 
     @Transactional
@@ -43,7 +44,7 @@ public class InventaireServiceImpl implements InventaireService {
                     pdp.getId(), pdp.getReference(), pdp.getDesignation(),
                     stockMagasin, stockAtelier,
                     request.stockMagasinPhysique(), request.stockAtelierPhysique(),
-                    0.0, 0.0, false, (StockMouvement) null
+                    0.0, 0.0, false, (PieceMouvement) null
             );
         }
 
@@ -55,7 +56,7 @@ public class InventaireServiceImpl implements InventaireService {
         pdp.setQteReelle(request.stockMagasinPhysique() + request.stockAtelierPhysique());
         pieceDetacheRepository.save(pdp);
 
-        StockMouvement mouvement = stockMouvementRepository.save(StockMouvement.builder()
+        PieceMouvement mouvement = pieceMouvementRepository.save(PieceMouvement.builder()
                 .type(TypeMouvement.INVENTAIRE)
                 .quantite(quantite)
                 .stockMagasinAvant(stockMagasin)
@@ -68,7 +69,7 @@ public class InventaireServiceImpl implements InventaireService {
                 .numDocument("INVENTAIRE")
                 .typeDocument("Inventaire")
                 .numeroSerie(pdp.getReference())
-                .motif(request.motif())
+                .motif("Ajustement suite inventaire physique")
                 .piece(pdp)
                 .agent(agent)
                 .build());
@@ -77,17 +78,9 @@ public class InventaireServiceImpl implements InventaireService {
                 pdp.getId(), pdp.getReference(), pdp.getDesignation(),
                 stockMagasin, stockAtelier,
                 request.stockMagasinPhysique(), request.stockAtelierPhysique(),
-                ecartMagasin, ecartAtelier, true, mouvement
+                ecartMagasin, ecartAtelier,
+                true, mouvement
         );
-    }
-
-    private void validerRequest(InventaireRequest request) {
-        if (request.stockMagasinPhysique() == null || request.stockMagasinPhysique() < 0) {
-            throw new IllegalArgumentException("Le stock magasin physique ne peut pas être négatif");
-        }
-        if (request.stockAtelierPhysique() == null || request.stockAtelierPhysique() < 0) {
-            throw new IllegalArgumentException("Le stock atelier physique ne peut pas être négatif");
-        }
     }
 
     private PDP getPDP(Long pieceId) {
@@ -110,5 +103,17 @@ public class InventaireServiceImpl implements InventaireService {
             throw new IllegalStateException("Cette opération requiert un compte Agent");
         }
         return agent;
+    }
+
+    private void validerRequest(InventaireRequest request) {
+        if (request.pieceId() == null) {
+            throw new IllegalArgumentException("L'identifiant de la pièce est obligatoire");
+        }
+        if (request.stockMagasinPhysique() == null || request.stockMagasinPhysique() < 0) {
+            throw new IllegalArgumentException("Le stock magasin physique ne peut pas être négatif");
+        }
+        if (request.stockAtelierPhysique() == null || request.stockAtelierPhysique() < 0) {
+            throw new IllegalArgumentException("Le stock atelier physique ne peut pas être négatif");
+        }
     }
 }

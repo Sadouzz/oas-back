@@ -13,7 +13,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
-import sn.oas.facturation.features.auth.data.entity.Client;
+import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.facturation.data.entity.FactureHT;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 

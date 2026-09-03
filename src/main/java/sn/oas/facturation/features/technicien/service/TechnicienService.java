@@ -1,6 +1,6 @@
 package sn.oas.facturation.features.technicien.service;
 
-import sn.oas.facturation.features.auth.data.entity.Technicien;
+import sn.oas.facturation.features.technicien.data.entity.Technicien;
 import sn.oas.facturation.features.technicien.dto.TechnicienRequest;
 
 import org.springframework.data.domain.Page;

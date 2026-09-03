@@ -4,12 +4,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
-import sn.oas.facturation.features.auth.data.entity.Agent;
-import sn.oas.facturation.features.auth.data.enums.Role;
-import sn.oas.facturation.features.auth.repository.AgentRepository;
+
 import sn.oas.facturation.features.notification.data.entity.AgentNotification;
 import sn.oas.facturation.features.notification.dto.AgentNotificationResponse;
 import sn.oas.facturation.features.notification.repository.AgentNotificationRepository;
+import sn.oas.facturation.features.user.data.entity.Agent;
+import sn.oas.facturation.features.user.data.enums.Role;
+import sn.oas.facturation.features.user.repository.AgentRepository;
 
 import java.util.List;
 

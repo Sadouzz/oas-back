@@ -6,9 +6,10 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
-import sn.oas.facturation.features.auth.data.entity.Client;
+
 import sn.oas.facturation.features.rendezvous.data.enums.RendezVousStatus;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
+import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.garage.data.entity.Garage;
 import org.hibernate.annotations.Filter;
 

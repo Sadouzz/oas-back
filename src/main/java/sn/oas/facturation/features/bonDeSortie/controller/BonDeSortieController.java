@@ -5,17 +5,17 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import sn.oas.facturation.features.bonDeSortie.data.entity.BonDeSortie;
 import sn.oas.facturation.features.bonDeSortie.data.enums.StatutBon;
+import sn.oas.facturation.features.bonDeSortie.dto.BonDeSortieHistoriqueListResponse;
 import sn.oas.facturation.features.bonDeSortie.dto.BonDeSortieListResponse;
 import sn.oas.facturation.features.bonDeSortie.dto.BonDeSortieRequest;
 import sn.oas.facturation.features.bonDeSortie.service.BonDeSortieService;
 import sn.oas.facturation.features.bonDeSortie.data.entity.BonDeSortieHistorique;
-
-import java.util.List;
 
 @Tag(name = "Bons de sortie", description = "Gestion des bons de sortie liés aux interventions")
 @RestController
@@ -61,32 +61,57 @@ public class BonDeSortieController {
         return ResponseEntity.ok(bonDeSortieService.retournerPiece(id, pieceId));
     }
 
-    @Operation(summary = "Obtenir l'historique d'un bon de sortie", description = "Retourne la liste chronologique des événements (SORTIE, SORTIE ATELIER, RETOUR) sur ce bon.")
+    @Operation(summary = "Obtenir l'historique d'un bon de sortie", description = "Retourne la liste chronologique paginée des événements (SORTIE, SORTIE ATELIER, RETOUR) sur ce bon.")
     @GetMapping("/{id}/historique")
-    public ResponseEntity<List<BonDeSortieHistorique>> getHistorique(
-            @PathVariable Long id) {
-        return ResponseEntity.ok(bonDeSortieService.getHistorique(id));
+    public ResponseEntity<Page<BonDeSortieHistorique>> getHistorique(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(bonDeSortieService.getHistorique(id, page, size));
     }
 
-    @Operation(summary = "Obtenir l'historique global de tous les bons de sortie", description = "Retourne la liste chronologique de tous les mouvements sur l'ensemble des bons de sortie.")
+    @Operation(summary = "Obtenir l'historique global de tous les bons de sortie", description = "Retourne la liste chronologique paginée de tous les mouvements sur l'ensemble des bons de sortie.")
     @GetMapping("/historique-global")
-    public ResponseEntity<List<BonDeSortieHistorique>> getAllHistorique() {
-        return ResponseEntity.ok(bonDeSortieService.getAllHistorique());
+    public ResponseEntity<Page<BonDeSortieHistoriqueListResponse>> getAllHistorique(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            return ResponseEntity.ok(bonDeSortieService.searchHistorique(keyword.trim(), page, size)
+                    .map(BonDeSortieHistoriqueListResponse::from));
+        }
+        return ResponseEntity.ok(bonDeSortieService.getAllHistorique(page, size)
+                .map(BonDeSortieHistoriqueListResponse::from));
     }
 
-    @Operation(summary = "Lister les bons de sortie", description = "Retourne tous les bons. Filtrable par statut (EN_ATTENTE/VALIDE), clientId ou vehiculeId.")
-    @ApiResponse(responseCode = "200", description = "Liste retournée")
+    @Operation(summary = "Lister les bons de sortie", description = "Retourne les bons de sortie avec pagination. Filtrable par mot-clé (keyword), statut (EN_ATTENTE/VALIDE), clientId ou vehiculeId.")
+    @ApiResponse(responseCode = "200", description = "Page de bons de sortie retournée")
     @GetMapping
-    public ResponseEntity<List<BonDeSortieListResponse>> getAll(
+    public ResponseEntity<Page<BonDeSortieListResponse>> getAll(
+            @RequestParam(required = false) String keyword,
             @RequestParam(required = false) StatutBon statut,
             @RequestParam(required = false) Long clientId,
-            @RequestParam(required = false) Long vehiculeId) {
-        if (statut != null)
-            return ResponseEntity.ok(bonDeSortieService.getByStatut(statut).stream().map(BonDeSortieListResponse::from).toList());
-        if (clientId != null)
-            return ResponseEntity.ok(bonDeSortieService.getByClient(clientId).stream().map(BonDeSortieListResponse::from).toList());
-        if (vehiculeId != null)
-            return ResponseEntity.ok(bonDeSortieService.getByVehicule(vehiculeId).stream().map(BonDeSortieListResponse::from).toList());
-        return ResponseEntity.ok(bonDeSortieService.getAll().stream().map(BonDeSortieListResponse::from).toList());
+            @RequestParam(required = false) Long vehiculeId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            return ResponseEntity.ok(bonDeSortieService.search(keyword.trim(), page, size)
+                    .map(BonDeSortieListResponse::from));
+        }
+        if (statut != null) {
+            return ResponseEntity.ok(bonDeSortieService.getByStatut(statut, page, size)
+                    .map(BonDeSortieListResponse::from));
+        }
+        if (clientId != null) {
+            return ResponseEntity.ok(bonDeSortieService.getByClient(clientId, page, size)
+                    .map(BonDeSortieListResponse::from));
+        }
+        if (vehiculeId != null) {
+            return ResponseEntity.ok(bonDeSortieService.getByVehicule(vehiculeId, page, size)
+                    .map(BonDeSortieListResponse::from));
+        }
+        return ResponseEntity.ok(bonDeSortieService.getAll(page, size)
+                .map(BonDeSortieListResponse::from));
     }
 }

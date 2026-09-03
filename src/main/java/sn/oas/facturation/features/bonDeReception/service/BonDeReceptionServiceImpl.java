@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import sn.oas.facturation.features.auth.repository.UserRepository;
+import sn.oas.facturation.features.user.repository.UserRepository;
 import sn.oas.facturation.features.bonDeCommande.repository.BonDeCommandeRepository;
 import sn.oas.facturation.features.bonDeReception.data.entity.BonDeReception;
 import sn.oas.facturation.features.bonDeReception.dto.BonDeReceptionCreateRequest;

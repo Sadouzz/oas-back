@@ -4,7 +4,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import sn.oas.facturation.features.auth.data.entity.Technicien;
+
+import sn.oas.facturation.features.technicien.data.entity.Technicien;
 
 import java.util.List;
 

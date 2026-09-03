@@ -6,7 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import sn.oas.facturation.features.auth.data.entity.Technicien;
+
+import sn.oas.facturation.features.technicien.data.entity.Technicien;
 import sn.oas.facturation.features.technicien.dto.TechnicienListResponse;
 import sn.oas.facturation.features.technicien.dto.TechnicienRequest;
 import sn.oas.facturation.features.technicien.service.TechnicienService;

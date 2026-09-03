@@ -1,10 +1,10 @@
 package sn.oas.facturation.features.messagerie.service;
 
-import sn.oas.facturation.features.auth.data.entity.Client;
-import sn.oas.facturation.features.auth.data.entity.User;
+import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.messagerie.data.entity.Message;
 import sn.oas.facturation.features.messagerie.dto.ClientConversationResponse;
 import sn.oas.facturation.features.messagerie.dto.MessageRequest;
+import sn.oas.facturation.features.user.data.entity.User;
 
 import java.util.List;
 

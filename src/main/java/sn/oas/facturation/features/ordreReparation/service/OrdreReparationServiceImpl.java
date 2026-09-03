@@ -18,8 +18,9 @@ import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationRequest;
 import sn.oas.facturation.features.ordreReparation.repository.OrdreReparationRepository;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.features.vehicule.repository.VehiculeRepository;
-import sn.oas.facturation.features.auth.data.entity.Technicien;
+import sn.oas.facturation.features.technicien.data.entity.Technicien;
 import sn.oas.facturation.features.technicien.repository.TechnicienRepository;
+import sn.oas.facturation.features.user.data.enums.Role;
 import sn.oas.facturation.features.ordreReparation.data.entity.LigneOrdreReparationPiece;
 import sn.oas.facturation.features.ordreReparation.data.entity.LigneReceptionOrdre;
 import sn.oas.facturation.features.ordreReparation.data.entity.LigneTravailOrdre;
@@ -33,7 +34,7 @@ import sn.oas.facturation.features.main_doeuvre.repository.MainDoeuvreRepository
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.transaction.annotation.Transactional;
-import sn.oas.facturation.features.auth.data.enums.Role;
+
 import sn.oas.facturation.features.notification.service.AgentNotificationService;
 
 import java.util.List;

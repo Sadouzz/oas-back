@@ -6,13 +6,12 @@ import org.hibernate.annotations.ParamDef;
 import sn.oas.facturation.shared.tenant.TenantAware;
 import sn.oas.facturation.shared.tenant.TenantListener;
 import sn.oas.facturation.features.garage.data.entity.Garage;
-
+import sn.oas.facturation.features.user.data.entity.Agent;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import sn.oas.facturation.features.auth.data.entity.Agent;
 import sn.oas.facturation.features.bonDeCommande.data.enums.StatutBonCommande;
 import sn.oas.facturation.features.facturation.data.entity.Facturation;
 import sn.oas.facturation.features.fournisseur.data.entity.Fournisseur;

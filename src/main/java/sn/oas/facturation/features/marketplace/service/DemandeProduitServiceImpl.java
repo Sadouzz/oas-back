@@ -3,7 +3,8 @@ package sn.oas.facturation.features.marketplace.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import sn.oas.facturation.features.auth.data.entity.Client;
+
+import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.marketplace.data.entity.DemandeProduit;
 import sn.oas.facturation.features.marketplace.data.entity.Produit;
 import sn.oas.facturation.features.marketplace.data.enums.StatutDemandeProduit;

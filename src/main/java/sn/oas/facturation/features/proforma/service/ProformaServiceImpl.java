@@ -16,8 +16,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import sn.oas.facturation.features.auth.data.entity.Client;
+
 import sn.oas.facturation.features.auth.service.AuthService;
+import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.repository.ClientRepository;
 import sn.oas.facturation.features.facturation.data.entity.LigneFacturationMainDoeuvre;
 import sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece;
@@ -35,12 +36,12 @@ import sn.oas.facturation.features.proforma.data.entity.Proforma;
 import sn.oas.facturation.features.proforma.dto.ProformaCreateRequest;
 import sn.oas.facturation.features.proforma.dto.ProformaUpdateRequest;
 import sn.oas.facturation.features.proforma.repository.ProformaRepository;
+import sn.oas.facturation.features.user.data.enums.Role;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.features.vehicule.repository.VehiculeRepository;
 import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.features.ordreReparation.repository.OrdreReparationRepository;
 import sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation;
-import sn.oas.facturation.features.auth.data.enums.Role;
 import sn.oas.facturation.features.notification.service.AgentNotificationService;
 import sn.oas.facturation.shared.exception.ResourceNotFoundException;
 

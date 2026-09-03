@@ -1,7 +1,8 @@
 package sn.oas.facturation.features.rendezvous.service;
 
 import org.springframework.data.domain.Page;
-import sn.oas.facturation.features.auth.data.entity.Client;
+
+import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.rendezvous.data.entity.RendezVous;
 import sn.oas.facturation.features.rendezvous.data.enums.RendezVousStatus;
 import sn.oas.facturation.features.rendezvous.dto.RendezVousRequest;

@@ -5,8 +5,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import sn.oas.facturation.features.user.data.entity.Agent;
+
 import org.hibernate.annotations.CreationTimestamp;
-import sn.oas.facturation.features.auth.data.entity.Agent;
 
 import java.time.LocalDateTime;
 

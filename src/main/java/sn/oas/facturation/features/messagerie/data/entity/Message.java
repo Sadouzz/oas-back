@@ -6,9 +6,11 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
-import sn.oas.facturation.features.auth.data.entity.Client;
-import sn.oas.facturation.features.auth.data.entity.User;
+
+import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.garage.data.entity.Garage;
+import sn.oas.facturation.features.user.data.entity.User;
+
 import org.hibernate.annotations.Filter;
 
 import java.time.LocalDateTime;

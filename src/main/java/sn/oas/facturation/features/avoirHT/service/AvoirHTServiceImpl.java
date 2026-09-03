@@ -10,14 +10,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import sn.oas.facturation.features.auth.data.entity.Agent;
-import sn.oas.facturation.features.auth.data.entity.Client;
-import sn.oas.facturation.features.auth.data.entity.User;
-import sn.oas.facturation.features.auth.repository.UserRepository;
+
+import sn.oas.facturation.features.user.repository.UserRepository;
 import sn.oas.facturation.features.avoirHT.data.entity.AvoirHT;
-import sn.oas.facturation.features.avoirHT.dto.AvoirHTCreateRequest;
-import sn.oas.facturation.features.avoirHT.dto.AvoirHTResponse;
+import sn.oas.facturation.features.avoirHT.dto.request.AvoirHTCreateRequest;
+import sn.oas.facturation.features.avoirHT.dto.response.AvoirHTResponse;
 import sn.oas.facturation.features.avoirHT.repository.AvoirHTRepository;
+import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.facturation.data.entity.LigneFacturationMainDoeuvre;
 import sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece;
 import sn.oas.facturation.features.facturation.data.enums.StatutFacturation;
@@ -31,10 +30,12 @@ import sn.oas.facturation.features.main_doeuvre.data.entity.MainDoeuvre;
 import sn.oas.facturation.features.main_doeuvre.repository.MainDoeuvreRepository;
 import sn.oas.facturation.features.piecedetache.data.entity.PDP;
 import sn.oas.facturation.features.piecedetache.data.entity.PieceDetache;
-import sn.oas.facturation.features.piecedetache.data.entity.StockMouvement;
+import sn.oas.facturation.features.piecedetache.data.entity.PieceMouvement;
 import sn.oas.facturation.features.piecedetache.data.enums.TypeMouvement;
 import sn.oas.facturation.features.piecedetache.repository.PieceDetacheRepository;
-import sn.oas.facturation.features.piecedetache.repository.StockMouvementRepository;
+import sn.oas.facturation.features.piecedetache.repository.PieceMouvementRepository;
+import sn.oas.facturation.features.user.data.entity.Agent;
+import sn.oas.facturation.features.user.data.entity.User;
 import sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService;
 import sn.oas.facturation.shared.documentNumber.DocumentType;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
@@ -56,7 +57,7 @@ public class AvoirHTServiceImpl implements AvoirHTService {
     private final UserRepository userRepository;
     private final VehiculeRepository vehiculeRepository;
     private final PieceDetacheRepository pieceDetacheRepository;
-    private final StockMouvementRepository stockMouvementRepository;
+    private final PieceMouvementRepository pieceMouvementRepository;
     private final MainDoeuvreRepository mainDoeuvreRepository;
     private final GarageRepository garageRepository;
     private final DocumentNumberGeneratorService documentNumberGeneratorService;
@@ -170,7 +171,7 @@ public class AvoirHTServiceImpl implements AvoirHTService {
                     pdp.setQteReelle(pdp.getStockMagasin() + pdp.getStockAtelier());
                     pieceDetacheRepository.save(pdp);
 
-                    stockMouvementRepository.save(StockMouvement.builder()
+                    pieceMouvementRepository.save(PieceMouvement.builder()
                             .type(TypeMouvement.ENTREE)
                             .quantite((double) quantite)
                             .stockMagasinAvant(magasinAvant)

@@ -8,8 +8,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import sn.oas.facturation.features.avoirHT.dto.AvoirHTCreateRequest;
-import sn.oas.facturation.features.avoirHT.dto.AvoirHTResponse;
+
+import sn.oas.facturation.features.avoirHT.dto.request.AvoirHTCreateRequest;
+import sn.oas.facturation.features.avoirHT.dto.response.AvoirHTResponse;
 import sn.oas.facturation.features.avoirHT.service.AvoirHTService;
 
 import java.util.List;

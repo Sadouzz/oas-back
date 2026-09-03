@@ -1,7 +1,7 @@
 package sn.oas.facturation.features.piecedetache.service;
 
 import org.springframework.data.domain.Page;
-import sn.oas.facturation.features.piecedetache.data.entity.StockMouvement;
+import sn.oas.facturation.features.piecedetache.data.entity.PieceMouvement;
 import sn.oas.facturation.features.piecedetache.data.enums.TypeMouvement;
 import sn.oas.facturation.features.piecedetache.dto.AjustementStockRequest;
 import sn.oas.facturation.features.piecedetache.dto.EntreeStockRequest;
@@ -12,18 +12,19 @@ import java.util.List;
 
 public interface StockService {
 
-    StockMouvement entree(EntreeStockRequest request);
+    PieceMouvement entree(EntreeStockRequest request);
 
-    StockMouvement sortie(SortieStockRequest request);
+    PieceMouvement sortie(SortieStockRequest request);
 
-    StockMouvement ajustement(AjustementStockRequest request);
+    PieceMouvement ajustement(AjustementStockRequest request);
 
-    List<StockMouvement> getHistoriquePiece(Long pieceId);
-    Page<StockMouvement> getHistoriquePiece(Long pieceId, int page, int size);
+    List<PieceMouvement> getHistoriquePiece(Long pieceId);
+    Page<PieceMouvement> getHistoriquePiece(Long pieceId, int page, int size);
 
-    List<StockMouvement> getHistoriquePieceByType(Long pieceId, TypeMouvement type);
-    Page<StockMouvement> getHistoriquePieceByType(Long pieceId, TypeMouvement type, int page, int size);
+    List<PieceMouvement> getHistoriquePieceByType(Long pieceId, TypeMouvement type);
+    Page<PieceMouvement> getHistoriquePieceByType(Long pieceId, TypeMouvement type, int page, int size);
 
-    List<StockMouvement> getHistoriqueGlobal(LocalDateTime debut, LocalDateTime fin, Long pieceId, String categorie, TypeMouvement type);
-    Page<StockMouvement> getHistoriqueGlobal(LocalDateTime debut, LocalDateTime fin, Long pieceId, String categorie, TypeMouvement type, int page, int size);
+    List<PieceMouvement> getHistoriqueGlobal(LocalDateTime debut, LocalDateTime fin, Long pieceId, String categorie, TypeMouvement type);
+    Page<PieceMouvement> getHistoriqueGlobal(LocalDateTime debut, LocalDateTime fin, Long pieceId, String categorie, TypeMouvement type, int page, int size);
+    Page<PieceMouvement> getHistoriqueGlobal(String keyword, LocalDateTime debut, LocalDateTime fin, Long pieceId, String categorie, TypeMouvement type, int page, int size);
 }

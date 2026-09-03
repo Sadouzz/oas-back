@@ -21,6 +21,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 import sn.oas.facturation.features.piecedetache.data.enums.StatutPiece;
 import sn.oas.facturation.features.piecedetache.data.enums.TypePiece;
+import sn.oas.facturation.features.categorie_pieces.data.entity.Categorie;
 
 
 @Entity

@@ -7,6 +7,7 @@ import sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier;
 import sn.oas.facturation.shared.tenant.TenantAware;
 import sn.oas.facturation.shared.tenant.TenantListener;
 import sn.oas.facturation.features.garage.data.entity.Garage;
+import sn.oas.facturation.features.user.data.entity.Agent;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -15,8 +16,7 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import jakarta.persistence.*;
 import lombok.*;
-import sn.oas.facturation.features.auth.data.entity.Agent;
-import sn.oas.facturation.features.auth.data.entity.Client;
+import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.facturation.data.enums.StatutFacturation;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 

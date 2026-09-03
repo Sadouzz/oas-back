@@ -12,9 +12,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import sn.oas.facturation.features.auth.data.entity.Agent;
-import sn.oas.facturation.features.auth.data.entity.Technicien;
-import sn.oas.facturation.features.auth.data.enums.Role;
+import sn.oas.facturation.features.technicien.data.entity.Technicien;
+import sn.oas.facturation.features.user.data.entity.Agent;
+import sn.oas.facturation.features.user.data.enums.Role;
 
 @Aspect
 @Component

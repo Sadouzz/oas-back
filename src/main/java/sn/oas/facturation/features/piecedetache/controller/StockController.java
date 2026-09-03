@@ -9,13 +9,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import sn.oas.facturation.features.piecedetache.data.entity.StockMouvement;
+import sn.oas.facturation.features.piecedetache.data.entity.PieceMouvement;
 import sn.oas.facturation.features.piecedetache.data.enums.TypeMouvement;
 import sn.oas.facturation.features.piecedetache.dto.AjustementStockRequest;
 import sn.oas.facturation.features.piecedetache.dto.AlerteStockResponse;
 import sn.oas.facturation.features.piecedetache.dto.EntreeStockRequest;
 import sn.oas.facturation.features.piecedetache.dto.SortieStockRequest;
-import sn.oas.facturation.features.piecedetache.dto.StockMouvementListResponse;
+import sn.oas.facturation.features.piecedetache.dto.PieceMouvementListResponse;
 import sn.oas.facturation.features.piecedetache.service.AlerteService;
 import sn.oas.facturation.features.piecedetache.service.StockService;
 
@@ -36,7 +36,7 @@ public class StockController {
             @ApiResponse(responseCode = "400", description = "Pièce introuvable ou quantité invalide")
     })
     @PostMapping("/entree")
-    public ResponseEntity<StockMouvement> entree(@RequestBody EntreeStockRequest request) {
+    public ResponseEntity<PieceMouvement> entree(@RequestBody EntreeStockRequest request) {
         return ResponseEntity.ok(stockService.entree(request));
     }
 
@@ -46,7 +46,7 @@ public class StockController {
             @ApiResponse(responseCode = "400", description = "Stock magasin insuffisant ou quantité invalide")
     })
     @PostMapping("/sortie")
-    public ResponseEntity<StockMouvement> sortie(@RequestBody SortieStockRequest request) {
+    public ResponseEntity<PieceMouvement> sortie(@RequestBody SortieStockRequest request) {
         return ResponseEntity.ok(stockService.sortie(request));
     }
 
@@ -56,28 +56,29 @@ public class StockController {
             @ApiResponse(responseCode = "400", description = "Valeurs négatives ou pièce introuvable")
     })
     @PostMapping("/ajustement")
-    public ResponseEntity<StockMouvement> ajustement(@RequestBody AjustementStockRequest request) {
+    public ResponseEntity<PieceMouvement> ajustement(@RequestBody AjustementStockRequest request) {
         return ResponseEntity.ok(stockService.ajustement(request));
     }
 
     @Operation(summary = "Historique des mouvements d'une pièce", description = "Retourne tous les mouvements d'une PDP avec pagination, filtrables par type (ENTREE, SORTIE, AJUSTEMENT, INVENTAIRE).")
     @ApiResponse(responseCode = "200", description = "Historique retourné")
     @GetMapping("/historique/{pieceId}")
-    public ResponseEntity<Page<StockMouvementListResponse>> historiquePiece(
+    public ResponseEntity<Page<PieceMouvementListResponse>> historiquePiece(
             @PathVariable Long pieceId,
             @RequestParam(required = false) TypeMouvement type,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         if (type != null) {
-            return ResponseEntity.ok(stockService.getHistoriquePieceByType(pieceId, type, page, size).map(StockMouvementListResponse::from));
+            return ResponseEntity.ok(stockService.getHistoriquePieceByType(pieceId, type, page, size).map(PieceMouvementListResponse::from));
         }
-        return ResponseEntity.ok(stockService.getHistoriquePiece(pieceId, page, size).map(StockMouvementListResponse::from));
+        return ResponseEntity.ok(stockService.getHistoriquePiece(pieceId, page, size).map(PieceMouvementListResponse::from));
     }
 
-    @Operation(summary = "Historique global des mouvements", description = "Retourne tous les mouvements de stock sur une période donnée avec pagination, avec possibilité de filtrer par pièce, catégorie ou type de mouvement.")
+    @Operation(summary = "Historique global des mouvements", description = "Retourne tous les mouvements de stock sur une période donnée avec pagination, avec possibilité de filtrer par mot-clé, pièce, catégorie ou type de mouvement.")
     @ApiResponse(responseCode = "200", description = "Historique retourné")
     @GetMapping("/historique")
-    public ResponseEntity<Page<StockMouvementListResponse>> historiqueGlobal(
+    public ResponseEntity<Page<PieceMouvementListResponse>> historiqueGlobal(
+            @RequestParam(required = false) String keyword,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime debut,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fin,
             @RequestParam(required = false) Long pieceId,
@@ -85,9 +86,7 @@ public class StockController {
             @RequestParam(required = false) TypeMouvement type,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        LocalDateTime d = debut != null ? debut : LocalDateTime.now().minusYears(5);
-        LocalDateTime f = fin != null ? fin : LocalDateTime.now().plusDays(1);
-        return ResponseEntity.ok(stockService.getHistoriqueGlobal(d, f, pieceId, categorie, type, page, size).map(StockMouvementListResponse::from));
+        return ResponseEntity.ok(stockService.getHistoriqueGlobal(keyword, debut, fin, pieceId, categorie, type, page, size).map(PieceMouvementListResponse::from));
     }
 
     @Operation(summary = "Toutes les alertes", description = "Retourne les PDP en rupture de stock (stockMagasin = 0) et en stock faible (stockMagasin ≤ seuil) avec pagination.")

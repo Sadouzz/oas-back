@@ -9,8 +9,9 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
 import org.hibernate.annotations.ParamDef;
-import sn.oas.facturation.features.auth.data.entity.Agent;
+
 import sn.oas.facturation.features.piecedetache.data.entity.PDP;
+import sn.oas.facturation.features.user.data.entity.Agent;
 import sn.oas.facturation.features.garage.data.entity.Garage;
 import sn.oas.facturation.shared.tenant.TenantAware;
 import sn.oas.facturation.shared.tenant.TenantListener;

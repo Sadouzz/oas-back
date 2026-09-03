@@ -3,7 +3,8 @@ package sn.oas.facturation.features.notification.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import sn.oas.facturation.features.auth.data.entity.Client;
+
+import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.notification.data.entity.Notification;
 import sn.oas.facturation.features.notification.dto.NotificationResponse;
 import sn.oas.facturation.features.notification.repository.NotificationRepository;

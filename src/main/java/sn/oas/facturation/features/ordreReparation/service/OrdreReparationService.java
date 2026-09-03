@@ -12,8 +12,8 @@ import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationLightDTO;
 import sn.oas.facturation.features.ordreReparation.dto.PieceJointeDiagnosticRequest;
 import sn.oas.facturation.features.ordreReparation.dto.PieceJointeDiagnosticResponse;
 import sn.oas.facturation.features.ordreReparation.dto.RemarqueDiagnosticResponse;
+import sn.oas.facturation.features.technicien.data.entity.Technicien;
 import sn.oas.facturation.features.ordreReparation.data.enums.TypePieceJointe;
-import sn.oas.facturation.features.auth.data.entity.Technicien;
 
 public interface OrdreReparationService {
     OrdreReparation createOrdreReparation(OrdreReparationRequest request);

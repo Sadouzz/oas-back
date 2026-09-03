@@ -15,7 +15,8 @@ spring:
 app:
   jwt:
     secret: ${JWT_SECRET}
-    expiration: 3600000
+    expiration: 21600000
+    refresh-expiration: 604800000
   cors:
     allowed-origins: ${CORS_ORIGINS:http://localhost,https://oas-front.vercel.app}
   cloudinary:

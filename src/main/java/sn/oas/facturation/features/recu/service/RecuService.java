@@ -1,6 +1,6 @@
 package sn.oas.facturation.features.recu.service;
 
-import sn.oas.facturation.features.auth.data.entity.Client;
+import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.recu.data.entity.Recu;
 import sn.oas.facturation.features.recu.dto.RecuRequest;
 

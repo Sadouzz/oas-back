@@ -6,12 +6,13 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import sn.oas.facturation.features.auth.data.entity.Client;
-import sn.oas.facturation.features.auth.data.entity.User;
-import sn.oas.facturation.features.auth.dto.UserUpdateRequest;
-import sn.oas.facturation.features.auth.repository.UserRepository;
-import sn.oas.facturation.features.auth.service.UserService;
+
+import sn.oas.facturation.features.user.repository.UserRepository;
+import sn.oas.facturation.features.user.service.UserService;
+import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.repository.ClientRepository;
+import sn.oas.facturation.features.user.data.entity.User;
+import sn.oas.facturation.features.user.dto.request.UserUpdateRequest;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.features.vehicule.service.VehiculeService;
 

@@ -2,7 +2,7 @@ package sn.oas.facturation.features.avoirHT.service;
 
 import org.springframework.data.domain.Page;
 import sn.oas.facturation.features.avoirHT.data.entity.AvoirHT;
-import sn.oas.facturation.features.avoirHT.dto.AvoirHTCreateRequest;
+import sn.oas.facturation.features.avoirHT.dto.request.AvoirHTCreateRequest;
 
 import java.util.List;
 

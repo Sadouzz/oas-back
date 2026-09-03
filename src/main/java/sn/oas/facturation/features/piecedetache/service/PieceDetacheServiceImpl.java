@@ -9,10 +9,9 @@ import sn.oas.facturation.features.piecedetache.data.entity.PDS;
 import sn.oas.facturation.features.piecedetache.data.entity.PieceDetache;
 import sn.oas.facturation.features.piecedetache.data.enums.StatutPiece;
 import sn.oas.facturation.features.piecedetache.data.enums.TypePiece;
-import sn.oas.facturation.features.piecedetache.repository.CategorieRepository;
+import sn.oas.facturation.features.categorie_pieces.repository.CategorieRepository;
 import sn.oas.facturation.features.piecedetache.dto.PieceDetacheRequest;
 import sn.oas.facturation.features.piecedetache.repository.PieceDetacheRepository;
-import sn.oas.facturation.features.piecedetache.repository.DepotRepository;
 
 import java.util.List;
 import java.util.Set;
@@ -29,7 +28,6 @@ import org.springframework.data.domain.Sort;
 public class PieceDetacheServiceImpl implements PieceDetacheService {
 
     private final PieceDetacheRepository pieceDetacheRepository;
-    private final DepotRepository depotRepository;
     private final CategorieRepository categorieRepository;
     private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
 

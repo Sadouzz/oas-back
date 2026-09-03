@@ -2,7 +2,8 @@ package sn.oas.facturation.features.marketplace.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-import sn.oas.facturation.features.auth.data.entity.Client;
+
+import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.marketplace.data.entity.DemandeProduit;
 import sn.oas.facturation.features.marketplace.data.enums.StatutDemandeProduit;
 

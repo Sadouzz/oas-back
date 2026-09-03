@@ -1,7 +1,8 @@
 package sn.oas.facturation.features.partenaire.dto;
 
 import lombok.Data;
-import sn.oas.facturation.features.partenaire.data.entity.TypePartenaire;
+import sn.oas.facturation.features.partenaire.data.enums.TypePartenaire;
+
 import java.time.LocalDateTime;
 
 @Data

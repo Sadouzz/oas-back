@@ -1,22 +1,26 @@
 package sn.oas.facturation.features.piecedetache.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import sn.oas.facturation.features.auth.data.entity.Agent;
-import sn.oas.facturation.features.auth.data.entity.User;
-import sn.oas.facturation.features.auth.repository.UserRepository;
+
+import sn.oas.facturation.features.user.repository.UserRepository;
 import sn.oas.facturation.features.piecedetache.data.entity.PDP;
 import sn.oas.facturation.features.piecedetache.data.entity.PieceDetache;
-import sn.oas.facturation.features.piecedetache.data.entity.StockMouvement;
+import sn.oas.facturation.features.piecedetache.data.entity.PieceMouvement;
 import sn.oas.facturation.features.piecedetache.data.enums.TypeMouvement;
 import sn.oas.facturation.features.piecedetache.dto.AjustementStockRequest;
 import sn.oas.facturation.features.piecedetache.dto.EntreeStockRequest;
 import sn.oas.facturation.features.piecedetache.dto.SortieStockRequest;
 import sn.oas.facturation.features.piecedetache.repository.PieceDetacheRepository;
-import sn.oas.facturation.features.piecedetache.repository.StockMouvementRepository;
+import sn.oas.facturation.features.piecedetache.repository.PieceMouvementRepository;
+import sn.oas.facturation.features.user.data.entity.Agent;
+import sn.oas.facturation.features.user.data.entity.User;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -25,13 +29,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class StockServiceImpl implements StockService {
 
-    private final StockMouvementRepository stockMouvementRepository;
+    private final PieceMouvementRepository pieceMouvementRepository;
     private final PieceDetacheRepository pieceDetacheRepository;
     private final UserRepository userRepository;
 
     @Transactional
     @Override
-    public StockMouvement entree(EntreeStockRequest request) {
+    public PieceMouvement entree(EntreeStockRequest request) {
         PDP pdp = getPDP(request.pieceId());
         Agent agent = getAgentConnecte();
 
@@ -46,7 +50,7 @@ public class StockServiceImpl implements StockService {
         pdp.setQteReelle(pdp.getStockMagasin() + pdp.getStockAtelier());
         pieceDetacheRepository.save(pdp);
 
-        return stockMouvementRepository.save(StockMouvement.builder()
+        return pieceMouvementRepository.save(PieceMouvement.builder()
                 .type(TypeMouvement.ENTREE)
                 .quantite(request.quantite().doubleValue())
                 .stockMagasinAvant(magasinAvant)
@@ -67,7 +71,7 @@ public class StockServiceImpl implements StockService {
 
     @Transactional
     @Override
-    public StockMouvement sortie(SortieStockRequest request) {
+    public PieceMouvement sortie(SortieStockRequest request) {
         PDP pdp = getPDP(request.pieceId());
         Agent agent = getAgentConnecte();
 
@@ -88,7 +92,7 @@ public class StockServiceImpl implements StockService {
         pdp.setQteReelle(pdp.getStockMagasin() + pdp.getStockAtelier());
         pieceDetacheRepository.save(pdp);
 
-        return stockMouvementRepository.save(StockMouvement.builder()
+        return pieceMouvementRepository.save(PieceMouvement.builder()
                 .type(TypeMouvement.SORTIE_MAGASIN_VERS_ATELIER)
                 .quantite(request.quantite().doubleValue())
                 .stockMagasinAvant(magasinAvant)
@@ -109,7 +113,7 @@ public class StockServiceImpl implements StockService {
 
     @Transactional
     @Override
-    public StockMouvement ajustement(AjustementStockRequest request) {
+    public PieceMouvement ajustement(AjustementStockRequest request) {
         PDP pdp = getPDP(request.pieceId());
         Agent agent = getAgentConnecte();
 
@@ -130,7 +134,7 @@ public class StockServiceImpl implements StockService {
         pdp.setQteReelle((request.stockMagasin() != null ? request.stockMagasin().doubleValue() : 0.0) + (request.stockAtelier() != null ? request.stockAtelier().doubleValue() : 0.0));
         pieceDetacheRepository.save(pdp);
 
-        return stockMouvementRepository.save(StockMouvement.builder()
+        return pieceMouvementRepository.save(PieceMouvement.builder()
                 .type(TypeMouvement.AJUSTEMENT)
                 .quantite(quantite.doubleValue())
                 .stockMagasinAvant(magasinAvant)
@@ -150,40 +154,55 @@ public class StockServiceImpl implements StockService {
     }
 
     @Override
-    public List<StockMouvement> getHistoriquePiece(Long pieceId) {
+    public List<PieceMouvement> getHistoriquePiece(Long pieceId) {
         PDP pdp = getPDP(pieceId);
-        return stockMouvementRepository.findByPieceOrderByDateOperationDesc(pdp);
+        return pieceMouvementRepository.findByPieceOrderByDateOperationDesc(pdp);
     }
 
     @Override
-    public org.springframework.data.domain.Page<StockMouvement> getHistoriquePiece(Long pieceId, int page, int size) {
+    public Page<PieceMouvement> getHistoriquePiece(Long pieceId, int page, int size) {
         PDP pdp = getPDP(pieceId);
-        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
-        return stockMouvementRepository.findByPieceOrderByDateOperationDesc(pdp, pageable);
+        Pageable pageable = PageRequest.of(page, size);
+        return pieceMouvementRepository.findByPieceOrderByDateOperationDesc(pdp, pageable);
     }
 
     @Override
-    public List<StockMouvement> getHistoriquePieceByType(Long pieceId, TypeMouvement type) {
+    public List<PieceMouvement> getHistoriquePieceByType(Long pieceId, TypeMouvement type) {
         PDP pdp = getPDP(pieceId);
-        return stockMouvementRepository.findByPieceAndTypeOrderByDateOperationDesc(pdp, type);
+        return pieceMouvementRepository.findByPieceAndTypeOrderByDateOperationDesc(pdp, type);
     }
 
     @Override
-    public org.springframework.data.domain.Page<StockMouvement> getHistoriquePieceByType(Long pieceId, TypeMouvement type, int page, int size) {
+    public Page<PieceMouvement> getHistoriquePieceByType(Long pieceId, TypeMouvement type, int page, int size) {
         PDP pdp = getPDP(pieceId);
-        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
-        return stockMouvementRepository.findByPieceAndTypeOrderByDateOperationDesc(pdp, type, pageable);
+        Pageable pageable = PageRequest.of(page, size);
+        return pieceMouvementRepository.findByPieceAndTypeOrderByDateOperationDesc(pdp, type, pageable);
     }
 
     @Override
-    public List<StockMouvement> getHistoriqueGlobal(LocalDateTime debut, LocalDateTime fin, Long pieceId, String categorie, TypeMouvement type) {
-        return stockMouvementRepository.findFiltered(debut, fin, pieceId, categorie, type);
+    public List<PieceMouvement> getHistoriqueGlobal(LocalDateTime debut, LocalDateTime fin, Long pieceId, String categorie, TypeMouvement type) {
+        if (debut == null && fin == null && pieceId == null && categorie == null && type == null) {
+            return pieceMouvementRepository.findAll(org.springframework.data.domain.Sort.by("dateOperation").descending().and(org.springframework.data.domain.Sort.by("id").descending()));
+        }
+        return pieceMouvementRepository.findFiltered(debut, fin, pieceId, categorie, type);
     }
 
     @Override
-    public org.springframework.data.domain.Page<StockMouvement> getHistoriqueGlobal(LocalDateTime debut, LocalDateTime fin, Long pieceId, String categorie, TypeMouvement type, int page, int size) {
-        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
-        return stockMouvementRepository.findFiltered(debut, fin, pieceId, categorie, type, pageable);
+    public Page<PieceMouvement> getHistoriqueGlobal(LocalDateTime debut, LocalDateTime fin, Long pieceId, String categorie, TypeMouvement type, int page, int size) {
+        return getHistoriqueGlobal(null, debut, fin, pieceId, categorie, type, page, size);
+    }
+
+    @Override
+    public Page<PieceMouvement> getHistoriqueGlobal(String keyword, LocalDateTime debut, LocalDateTime fin, Long pieceId, String categorie, TypeMouvement type, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, org.springframework.data.domain.Sort.by("dateOperation").descending().and(org.springframework.data.domain.Sort.by("id").descending()));
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            String pattern = "%" + keyword.trim().toLowerCase() + "%";
+            return pieceMouvementRepository.searchMouvements(pattern, pageable);
+        }
+        if (debut == null && fin == null && pieceId == null && categorie == null && type == null) {
+            return pieceMouvementRepository.findAll(pageable);
+        }
+        return pieceMouvementRepository.findFiltered(debut, fin, pieceId, categorie, type, pageable);
     }
 
     private PDP getPDP(Long pieceId) {

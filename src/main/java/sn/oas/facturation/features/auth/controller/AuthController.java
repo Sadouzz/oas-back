@@ -9,15 +9,15 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-import sn.oas.facturation.features.auth.data.entity.User;
-import sn.oas.facturation.features.auth.data.enums.TypeUser;
-import sn.oas.facturation.features.auth.dto.AuthResponse;
-import sn.oas.facturation.features.auth.dto.ChangePasswordRequest;
-import sn.oas.facturation.features.auth.dto.LoginRequest;
-import sn.oas.facturation.features.auth.dto.RegisterRequest;
-import sn.oas.facturation.features.auth.repository.UserRepository;
-import sn.oas.facturation.features.auth.service.AuthService;
 
+import sn.oas.facturation.features.auth.dto.request.ChangePasswordRequest;
+import sn.oas.facturation.features.auth.dto.request.LoginRequest;
+import sn.oas.facturation.features.auth.dto.request.RegisterRequest;
+import sn.oas.facturation.features.auth.dto.response.AuthResponse;
+import sn.oas.facturation.features.user.repository.UserRepository;
+import sn.oas.facturation.features.auth.service.AuthService;
+import sn.oas.facturation.features.user.data.entity.User;
+import sn.oas.facturation.features.user.data.enums.TypeUser;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
 
@@ -32,48 +32,76 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
 
     @PostMapping("/signin")
-    @Operation(summary = "Connexion d'un utilisateur avec cookie HttpOnly")
+    @Operation(summary = "Connexion d'un utilisateur avec cookies HttpOnly (Access token 6h & Refresh token 7j)")
     public ResponseEntity<AuthResponse> signin(@RequestBody LoginRequest request) {
         AuthResponse response = authService.login(request);
 
-        ResponseCookie cookie = ResponseCookie.from("token", response.token())
+        ResponseCookie accessCookie = ResponseCookie.from("token", response.token())
                 .httpOnly(true)
                 .secure(false) // Mettre true en production HTTPS
                 .path("/")
-                .maxAge(7 * 24 * 60 * 60)
+                .maxAge(6 * 60 * 60) // 6 heures
+                .sameSite("Lax")
+                .build();
+
+        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", response.refreshToken())
+                .httpOnly(true)
+                .secure(false)
+                .path("/")
+                .maxAge(7 * 24 * 60 * 60) // 7 jours
                 .sameSite("Lax")
                 .build();
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
                 .body(response);
     }
 
     @PostMapping("/refresh")
-    @Operation(summary = "Rafraîchir le token d'authentification et le cookie HttpOnly")
+    @Operation(summary = "Rafraîchir le token d'authentification et les cookies HttpOnly")
     public ResponseEntity<AuthResponse> refresh(HttpServletRequest request) {
-        String token = extractToken(request);
-        AuthResponse response = authService.refreshToken(token);
+        String refreshToken = extractRefreshToken(request);
+        AuthResponse response = authService.refreshToken(refreshToken);
 
-        ResponseCookie cookie = ResponseCookie.from("token", response.token())
+        ResponseCookie accessCookie = ResponseCookie.from("token", response.token())
                 .httpOnly(true)
                 .secure(false)
                 .path("/")
-                .maxAge(7 * 24 * 60 * 60)
+                .maxAge(6 * 60 * 60) // 6 heures
+                .sameSite("Lax")
+                .build();
+
+        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", response.refreshToken())
+                .httpOnly(true)
+                .secure(false)
+                .path("/")
+                .maxAge(7 * 24 * 60 * 60) // 7 jours
                 .sameSite("Lax")
                 .build();
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
                 .body(response);
     }
 
-    private String extractToken(HttpServletRequest request) {
+    private String extractRefreshToken(HttpServletRequest request) {
+        if (request.getCookies() != null) {
+            for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
+                if ("refreshToken".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+        String customHeader = request.getHeader("X-Refresh-Token");
+        if (customHeader != null && !customHeader.isBlank()) {
+            return customHeader.trim();
+        }
         String headerAuth = request.getHeader("Authorization");
         if (headerAuth != null && headerAuth.startsWith("Bearer ")) {
             return headerAuth.substring(7);
         }
-
         if (request.getCookies() != null) {
             for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
                 if ("token".equals(cookie.getName())) {
@@ -85,9 +113,17 @@ public class AuthController {
     }
 
     @PostMapping("/signout")
-    @Operation(summary = "Déconnexion et suppression du cookie HttpOnly")
+    @Operation(summary = "Déconnexion et suppression des cookies HttpOnly")
     public ResponseEntity<?> signout() {
-        ResponseCookie cookie = ResponseCookie.from("token", "")
+        ResponseCookie accessCookie = ResponseCookie.from("token", "")
+                .httpOnly(true)
+                .secure(false)
+                .path("/")
+                .maxAge(0)
+                .sameSite("Lax")
+                .build();
+
+        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", "")
                 .httpOnly(true)
                 .secure(false)
                 .path("/")
@@ -96,7 +132,8 @@ public class AuthController {
                 .build();
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
                 .body(Map.of("message", "Déconnecté avec succès"));
     }
 

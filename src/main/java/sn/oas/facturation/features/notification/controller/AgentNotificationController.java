@@ -4,10 +4,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-import sn.oas.facturation.features.auth.data.entity.Agent;
-import sn.oas.facturation.features.auth.repository.UserRepository;
+
+import sn.oas.facturation.features.user.repository.UserRepository;
 import sn.oas.facturation.features.notification.dto.AgentNotificationResponse;
 import sn.oas.facturation.features.notification.service.AgentNotificationService;
+import sn.oas.facturation.features.user.data.entity.Agent;
 
 import java.util.List;
 

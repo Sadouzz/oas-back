@@ -5,10 +5,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import sn.oas.facturation.features.auth.data.entity.Agent;
-import sn.oas.facturation.features.auth.data.entity.Client;
-import sn.oas.facturation.features.auth.data.entity.User;
-import sn.oas.facturation.features.auth.repository.UserRepository;
+
+import sn.oas.facturation.features.user.repository.UserRepository;
 import sn.oas.facturation.features.bonDeSortie.data.entity.BonDeSortie;
 import sn.oas.facturation.features.bonDeSortie.data.entity.LigneBonDeSortiePiece;
 
@@ -17,24 +15,32 @@ import sn.oas.facturation.features.bonDeSortie.repository.BonDeSortieHistoriqueR
 import sn.oas.facturation.features.facture.service.FactureService;
 import sn.oas.facturation.features.piecedetache.data.entity.PDP;
 import sn.oas.facturation.features.piecedetache.data.entity.PieceDetache;
-import sn.oas.facturation.features.piecedetache.data.entity.StockMouvement;
+import sn.oas.facturation.features.piecedetache.data.entity.PieceMouvement;
 import sn.oas.facturation.features.bonDeSortie.data.enums.StatutBon;
 import sn.oas.facturation.features.piecedetache.data.enums.TypeMouvement;
 import sn.oas.facturation.features.bonDeSortie.dto.BonDeSortieRequest;
 import sn.oas.facturation.features.bonDeSortie.dto.LignePieceRequest;
 
 import sn.oas.facturation.features.bonDeSortie.repository.BonDeSortieRepository;
+import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.piecedetache.repository.PieceDetacheRepository;
-import sn.oas.facturation.features.piecedetache.repository.StockMouvementRepository;
+import sn.oas.facturation.features.piecedetache.repository.PieceMouvementRepository;
+import sn.oas.facturation.features.user.data.entity.Agent;
+import sn.oas.facturation.features.user.data.entity.User;
+import sn.oas.facturation.features.user.data.enums.Role;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.features.vehicule.repository.VehiculeRepository;
 import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation;
 import sn.oas.facturation.features.ordreReparation.repository.OrdreReparationRepository;
 import sn.oas.facturation.features.notification.service.AgentNotificationService;
-import sn.oas.facturation.features.auth.data.enums.Role;
+
 import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 @Service
 @RequiredArgsConstructor
@@ -42,7 +48,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
 
     private final BonDeSortieRepository bonDeSortieRepository;
     private final PieceDetacheRepository pieceDetacheRepository;
-    private final StockMouvementRepository stockMouvementRepository;
+    private final PieceMouvementRepository pieceMouvementRepository;
     private final VehiculeRepository vehiculeRepository;
     private final UserRepository userRepository;
     private final OrdreReparationRepository ordreReparationRepository;
@@ -118,7 +124,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                 pdp.setStockAtelier(atelierAvant + quantite);
                 pieceDetacheRepository.save(pdp);
 
-                stockMouvementRepository.save(StockMouvement.builder()
+                pieceMouvementRepository.save(PieceMouvement.builder()
                         .type(TypeMouvement.SORTIE_MAGASIN)
                         .quantite(quantite)
                         .stockMagasinAvant(magasinAvant)
@@ -215,7 +221,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
             pdp.setStockAtelier(Math.max(0.0, atelierAvant - quantite));
             pieceDetacheRepository.save(pdp);
 
-            stockMouvementRepository.save(StockMouvement.builder()
+            pieceMouvementRepository.save(PieceMouvement.builder()
                     .type(TypeMouvement.SORTIE_ATELIER)
                     .quantite(quantite)
                     .stockMagasinAvant(magasinAvant)
@@ -338,7 +344,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
         bon.getLignesBonDeSortiePieces().remove(ligneARetirer);
 
         // Enregistre le mouvement de stock
-        stockMouvementRepository.save(StockMouvement.builder()
+        pieceMouvementRepository.save(PieceMouvement.builder()
                 .type(TypeMouvement.RETOUR_MAGASIN)
                 .quantite(quantite)
                 .stockMagasinAvant(magasinAvant)
@@ -388,8 +394,31 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
     }
 
     @Override
+    public Page<BonDeSortieHistorique> getHistorique(Long id, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("dateAction").descending());
+        return bonDeSortieHistoriqueRepository.findByBonDeSortieId(id, pageable);
+    }
+
+    @Override
     public List<BonDeSortieHistorique> getAllHistorique() {
         return bonDeSortieHistoriqueRepository.findAllByOrderByDateActionDesc();
+    }
+
+    @Override
+    public Page<BonDeSortieHistorique> getAllHistorique(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("dateAction").descending());
+        return bonDeSortieHistoriqueRepository.findAll(pageable);
+    }
+
+    @Override
+    public List<BonDeSortieHistorique> searchHistorique(String keyword) {
+        return bonDeSortieHistoriqueRepository.searchHistorique(keyword);
+    }
+
+    @Override
+    public Page<BonDeSortieHistorique> searchHistorique(String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("dateAction").descending());
+        return bonDeSortieHistoriqueRepository.searchHistorique(keyword, pageable);
     }
 
     @Override
@@ -404,8 +433,20 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
     }
 
     @Override
+    public Page<BonDeSortie> getAll(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("date").descending());
+        return bonDeSortieRepository.findAll(pageable);
+    }
+
+    @Override
     public List<BonDeSortie> getByStatut(StatutBon statut) {
         return bonDeSortieRepository.findByStatutOrderByDateDesc(statut);
+    }
+
+    @Override
+    public Page<BonDeSortie> getByStatut(StatutBon statut, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("date").descending());
+        return bonDeSortieRepository.findByStatut(statut, pageable);
     }
 
     @Override
@@ -414,8 +455,31 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
     }
 
     @Override
+    public Page<BonDeSortie> getByClient(Long clientId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("date").descending());
+        return bonDeSortieRepository.findByClientId(clientId, pageable);
+    }
+
+    @Override
     public List<BonDeSortie> getByVehicule(Long vehiculeId) {
         return bonDeSortieRepository.findByVehiculeIdOrderByDateDesc(vehiculeId);
+    }
+
+    @Override
+    public Page<BonDeSortie> getByVehicule(Long vehiculeId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("date").descending());
+        return bonDeSortieRepository.findByVehiculeId(vehiculeId, pageable);
+    }
+
+    @Override
+    public List<BonDeSortie> search(String keyword) {
+        return bonDeSortieRepository.searchBonsDeSortie(keyword);
+    }
+
+    @Override
+    public Page<BonDeSortie> search(String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("date").descending());
+        return bonDeSortieRepository.searchBonsDeSortie(keyword, pageable);
     }
 
     private String genererReference() {

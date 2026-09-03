@@ -1,6 +1,6 @@
 package sn.oas.facturation.features.piecedetache.dto;
 
-import sn.oas.facturation.features.piecedetache.data.entity.StockMouvement;
+import sn.oas.facturation.features.piecedetache.data.entity.PieceMouvement;
 
 public record InventaireResponse(
         Long pieceId,
@@ -13,5 +13,5 @@ public record InventaireResponse(
         Double ecartMagasin,
         Double ecartAtelier,
         boolean ajuste,
-        StockMouvement mouvement
+        PieceMouvement mouvement
 ) {}

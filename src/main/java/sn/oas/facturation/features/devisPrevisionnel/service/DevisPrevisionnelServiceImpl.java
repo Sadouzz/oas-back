@@ -10,10 +10,10 @@ import com.lowagie.text.pdf.PdfWriter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import sn.oas.facturation.features.auth.data.entity.Agent;
-import sn.oas.facturation.features.auth.data.entity.Client;
+
 import sn.oas.facturation.features.auth.service.AuthService;
-import sn.oas.facturation.features.auth.service.UserService;
+import sn.oas.facturation.features.user.service.UserService;
+import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.devisPrevisionnel.data.entity.DevisPrevisionnel;
 import sn.oas.facturation.features.devisPrevisionnel.dto.DevisPrevisionnelRequest;
 import sn.oas.facturation.features.devisPrevisionnel.repository.DevisPrevisionnelRepository;
@@ -27,6 +27,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import sn.oas.facturation.features.ficheAtelier.repository.FicheAtelierRepository;
+import sn.oas.facturation.features.user.data.entity.Agent;
 import sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier;
 
 @Service

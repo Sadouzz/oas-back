@@ -4,8 +4,9 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-import sn.oas.facturation.features.auth.data.entity.Technicien;
+
 import sn.oas.facturation.features.ordreReparation.data.enums.TypePieceJointe;
+import sn.oas.facturation.features.technicien.data.entity.Technicien;
 
 import java.time.LocalDateTime;
 

@@ -5,8 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import sn.oas.facturation.features.auth.data.entity.Client;
 import sn.oas.facturation.features.marketplace.data.enums.StatutDemandeProduit;
+import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.garage.data.entity.Garage;
 import org.hibernate.annotations.Filter;
 
