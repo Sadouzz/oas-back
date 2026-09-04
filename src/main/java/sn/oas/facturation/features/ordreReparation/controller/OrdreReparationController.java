@@ -3,9 +3,11 @@ package sn.oas.facturation.features.ordreReparation.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.*;
 
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.service.ClientService;
@@ -13,6 +15,7 @@ import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.features.ordreReparation.data.enums.TypePieceJointe;
 import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationRequest;
 import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationLightDTO;
+import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationListDTO;
 import sn.oas.facturation.features.ordreReparation.dto.PieceJointeDiagnosticRequest;
 import sn.oas.facturation.features.ordreReparation.dto.PieceJointeDiagnosticResponse;
 import sn.oas.facturation.features.ordreReparation.dto.RemarqueDiagnosticResponse;
@@ -33,18 +36,20 @@ public class OrdreReparationController {
     private final OrdreReparationRepository ordreReparationRepository;
 
     @GetMapping
-    @Operation(summary = "Lister toutes les fiches atelier avec pagination")
-    public ResponseEntity<?> getAllOrdresReparation(
+    @Operation(summary = "Lister toutes les  atelier avec pagination")
+    public ResponseEntity<Page<OrdreReparationListDTO>> getAllOrdresReparation(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(ordreReparationService.getAllOrdresReparation(page, size));
+        return ResponseEntity
+                .ok(ordreReparationService.getAllOrdresReparation(page, size).map(OrdreReparationListDTO::from));
     }
 
     @GetMapping("/me")
     @Operation(summary = "Lister l'historique des interventions/réparations du client connecté")
     public ResponseEntity<List<OrdreReparation>> getMyInterventions() {
         Client client = clientService.getClientConnecte();
-        return ResponseEntity.ok(ordreReparationRepository.findByVehiculeClientIdOrderByDateCreationDesc(client.getId()));
+        return ResponseEntity
+                .ok(ordreReparationRepository.findByVehiculeClientIdOrderByDateCreationDesc(client.getId()));
     }
 
     @GetMapping("/client/{clientId}")
@@ -108,7 +113,8 @@ public class OrdreReparationController {
             e.printStackTrace();
             java.io.StringWriter sw = new java.io.StringWriter();
             e.printStackTrace(new java.io.PrintWriter(sw));
-            return ResponseEntity.badRequest().body(java.util.Map.of("message", e.getMessage() != null ? e.getMessage() : "null", "trace", sw.toString()));
+            return ResponseEntity.badRequest().body(java.util.Map.of("message",
+                    e.getMessage() != null ? e.getMessage() : "null", "trace", sw.toString()));
         }
     }
 

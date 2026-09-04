@@ -20,7 +20,7 @@ public record UserListResponse(
         TypeUser type,
         String role,
         boolean enabled,
-        LocalDateTime createdAt,
+        // LocalDateTime createdAt,
         GarageSummary garage) {
 
     public record GarageSummary(Long id, String nom) {
@@ -58,7 +58,7 @@ public record UserListResponse(
                 .type(u.getType())
                 .role(role)
                 .enabled(u.isEnabled())
-                .createdAt(u.getCreatedAt())
+                // .createdAt(u.getCreatedAt())
                 .garage(garageSummary)
                 .build();
     }

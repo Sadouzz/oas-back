@@ -17,7 +17,7 @@ import sn.oas.facturation.features.ordreReparation.data.enums.TypePieceJointe;
 
 public interface OrdreReparationService {
     OrdreReparation createOrdreReparation(OrdreReparationRequest request);
-    Page<OrdreReparationLightDTO> getAllOrdresReparation(int page, int size);
+    Page<OrdreReparation> getAllOrdresReparation(int page, int size);
     List<OrdreReparationLightDTO> getAllOrdresReparation();
     Optional<OrdreReparation> getOrdreReparationById(Long id);
     OrdreReparation updateOrdreReparation(Long id, OrdreReparationRequest request);

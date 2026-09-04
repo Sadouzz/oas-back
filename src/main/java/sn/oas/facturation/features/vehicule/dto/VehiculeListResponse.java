@@ -13,8 +13,9 @@ public record VehiculeListResponse(
         String marque,
         Double kilometrage,
         String numeroChassis,
-        ClientSummary client,
-        LocalDateTime createdAt) {
+        ClientSummary client
+// LocalDateTime createdAt
+) {
 
     public record ClientSummary(
             Long id,
@@ -45,7 +46,7 @@ public record VehiculeListResponse(
                 .kilometrage(v.getKilometrage())
                 .numeroChassis(v.getNumeroChassis())
                 .client(clientSummary)
-                .createdAt(v.getCreatedAt())
+                // .createdAt(v.getCreatedAt())
                 .build();
     }
 }

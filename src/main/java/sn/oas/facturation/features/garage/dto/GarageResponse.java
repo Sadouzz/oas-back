@@ -12,8 +12,8 @@ public record GarageResponse(
         String numeroFixe,
         String numeroWhatsapp,
         String email,
-        LocalDateTime createdAt,
-        LocalDateTime updatedAt,
+        // LocalDateTime createdAt,
+        // LocalDateTime updatedAt,
         boolean archived
 ) {
     public static GarageResponse from(Garage garage) {
@@ -32,8 +32,8 @@ public record GarageResponse(
                 garage.getNumeroFixe(),
                 garage.getNumeroWhatsapp(),
                 garage.getEmail(),
-                garage.getCreatedAt(),
-                garage.getUpdatedAt(),
+                // garage.getCreatedAt(),
+                // garage.getUpdatedAt(),
                 garage.isArchived()
         );
     }

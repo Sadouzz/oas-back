@@ -15,14 +15,14 @@ public class AvoirTTCResponse {
     private Long id;
     private String numero;
     private LocalDateTime dateCreation;
-    private LocalDateTime dateModification;
+    // private LocalDateTime dateModification;
     private BigDecimal montantHT;
     private BigDecimal montantTVA;
     private BigDecimal montantTTC;
     private BigDecimal montantTimbre;
     private BigDecimal montantTotal;
     
-    private Long agentId;
+    // private Long agentId;
     private String agentNom;
     private String remarque;
     private Double kilometrage;
@@ -32,7 +32,7 @@ public class AvoirTTCResponse {
     
     private Long vehiculeId;
     private String immatriculation;
-    private String numeroChassis;
+    // private String numeroChassis;
     private String marque;
     private String modele;
     private Integer annee;
@@ -58,13 +58,13 @@ public class AvoirTTCResponse {
                 .id(a.getId())
                 .numero(a.getNumero())
                 .dateCreation(a.getDateCreation())
-                .dateModification(a.getDateModification())
+                // .dateModification(a.getDateModification())
                 .montantHT(a.getMontantHT())
                 .montantTVA(a.getMontantTVA())
                 .montantTTC(a.getMontantTTC())
                 .montantTimbre(a.getMontantTimbre())
                 .montantTotal(a.getMontantTTC())
-                .agentId(a.getAgent() != null ? a.getAgent().getId() : null)
+                // .agentId(a.getAgent() != null ? a.getAgent().getId() : null)
                 .agentNom(a.getAgent() != null ? (a.getAgent().getFirstName() + " " + a.getAgent().getLastName()).trim() : null)
                 .remarque(a.getRemarque())
                 .kilometrage(a.getKilometrage())
@@ -72,7 +72,7 @@ public class AvoirTTCResponse {
                 .clientNom(client != null ? (client.getFirstName() + " " + client.getLastName()).trim() : null)
                 .vehiculeId(vehicule != null ? vehicule.getId() : null)
                 .immatriculation(vehicule != null ? vehicule.getImmatriculation() : null)
-                .numeroChassis(vehicule != null ? vehicule.getNumeroChassis() : null)
+                // .numeroChassis(vehicule != null ? vehicule.getNumeroChassis() : null)
                 .marque(vehicule != null ? vehicule.getMarque() : null)
                 .modele(vehicule != null ? vehicule.getModele() : null)
                 .annee(vehicule != null ? vehicule.getAnnee() : null)

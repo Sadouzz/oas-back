@@ -15,11 +15,11 @@ public class AvoirHTResponse {
     private Long id;
     private String numero;
     private LocalDateTime dateCreation;
-    private LocalDateTime dateModification;
+    // private LocalDateTime dateModification;
     private BigDecimal montantHT;
     private BigDecimal montantTotal;
     
-    private Long agentId;
+    // private Long agentId;
     private String agentNom;
     private String remarque;
     private Double kilometrage;
@@ -29,7 +29,7 @@ public class AvoirHTResponse {
     
     private Long vehiculeId;
     private String immatriculation;
-    private String numeroChassis;
+    // private String numeroChassis;
     private String marque;
     private String modele;
     private Integer annee;
@@ -55,10 +55,10 @@ public class AvoirHTResponse {
                 .id(a.getId())
                 .numero(a.getNumero())
                 .dateCreation(a.getDateCreation())
-                .dateModification(a.getDateModification())
+                // .dateModification(a.getDateModification())
                 .montantHT(a.getMontantHT())
                 .montantTotal(a.getMontantTotal() != null ? a.getMontantTotal() : a.getMontantHT())
-                .agentId(a.getAgent() != null ? a.getAgent().getId() : null)
+                // .agentId(a.getAgent() != null ? a.getAgent().getId() : null)
                 .agentNom(a.getAgent() != null ? (a.getAgent().getFirstName() + " " + a.getAgent().getLastName()).trim() : null)
                 .remarque(a.getRemarque())
                 .kilometrage(a.getKilometrage())
@@ -66,7 +66,7 @@ public class AvoirHTResponse {
                 .clientNom(client != null ? (client.getFirstName() + " " + client.getLastName()).trim() : null)
                 .vehiculeId(vehicule != null ? vehicule.getId() : null)
                 .immatriculation(vehicule != null ? vehicule.getImmatriculation() : null)
-                .numeroChassis(vehicule != null ? vehicule.getNumeroChassis() : null)
+                // .numeroChassis(vehicule != null ? vehicule.getNumeroChassis() : null)
                 .marque(vehicule != null ? vehicule.getMarque() : null)
                 .modele(vehicule != null ? vehicule.getModele() : null)
                 .annee(vehicule != null ? vehicule.getAnnee() : null)

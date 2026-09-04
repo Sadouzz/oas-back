@@ -17,8 +17,8 @@ public record TechnicienListResponse(
         String email,
         String adresse,
         SpecialiteTechnicien specialite,
-        boolean enabled,
-        LocalDateTime createdAt,
+        // boolean enabled,
+        // LocalDateTime createdAt,
         GarageSummary garage
 ) {
     public record GarageSummary(Long id, String nom) {}
@@ -41,8 +41,8 @@ public record TechnicienListResponse(
                 .email(t.getEmail())
                 .adresse(t.getAdresse())
                 .specialite(t.getSpecialite())
-                .enabled(t.isEnabled())
-                .createdAt(t.getCreatedAt())
+                // .enabled(t.isEnabled())
+                // .createdAt(t.getCreatedAt())
                 .garage(garageSummary)
                 .build();
     }

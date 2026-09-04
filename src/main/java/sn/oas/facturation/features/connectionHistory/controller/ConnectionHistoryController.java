@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import sn.oas.facturation.features.connectionHistory.data.entity.ConnectionHistory;
+import sn.oas.facturation.features.connectionHistory.dto.ConnectionHistoryResponse;
 import sn.oas.facturation.features.connectionHistory.service.ConnectionHistoryService;
 
 import java.util.List;
@@ -23,7 +23,7 @@ public class ConnectionHistoryController {
 
     @GetMapping
     @Operation(summary = "Récupérer l'historique de toutes les connexions")
-    public ResponseEntity<List<ConnectionHistory>> getConnectionHistory() {
-        return ResponseEntity.ok(connectionHistoryService.getAllConnectionHistory());
+    public ResponseEntity<List<ConnectionHistoryResponse>> getConnectionHistory() {
+        return ResponseEntity.ok(connectionHistoryService.getAllConnectionHistory().stream().map(ConnectionHistoryResponse::from).toList());
     }
 }

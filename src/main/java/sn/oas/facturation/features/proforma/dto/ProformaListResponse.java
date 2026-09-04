@@ -11,7 +11,7 @@ public record ProformaListResponse(
         Long id,
         String numero,
         LocalDateTime dateCreation,
-        LocalDateTime dateModification,
+        // LocalDateTime dateModification,
         BigDecimal montantHT,
         BigDecimal montantTVA,
         BigDecimal montantTTC,
@@ -20,7 +20,7 @@ public record ProformaListResponse(
         BigDecimal montantTotal,
         String statut,
         Boolean visibleClient,
-        Long agentId,
+        // Long agentId,
         String agentNom,
         String remarque,
         Double kilometrage,
@@ -63,7 +63,7 @@ public record ProformaListResponse(
                 .id(p.getId())
                 .numero(p.getNumero())
                 .dateCreation(p.getDateCreation())
-                .dateModification(p.getDateModification())
+                // .dateModification(p.getDateModification())
                 .montantHT(p.getMontantHT())
                 .montantTVA(p.getMontantTVA())
                 .montantTTC(p.getMontantTTC())
@@ -72,7 +72,7 @@ public record ProformaListResponse(
                 .montantTotal(p.getMontantTotal())
                 .statut(p.getStatut() != null ? p.getStatut().name() : null)
                 .visibleClient(p.getVisibleClient() != null ? p.getVisibleClient() : Boolean.FALSE)
-                .agentId(p.getAgent() != null ? p.getAgent().getId() : null)
+                // .agentId(p.getAgent() != null ? p.getAgent().getId() : null)
                 .agentNom(p.getAgent() != null ? (p.getAgent().getFirstName() + " " + p.getAgent().getLastName()).trim() : null)
                 .remarque(p.getRemarque())
                 .kilometrage(p.getKilometrage())

@@ -17,23 +17,23 @@ public record NoteDePrixListResponse(
         BigDecimal resteAPayer,
         String statutPaiement,
         String modePaiement,
-        String numeroBonDeCommande,
-        BigDecimal montantAutre,
-        Long agentId,
+        // String numeroBonDeCommande,
+        // BigDecimal montantAutre,
+        // Long agentId,
         String agentNom,
-        Long clientId,
+        // Long clientId,
         String clientNom,
-        Long vehiculeId,
+        // Long vehiculeId,
         String vehiculeImmatriculation,
         String immatriculation,
         String marque,
         String modele,
-        String numeroChassis,
+        // String numeroChassis,
         Double kilometrage,
-        String remarque,
-        String statut,
-        Long ordreReparationId,
-        String numeroOrdreReparation
+        String remarque
+        // String statut,
+        // Long ordreReparationId,
+        // String numeroOrdreReparation
 ) {
     public static NoteDePrixListResponse from(NoteDePrix note) {
         if (note == null) return null;
@@ -86,23 +86,23 @@ public record NoteDePrixListResponse(
                 .resteAPayer(note.getResteAPayer())
                 .statutPaiement(note.getStatutPaiement() != null ? note.getStatutPaiement().name() : null)
                 .modePaiement(note.getModePaiement())
-                .numeroBonDeCommande(note.getNumeroBonDeCommande())
-                .montantAutre(note.getMontantAutre())
-                .agentId(agentId)
+                // .numeroBonDeCommande(note.getNumeroBonDeCommande())
+                // .montantAutre(note.getMontantAutre())
+                // .agentId(agentId)
                 .agentNom(agentNom)
-                .clientId(clientId)
+                // .clientId(clientId)
                 .clientNom(clientNom)
-                .vehiculeId(vehiculeId)
+                // .vehiculeId(vehiculeId)
                 .vehiculeImmatriculation(immat)
                 .immatriculation(immat)
                 .marque(marque)
                 .modele(modele)
-                .numeroChassis(numeroChassis)
+                // .numeroChassis(numeroChassis)
                 .kilometrage(note.getKilometrage())
                 .remarque(note.getRemarque())
-                .statut(note.getStatut() != null ? note.getStatut().name() : null)
-                .ordreReparationId(ordreId)
-                .numeroOrdreReparation(ordreNum)
+                // .statut(note.getStatut() != null ? note.getStatut().name() : null)
+                // .ordreReparationId(ordreId)
+                // .numeroOrdreReparation(ordreNum)
                 .build();
     }
 }

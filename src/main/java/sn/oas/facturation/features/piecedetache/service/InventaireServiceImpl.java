@@ -44,7 +44,7 @@ public class InventaireServiceImpl implements InventaireService {
                     pdp.getId(), pdp.getReference(), pdp.getDesignation(),
                     stockMagasin, stockAtelier,
                     request.stockMagasinPhysique(), request.stockAtelierPhysique(),
-                    0.0, 0.0, false, (PieceMouvement) null
+                    0.0, 0.0, false //, (PieceMouvement) null
             );
         }
 
@@ -79,7 +79,7 @@ public class InventaireServiceImpl implements InventaireService {
                 stockMagasin, stockAtelier,
                 request.stockMagasinPhysique(), request.stockAtelierPhysique(),
                 ecartMagasin, ecartAtelier,
-                true, mouvement
+                true //, mouvement
         );
     }
 

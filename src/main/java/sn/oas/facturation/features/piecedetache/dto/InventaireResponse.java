@@ -12,6 +12,6 @@ public record InventaireResponse(
         Double stockAtelierPhysique,
         Double ecartMagasin,
         Double ecartAtelier,
-        boolean ajuste,
-        PieceMouvement mouvement
+        boolean ajuste
+        // PieceMouvement mouvement
 ) {}

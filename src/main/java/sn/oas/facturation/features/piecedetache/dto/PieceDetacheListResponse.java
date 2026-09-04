@@ -18,15 +18,15 @@ public record PieceDetacheListResponse(
         CategorieSummary categorie,
         Double prix,
         Double prixUnitaire,
-        Double prixGros,
-        Double pourcentage,
+        // Double prixGros,
+        // Double pourcentage,
         Double stockMagasin,
         Double stockAtelier,
         Double qteReelle,
         Double seuilMinimum,
         StatutPiece statut,
-        boolean estUtilise,
-        LocalDateTime createdAt
+        boolean estUtilise
+        // LocalDateTime createdAt
 ) {
     public record CategorieSummary(Long id, String nom) {}
 
@@ -54,15 +54,15 @@ public record PieceDetacheListResponse(
                 .categorie(categorieSummary)
                 .prix(p.getPrixUnitaire())
                 .prixUnitaire(p.getPrixUnitaire())
-                .prixGros(p.getPrixGros())
-                .pourcentage(p.getPourcentage())
+                // .prixGros(p.getPrixGros())
+                // .pourcentage(p.getPourcentage())
                 .stockMagasin(p.getStockMagasin())
                 .stockAtelier(p.getStockAtelier())
                 .qteReelle(qteReelle)
                 .seuilMinimum(seuilMinimum)
                 .statut(p.getStatut())
                 .estUtilise(p.isEstUtilise())
-                .createdAt(p.getCreatedAt())
+                // .createdAt(p.getCreatedAt())
                 .build();
     }
 }

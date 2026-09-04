@@ -148,9 +148,9 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     }
 
     @Override
-    public org.springframework.data.domain.Page<OrdreReparationLightDTO> getAllOrdresReparation(int page, int size) {
+    public org.springframework.data.domain.Page<OrdreReparation> getAllOrdresReparation(int page, int size) {
         org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
-        return ordreReparationRepository.findAll(pageable).map(this::mapToLightDTO);
+        return ordreReparationRepository.findAll(pageable);
     }
 
     @Override

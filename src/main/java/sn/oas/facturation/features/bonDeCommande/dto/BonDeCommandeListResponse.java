@@ -20,7 +20,7 @@ public record BonDeCommandeListResponse(
         BigDecimal montantTVA,
         BigDecimal montantTTC,
         Boolean tvaApplicable,
-        Boolean paye,
+        // Boolean paye,
         String observation
 ) {
     public static BonDeCommandeListResponse from(BonDeCommande bc) {
@@ -38,7 +38,7 @@ public record BonDeCommandeListResponse(
                 .montantTVA(bc.getMontantTVA())
                 .montantTTC(bc.getMontantTTC())
                 .tvaApplicable(bc.getTvaApplicable())
-                .paye(bc.getPaye())
+                // .paye(bc.getPaye())
                 .observation(bc.getObservation())
                 .build();
     }

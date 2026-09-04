@@ -17,13 +17,13 @@ import java.util.List;
 public class FicheAtelierResponse {
 
     private Long id;
-    private Long rendezVousId;
-    
-    private Long clientId;
+    // private Long rendezVousId;
+
+    // private Long clientId;
     private String clientName;
-    private Long vehiculeId;
+    // private Long vehiculeId;
     private String vehiculeImmatriculation;
-    private Long garageId;
+    // private Long garageId;
 
     private String nomChauffeur;
     private String telephoneChauffeur;
@@ -42,23 +42,28 @@ public class FicheAtelierResponse {
     private String signatureSortieBase64;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    
+
     private boolean hasOrdreReparation;
 
     public static FicheAtelierResponse from(sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier fiche) {
         return from(fiche, false);
     }
 
-    public static FicheAtelierResponse from(sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier fiche, boolean hasOrdreReparation) {
-        if (fiche == null) return null;
+    public static FicheAtelierResponse from(sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier fiche,
+            boolean hasOrdreReparation) {
+        if (fiche == null)
+            return null;
         return FicheAtelierResponse.builder()
                 .id(fiche.getId())
-                .rendezVousId(fiche.getRendezVous() != null ? fiche.getRendezVous().getId() : null)
-                .clientId(fiche.getClient() != null ? fiche.getClient().getId() : null)
-                .clientName(fiche.getClient() != null ? (fiche.getClient().getFirstName() + " " + fiche.getClient().getLastName()).trim() : null)
-                .vehiculeId(fiche.getVehicule() != null ? fiche.getVehicule().getId() : null)
+                // .rendezVousId(fiche.getRendezVous() != null ? fiche.getRendezVous().getId() :
+                // null)
+                // .clientId(fiche.getClient() != null ? fiche.getClient().getId() : null)
+                .clientName(fiche.getClient() != null
+                        ? (fiche.getClient().getFirstName() + " " + fiche.getClient().getLastName()).trim()
+                        : null)
+                // .vehiculeId(fiche.getVehicule() != null ? fiche.getVehicule().getId() : null)
                 .vehiculeImmatriculation(fiche.getVehicule() != null ? fiche.getVehicule().getImmatriculation() : null)
-                .garageId(fiche.getGarage() != null ? fiche.getGarage().getId() : null)
+                // .garageId(fiche.getGarage() != null ? fiche.getGarage().getId() : null)
                 .nomChauffeur(fiche.getNomChauffeur())
                 .telephoneChauffeur(fiche.getTelephoneChauffeur())
                 .niveauEssence(fiche.getNiveauEssence())

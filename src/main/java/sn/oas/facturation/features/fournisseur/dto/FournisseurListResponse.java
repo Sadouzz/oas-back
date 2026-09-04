@@ -12,8 +12,9 @@ public record FournisseurListResponse(
         String nomEntreprise,
         String nom,
         String prenom,
-        boolean archived,
-        LocalDateTime createdAt) {
+        boolean archived
+        // LocalDateTime createdAt
+) {
     public static FournisseurListResponse from(Fournisseur f) {
         if (f == null)
             return null;
@@ -24,7 +25,7 @@ public record FournisseurListResponse(
                 .nom(f.getNom())
                 .prenom(f.getPrenom())
                 .archived(f.isArchived())
-                .createdAt(f.getCreatedAt())
+                // .createdAt(f.getCreatedAt())
                 .build();
     }
 }
