@@ -7,7 +7,6 @@ import org.springframework.transaction.annotation.Transactional;
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.repository.ClientRepository;
 import sn.oas.facturation.features.ficheAtelier.data.dto.FicheAtelierRequest;
-import sn.oas.facturation.features.ficheAtelier.data.dto.FicheAtelierResponse;
 import sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier;
 import sn.oas.facturation.features.ficheAtelier.repository.FicheAtelierRepository;
 import sn.oas.facturation.features.rendezvous.data.entity.RendezVous;
@@ -21,7 +20,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -37,19 +35,23 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     @Override
     public FicheAtelier create(FicheAtelierRequest request) {
         Client client = clientRepository.findById(request.getClientId())
-                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Client non trouvé avec l'id : " + request.getClientId()));
-        
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException(
+                        "Client non trouvé avec l'id : " + request.getClientId()));
+
         Vehicule vehicule = vehiculeRepository.findById(request.getVehiculeId())
-                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Véhicule non trouvé avec l'id : " + request.getVehiculeId()));
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException(
+                        "Véhicule non trouvé avec l'id : " + request.getVehiculeId()));
 
         RendezVous rendezVous = null;
         if (request.getRendezVousId() != null) {
             rendezVous = rendezVousRepository.findById(request.getRendezVousId())
-                    .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Rendez-vous non trouvé avec l'id : " + request.getRendezVousId()));
-                    
+                    .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException(
+                            "Rendez-vous non trouvé avec l'id : " + request.getRendezVousId()));
+
             // Check if already exists
             if (ficheAtelierRepository.findByRendezVousId(rendezVous.getId()).isPresent()) {
-                throw new sn.oas.facturation.shared.exception.ResourceAlreadyExistsException("Une fiche atelier existe déjà pour ce rendez-vous");
+                throw new sn.oas.facturation.shared.exception.ResourceAlreadyExistsException(
+                        "Une fiche atelier existe déjà pour ce rendez-vous");
             }
         }
 
@@ -72,8 +74,9 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
                 .signatureBase64(request.getSignatureBase64())
                 .build();
 
-        // If rendezVous is null, we might have issue with garage = null. 
-        // We'd need SecurityContext to set garage if not linked to RDV, but here it's linked to RDV.
+        // If rendezVous is null, we might have issue with garage = null.
+        // We'd need SecurityContext to set garage if not linked to RDV, but here it's
+        // linked to RDV.
         if (fiche.getGarage() == null && rendezVous != null) {
             fiche.setGarage(rendezVous.getGarage());
         }
@@ -86,7 +89,8 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     @Override
     public FicheAtelier update(Long id, FicheAtelierRequest request) {
         FicheAtelier fiche = ficheAtelierRepository.findById(id)
-                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Fiche Atelier non trouvée avec l'id : " + id));
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException(
+                        "Fiche Atelier non trouvée avec l'id : " + id));
 
         fiche.setNomChauffeur(request.getNomChauffeur());
         fiche.setTelephoneChauffeur(request.getTelephoneChauffeur());
@@ -108,7 +112,8 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     @Override
     public FicheAtelier getById(Long id) {
         return ficheAtelierRepository.findById(id)
-                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Fiche Atelier non trouvée avec l'id : " + id));
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException(
+                        "Fiche Atelier non trouvée avec l'id : " + id));
     }
 
     @Transactional(readOnly = true)
@@ -134,7 +139,8 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     @Override
     public void delete(Long id) {
         if (!ficheAtelierRepository.existsById(id)) {
-            throw new sn.oas.facturation.shared.exception.ResourceNotFoundException("Fiche Atelier non trouvée avec l'id : " + id);
+            throw new sn.oas.facturation.shared.exception.ResourceNotFoundException(
+                    "Fiche Atelier non trouvée avec l'id : " + id);
         }
         ficheAtelierRepository.deleteById(id);
     }
@@ -142,7 +148,8 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     @Override
     public FicheAtelier signForExit(Long id, String signature) {
         FicheAtelier fiche = ficheAtelierRepository.findById(id)
-                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Fiche atelier non trouvée avec l'id : " + id));
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException(
+                        "Fiche atelier non trouvée avec l'id : " + id));
         fiche.setSignatureSortieBase64(signature);
         return ficheAtelierRepository.save(fiche);
     }

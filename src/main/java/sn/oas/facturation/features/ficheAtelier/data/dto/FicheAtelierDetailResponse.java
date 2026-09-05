@@ -14,7 +14,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class FicheAtelierResponse {
+public class FicheAtelierDetailResponse {
 
     private Long id;
     // private Long rendezVousId;
@@ -45,15 +45,17 @@ public class FicheAtelierResponse {
 
     private boolean hasOrdreReparation;
 
-    public static FicheAtelierResponse from(sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier fiche) {
+    public static FicheAtelierDetailResponse from(
+            sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier fiche) {
         return from(fiche, false);
     }
 
-    public static FicheAtelierResponse from(sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier fiche,
+    public static FicheAtelierDetailResponse from(
+            sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier fiche,
             boolean hasOrdreReparation) {
         if (fiche == null)
             return null;
-        return FicheAtelierResponse.builder()
+        return FicheAtelierDetailResponse.builder()
                 .id(fiche.getId())
                 // .rendezVousId(fiche.getRendezVous() != null ? fiche.getRendezVous().getId() :
                 // null)

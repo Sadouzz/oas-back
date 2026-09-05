@@ -7,12 +7,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import sn.oas.facturation.features.ficheAtelier.data.dto.FicheAtelierDetailResponse;
 import sn.oas.facturation.features.ficheAtelier.data.dto.FicheAtelierListResponse;
 import sn.oas.facturation.features.ficheAtelier.data.dto.FicheAtelierRequest;
-import sn.oas.facturation.features.ficheAtelier.data.dto.FicheAtelierResponse;
 import sn.oas.facturation.features.ficheAtelier.service.FicheAtelierService;
 
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -23,28 +23,29 @@ public class FicheAtelierController {
     private final FicheAtelierService ficheAtelierService;
 
     @PostMapping
-    public ResponseEntity<FicheAtelierResponse> create(@Valid @RequestBody FicheAtelierRequest request) {
-        return new ResponseEntity<>(FicheAtelierResponse.from(ficheAtelierService.create(request)), HttpStatus.CREATED);
+    public ResponseEntity<FicheAtelierDetailResponse> create(@Valid @RequestBody FicheAtelierRequest request) {
+        return new ResponseEntity<>(FicheAtelierDetailResponse.from(ficheAtelierService.create(request)),
+                HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<FicheAtelierResponse> update(@PathVariable Long id,
+    public ResponseEntity<FicheAtelierDetailResponse> update(@PathVariable Long id,
             @Valid @RequestBody FicheAtelierRequest request) {
-        return ResponseEntity.ok(FicheAtelierResponse.from(ficheAtelierService.update(id, request)));
+        return ResponseEntity.ok(FicheAtelierDetailResponse.from(ficheAtelierService.update(id, request)));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<FicheAtelierResponse> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(FicheAtelierResponse.from(ficheAtelierService.getById(id)));
+    public ResponseEntity<FicheAtelierDetailResponse> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(FicheAtelierDetailResponse.from(ficheAtelierService.getById(id)));
     }
 
     @GetMapping("/rendezvous/{rendezVousId}")
-    public ResponseEntity<FicheAtelierResponse> getByRendezVousId(@PathVariable Long rendezVousId) {
+    public ResponseEntity<FicheAtelierDetailResponse> getByRendezVousId(@PathVariable Long rendezVousId) {
         var fiche = ficheAtelierService.getByRendezVousId(rendezVousId);
         if (fiche == null) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(FicheAtelierResponse.from(fiche));
+        return ResponseEntity.ok(FicheAtelierDetailResponse.from(fiche));
     }
 
     @GetMapping
@@ -61,12 +62,12 @@ public class FicheAtelierController {
     }
 
     @PatchMapping("/{id}/signature-sortie")
-    public ResponseEntity<FicheAtelierResponse> signForExit(@PathVariable Long id,
+    public ResponseEntity<FicheAtelierDetailResponse> signForExit(@PathVariable Long id,
             @RequestBody Map<String, String> request) {
         String signature = request.get("signature");
         if (signature == null || signature.trim().isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
-        return ResponseEntity.ok(FicheAtelierResponse.from(ficheAtelierService.signForExit(id, signature)));
+        return ResponseEntity.ok(FicheAtelierDetailResponse.from(ficheAtelierService.signForExit(id, signature)));
     }
 }
