@@ -69,7 +69,12 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
                 .ficheAtelier(ficheAtelier)
                 .build();
 
-        return devisPrevisionnelRepository.save(devis);
+        DevisPrevisionnel saved = devisPrevisionnelRepository.save(devis);
+        if (ficheAtelier != null) {
+            ficheAtelier.setDevisPrevisionnel(saved);
+            ficheAtelierRepository.save(ficheAtelier);
+        }
+        return saved;
     }
 
     @Transactional
@@ -96,10 +101,14 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
     @Transactional
     @Override
     public void supprimer(Long id) {
-        if (!devisPrevisionnelRepository.existsById(id)) {
-            throw new RuntimeException("Devis prévisionnel introuvable avec l'id : " + id);
+        DevisPrevisionnel devis = devisPrevisionnelRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Devis prévisionnel introuvable avec l'id : " + id));
+        if (devis.getFicheAtelier() != null) {
+            FicheAtelier fa = devis.getFicheAtelier();
+            fa.setDevisPrevisionnel(null);
+            ficheAtelierRepository.save(fa);
         }
-        devisPrevisionnelRepository.deleteById(id);
+        devisPrevisionnelRepository.delete(devis);
     }
 
     @Override

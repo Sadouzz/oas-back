@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping({"/api/rendez-vous", "/api/rendezvous"})
+@RequestMapping("/api/rendez-vous")
 @RequiredArgsConstructor
 @Tag(name = "Rendez-vous", description = "API pour la gestion des rendez-vous")
 public class RendezVousController {

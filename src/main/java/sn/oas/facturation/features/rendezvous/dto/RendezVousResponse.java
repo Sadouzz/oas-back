@@ -7,6 +7,7 @@ import java.time.LocalDateTime;
 
 public record RendezVousResponse(
         Long id,
+        String numero,
         Long clientId,
         String clientName,
         Long vehiculeId,
@@ -17,13 +18,11 @@ public record RendezVousResponse(
         String commentaire,
         LocalDateTime dateCreation,
         boolean hasFicheAtelier) {
-    public static RendezVousResponse of(RendezVous rv) {
-        return of(rv, false);
-    }
 
-    public static RendezVousResponse of(RendezVous rv, boolean hasFicheAtelier) {
+    public static RendezVousResponse of(RendezVous rv) {
         return new RendezVousResponse(
                 rv.getId(),
+                rv.getNumero(),
                 rv.getClient() != null ? rv.getClient().getId() : null,
                 rv.getClient() != null ? (rv.getClient().getFirstName() + " " + rv.getClient().getLastName()).trim() : "",
                 rv.getVehicule() != null ? rv.getVehicule().getId() : null,
@@ -33,6 +32,6 @@ public record RendezVousResponse(
                 rv.getStatut(),
                 rv.getCommentaire(),
                 rv.getDateCreation(),
-                hasFicheAtelier);
+                rv.getFicheAtelier() != null);
     }
 }

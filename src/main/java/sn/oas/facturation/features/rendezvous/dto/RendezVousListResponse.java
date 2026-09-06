@@ -9,19 +9,16 @@ import java.time.LocalDateTime;
 @Builder
 public record RendezVousListResponse(
         Long id,
+        String numero,
         LocalDateTime dateRendezVous,
         String clientName,
         String vehiculeImmatriculation,
         String motif,
         RendezVousStatus statut,
-        Boolean hasFicheAtelier
-) {
+        Boolean hasFicheAtelier) {
     public static RendezVousListResponse from(RendezVous rv) {
-        return from(rv, false);
-    }
-
-    public static RendezVousListResponse from(RendezVous rv, boolean hasFicheAtelier) {
-        if (rv == null) return null;
+        if (rv == null)
+            return null;
         String clientName = "";
         if (rv.getClient() != null) {
             String firstName = rv.getClient().getFirstName() != null ? rv.getClient().getFirstName() : "";
@@ -31,12 +28,13 @@ public record RendezVousListResponse(
 
         return RendezVousListResponse.builder()
                 .id(rv.getId())
+                .numero(rv.getNumero())
                 .dateRendezVous(rv.getDateRendezVous())
                 .clientName(clientName)
                 .vehiculeImmatriculation(rv.getVehicule() != null ? rv.getVehicule().getImmatriculation() : null)
                 .motif(rv.getMotif())
                 .statut(rv.getStatut())
-                .hasFicheAtelier(hasFicheAtelier)
+                .hasFicheAtelier(rv.getFicheAtelier() != null)
                 .build();
     }
 }

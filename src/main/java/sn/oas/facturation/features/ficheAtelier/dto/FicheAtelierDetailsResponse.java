@@ -1,12 +1,16 @@
-package sn.oas.facturation.features.ficheAtelier.data.dto;
+package sn.oas.facturation.features.ficheAtelier.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import sn.oas.facturation.features.devisPrevisionnel.data.entity.DevisPrevisionnel;
+import sn.oas.facturation.features.facturation.data.enums.StatutFacturation;
+import sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier;
 import sn.oas.facturation.features.ficheAtelier.data.entity.LigneDefaut;
 import sn.oas.facturation.features.ficheAtelier.data.entity.LigneReception;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -14,9 +18,10 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class FicheAtelierResponse {
+public class FicheAtelierDetailsResponse {
 
     private Long id;
+    private String numero;
     // private Long rendezVousId;
 
     // private Long clientId;
@@ -44,26 +49,39 @@ public class FicheAtelierResponse {
     private LocalDateTime updatedAt;
 
     private boolean hasOrdreReparation;
+    private DevisPrevisionnelSummary devisPrevisionnel;
 
-    public static FicheAtelierResponse from(sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier fiche) {
-        return from(fiche, false);
+    public record DevisPrevisionnelSummary(
+            Long id,
+            String numero,
+            BigDecimal montantTotal,
+            StatutFacturation statut,
+            String notesReparation,
+            LocalDateTime dateCreation
+    ) {
+        public static DevisPrevisionnelSummary from(DevisPrevisionnel devis) {
+            if (devis == null) return null;
+            return new DevisPrevisionnelSummary(
+                    devis.getId(),
+                    devis.getNumero(),
+                    devis.getMontantTotal(),
+                    devis.getStatut(),
+                    devis.getNotesReparation(),
+                    devis.getDateCreation()
+            );
+        }
     }
 
-    public static FicheAtelierResponse from(sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier fiche,
-            boolean hasOrdreReparation) {
+    public static FicheAtelierDetailsResponse from(FicheAtelier fiche) {
         if (fiche == null)
             return null;
-        return FicheAtelierResponse.builder()
+        return FicheAtelierDetailsResponse.builder()
                 .id(fiche.getId())
-                // .rendezVousId(fiche.getRendezVous() != null ? fiche.getRendezVous().getId() :
-                // null)
-                // .clientId(fiche.getClient() != null ? fiche.getClient().getId() : null)
+                .numero(fiche.getNumero())
                 .clientName(fiche.getClient() != null
                         ? (fiche.getClient().getFirstName() + " " + fiche.getClient().getLastName()).trim()
                         : null)
-                // .vehiculeId(fiche.getVehicule() != null ? fiche.getVehicule().getId() : null)
                 .vehiculeImmatriculation(fiche.getVehicule() != null ? fiche.getVehicule().getImmatriculation() : null)
-                // .garageId(fiche.getGarage() != null ? fiche.getGarage().getId() : null)
                 .nomChauffeur(fiche.getNomChauffeur())
                 .telephoneChauffeur(fiche.getTelephoneChauffeur())
                 .niveauEssence(fiche.getNiveauEssence())
@@ -79,7 +97,8 @@ public class FicheAtelierResponse {
                 .signatureSortieBase64(fiche.getSignatureSortieBase64())
                 .createdAt(fiche.getCreatedAt())
                 .updatedAt(fiche.getUpdatedAt())
-                .hasOrdreReparation(hasOrdreReparation)
+                .hasOrdreReparation(fiche.getOrdreReparation() != null)
+                .devisPrevisionnel(DevisPrevisionnelSummary.from(fiche.getDevisPrevisionnel()))
                 .build();
     }
 }

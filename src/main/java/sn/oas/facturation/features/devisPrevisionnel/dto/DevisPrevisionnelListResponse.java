@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Builder
 public record DevisPrevisionnelListResponse(
         Long id,
-        // String numero,
+        String numero,
         String notesReparation,
         BigDecimal montantTotal,
         Double kilometrageVehicule,
@@ -59,7 +59,7 @@ public record DevisPrevisionnelListResponse(
 
         return DevisPrevisionnelListResponse.builder()
                 .id(d.getId())
-                // .numero(d.getNumero())
+                .numero(d.getNumero())
                 .notesReparation(d.getNotesReparation())
                 .montantTotal(d.getMontantTotal())
                 .kilometrageVehicule(d.getKilometrageVehicule())

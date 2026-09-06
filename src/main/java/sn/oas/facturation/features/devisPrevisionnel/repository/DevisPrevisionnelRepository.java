@@ -19,6 +19,7 @@ public interface DevisPrevisionnelRepository extends JpaRepository<DevisPrevisio
     java.util.Optional<DevisPrevisionnel> findByFicheAtelierId(Long ficheAtelierId);
 
     @Query("SELECT d FROM DevisPrevisionnel d WHERE " +
+            "LOWER(d.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(d.notesReparation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(d.vehicule.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(d.vehicule.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
@@ -28,6 +29,7 @@ public interface DevisPrevisionnelRepository extends JpaRepository<DevisPrevisio
     List<DevisPrevisionnel> searchDevis(@Param("keyword") String keyword);
 
     @Query("SELECT d FROM DevisPrevisionnel d WHERE " +
+            "LOWER(d.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(d.notesReparation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(d.vehicule.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(d.vehicule.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +

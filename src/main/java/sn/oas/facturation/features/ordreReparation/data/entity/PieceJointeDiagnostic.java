@@ -1,4 +1,4 @@
-package sn.oas.facturation.features.ordreReparation.data.entity;
+    package sn.oas.facturation.features.ordreReparation.data.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;

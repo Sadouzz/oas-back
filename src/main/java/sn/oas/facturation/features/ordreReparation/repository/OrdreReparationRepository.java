@@ -8,6 +8,7 @@ import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface OrdreReparationRepository extends JpaRepository<OrdreReparation, Long> {
@@ -34,8 +35,8 @@ public interface OrdreReparationRepository extends JpaRepository<OrdreReparation
     long countByStatutNotIn(List<StatutOrdreReparation> statuts);
     List<OrdreReparation> findTop5ByOrderByIdDesc();
     boolean existsByFicheAtelierId(Long ficheAtelierId);
-    java.util.Optional<OrdreReparation> findFirstByFicheAtelierId(Long ficheAtelierId);
-    java.util.Optional<OrdreReparation> findFirstByVehiculeIdAndStatutNotIn(Long vehiculeId, List<StatutOrdreReparation> statuts);
+    Optional<OrdreReparation> findFirstByFicheAtelierId(Long ficheAtelierId);
+    Optional<OrdreReparation> findFirstByVehiculeIdAndStatutNotIn(Long vehiculeId, List<StatutOrdreReparation> statuts);
 
     // Portail technicien : ordres où le technicien figure dans le pool diagnostic OU réparation.
     @Query("SELECT DISTINCT f FROM OrdreReparation f " +

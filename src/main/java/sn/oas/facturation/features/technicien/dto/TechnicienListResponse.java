@@ -2,9 +2,6 @@ package sn.oas.facturation.features.technicien.dto;
 
 import lombok.Builder;
 import sn.oas.facturation.features.technicien.data.entity.Technicien;
-import sn.oas.facturation.features.technicien.data.enums.SpecialiteTechnicien;
-
-import java.time.LocalDateTime;
 
 @Builder
 public record TechnicienListResponse(
@@ -16,20 +13,11 @@ public record TechnicienListResponse(
         String lastName,
         String email,
         String adresse,
-        SpecialiteTechnicien specialite,
-        // boolean enabled,
-        // LocalDateTime createdAt,
-        GarageSummary garage
+        String specialite
 ) {
-    public record GarageSummary(Long id, String nom) {}
 
     public static TechnicienListResponse from(Technicien t) {
         if (t == null) return null;
-
-        GarageSummary garageSummary = null;
-        if (t.getGarage() != null) {
-            garageSummary = new GarageSummary(t.getGarage().getId(), t.getGarage().getNom());
-        }
 
         return TechnicienListResponse.builder()
                 .id(t.getId())
@@ -40,10 +28,7 @@ public record TechnicienListResponse(
                 .lastName(t.getLastName())
                 .email(t.getEmail())
                 .adresse(t.getAdresse())
-                .specialite(t.getSpecialite())
-                // .enabled(t.isEnabled())
-                // .createdAt(t.getCreatedAt())
-                .garage(garageSummary)
+                .specialite(t.getSpecialite() != null ? t.getSpecialite().getLabel() : null)
                 .build();
     }
 }

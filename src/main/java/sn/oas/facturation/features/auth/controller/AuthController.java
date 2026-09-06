@@ -3,6 +3,7 @@ package sn.oas.facturation.features.auth.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -31,8 +32,11 @@ public class AuthController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
+    @Value("${app.jwt.expiration:21600000}")
+    private long jwtExpirationMs;
+
     @PostMapping("/signin")
-    @Operation(summary = "Connexion d'un utilisateur avec cookies HttpOnly (Access token 6h & Refresh token 7j)")
+    @Operation(summary = "Connexion d'un utilisateur avec cookies HttpOnly (Access token & Refresh token 7j)")
     public ResponseEntity<AuthResponse> signin(@RequestBody LoginRequest request) {
         AuthResponse response = authService.login(request);
 
@@ -40,7 +44,7 @@ public class AuthController {
                 .httpOnly(true)
                 .secure(false) // Mettre true en production HTTPS
                 .path("/")
-                .maxAge(6 * 60 * 60) // 6 heures
+                .maxAge(jwtExpirationMs / 1000)
                 .sameSite("Lax")
                 .build();
 
@@ -60,15 +64,17 @@ public class AuthController {
 
     @PostMapping("/refresh")
     @Operation(summary = "Rafraîchir le token d'authentification et les cookies HttpOnly")
-    public ResponseEntity<AuthResponse> refresh(HttpServletRequest request) {
-        String refreshToken = extractRefreshToken(request);
+    public ResponseEntity<AuthResponse> refresh(
+            HttpServletRequest request,
+            @RequestBody(required = false) Map<String, String> body) {
+        String refreshToken = extractRefreshToken(request, body);
         AuthResponse response = authService.refreshToken(refreshToken);
 
         ResponseCookie accessCookie = ResponseCookie.from("token", response.token())
                 .httpOnly(true)
                 .secure(false)
                 .path("/")
-                .maxAge(6 * 60 * 60) // 6 heures
+                .maxAge(jwtExpirationMs / 1000)
                 .sameSite("Lax")
                 .build();
 
@@ -86,11 +92,19 @@ public class AuthController {
                 .body(response);
     }
 
-    private String extractRefreshToken(HttpServletRequest request) {
+    private String extractRefreshToken(HttpServletRequest request, Map<String, String> body) {
+        if (body != null) {
+            if (body.get("refreshToken") != null && !body.get("refreshToken").isBlank()) {
+                return body.get("refreshToken").trim();
+            }
+            if (body.get("token") != null && !body.get("token").isBlank()) {
+                return body.get("token").trim();
+            }
+        }
         if (request.getCookies() != null) {
             for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
-                if ("refreshToken".equals(cookie.getName())) {
-                    return cookie.getValue();
+                if ("refreshToken".equals(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isBlank()) {
+                    return cookie.getValue().trim();
                 }
             }
         }
@@ -98,14 +112,18 @@ public class AuthController {
         if (customHeader != null && !customHeader.isBlank()) {
             return customHeader.trim();
         }
+        String param = request.getParameter("refreshToken");
+        if (param != null && !param.isBlank()) {
+            return param.trim();
+        }
         String headerAuth = request.getHeader("Authorization");
         if (headerAuth != null && headerAuth.startsWith("Bearer ")) {
-            return headerAuth.substring(7);
+            return headerAuth.substring(7).trim();
         }
         if (request.getCookies() != null) {
             for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
-                if ("token".equals(cookie.getName())) {
-                    return cookie.getValue();
+                if ("token".equals(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isBlank()) {
+                    return cookie.getValue().trim();
                 }
             }
         }

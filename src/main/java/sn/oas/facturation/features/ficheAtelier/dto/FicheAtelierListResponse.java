@@ -1,4 +1,4 @@
-package sn.oas.facturation.features.ficheAtelier.data.dto;
+package sn.oas.facturation.features.ficheAtelier.dto;
 
 import lombok.Builder;
 import sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier;
@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 @Builder
 public record FicheAtelierListResponse(
         Long id,
+        String numero,
         // Long rendezVousId,
         // Long clientId,
         String clientName,
@@ -20,11 +21,8 @@ public record FicheAtelierListResponse(
         // LocalDateTime dateSortiePrevue,
         LocalDateTime createdAt,
         boolean hasOrdreReparation) {
-    public static FicheAtelierListResponse from(FicheAtelier f) {
-        return from(f, false);
-    }
 
-    public static FicheAtelierListResponse from(FicheAtelier f, boolean hasOrdreReparation) {
+    public static FicheAtelierListResponse from(FicheAtelier f) {
         if (f == null)
             return null;
 
@@ -39,6 +37,7 @@ public record FicheAtelierListResponse(
 
         return FicheAtelierListResponse.builder()
                 .id(f.getId())
+                .numero(f.getNumero())
                 // .rendezVousId(f.getRendezVous() != null ? f.getRendezVous().getId() : null)
                 // .clientId(clientId)
                 .clientName(clientName)
@@ -50,7 +49,7 @@ public record FicheAtelierListResponse(
                 // .designationTravaux(f.getDesignationTravaux())
                 // .dateSortiePrevue(f.getDateSortiePrevue())
                 .createdAt(f.getCreatedAt())
-                .hasOrdreReparation(hasOrdreReparation)
+                .hasOrdreReparation(f.getOrdreReparation() != null)
                 .build();
     }
 }

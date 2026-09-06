@@ -10,4 +10,5 @@ import java.util.Optional;
 public interface FicheAtelierRepository extends JpaRepository<FicheAtelier, Long> {
     Optional<FicheAtelier> findByRendezVousId(Long rendezVousId);
     boolean existsByRendezVousId(Long rendezVousId);
+    boolean existsByOrdreReparationId(Long ordreReparationId);
 }

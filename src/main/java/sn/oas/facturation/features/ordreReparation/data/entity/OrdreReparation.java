@@ -2,6 +2,8 @@ package sn.oas.facturation.features.ordreReparation.data.entity;
 
 import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
+import org.hibernate.annotations.Formula;
+import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.annotations.ParamDef;
 import sn.oas.facturation.shared.tenant.TenantAware;
 import sn.oas.facturation.shared.tenant.TenantListener;
@@ -21,7 +23,9 @@ import java.util.List;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.type.SqlTypes;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
@@ -35,8 +39,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @Filter(name = "garageFilter", condition = "garage_id = :garageId")
 public class OrdreReparation implements TenantAware  {
 
-    @ManyToOne(fetch = jakarta.persistence.FetchType.LAZY)
-    @jakarta.persistence.JoinColumn(name = "garage_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "garage_id")
     private Garage garage;
 
     @Id
@@ -60,7 +64,7 @@ public class OrdreReparation implements TenantAware  {
     // Les lignes provenant de la fiche atelier d'origine (via createFromFicheAtelier)
     // sont marquées verrouille=true : non modifiables/supprimables côté UI, seule
     // l'ajout de nouvelles lignes (verrouille=false) est permis.
-    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    @JdbcTypeCode (SqlTypes.JSON)
     @Column(name = "lignes_reception", columnDefinition = "jsonb")
     private List<LigneReceptionOrdre> lignesReception;
 
@@ -92,9 +96,9 @@ public class OrdreReparation implements TenantAware  {
 
     // Lien optionnel vers la Fiche Atelier d'origine (voir spec point 8). Nullable :
     // un ordre de réparation peut aussi être créé directement, sans fiche atelier.
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "fiche_atelier_id")
-    @JsonIgnoreProperties({ "vehicule", "client", "garage" })
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "fiche_atelier_id", unique = true)
+    @JsonIgnoreProperties({ "vehicule", "ordreReparation", "client", "garage" })
     private FicheAtelier ficheAtelier;
 
     // Noms de table/colonne de jointure conservés tels quels (fiche_mecaniciens(_reparation),
@@ -126,7 +130,7 @@ public class OrdreReparation implements TenantAware  {
 
     @OneToMany(mappedBy = "ordreReparation", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    @com.fasterxml.jackson.annotation.JsonIgnore
+    @JsonIgnore 
     private List<Facturation> facturations = new ArrayList<>();
 
     @OneToMany(mappedBy = "ordreReparation", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -139,10 +143,10 @@ public class OrdreReparation implements TenantAware  {
 
     @OneToMany(mappedBy = "ordreReparation", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    @com.fasterxml.jackson.annotation.JsonIgnore
+    @JsonIgnore 
     private List<PieceJointeDiagnostic> piecesJointesDiagnostic = new ArrayList<>();
 
-    @org.hibernate.annotations.Formula("((SELECT COUNT(*) FROM lignes_ordre_reparation_piece p WHERE p.ordre_reparation_id = id) > 0 OR (SELECT COUNT(*) FROM lignes_ordre_reparation_main_doeuvre m WHERE m.ordre_reparation_id = id) > 0)")
+    @Formula("((SELECT COUNT(*) FROM lignes_ordre_reparation_piece p WHERE p.ordre_reparation_id = id) > 0 OR (SELECT COUNT(*) FROM lignes_ordre_reparation_main_doeuvre m WHERE m.ordre_reparation_id = id) > 0)")
     private Boolean hasPiecesOrMo;
 
     @PrePersist

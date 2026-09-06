@@ -6,9 +6,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.repository.ClientRepository;
-import sn.oas.facturation.features.ficheAtelier.data.dto.FicheAtelierRequest;
-import sn.oas.facturation.features.ficheAtelier.data.dto.FicheAtelierResponse;
 import sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier;
+import sn.oas.facturation.features.ficheAtelier.dto.FicheAtelierRequest;
 import sn.oas.facturation.features.ficheAtelier.repository.FicheAtelierRepository;
 import sn.oas.facturation.features.rendezvous.data.entity.RendezVous;
 import sn.oas.facturation.features.rendezvous.repository.RendezVousRepository;
@@ -23,6 +22,10 @@ import org.springframework.data.domain.Pageable;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService;
+import sn.oas.facturation.shared.documentNumber.DocumentType;
+import sn.oas.facturation.features.garage.data.entity.Garage;
+
 @Service
 @RequiredArgsConstructor
 public class FicheAtelierServiceImpl implements FicheAtelierService {
@@ -32,6 +35,7 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     private final ClientRepository clientRepository;
     private final VehiculeRepository vehiculeRepository;
     private final OrdreReparationRepository ordreReparationRepository;
+    private final DocumentNumberGeneratorService documentNumberGeneratorService;
 
     @Transactional
     @Override
@@ -53,11 +57,18 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
             }
         }
 
+        Garage garage = (rendezVous != null && rendezVous.getGarage() != null)
+                ? rendezVous.getGarage()
+                : documentNumberGeneratorService.getCurrentGarage();
+
+        String numero = documentNumberGeneratorService.generateNextNumber(garage, DocumentType.FA);
+
         FicheAtelier fiche = FicheAtelier.builder()
+                .numero(numero)
                 .rendezVous(rendezVous)
                 .client(client)
                 .vehicule(vehicule)
-                .garage(rendezVous != null ? rendezVous.getGarage() : null) // Get garage from rendezvous
+                .garage(garage)
                 .nomChauffeur(request.getNomChauffeur())
                 .telephoneChauffeur(request.getTelephoneChauffeur())
                 .niveauEssence(request.getNiveauEssence())
@@ -72,13 +83,11 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
                 .signatureBase64(request.getSignatureBase64())
                 .build();
 
-        // If rendezVous is null, we might have issue with garage = null. 
-        // We'd need SecurityContext to set garage if not linked to RDV, but here it's linked to RDV.
-        if (fiche.getGarage() == null && rendezVous != null) {
-            fiche.setGarage(rendezVous.getGarage());
-        }
-
         FicheAtelier saved = ficheAtelierRepository.save(fiche);
+        if (rendezVous != null) {
+            rendezVous.setFicheAtelier(saved);
+            rendezVousRepository.save(rendezVous);
+        }
         return saved;
     }
 
@@ -133,10 +142,14 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     @Transactional
     @Override
     public void delete(Long id) {
-        if (!ficheAtelierRepository.existsById(id)) {
-            throw new sn.oas.facturation.shared.exception.ResourceNotFoundException("Fiche Atelier non trouvée avec l'id : " + id);
+        FicheAtelier fiche = ficheAtelierRepository.findById(id)
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Fiche Atelier non trouvée avec l'id : " + id));
+        if (fiche.getRendezVous() != null) {
+            RendezVous rv = fiche.getRendezVous();
+            rv.setFicheAtelier(null);
+            rendezVousRepository.save(rv);
         }
-        ficheAtelierRepository.deleteById(id);
+        ficheAtelierRepository.delete(fiche);
     }
 
     @Override
@@ -145,5 +158,10 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
                 .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Fiche atelier non trouvée avec l'id : " + id));
         fiche.setSignatureSortieBase64(signature);
         return ficheAtelierRepository.save(fiche);
+    }
+
+    @Override 
+    public boolean existsByOrdreReparationId(Long ordreReparationId) {
+        return ficheAtelierRepository.existsByOrdreReparationId(ordreReparationId);
     }
 }

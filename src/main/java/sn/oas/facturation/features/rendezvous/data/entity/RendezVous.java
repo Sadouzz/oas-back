@@ -10,6 +10,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import sn.oas.facturation.features.rendezvous.data.enums.RendezVousStatus;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.features.client.data.entity.Client;
+import sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier;
 import sn.oas.facturation.features.garage.data.entity.Garage;
 import org.hibernate.annotations.Filter;
 
@@ -42,6 +43,10 @@ public class RendezVous {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "garage_id")
     private Garage garage;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "fiche_atelier_id", nullable = true)
+    private FicheAtelier ficheAtelier;
 
     @Column(name = "date_rendez_vous", nullable = false)
     private LocalDateTime dateRendezVous;

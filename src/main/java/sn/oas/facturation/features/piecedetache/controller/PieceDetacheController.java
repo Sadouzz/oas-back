@@ -6,23 +6,29 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sn.oas.facturation.features.piecedetache.data.entity.PieceDetache;
+import sn.oas.facturation.features.piecedetache.data.enums.TypeMouvement;
 import sn.oas.facturation.features.piecedetache.data.enums.TypePiece;
 import sn.oas.facturation.features.piecedetache.dto.PieceDetacheListResponse;
 import sn.oas.facturation.features.piecedetache.dto.PieceDetacheRequest;
+import sn.oas.facturation.features.piecedetache.dto.PieceMouvementListResponse;
 import sn.oas.facturation.features.piecedetache.service.PieceDetacheService;
+import sn.oas.facturation.features.piecedetache.service.StockService;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
-@Tag(name = "Pièces détachées", description = "CRUD des pièces détachées (PDP, PDG, PDS)")
+@Tag(name = "Pièces détachées", description = "CRUD des pièces détachées (PDP, PDG, PDS) et historique des mouvements")
 @RestController
 @RequestMapping("/api/pieces-detachees")
 @RequiredArgsConstructor
 public class PieceDetacheController {
 
     private final PieceDetacheService pieceDetacheService;
+    private final StockService stockService;
 
     @Operation(summary = "Lister les pièces", description = "Retourne toutes les pièces. Filtrable par type ou mot-clé avec pagination.")
     @ApiResponse(responseCode = "200", description = "Liste retournée avec succès")
@@ -113,5 +119,34 @@ public class PieceDetacheController {
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(java.util.Map.of("message", e.getMessage()));
         }
+    }
+
+    @Operation(summary = "Historique des mouvements d'une pièce", description = "Retourne tous les mouvements d'une PDP avec pagination, filtrables par type (ENTREE, SORTIE, AJUSTEMENT, INVENTAIRE).")
+    @ApiResponse(responseCode = "200", description = "Historique retourné")
+    @GetMapping({"/{pieceId}/historique", "/historique/{pieceId}"})
+    public ResponseEntity<Page<PieceMouvementListResponse>> historiquePiece(
+            @PathVariable Long pieceId,
+            @RequestParam(required = false) TypeMouvement type,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        if (type != null) {
+            return ResponseEntity.ok(stockService.getHistoriquePieceByType(pieceId, type, page, size).map(PieceMouvementListResponse::from));
+        }
+        return ResponseEntity.ok(stockService.getHistoriquePiece(pieceId, page, size).map(PieceMouvementListResponse::from));
+    }
+
+    @Operation(summary = "Historique global des mouvements", description = "Retourne tous les mouvements de stock sur une période donnée avec pagination, avec possibilité de filtrer par mot-clé, pièce, catégorie ou type de mouvement.")
+    @ApiResponse(responseCode = "200", description = "Historique retourné")
+    @GetMapping("/historique")
+    public ResponseEntity<Page<PieceMouvementListResponse>> historiqueGlobal(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime debut,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fin,
+            @RequestParam(required = false) Long pieceId,
+            @RequestParam(required = false) String categorie,
+            @RequestParam(required = false) TypeMouvement type,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(stockService.getHistoriqueGlobal(keyword, debut, fin, pieceId, categorie, type, page, size).map(PieceMouvementListResponse::from));
     }
 }

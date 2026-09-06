@@ -653,7 +653,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         if (fiche != null && fiche.getVehicule() != null) {
             return ordreReparationRepository.existsByVehiculeIdAndStatutNotIn(
                 fiche.getVehicule().getId(), 
-                java.util.List.of(StatutOrdreReparation.LIVRE, StatutOrdreReparation.TERMINE)
+                List.of(StatutOrdreReparation.LIVRE, StatutOrdreReparation.TERMINE)
             );
         }
         return false;

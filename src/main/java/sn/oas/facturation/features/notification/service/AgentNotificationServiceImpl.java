@@ -6,7 +6,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import sn.oas.facturation.features.notification.data.entity.AgentNotification;
-import sn.oas.facturation.features.notification.dto.AgentNotificationResponse;
+import sn.oas.facturation.features.notification.dto.NotificationResponse;
 import sn.oas.facturation.features.notification.repository.AgentNotificationRepository;
 import sn.oas.facturation.features.user.data.entity.Agent;
 import sn.oas.facturation.features.user.data.enums.Role;
@@ -34,7 +34,7 @@ public class AgentNotificationServiceImpl implements AgentNotificationService {
                     .build();
             notification = notificationRepository.save(notification);
 
-            AgentNotificationResponse responseDto = AgentNotificationResponse.of(notification);
+            NotificationResponse responseDto = NotificationResponse.of(notification);
 
             try {
                 // 1. Diffusion sur le topic du rôle (/topic/roles/AGENT/notifications)
@@ -54,10 +54,10 @@ public class AgentNotificationServiceImpl implements AgentNotificationService {
     }
 
     @Override
-    public List<AgentNotificationResponse> getAgentNotifications(Agent agent) {
+    public List<NotificationResponse> getAgentNotifications(Agent agent) {
         return notificationRepository.findByAgentIdOrderByDateCreationDesc(agent.getId())
                 .stream()
-                .map(AgentNotificationResponse::of)
+                .map(NotificationResponse::of)
                 .toList();
     }
 

@@ -13,29 +13,40 @@ import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import sn.oas.facturation.features.client.data.entity.Client;
+import sn.oas.facturation.features.devisPrevisionnel.data.entity.DevisPrevisionnel;
 import sn.oas.facturation.features.garage.data.entity.Garage;
+import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.features.rendezvous.data.entity.RendezVous;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
+
+import sn.oas.facturation.shared.tenant.TenantAware;
+import sn.oas.facturation.shared.tenant.TenantListener;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
 @Table(name = "fiches_atelier")
+@EntityListeners(TenantListener.class)
 @FilterDef(name = "garageFilter", parameters = @ParamDef(name = "garageId", type = Long.class))
 @Filter(name = "garageFilter", condition = "garage_id = :garageId")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class FicheAtelier {
+public class FicheAtelier implements TenantAware {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @Column(nullable = false, unique = true)
+    private String numero;
+
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "rendez_vous_id", nullable = true)
     private RendezVous rendezVous;
 
@@ -46,6 +57,15 @@ public class FicheAtelier {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vehicule_id", nullable = false)
     private Vehicule vehicule;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "devis_previsionnel_id", nullable = true)
+    private DevisPrevisionnel devisPrevisionnel;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ordre_reparation_id", unique = true)
+    @JsonIgnoreProperties({"ficheAtelier", "vehicule", "client", "garage"})
+    private OrdreReparation ordreReparation;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "garage_id", nullable = false)

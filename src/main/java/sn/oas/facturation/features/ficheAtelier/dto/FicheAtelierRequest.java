@@ -1,4 +1,4 @@
-package sn.oas.facturation.features.ficheAtelier.data.dto;
+package sn.oas.facturation.features.ficheAtelier.dto;
 
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;

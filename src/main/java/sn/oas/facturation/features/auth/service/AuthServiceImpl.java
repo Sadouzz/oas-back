@@ -81,7 +81,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse refreshToken(String currentRefreshToken) {
-        if (currentRefreshToken == null || !jwtUtil.validateJwtToken(currentRefreshToken)) {
+        if (currentRefreshToken == null || currentRefreshToken.isBlank() || !jwtUtil.validateJwtToken(currentRefreshToken)) {
             throw new BadCredentialsException("Refresh token invalide ou expiré");
         }
 
@@ -94,8 +94,8 @@ public class AuthServiceImpl implements AuthService {
             throw new BadCredentialsException("Compte utilisateur désactivé");
         }
 
-        String newAccessToken = jwtUtil.generateToken(username);
-        String newRefreshToken = jwtUtil.generateRefreshToken(username);
+        String newAccessToken = jwtUtil.generateToken(user.getUsername());
+        String newRefreshToken = jwtUtil.generateRefreshToken(user.getUsername());
         String role = user.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .findFirst()
@@ -108,7 +108,7 @@ public class AuthServiceImpl implements AuthService {
             garageName = agent.getGarage().getNom();
         }
 
-        return AuthResponse.of(newAccessToken, newRefreshToken, username, role, garageId, garageName);
+        return AuthResponse.of(newAccessToken, newRefreshToken, user.getUsername(), role, garageId, garageName);
     }
 
     @Override
