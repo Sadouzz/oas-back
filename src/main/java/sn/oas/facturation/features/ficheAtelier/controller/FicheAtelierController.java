@@ -13,7 +13,6 @@ import sn.oas.facturation.features.ficheAtelier.dto.FicheAtelierListResponse;
 import sn.oas.facturation.features.ficheAtelier.dto.FicheAtelierRequest;
 import sn.oas.facturation.features.ficheAtelier.service.FicheAtelierService;
 
-import java.util.List;
 import java.util.Map;
 
 @RestController

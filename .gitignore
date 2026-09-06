@@ -33,3 +33,9 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Seeders locaux ###
+src/main/java/sn/oas/facturation/seed/DemoStockSeeder.java
+src/main/java/sn/oas/facturation/seed/DemoAtelierSeeder.java
+src/main/java/sn/oas/facturation/seed/DemoFacturationSeeder.java
+src/main/java/sn/oas/facturation/seed/DemoMarketplaceSeeder.java

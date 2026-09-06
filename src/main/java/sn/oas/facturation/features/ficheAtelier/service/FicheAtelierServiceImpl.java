@@ -20,7 +20,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService;
 import sn.oas.facturation.shared.documentNumber.DocumentType;
@@ -41,19 +40,23 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     @Override
     public FicheAtelier create(FicheAtelierRequest request) {
         Client client = clientRepository.findById(request.getClientId())
-                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Client non trouvé avec l'id : " + request.getClientId()));
-        
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException(
+                        "Client non trouvé avec l'id : " + request.getClientId()));
+
         Vehicule vehicule = vehiculeRepository.findById(request.getVehiculeId())
-                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Véhicule non trouvé avec l'id : " + request.getVehiculeId()));
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException(
+                        "Véhicule non trouvé avec l'id : " + request.getVehiculeId()));
 
         RendezVous rendezVous = null;
         if (request.getRendezVousId() != null) {
             rendezVous = rendezVousRepository.findById(request.getRendezVousId())
-                    .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Rendez-vous non trouvé avec l'id : " + request.getRendezVousId()));
-                    
+                    .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException(
+                            "Rendez-vous non trouvé avec l'id : " + request.getRendezVousId()));
+
             // Check if already exists
             if (ficheAtelierRepository.findByRendezVousId(rendezVous.getId()).isPresent()) {
-                throw new sn.oas.facturation.shared.exception.ResourceAlreadyExistsException("Une fiche atelier existe déjà pour ce rendez-vous");
+                throw new sn.oas.facturation.shared.exception.ResourceAlreadyExistsException(
+                        "Une fiche atelier existe déjà pour ce rendez-vous");
             }
         }
 
@@ -95,7 +98,8 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     @Override
     public FicheAtelier update(Long id, FicheAtelierRequest request) {
         FicheAtelier fiche = ficheAtelierRepository.findById(id)
-                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Fiche Atelier non trouvée avec l'id : " + id));
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException(
+                        "Fiche Atelier non trouvée avec l'id : " + id));
 
         fiche.setNomChauffeur(request.getNomChauffeur());
         fiche.setTelephoneChauffeur(request.getTelephoneChauffeur());
@@ -117,7 +121,8 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     @Override
     public FicheAtelier getById(Long id) {
         return ficheAtelierRepository.findById(id)
-                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Fiche Atelier non trouvée avec l'id : " + id));
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException(
+                        "Fiche Atelier non trouvée avec l'id : " + id));
     }
 
     @Transactional(readOnly = true)
@@ -155,7 +160,8 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     @Override
     public FicheAtelier signForExit(Long id, String signature) {
         FicheAtelier fiche = ficheAtelierRepository.findById(id)
-                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Fiche atelier non trouvée avec l'id : " + id));
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException(
+                        "Fiche atelier non trouvée avec l'id : " + id));
         fiche.setSignatureSortieBase64(signature);
         return ficheAtelierRepository.save(fiche);
     }
