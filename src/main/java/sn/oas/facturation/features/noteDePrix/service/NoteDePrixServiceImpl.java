@@ -38,6 +38,10 @@ import sn.oas.facturation.shared.documentNumber.DocumentType;
 import sn.oas.facturation.features.piecedetache.repository.PieceMouvementRepository;
 import sn.oas.facturation.features.user.data.entity.Agent;
 import sn.oas.facturation.features.user.data.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -363,6 +367,26 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
     @Transactional(readOnly = true)
     public List<NoteDePrix> getAllNotesDePrix() {
         return noteDePrixRepository.findAll();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<NoteDePrix> getAllNotesDePrix(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        return noteDePrixRepository.findAll(pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<NoteDePrix> searchNotesDePrix(String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        return noteDePrixRepository.searchNotesDePrix(keyword, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<NoteDePrix> searchNotesDePrix(String keyword) {
+        return noteDePrixRepository.searchNotesDePrix(keyword);
     }
 
     @Override

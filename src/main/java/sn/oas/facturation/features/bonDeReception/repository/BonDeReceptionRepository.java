@@ -11,24 +11,77 @@ import java.util.List;
 @Repository
 public interface BonDeReceptionRepository extends JpaRepository<BonDeReception, Long> {
 
-    @Query("SELECT b FROM BonDeReception b WHERE " +
-            "LOWER(b.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+    @Query(value = "SELECT b FROM BonDeReception b " +
+            "LEFT JOIN b.bonDeCommande bc " +
+            "LEFT JOIN bc.vehicule bcv " +
+            "LEFT JOIN bcv.client bcc " +
+            "LEFT JOIN bc.fournisseur bcf " +
+            "LEFT JOIN b.ordreReparation o " +
+            "LEFT JOIN o.vehicule ov " +
+            "LEFT JOIN ov.client ovc " +
+            "WHERE LOWER(b.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(b.remarque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(b.ordreReparation.vehicule.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(b.ordreReparation.vehicule.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(b.ordreReparation.vehicule.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(b.ordreReparation.vehicule.client.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(b.ordreReparation.vehicule.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+            "LOWER(bc.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(bcv.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(bcv.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(bcv.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(bcc.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(bcc.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(CONCAT(bcc.firstName, ' ', bcc.lastName)) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(bcc.phone) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(bcf.nom) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(bcf.nomEntreprise) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(ov.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(ovc.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(ovc.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<BonDeReception> searchBonsDeReception(@Param("keyword") String keyword);
 
-    @Query("SELECT b FROM BonDeReception b WHERE " +
-            "LOWER(b.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+    @Query(value = "SELECT b FROM BonDeReception b " +
+            "LEFT JOIN b.bonDeCommande bc " +
+            "LEFT JOIN bc.vehicule bcv " +
+            "LEFT JOIN bcv.client bcc " +
+            "LEFT JOIN bc.fournisseur bcf " +
+            "LEFT JOIN b.ordreReparation o " +
+            "LEFT JOIN o.vehicule ov " +
+            "LEFT JOIN ov.client ovc " +
+            "WHERE LOWER(b.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(b.remarque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(b.ordreReparation.vehicule.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(b.ordreReparation.vehicule.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(b.ordreReparation.vehicule.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(b.ordreReparation.vehicule.client.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(b.ordreReparation.vehicule.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+            "LOWER(bc.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(bcv.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(bcv.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(bcv.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(bcc.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(bcc.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(CONCAT(bcc.firstName, ' ', bcc.lastName)) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(bcc.phone) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(bcf.nom) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(bcf.nomEntreprise) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(ov.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(ovc.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(ovc.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))",
+           countQuery = "SELECT COUNT(b) FROM BonDeReception b " +
+            "LEFT JOIN b.bonDeCommande bc " +
+            "LEFT JOIN bc.vehicule bcv " +
+            "LEFT JOIN bcv.client bcc " +
+            "LEFT JOIN bc.fournisseur bcf " +
+            "LEFT JOIN b.ordreReparation o " +
+            "LEFT JOIN o.vehicule ov " +
+            "LEFT JOIN ov.client ovc " +
+            "WHERE LOWER(b.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(b.remarque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(bc.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(bcv.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(bcv.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(bcv.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(bcc.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(bcc.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(CONCAT(bcc.firstName, ' ', bcc.lastName)) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(bcc.phone) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(bcf.nom) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(bcf.nomEntreprise) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(ov.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(ovc.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(ovc.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     org.springframework.data.domain.Page<BonDeReception> searchBonsDeReception(@Param("keyword") String keyword, org.springframework.data.domain.Pageable pageable);
 
     List<BonDeReception> findTop5ByOrderByDateCreationDesc();

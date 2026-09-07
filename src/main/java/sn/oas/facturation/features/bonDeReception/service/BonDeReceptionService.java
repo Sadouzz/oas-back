@@ -11,6 +11,9 @@ public interface BonDeReceptionService {
     BonDeReception create(BonDeReceptionCreateRequest request);
     BonDeReception update(Long id, BonDeReceptionUpdateRequest request);
     BonDeReception getById(Long id);
+    Page<BonDeReception> getAllBonsDeReception(int page, int size);
+    List<BonDeReception> searchBonsDeReception(String keyword);
+    Page<BonDeReception> searchBonsDeReception(String keyword, int page, int size);
     Page<BonDeReception> getAll(int page, int size);
     List<BonDeReception> getAll();
     List<BonDeReception> search(String keyword);

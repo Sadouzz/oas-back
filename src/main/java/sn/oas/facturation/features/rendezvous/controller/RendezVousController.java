@@ -115,7 +115,7 @@ public class RendezVousController {
             @PathVariable Long id,
             @RequestBody List<Long> mecanicienIds) {
         RendezVous rv = rendezvousService.validerRendezVous(id, mecanicienIds);
-        return ResponseEntity.ok(RendezVousResponse.of(rv, true));
+        return ResponseEntity.ok(RendezVousResponse.of(rv));
     }
 
     @PutMapping("/{id}/date")

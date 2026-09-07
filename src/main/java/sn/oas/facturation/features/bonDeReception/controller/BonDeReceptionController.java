@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -45,15 +46,16 @@ public class BonDeReceptionController {
     }
 
     @GetMapping
-    @Operation(summary = "Récupérer tous les bons de réception ou rechercher par mot-clé")
-    public ResponseEntity<?> getAll(
+    @Operation(summary = "Lister tous les bons de réception ou rechercher par mot-clé avec pagination")
+    public ResponseEntity<Page<BonDeReceptionListResponse>> getBonsDeReception(
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         if (keyword != null && !keyword.trim().isEmpty()) {
-            return ResponseEntity.ok(bonDeReceptionService.search(keyword.trim(), page, size).map(BonDeReceptionListResponse::from));
+            return ResponseEntity
+                    .ok(bonDeReceptionService.searchBonsDeReception(keyword.trim(), page, size).map(BonDeReceptionListResponse::from));
         }
-        return ResponseEntity.ok(bonDeReceptionService.getAll(page, size).map(BonDeReceptionListResponse::from));
+        return ResponseEntity.ok(bonDeReceptionService.getAllBonsDeReception(page, size).map(BonDeReceptionListResponse::from));
     }
 
     @GetMapping("/search")

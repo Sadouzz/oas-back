@@ -3,6 +3,7 @@ package sn.oas.facturation.features.noteDePrix.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sn.oas.facturation.features.noteDePrix.dto.NoteDePrixListResponse;
@@ -39,9 +40,16 @@ public class NoteDePrixController {
     }
 
     @GetMapping
-    @Operation(summary = "Lister toutes les notes de prix")
-    public ResponseEntity<List<NoteDePrixListResponse>> getAllNotesDePrix() {
-        return ResponseEntity.ok(noteDePrixService.getAllNotesDePrix().stream().map(NoteDePrixListResponse::from).toList());
+    @Operation(summary = "Lister toutes les notes de prix ou rechercher par mot-clé avec pagination")
+    public ResponseEntity<Page<NoteDePrixListResponse>> getAllNotesDePrix(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            return ResponseEntity
+                    .ok(noteDePrixService.searchNotesDePrix(keyword.trim(), page, size).map(NoteDePrixListResponse::from));
+        }
+        return ResponseEntity.ok(noteDePrixService.getAllNotesDePrix(page, size).map(NoteDePrixListResponse::from));
     }
 
     @DeleteMapping("/{id}")

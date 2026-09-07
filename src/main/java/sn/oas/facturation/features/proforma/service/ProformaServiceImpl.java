@@ -406,7 +406,7 @@ public class ProformaServiceImpl implements ProformaService {
     @Override
     @Transactional(readOnly = true)
     public Page<Proforma> getAll(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(page, size, org.springframework.data.domain.Sort.by("id").descending());
         return proformaRepository.findAll(pageable);
     }
 
@@ -425,7 +425,7 @@ public class ProformaServiceImpl implements ProformaService {
     @Override
     @Transactional(readOnly = true)
     public Page<Proforma> search(String keyword, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(page, size, org.springframework.data.domain.Sort.by("id").descending());
         return proformaRepository.searchProformas(keyword, pageable);
     }
 

@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
@@ -16,6 +17,9 @@ import sn.oas.facturation.features.auth.dto.request.LoginRequest;
 import sn.oas.facturation.features.auth.dto.request.RegisterRequest;
 import sn.oas.facturation.features.auth.dto.response.AuthResponse;
 import sn.oas.facturation.features.user.repository.UserRepository;
+import sn.oas.facturation.features.user.service.UserService;
+import sn.oas.facturation.features.user.dto.request.UserUpdateRequest;
+import sn.oas.facturation.features.user.dto.response.UserListResponse;
 import sn.oas.facturation.features.auth.service.AuthService;
 import sn.oas.facturation.features.user.data.entity.User;
 import sn.oas.facturation.features.user.data.enums.TypeUser;
@@ -29,6 +33,7 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+    private final UserService userService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -184,5 +189,24 @@ public class AuthController {
         userRepository.save(user);
 
         return ResponseEntity.ok("Mot de passe changé avec succès !");
+    }
+
+    @GetMapping("/me")
+    @Operation(summary = "Récupérer le profil de l'utilisateur connecté")
+    public ResponseEntity<UserListResponse> getCurrentUser() {
+        return ResponseEntity.ok(UserListResponse.from(userService.getCurrentUser()));
+    }
+
+    @PutMapping("/me")
+    @Operation(summary = "Mettre à jour le profil de l'utilisateur connecté")
+    public ResponseEntity<UserListResponse> updateCurrentUser(@RequestBody UserUpdateRequest request) {
+        return ResponseEntity.ok(UserListResponse.from(userService.updateCurrentUser(request)));
+    }
+
+    @PostMapping("/me/change-password")
+    @Operation(summary = "Changer le mot de passe de l'utilisateur connecté")
+    public ResponseEntity<?> changeMyPassword(@RequestBody ChangePasswordRequest request) {
+        userService.changePasswordForCurrentUser(request.oldPassword(), request.newPassword());
+        return ResponseEntity.ok(Map.of("message", "Mot de passe modifié avec succès !"));
     }
 }

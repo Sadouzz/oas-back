@@ -16,6 +16,7 @@ import sn.oas.facturation.features.user.dto.request.UserUpdateRequest;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.features.vehicule.service.VehiculeService;
 
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -33,6 +34,7 @@ public class ClientServiceImpl implements ClientService {
     private final PasswordEncoder passwordEncoder;
 
     @Override
+    @Cacheable(value = "clients")
     public Page<Client> getAllClients(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         return clientRepository.findAll(pageable);

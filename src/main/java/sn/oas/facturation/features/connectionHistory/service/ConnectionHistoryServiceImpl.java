@@ -10,6 +10,9 @@ import sn.oas.facturation.features.connectionHistory.repository.ConnectionHistor
 
 import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
 @RequiredArgsConstructor
@@ -55,5 +58,20 @@ public class ConnectionHistoryServiceImpl implements ConnectionHistoryService{
     @Override
     public List<ConnectionHistory> getAllConnectionHistory() {
         return connectionHistoryRepository.findAll(Sort.by(Sort.Direction.DESC, "timestamp"));
+    }
+
+    @Override
+    public Page<ConnectionHistory> getAllConnectionHistory(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "timestamp"));
+        return connectionHistoryRepository.findAll(pageable);
+    }
+
+    @Override
+    public Page<ConnectionHistory> searchConnectionHistory(String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "timestamp"));
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            return connectionHistoryRepository.searchConnectionHistory(keyword.trim(), pageable);
+        }
+        return connectionHistoryRepository.findAll(pageable);
     }
 }

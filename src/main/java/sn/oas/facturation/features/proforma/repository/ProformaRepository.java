@@ -12,26 +12,53 @@ import java.util.Optional;
 @Repository
 public interface ProformaRepository extends JpaRepository<Proforma, Long> {
 
-    @Query("SELECT p FROM Proforma p WHERE " +
-            "LOWER(p.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+    @Query(value = "SELECT p FROM Proforma p " +
+            "LEFT JOIN p.bonDeCommande b " +
+            "LEFT JOIN p.ordreReparation o " +
+            "LEFT JOIN o.vehicule v " +
+            "LEFT JOIN v.client c " +
+            "WHERE LOWER(p.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(p.remarque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(p.bonDeCommande.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(p.ordreReparation.vehicule.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(p.ordreReparation.vehicule.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(p.ordreReparation.vehicule.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(p.ordreReparation.vehicule.client.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(p.ordreReparation.vehicule.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+            "LOWER(b.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(v.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(v.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(v.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(CONCAT(c.firstName, ' ', c.lastName)) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.phone) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<Proforma> searchProformas(@Param("keyword") String keyword);
 
-    @Query("SELECT p FROM Proforma p WHERE " +
-            "LOWER(p.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+    @Query(value = "SELECT p FROM Proforma p " +
+            "LEFT JOIN p.bonDeCommande b " +
+            "LEFT JOIN p.ordreReparation o " +
+            "LEFT JOIN o.vehicule v " +
+            "LEFT JOIN v.client c " +
+            "WHERE LOWER(p.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(p.remarque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(p.bonDeCommande.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(p.ordreReparation.vehicule.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(p.ordreReparation.vehicule.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(p.ordreReparation.vehicule.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(p.ordreReparation.vehicule.client.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(p.ordreReparation.vehicule.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+            "LOWER(b.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(v.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(v.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(v.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(CONCAT(c.firstName, ' ', c.lastName)) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.phone) LIKE LOWER(CONCAT('%', :keyword, '%'))",
+           countQuery = "SELECT COUNT(p) FROM Proforma p " +
+            "LEFT JOIN p.bonDeCommande b " +
+            "LEFT JOIN p.ordreReparation o " +
+            "LEFT JOIN o.vehicule v " +
+            "LEFT JOIN v.client c " +
+            "WHERE LOWER(p.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(p.remarque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(b.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(v.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(v.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(v.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(CONCAT(c.firstName, ' ', c.lastName)) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.phone) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     org.springframework.data.domain.Page<Proforma> searchProformas(@Param("keyword") String keyword, org.springframework.data.domain.Pageable pageable);
 
     List<Proforma> findTop5ByOrderByDateCreationDesc();

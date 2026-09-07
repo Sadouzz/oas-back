@@ -3,6 +3,8 @@ package sn.oas.facturation.features.user.repository;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -21,10 +23,27 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByUsernameOrEmail(String username, String email);
 
     @Query("SELECT u FROM User u WHERE " +
+            "LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(u.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(u.matricule) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(u.phone) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<User> searchUsers(@Param("keyword") String keyword);
+
+    @Query(value = "SELECT u FROM User u WHERE " +
+            "LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(u.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(u.matricule) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(u.phone) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%'))",
+           countQuery = "SELECT COUNT(u) FROM User u WHERE " +
+            "LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(u.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(u.matricule) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(u.phone) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    Page<User> searchUsers(@Param("keyword") String keyword, Pageable pageable);
 }

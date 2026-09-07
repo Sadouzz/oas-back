@@ -82,7 +82,13 @@ public class ProformaController {
 
     @GetMapping("/search")
     @Operation(summary = "Rechercher des proformas")
-    public ResponseEntity<List<ProformaListResponse>> search(@RequestParam String keyword) {
+    public ResponseEntity<?> search(
+            @RequestParam String keyword,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        if (page != null && size != null) {
+            return ResponseEntity.ok(proformaService.search(keyword.trim(), page, size).map(ProformaListResponse::from));
+        }
         return ResponseEntity.ok(proformaService.search(keyword).stream().map(ProformaListResponse::from).toList());
     }
 

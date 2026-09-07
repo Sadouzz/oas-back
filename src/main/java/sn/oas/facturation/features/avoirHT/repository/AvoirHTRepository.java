@@ -11,30 +11,65 @@ import java.util.List;
 @Repository
 public interface AvoirHTRepository extends JpaRepository<AvoirHT, Long> {
 
-    @Query("SELECT a FROM AvoirHT a WHERE " +
-            "LOWER(a.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+    @Query(value = "SELECT a FROM AvoirHT a " +
+            "LEFT JOIN a.vehicule v " +
+            "LEFT JOIN a.client c " +
+            "LEFT JOIN a.ordreReparation o " +
+            "LEFT JOIN o.vehicule ov " +
+            "LEFT JOIN ov.client ovc " +
+            "WHERE LOWER(a.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(a.remarque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(a.vehicule.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(a.vehicule.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(a.vehicule.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(a.client.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(a.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(a.ordreReparation.vehicule.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(a.ordreReparation.vehicule.client.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(a.ordreReparation.vehicule.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+            "LOWER(v.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(v.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(v.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(CONCAT(c.firstName, ' ', c.lastName)) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.phone) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(ov.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(ovc.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(ovc.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(CONCAT(ovc.firstName, ' ', ovc.lastName)) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<AvoirHT> searchAvoirsHT(@Param("keyword") String keyword);
 
-    @Query("SELECT a FROM AvoirHT a WHERE " +
-            "LOWER(a.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+    @Query(value = "SELECT a FROM AvoirHT a " +
+            "LEFT JOIN a.vehicule v " +
+            "LEFT JOIN a.client c " +
+            "LEFT JOIN a.ordreReparation o " +
+            "LEFT JOIN o.vehicule ov " +
+            "LEFT JOIN ov.client ovc " +
+            "WHERE LOWER(a.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(a.remarque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(a.vehicule.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(a.vehicule.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(a.vehicule.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(a.client.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(a.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(a.ordreReparation.vehicule.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(a.ordreReparation.vehicule.client.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(a.ordreReparation.vehicule.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+            "LOWER(v.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(v.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(v.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(CONCAT(c.firstName, ' ', c.lastName)) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.phone) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(ov.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(ovc.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(ovc.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(CONCAT(ovc.firstName, ' ', ovc.lastName)) LIKE LOWER(CONCAT('%', :keyword, '%'))",
+           countQuery = "SELECT COUNT(a) FROM AvoirHT a " +
+            "LEFT JOIN a.vehicule v " +
+            "LEFT JOIN a.client c " +
+            "LEFT JOIN a.ordreReparation o " +
+            "LEFT JOIN o.vehicule ov " +
+            "LEFT JOIN ov.client ovc " +
+            "WHERE LOWER(a.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(a.remarque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(v.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(v.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(v.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(CONCAT(c.firstName, ' ', c.lastName)) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(c.phone) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(ov.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(ovc.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(ovc.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(CONCAT(ovc.firstName, ' ', ovc.lastName)) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     org.springframework.data.domain.Page<AvoirHT> searchAvoirsHT(@Param("keyword") String keyword, org.springframework.data.domain.Pageable pageable);
 
     List<AvoirHT> findTop5ByOrderByDateCreationDesc();

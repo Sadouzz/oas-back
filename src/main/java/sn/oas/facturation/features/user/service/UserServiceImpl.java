@@ -13,6 +13,17 @@ import sn.oas.facturation.features.user.data.entity.User;
 import sn.oas.facturation.features.user.dto.request.UserUpdateRequest;
 import sn.oas.facturation.features.user.dto.response.CreateUserResponse;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import sn.oas.facturation.shared.exception.BadRequestException;
+import sn.oas.facturation.shared.exception.ResourceNotFoundException;
+import sn.oas.facturation.shared.exception.UnauthorizedException;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -21,6 +32,7 @@ import java.util.Optional;
 public class UserServiceImpl implements UserService{
     private final UserRepository userRepository;
     private final GarageRepository garageRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional
     @Override
@@ -164,5 +176,66 @@ public class UserServiceImpl implements UserService{
             throw new IllegalArgumentException("L'utilisateur id=" + clientId + " n'est pas un client");
         }
         return client;
+    }
+
+    @Override
+    public Page<User> getAllUsers(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        return userRepository.findAll(pageable);
+    }
+
+    @Override
+    public Page<User> searchUsers(String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            return userRepository.searchUsers(keyword.trim(), pageable);
+        }
+        return userRepository.findAll(pageable);
+    }
+
+    @Override
+    public User getCurrentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || "anonymousUser".equals(auth.getName())) {
+            throw new UnauthorizedException("Utilisateur non authentifié");
+        }
+        String username = auth.getName();
+        return userRepository.findByUsername(username)
+                .or(() -> userRepository.findByEmail(username))
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur connecté introuvable : " + username));
+    }
+
+    @Transactional
+    @Override
+    public User updateCurrentUser(UserUpdateRequest request) {
+        User user = getCurrentUser();
+        if (request.phone() != null) user.setPhone(request.phone());
+        if (request.firstName() != null) user.setFirstName(request.firstName());
+        if (request.lastName() != null) user.setLastName(request.lastName());
+        if (request.email() != null) user.setEmail(request.email());
+        return userRepository.save(user);
+    }
+
+    @Transactional
+    @Override
+    public void changePasswordForCurrentUser(String oldPassword, String newPassword) {
+        User user = getCurrentUser();
+        if (oldPassword == null || !passwordEncoder.matches(oldPassword, user.getPassword())) {
+            throw new BadRequestException("Ancien mot de passe incorrect");
+        }
+        if (newPassword == null || newPassword.trim().length() < 6) {
+            throw new BadRequestException("Le nouveau mot de passe doit comporter au moins 6 caractères");
+        }
+        user.setPassword(passwordEncoder.encode(newPassword.trim()));
+        userRepository.save(user);
+    }
+
+    @Transactional
+    @Override
+    public User toggleUserStatus(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé avec l'id : " + id));
+        user.setEnabled(!user.isEnabled());
+        return userRepository.save(user);
     }
 }

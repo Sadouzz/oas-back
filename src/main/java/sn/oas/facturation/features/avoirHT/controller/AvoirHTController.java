@@ -3,6 +3,7 @@ package sn.oas.facturation.features.avoirHT.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -36,8 +37,8 @@ public class AvoirHTController {
     }
 
     @GetMapping
-    @Operation(summary = "Récupérer tous les avoirs HT ou rechercher par mot-clé")
-    public ResponseEntity<?> getAll(
+    @Operation(summary = "Lister tous les avoirs HT ou rechercher par mot-clé avec pagination")
+    public ResponseEntity<Page<AvoirHTResponse>> getAll(
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {

@@ -18,11 +18,8 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-<<<<<<<< HEAD:src/main/java/sn/oas/facturation/features/ficheAtelier/dto/FicheAtelierDetailsResponse.java
-public class FicheAtelierDetailsResponse {
-========
+
 public class FicheAtelierDetailResponse {
->>>>>>>> df01ca9ef4b4992bd227f8c230c4b61f793d83f2:src/main/java/sn/oas/facturation/features/ficheAtelier/dto/FicheAtelierDetailResponse.java
 
     private Long id;
     private String numero;
@@ -55,7 +52,6 @@ public class FicheAtelierDetailResponse {
     private boolean hasOrdreReparation;
     private DevisPrevisionnelSummary devisPrevisionnel;
 
-<<<<<<<< HEAD:src/main/java/sn/oas/facturation/features/ficheAtelier/dto/FicheAtelierDetailsResponse.java
     public record DevisPrevisionnelSummary(
             Long id,
             String numero,
@@ -77,23 +73,11 @@ public class FicheAtelierDetailResponse {
         }
     }
 
-    public static FicheAtelierDetailsResponse from(FicheAtelier fiche) {
-        if (fiche == null)
-            return null;
-        return FicheAtelierDetailsResponse.builder()
-========
-    public static FicheAtelierDetailResponse from(
-            sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier fiche) {
-        return from(fiche, false);
-    }
-
-    public static FicheAtelierDetailResponse from(
-            sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier fiche,
-            boolean hasOrdreReparation) {
+    public static FicheAtelierDetailResponse from(FicheAtelier fiche) {
         if (fiche == null)
             return null;
         return FicheAtelierDetailResponse.builder()
->>>>>>>> df01ca9ef4b4992bd227f8c230c4b61f793d83f2:src/main/java/sn/oas/facturation/features/ficheAtelier/dto/FicheAtelierDetailResponse.java
+
                 .id(fiche.getId())
                 .numero(fiche.getNumero())
                 .clientName(fiche.getClient() != null

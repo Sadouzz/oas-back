@@ -15,6 +15,10 @@ import sn.oas.facturation.features.facturation.data.entity.LigneFacturationMainD
 import sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece;
 import sn.oas.facturation.features.facturation.dto.LigneFacturationMainDoeuvreResponse;
 import sn.oas.facturation.features.facturation.dto.LigneFacturationPieceResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import com.lowagie.text.Document;
 import com.lowagie.text.Element;
@@ -67,9 +71,14 @@ public class BonDeReceptionServiceImpl implements BonDeReceptionService {
     }
 
     @Override
-    public org.springframework.data.domain.Page<BonDeReception> getAll(int page, int size) {
-        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by("id").descending());
+    public Page<BonDeReception> getAllBonsDeReception(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
         return bonDeReceptionRepository.findAll(pageable);
+    }
+
+    @Override
+    public Page<BonDeReception> getAll(int page, int size) {
+        return getAllBonsDeReception(page, size);
     }
 
     @Override
@@ -78,14 +87,24 @@ public class BonDeReceptionServiceImpl implements BonDeReceptionService {
     }
 
     @Override
-    public List<BonDeReception> search(String keyword) {
+    public List<BonDeReception> searchBonsDeReception(String keyword) {
         return bonDeReceptionRepository.searchBonsDeReception(keyword);
     }
 
     @Override
-    public org.springframework.data.domain.Page<BonDeReception> search(String keyword, int page, int size) {
-        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size, org.springframework.data.domain.Sort.by("id").descending());
+    public List<BonDeReception> search(String keyword) {
+        return searchBonsDeReception(keyword);
+    }
+
+    @Override
+    public Page<BonDeReception> searchBonsDeReception(String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
         return bonDeReceptionRepository.searchBonsDeReception(keyword, pageable);
+    }
+
+    @Override
+    public Page<BonDeReception> search(String keyword, int page, int size) {
+        return searchBonsDeReception(keyword, page, size);
     }
 
     @Override
