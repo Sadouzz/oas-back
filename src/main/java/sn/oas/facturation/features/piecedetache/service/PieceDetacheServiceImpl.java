@@ -12,15 +12,20 @@ import sn.oas.facturation.features.piecedetache.data.enums.TypePiece;
 import sn.oas.facturation.features.categorie_pieces.repository.CategorieRepository;
 import sn.oas.facturation.features.piecedetache.dto.PieceDetacheRequest;
 import sn.oas.facturation.features.piecedetache.repository.PieceDetacheRepository;
+import sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService;
 
 import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import sn.oas.facturation.features.piecedetache.dto.PieceStatsResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -29,7 +34,8 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
 
     private final PieceDetacheRepository pieceDetacheRepository;
     private final CategorieRepository categorieRepository;
-    private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
+    private final AlerteService alerteService;
+    private final DocumentNumberGeneratorService documentNumberGeneratorService;
 
     @Override
     public Page<PieceDetache> getAllPieces(int page, int size) {
@@ -91,8 +97,33 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
                 .orElseThrow(() -> new RuntimeException("Pièce détachée non trouvée"));
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    @Cacheable(value = "piece_stats", keyGenerator = "tenantKeyGenerator")
+    public PieceStatsResponse getStats() {
+        List<PieceDetache> allPieces = pieceDetacheRepository.findAll();
+        long totalArticles = allPieces.size();
+        double valeurStock = allPieces.stream()
+                .mapToDouble(p -> {
+                    double stock = (p.getStockMagasin() != null ? p.getStockMagasin() : 0.0)
+                            + (p.getStockAtelier() != null ? p.getStockAtelier() : 0.0);
+                    double prix = p.getPrixUnitaire() != null ? p.getPrixUnitaire()
+                            : (p.getPrixGros() != null ? p.getPrixGros() : 0.0);
+                    return stock * prix;
+                })
+                .sum();
+        long ruptures = alerteService.getRuptures().size();
+        long stockCritique = alerteService.getStocksFaibles().size();
+        return new PieceStatsResponse(totalArticles, valeurStock, stockCritique, ruptures);
+    }
+
     @Transactional
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "piece_stats", allEntries = true),
+            @CacheEvict(value = "dashboard_super_agent", allEntries = true),
+            @CacheEvict(value = "dashboard_agent_magasin", allEntries = true)
+    })
     public PieceDetache create(PieceDetacheRequest request) {
         validateCreateRequest(request);
 
@@ -109,6 +140,11 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
 
     @Transactional
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "piece_stats", allEntries = true),
+            @CacheEvict(value = "dashboard_super_agent", allEntries = true),
+            @CacheEvict(value = "dashboard_agent_magasin", allEntries = true)
+    })
     public PieceDetache update(Long id, PieceDetacheRequest request) {
         PieceDetache piece = getById(id);
         piece = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
@@ -134,6 +170,11 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "piece_stats", allEntries = true),
+            @CacheEvict(value = "dashboard_super_agent", allEntries = true),
+            @CacheEvict(value = "dashboard_agent_magasin", allEntries = true)
+    })
     public void delete(Long id) {
         if (!pieceDetacheRepository.existsById(id)) {
             throw new RuntimeException("Pièce détachée non trouvée");
@@ -151,6 +192,11 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "piece_stats", allEntries = true),
+            @CacheEvict(value = "dashboard_super_agent", allEntries = true),
+            @CacheEvict(value = "dashboard_agent_magasin", allEntries = true)
+    })
     public PieceDetache restore(Long id) {
         PieceDetache piece = pieceDetacheRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Pièce détachée non trouvée"));

@@ -3,6 +3,10 @@ package sn.oas.facturation.features.vehicule.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -54,6 +58,11 @@ public class VehiculeController {
 
     @PostMapping("/create")
     @Operation(summary = "Créer un nouveau véhicule")
+    @Caching(evict = {
+        @CacheEvict(value = "dashboard_super_agent", allEntries = true),
+        @CacheEvict(value = "dashboard_chef_atelier", allEntries = true),
+        @CacheEvict(value = "dashboard_agent", allEntries = true)
+    })
     public ResponseEntity<Vehicule> createVehicule(@RequestBody VehiculeRequest request) {
         return new ResponseEntity<>(vehiculeService.createVehicule(request), HttpStatus.CREATED);
     }
@@ -66,6 +75,11 @@ public class VehiculeController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Supprimer un véhicule")
+    @Caching(evict = {
+            @CacheEvict(value = "dashboard_super_agent", allEntries = true),
+            @CacheEvict(value = "dashboard_chef_atelier", allEntries = true),
+            @CacheEvict(value = "dashboard_agent", allEntries = true)
+    })
     public ResponseEntity<Void> deleteVehicule(@PathVariable Long id) {
         vehiculeService.deleteVehicule(id);
         return ResponseEntity.noContent().build();

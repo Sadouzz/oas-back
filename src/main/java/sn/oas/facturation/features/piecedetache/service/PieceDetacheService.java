@@ -3,6 +3,7 @@ package sn.oas.facturation.features.piecedetache.service;
 import sn.oas.facturation.features.piecedetache.data.entity.PieceDetache;
 import sn.oas.facturation.features.piecedetache.data.enums.TypePiece;
 import sn.oas.facturation.features.piecedetache.dto.PieceDetacheRequest;
+import sn.oas.facturation.features.piecedetache.dto.PieceStatsResponse;
 
 import org.springframework.data.domain.Page;
 import java.util.List;
@@ -28,4 +29,6 @@ public interface PieceDetacheService {
     void delete(Long id);
 
     PieceDetache restore(Long id);
+
+    PieceStatsResponse getStats();
 }

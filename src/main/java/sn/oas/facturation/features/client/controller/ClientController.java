@@ -2,11 +2,18 @@ package sn.oas.facturation.features.client.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import sn.oas.facturation.features.client.data.entity.Client;
+import sn.oas.facturation.features.client.dto.ClientCreateRequest;
+import sn.oas.facturation.features.client.dto.ClientCreateResponse;
 import sn.oas.facturation.features.client.dto.ClientListResponse;
 import sn.oas.facturation.features.client.service.ClientService;
 import sn.oas.facturation.features.user.data.enums.TypeUser;
@@ -35,6 +42,14 @@ public class ClientController {
         return ResponseEntity.ok(clientService.getAllClients(page, size).map(ClientListResponse::from));
     }
 
+    @GetMapping("/archived")
+    @Operation(summary = "Lister les clients archivés (paginé et trié par dernier modifié)")
+    public ResponseEntity<?> listArchivedClients(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(clientService.getArchivedClients(page, size).map(ClientListResponse::from));
+    }
+
     @GetMapping("/me")
     @Operation(summary = "Récupérer le profil du client connecté")
     public ResponseEntity<ClientListResponse> getProfile() {
@@ -59,18 +74,9 @@ public class ClientController {
 
     @PostMapping("/create")
     @Operation(summary = "Créer un nouveau client")
-    public ResponseEntity<?> createClient(@RequestBody RegisterRequest request) {
-        try {
-            RegisterRequest clientReq = new RegisterRequest(
-                    request.matricule(), request.phone(), request.username(),
-                    request.firstName(), request.lastName(), request.email(),
-                    request.password(), TypeUser.CLIENT, null, null, null, null
-            );
-            authService.register(clientReq);
-            return ResponseEntity.ok("{\"message\": \"Client créé avec succès !\"}");
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
-        }
+    public ResponseEntity<ClientCreateResponse> createClient(@RequestBody @Valid ClientCreateRequest request) {
+        ClientCreateResponse response = clientService.createClient(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PutMapping("/{id}")

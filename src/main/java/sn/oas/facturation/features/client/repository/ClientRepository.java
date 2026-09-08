@@ -29,6 +29,8 @@ public interface ClientRepository extends JpaRepository<Client, Long> {
 
     List<Client> findTop5ByOrderByCreatedAtDesc();
 
+    org.springframework.data.domain.Page<Client> findByEnabled(boolean enabled, org.springframework.data.domain.Pageable pageable);
+
     @Query("SELECT MAX(c.matricule) FROM Client c WHERE c.matricule LIKE 'CLT-%'")
     String findMaxClientMatricule();
 }

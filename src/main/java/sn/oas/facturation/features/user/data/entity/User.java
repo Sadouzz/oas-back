@@ -6,6 +6,7 @@ import lombok.experimental.SuperBuilder;
 import sn.oas.facturation.features.user.data.enums.TypeUser;
 
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -62,13 +63,23 @@ public class User implements UserDetails {
     @CreationTimestamp
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    
+    @Column(name = "updated_at")
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
 
     @PrePersist
     protected void onCreate() {
         if (this.createdAt == null) {
             this.createdAt = LocalDateTime.now();
         }
+        if (this.updatedAt == null) {
+            this.updatedAt = LocalDateTime.now();
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 
     // ── UserDetails ──────────────────────────────────────────
@@ -79,14 +90,22 @@ public class User implements UserDetails {
     }
 
     @Override
-    public boolean isAccountNonExpired()  { return true; }
+    public boolean isAccountNonExpired() {
+        return true;
+    }
 
     @Override
-    public boolean isAccountNonLocked()   { return true; }
+    public boolean isAccountNonLocked() {
+        return true;
+    }
 
     @Override
-    public boolean isCredentialsNonExpired() { return true; }
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
 
     @Override
-    public boolean isEnabled()            { return this.enabled; }
+    public boolean isEnabled() {
+        return this.enabled;
+    }
 }

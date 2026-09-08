@@ -15,6 +15,7 @@ import sn.oas.facturation.features.piecedetache.data.enums.TypePiece;
 import sn.oas.facturation.features.piecedetache.dto.PieceDetacheListResponse;
 import sn.oas.facturation.features.piecedetache.dto.PieceDetacheRequest;
 import sn.oas.facturation.features.piecedetache.dto.PieceMouvementListResponse;
+import sn.oas.facturation.features.piecedetache.dto.PieceStatsResponse;
 import sn.oas.facturation.features.piecedetache.service.PieceDetacheService;
 import sn.oas.facturation.features.piecedetache.service.StockService;
 
@@ -47,6 +48,14 @@ public class PieceDetacheController {
         }
         return ResponseEntity.ok(pieceDetacheService.getAllPieces(page, size).map(PieceDetacheListResponse::from));
     }
+
+    @Operation(summary = "Statistiques des pièces détachées", description = "Retourne le nombre total d'articles, la valeur totale du stock, les stocks critiques et les ruptures.")
+    @ApiResponse(responseCode = "200", description = "Statistiques récupérées avec succès")
+    @GetMapping("/stats")
+    public ResponseEntity<PieceStatsResponse> getStats() {
+        return ResponseEntity.ok(pieceDetacheService.getStats());
+    }
+
 
     @Operation(summary = "Obtenir une pièce par ID")
     @ApiResponses({

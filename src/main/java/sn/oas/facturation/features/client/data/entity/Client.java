@@ -11,6 +11,8 @@ import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+
+import jakarta.persistence.Column;
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import jakarta.persistence.OneToMany;
@@ -27,6 +29,9 @@ import java.util.List;
 @DiscriminatorValue("CLIENT")
 @NoArgsConstructor
 public class Client extends User {
+
+    @Column(name = "adresse", nullable = true)
+    private String adresse;
 
     @Builder.Default
     @OneToMany(mappedBy = "client")

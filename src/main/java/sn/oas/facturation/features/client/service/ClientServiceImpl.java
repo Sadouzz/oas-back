@@ -10,18 +10,25 @@ import org.springframework.transaction.annotation.Transactional;
 import sn.oas.facturation.features.user.repository.UserRepository;
 import sn.oas.facturation.features.user.service.UserService;
 import sn.oas.facturation.features.client.data.entity.Client;
+import sn.oas.facturation.features.client.dto.ClientCreateRequest;
+import sn.oas.facturation.features.client.dto.ClientCreateResponse;
 import sn.oas.facturation.features.client.repository.ClientRepository;
 import sn.oas.facturation.features.user.data.entity.User;
+import sn.oas.facturation.features.user.data.enums.TypeUser;
 import sn.oas.facturation.features.user.dto.request.UserUpdateRequest;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.features.vehicule.service.VehiculeService;
 
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -34,15 +41,22 @@ public class ClientServiceImpl implements ClientService {
     private final PasswordEncoder passwordEncoder;
 
     @Override
-    @Cacheable(value = "clients")
     public Page<Client> getAllClients(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(
+                Sort.Order.desc("updatedAt"),
+                Sort.Order.desc("createdAt"),
+                Sort.Order.desc("id")
+        ));
         return clientRepository.findAll(pageable);
     }
 
     @Override
     public List<Client> getAllClients() {
-        return clientRepository.findAll();
+        return clientRepository.findAll(Sort.by(
+                Sort.Order.desc("updatedAt"),
+                Sort.Order.desc("createdAt"),
+                Sort.Order.desc("id")
+        ));
     }
 
     @Override
@@ -51,35 +65,66 @@ public class ClientServiceImpl implements ClientService {
                 .orElseThrow(() -> new RuntimeException("Client non trouvé"));
     }
 
-    /*
     @Transactional
     @Override
-    public Client createClient(RegisterRequest request) {
-        if (userRepository.existsByUsername(request.username())) {
-            throw new IllegalArgumentException("Username already in use: " + request.username());
-        }
-        if (userRepository.existsByEmail(request.email())) {
-            throw new IllegalArgumentException("Email already in use: " + request.email());
-        }
+    @Caching(evict = {
+        @CacheEvict(value = "dashboard_super_agent", allEntries = true),
+        @CacheEvict(value = "dashboard_agent", allEntries = true)
+    })
+    public ClientCreateResponse createClient(ClientCreateRequest request) {
+        // 1. Générer le matricule CLT-XXXXX
+        String matricule = generateMatricule();
 
+        // 2. Définir mot de passe sécurisé (fourni ou généré)
+        String rawPassword = (request.password() != null && !request.password().trim().isEmpty())
+                ? request.password()
+                : UUID.randomUUID().toString().substring(0, 8);
+
+        // 3. Créer l'entité Client
         Client client = Client.builder()
-                .matricule(request.matricule())
-                .phone(request.phone())
-                .username(request.username())
                 .firstName(request.firstName())
                 .lastName(request.lastName())
+                .phone(request.phone())
                 .email(request.email())
-                .password(passwordEncoder.encode(request.password()))
+                .adresse(request.adresse())
+                .matricule(matricule)
                 .type(TypeUser.CLIENT)
+                .username(request.email() != null && !request.email().isBlank() ? request.email() : request.phone())
+                .password(passwordEncoder.encode(rawPassword))
                 .enabled(true)
                 .build();
 
-        return clientRepository.save(client);
+        Client saved = clientRepository.save(client);
+        return ClientCreateResponse.from(saved);
     }
-    */
+
+    private String generateMatricule() {
+        String maxMatricule = clientRepository.findMaxClientMatricule();
+        long nextNumber = clientRepository.count() + 1;
+
+        if (maxMatricule != null && maxMatricule.startsWith("CLT-")) {
+            try {
+                String numStr = maxMatricule.substring(4);
+                nextNumber = Math.max(nextNumber, Long.parseLong(numStr) + 1);
+            } catch (NumberFormatException ignored) {
+            }
+        }
+
+        String matricule = String.format("CLT-%05d", nextNumber);
+        while (userRepository.existsByMatricule(matricule)) {
+            nextNumber++;
+            matricule = String.format("CLT-%05d", nextNumber);
+        }
+        return matricule;
+    }
+
 
     @Transactional
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "dashboard_super_agent", allEntries = true),
+            @CacheEvict(value = "dashboard_agent", allEntries = true)
+    })
     public Client updateClient(Long id, UserUpdateRequest request) {
         Client client = clientRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Client non trouvé"));
@@ -94,6 +139,10 @@ public class ClientServiceImpl implements ClientService {
 
     @Transactional
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "dashboard_super_agent", allEntries = true),
+            @CacheEvict(value = "dashboard_agent", allEntries = true)
+    })
     public void archiveClient(Long id) {
         Client client = clientRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Client non trouvé"));
@@ -103,6 +152,10 @@ public class ClientServiceImpl implements ClientService {
 
     @Transactional
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "dashboard_super_agent", allEntries = true),
+            @CacheEvict(value = "dashboard_agent", allEntries = true)
+    })
     public void unarchiveClient(Long id) {
         Client client = clientRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Client non trouvé"));
@@ -112,6 +165,10 @@ public class ClientServiceImpl implements ClientService {
 
     @Transactional
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "dashboard_super_agent", allEntries = true),
+            @CacheEvict(value = "dashboard_agent", allEntries = true)
+    })
     public void deleteClient(Long id) {
         if (!clientRepository.existsById(id)) {
             throw new RuntimeException("Client non trouvé");
@@ -143,8 +200,22 @@ public class ClientServiceImpl implements ClientService {
 
     @Override
     public Page<Client> searchClients(String keyword, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(
+                Sort.Order.desc("updatedAt"),
+                Sort.Order.desc("createdAt"),
+                Sort.Order.desc("id")
+        ));
         return clientRepository.searchClients(keyword, pageable);
+    }
+
+    @Override
+    public Page<Client> getArchivedClients(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(
+                Sort.Order.desc("updatedAt"),
+                Sort.Order.desc("createdAt"),
+                Sort.Order.desc("id")
+        ));
+        return clientRepository.findByEnabled(false, pageable);
     }
 
     @Override

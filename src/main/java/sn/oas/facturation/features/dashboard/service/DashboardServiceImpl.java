@@ -1,8 +1,11 @@
 package sn.oas.facturation.features.dashboard.service;
 
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import sn.oas.facturation.features.bonDeSortie.data.enums.StatutBon;
 import sn.oas.facturation.features.bonDeSortie.repository.BonDeSortieRepository;
 import sn.oas.facturation.features.client.repository.ClientRepository;
@@ -26,6 +29,7 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable (value = "dashboard_super_agent")
     public DashboardSuperAgentResponseDTO getSuperAgentDashboard() {
         long totalClients = clientRepository.count();
         long totalVehicules = vehiculeRepository.count();
@@ -76,6 +80,7 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "dashboard_agent")
     public DashboardAgentResponse getAgentDashboard() {
         long totalClients = clientRepository.count();
         long totalVehicules = vehiculeRepository.count();
@@ -97,6 +102,7 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "dashboard_chef_atelier")
     public DashboardChefAtelierResponse getChefAtelierDashboard() {
         long totalBonsDeSortieEnAttente = bonDeSortieRepository.countByStatut(StatutBon.EN_ATTENTE);
         long totalVehicules = vehiculeRepository.count();
@@ -114,6 +120,7 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "dashboard_agent_magasin")
     public DashboardAgentMagasinResponse getAgentMagasinDashboard() {
         long totalAlertes = alerteService.getAlertes().size();
         long totalRuptures = alerteService.getRuptures().size();

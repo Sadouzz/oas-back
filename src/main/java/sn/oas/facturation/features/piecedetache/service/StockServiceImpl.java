@@ -1,6 +1,8 @@
 package sn.oas.facturation.features.piecedetache.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -22,7 +24,14 @@ import sn.oas.facturation.features.piecedetache.repository.PieceMouvementReposit
 import sn.oas.facturation.features.user.data.entity.Agent;
 import sn.oas.facturation.features.user.data.entity.User;
 
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -35,6 +44,11 @@ public class StockServiceImpl implements StockService {
 
     @Transactional
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "piece_stats", allEntries = true),
+            @CacheEvict(value = "dashboard_super_agent", allEntries = true),
+            @CacheEvict(value = "dashboard_agent_magasin", allEntries = true)
+    })
     public PieceMouvement entree(EntreeStockRequest request) {
         PDP pdp = getPDP(request.pieceId());
         Agent agent = getAgentConnecte();
@@ -71,6 +85,11 @@ public class StockServiceImpl implements StockService {
 
     @Transactional
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "piece_stats", allEntries = true),
+            @CacheEvict(value = "dashboard_super_agent", allEntries = true),
+            @CacheEvict(value = "dashboard_agent_magasin", allEntries = true)
+    })
     public PieceMouvement sortie(SortieStockRequest request) {
         PDP pdp = getPDP(request.pieceId());
         Agent agent = getAgentConnecte();
@@ -113,6 +132,11 @@ public class StockServiceImpl implements StockService {
 
     @Transactional
     @Override
+    @Caching(evict = {
+            @CacheEvict(value = "piece_stats", allEntries = true),
+            @CacheEvict(value = "dashboard_super_agent", allEntries = true),
+            @CacheEvict(value = "dashboard_agent_magasin", allEntries = true)
+    })
     public PieceMouvement ajustement(AjustementStockRequest request) {
         PDP pdp = getPDP(request.pieceId());
         Agent agent = getAgentConnecte();
@@ -181,10 +205,9 @@ public class StockServiceImpl implements StockService {
 
     @Override
     public List<PieceMouvement> getHistoriqueGlobal(LocalDateTime debut, LocalDateTime fin, Long pieceId, String categorie, TypeMouvement type) {
-        if (debut == null && fin == null && pieceId == null && categorie == null && type == null) {
-            return pieceMouvementRepository.findAll(org.springframework.data.domain.Sort.by("dateOperation").descending().and(org.springframework.data.domain.Sort.by("id").descending()));
-        }
-        return pieceMouvementRepository.findFiltered(debut, fin, pieceId, categorie, type);
+        Specification<PieceMouvement> spec = buildFilterSpec(null, debut, fin, pieceId, categorie, type);
+        Sort sort = Sort.by("dateOperation").descending().and(Sort.by("id").descending());
+        return pieceMouvementRepository.findAll(spec, sort);
     }
 
     @Override
@@ -194,15 +217,60 @@ public class StockServiceImpl implements StockService {
 
     @Override
     public Page<PieceMouvement> getHistoriqueGlobal(String keyword, LocalDateTime debut, LocalDateTime fin, Long pieceId, String categorie, TypeMouvement type, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, org.springframework.data.domain.Sort.by("dateOperation").descending().and(org.springframework.data.domain.Sort.by("id").descending()));
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            String pattern = "%" + keyword.trim().toLowerCase() + "%";
-            return pieceMouvementRepository.searchMouvements(pattern, pageable);
-        }
-        if (debut == null && fin == null && pieceId == null && categorie == null && type == null) {
-            return pieceMouvementRepository.findAll(pageable);
-        }
-        return pieceMouvementRepository.findFiltered(debut, fin, pieceId, categorie, type, pageable);
+        Pageable pageable = PageRequest.of(page, size, Sort.by("dateOperation").descending().and(Sort.by("id").descending()));
+        Specification<PieceMouvement> spec = buildFilterSpec(keyword, debut, fin, pieceId, categorie, type);
+        return pieceMouvementRepository.findAll(spec, pageable);
+    }
+
+    private Specification<PieceMouvement> buildFilterSpec(String keyword, LocalDateTime debut, LocalDateTime fin, Long pieceId, String categorie, TypeMouvement type) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (debut != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("dateOperation"), debut));
+            }
+            if (fin != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("dateOperation"), fin));
+            }
+            if (pieceId != null) {
+                predicates.add(cb.equal(root.get("piece").get("id"), pieceId));
+            }
+            if (type != null) {
+                predicates.add(cb.equal(root.get("type"), type));
+            }
+
+            Join<Object, Object> pieceJoin = null;
+            if ((categorie != null && !categorie.isBlank()) || (keyword != null && !keyword.isBlank())) {
+                pieceJoin = root.join("piece", JoinType.LEFT);
+            }
+
+            if (categorie != null && !categorie.isBlank()) {
+                Join<Object, Object> catJoin = pieceJoin.join("categorie", JoinType.LEFT);
+                predicates.add(cb.equal(catJoin.get("nom"), categorie.trim()));
+            }
+
+            if (keyword != null && !keyword.isBlank()) {
+                String pattern = "%" + keyword.trim().toLowerCase() + "%";
+                Join<Object, Object> agentJoin = root.join("agent", JoinType.LEFT);
+
+                Predicate kwPredicate = cb.or(
+                        cb.like(cb.lower(cb.coalesce(root.get("numDocument"), "")), pattern),
+                        cb.like(cb.lower(cb.coalesce(root.get("typeDocument"), "")), pattern),
+                        cb.like(cb.lower(cb.coalesce(root.get("numeroSerie"), "")), pattern),
+                        cb.like(cb.lower(cb.coalesce(root.get("immatriculation"), "")), pattern),
+                        cb.like(cb.lower(cb.coalesce(root.get("prenom"), "")), pattern),
+                        cb.like(cb.lower(cb.coalesce(root.get("nom"), "")), pattern),
+                        cb.like(cb.lower(cb.coalesce(root.get("motif"), "")), pattern),
+                        cb.like(cb.lower(cb.coalesce(pieceJoin.get("designation"), "")), pattern),
+                        cb.like(cb.lower(cb.coalesce(pieceJoin.get("reference"), "")), pattern),
+                        cb.like(cb.lower(cb.coalesce(agentJoin.get("firstName"), "")), pattern),
+                        cb.like(cb.lower(cb.coalesce(agentJoin.get("lastName"), "")), pattern)
+                );
+                predicates.add(kwPredicate);
+            }
+
+            return predicates.isEmpty() ? cb.conjunction() : cb.and(predicates.toArray(new Predicate[0]));
+        };
     }
 
     private PDP getPDP(Long pieceId) {
