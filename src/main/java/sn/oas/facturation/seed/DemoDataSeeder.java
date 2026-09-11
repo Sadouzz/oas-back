@@ -115,20 +115,20 @@ public class DemoDataSeeder implements CommandLineRunner {
             Garage dakar = garageRepository.save(Garage.builder()
                     .nom("Orient Auto Service - Dakar")
                     .localite("Dakar, Sénégal")
-                    .prefixe("OAS")
+                    .prefixe("DK")
                     .numeroFixe("+221 33 123 45 67")
                     .numeroWhatsapp("+221 77 123 45 67")
                     .email("dakar@orientautoservice.sn")
                     .build());
-            Garage thies = garageRepository.save(Garage.builder()
-                    .nom("Orient Auto Service - Thiès")
-                    .localite("Thiès, Sénégal")
-                    .prefixe("OAT")
+            Garage saly = garageRepository.save(Garage.builder()
+                    .nom("Orient Auto Service - Saly")
+                    .localite("Saly, Sénégal")
+                    .prefixe("SA")
                     .numeroFixe("+221 33 951 22 33")
                     .numeroWhatsapp("+221 77 951 22 33")
                     .email("thies@orientautoservice.sn")
                     .build());
-            return List.of(dakar, thies);
+            return List.of(dakar, saly);
         }
         // Réutilise les garages existants (ordre par id pour rester déterministe).
         List<Garage> existing = garageRepository.findAll();
@@ -146,13 +146,11 @@ public class DemoDataSeeder implements CommandLineRunner {
     private List<Agent> seedAgents(Garage dakar, Garage thies) {
         record ASpec(String firstName, String lastName, String username, String phone, String email, Role role, Garage garage) {}
         List<ASpec> specs = List.of(
-                new ASpec("Amadou", "Diallo", "admin", "+221771111101", "amadou.diallo@orientautoservice.sn", Role.SUPER_AGENT, dakar),
-                new ASpec("Fatou", "Ndiaye", "fatou.ndiaye", "+221771111102", "fatou.ndiaye@orientautoservice.sn", Role.MASTER, dakar),
-                new ASpec("Moussa", "Sow", "moussa.sow", "+221771111103", "moussa.sow@orientautoservice.sn", Role.CHEF_ATELIER, dakar),
-                new ASpec("Aissatou", "Ba", "aissatou.ba", "+221771111104", "aissatou.ba@orientautoservice.sn", Role.AGENT, dakar),
-                new ASpec("Ibrahima", "Kane", "ibrahima.kane", "+221771111105", "ibrahima.kane@orientautoservice.sn", Role.AGENT_MAGASIN, dakar),
-                new ASpec("Cheikh", "Faye", "cheikh.faye", "+221771111106", "cheikh.faye@orientautoservice.sn", Role.AGENT, thies),
-                new ASpec("Awa", "Diop", "awa.diop", "+221771111107", "awa.diop@orientautoservice.sn", Role.CHEF_ATELIER, thies)
+                new ASpec("Super", "Agent", "super_agent", "+221771111101", "super_agent@orientautoservice.sn", Role.SUPER_AGENT, dakar),
+                new ASpec("Master", "Master", "master", "+221771111102", "master@orientautoservice.sn", Role.MASTER, dakar),
+                new ASpec("Chef", "Atelier", "chef_atelier", "+221771111103", "chef_atelier@orientautoservice.sn", Role.CHEF_ATELIER, dakar),
+                new ASpec("Agent", "Agent", "agent", "+221771111104", "agent@orientautoservice.sn", Role.AGENT, dakar),
+                new ASpec("Agent", "Magasin", "agent_magasin", "+221771111105", "agent_magasin@orientautoservice.sn", Role.AGENT_MAGASIN, dakar)
         );
 
         List<Agent> result = new java.util.ArrayList<>();
@@ -226,8 +224,14 @@ public class DemoDataSeeder implements CommandLineRunner {
     }
 
     private Client newClient(String firstName, String lastName, String username, String phone, String email, int seq) {
+        long next = seq;
+        String mat = String.format("CLT-%05d", next);
+        while (userRepository.existsByMatricule(mat)) {
+            next++;
+            mat = String.format("CLT-%05d", next);
+        }
         return Client.builder()
-                .matricule(String.format("CLT-%05d", seq))
+                .matricule(mat)
                 .phone(phone)
                 .username(username)
                 .firstName(firstName)
@@ -437,7 +441,7 @@ public class DemoDataSeeder implements CommandLineRunner {
         log.info("--- Création des messages de démonstration ---");
 
         Client client = clients.get(1); // Khadija Sarr
-        Agent agent = agents.stream().filter(a -> "aissatou.ba".equals(a.getUsername())).findFirst().orElse(agents.get(0));
+        Agent agent = agents.stream().filter(a -> "agent".equals(a.getUsername())).findFirst().orElse(agents.get(0));
 
         List<Message> messages = List.of(
                 Message.builder()
