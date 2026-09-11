@@ -58,11 +58,11 @@ public class VehiculeController {
 
     @PostMapping("/create")
     @Operation(summary = "Créer un nouveau véhicule")
-    @Caching(evict = {
+    /*@Caching(evict = {
         @CacheEvict(value = "dashboard_super_agent", allEntries = true),
         @CacheEvict(value = "dashboard_chef_atelier", allEntries = true),
         @CacheEvict(value = "dashboard_agent", allEntries = true)
-    })
+    })*/
     public ResponseEntity<Vehicule> createVehicule(@RequestBody VehiculeRequest request) {
         return new ResponseEntity<>(vehiculeService.createVehicule(request), HttpStatus.CREATED);
     }
@@ -75,11 +75,11 @@ public class VehiculeController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Supprimer un véhicule")
-    @Caching(evict = {
+/*@Caching(evict = {
             @CacheEvict(value = "dashboard_super_agent", allEntries = true),
             @CacheEvict(value = "dashboard_chef_atelier", allEntries = true),
             @CacheEvict(value = "dashboard_agent", allEntries = true)
-    })
+    })*/
     public ResponseEntity<Void> deleteVehicule(@PathVariable Long id) {
         vehiculeService.deleteVehicule(id);
         return ResponseEntity.noContent().build();

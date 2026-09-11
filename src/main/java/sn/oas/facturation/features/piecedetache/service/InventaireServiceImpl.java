@@ -30,11 +30,11 @@ public class InventaireServiceImpl implements InventaireService {
 
     @Transactional
     @Override
-    @Caching(evict = {
+    /*@Caching(evict = {
             @CacheEvict(value = "piece_stats", allEntries = true),
             @CacheEvict(value = "dashboard_super_agent", allEntries = true),
             @CacheEvict(value = "dashboard_agent_magasin", allEntries = true)
-    })
+    })*/
     public InventaireResponse compterPiece(InventaireRequest request) {
         PDP pdp = getPDP(request.pieceId());
         validerRequest(request);

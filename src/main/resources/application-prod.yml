@@ -18,14 +18,14 @@ app:
     expiration: 21600000
     refresh-expiration: 604800000
   cors:
-    allowed-origins: ${CORS_ORIGINS:http://localhost,https://oas-front.vercel.app}
+    allowed-origins: ${CORS_ORIGINS:https://oas-front.vercel.app,http://localhost:4200,http://localhost:5173,http://localhost}
   cloudinary:
     cloud-name: ${CLOUDINARY_CLOUD_NAME}
     api-key: ${CLOUDINARY_API_KEY}
     api-secret: ${CLOUDINARY_API_SECRET}
 
 server:
-  port: 9090
+  port: ${PORT:9090}
 
 # Actuator & Prometheus monitoring
 management:

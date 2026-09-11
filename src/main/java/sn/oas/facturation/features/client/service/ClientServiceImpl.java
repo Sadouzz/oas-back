@@ -67,10 +67,10 @@ public class ClientServiceImpl implements ClientService {
 
     @Transactional
     @Override
-    @Caching(evict = {
+    /*@Caching(evict = {
         @CacheEvict(value = "dashboard_super_agent", allEntries = true),
         @CacheEvict(value = "dashboard_agent", allEntries = true)
-    })
+    })*/
     public ClientCreateResponse createClient(ClientCreateRequest request) {
         // 1. Générer le matricule CLT-XXXXX
         String matricule = generateMatricule();
@@ -121,10 +121,10 @@ public class ClientServiceImpl implements ClientService {
 
     @Transactional
     @Override
-    @Caching(evict = {
+    /*@Caching(evict = {
             @CacheEvict(value = "dashboard_super_agent", allEntries = true),
             @CacheEvict(value = "dashboard_agent", allEntries = true)
-    })
+    })*/
     public Client updateClient(Long id, UserUpdateRequest request) {
         Client client = clientRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Client non trouvé"));
@@ -139,10 +139,10 @@ public class ClientServiceImpl implements ClientService {
 
     @Transactional
     @Override
-    @Caching(evict = {
+    /*@Caching(evict = {
             @CacheEvict(value = "dashboard_super_agent", allEntries = true),
             @CacheEvict(value = "dashboard_agent", allEntries = true)
-    })
+    })*/
     public void archiveClient(Long id) {
         Client client = clientRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Client non trouvé"));
@@ -152,10 +152,10 @@ public class ClientServiceImpl implements ClientService {
 
     @Transactional
     @Override
-    @Caching(evict = {
+    /*@Caching(evict = {
             @CacheEvict(value = "dashboard_super_agent", allEntries = true),
             @CacheEvict(value = "dashboard_agent", allEntries = true)
-    })
+    })*/
     public void unarchiveClient(Long id) {
         Client client = clientRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Client non trouvé"));
@@ -165,10 +165,10 @@ public class ClientServiceImpl implements ClientService {
 
     @Transactional
     @Override
-    @Caching(evict = {
+    /*@Caching(evict = {
             @CacheEvict(value = "dashboard_super_agent", allEntries = true),
             @CacheEvict(value = "dashboard_agent", allEntries = true)
-    })
+    })*/
     public void deleteClient(Long id) {
         if (!clientRepository.existsById(id)) {
             throw new RuntimeException("Client non trouvé");

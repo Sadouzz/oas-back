@@ -12,6 +12,7 @@ import java.util.List;
 
 public interface RendezVousService {
     RendezVous bookRendezVous(Client client, RendezVousRequest request);
+    RendezVous createRendezVousByAdmin(RendezVousRequest request);
     RendezVous cancelRendezVous(Client client, Long id);
     List<RendezVous> getClientRendezVous(Client client);
     Page<RendezVous> getClientRendezVous(Client client, int page, int size);

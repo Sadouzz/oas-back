@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import sn.oas.facturation.features.client.data.entity.Client;
+import sn.oas.facturation.features.client.repository.ClientRepository;
 import sn.oas.facturation.features.garage.data.entity.Garage;
 import sn.oas.facturation.features.garage.repository.GarageRepository;
 import sn.oas.facturation.features.notification.service.NotificationService;
@@ -37,10 +38,90 @@ public class RendezVousServiceImpl implements RendezVousService {
 
     private final RendezVousRepository rendezvousRepository;
     private final VehiculeRepository vehiculeRepository;
+    private final ClientRepository clientRepository;
     private final GarageRepository garageRepository;
     private final NotificationService notificationService;
     private final OrdreReparationService ordreReparationService;
     private final DocumentNumberGeneratorService documentNumberGeneratorService;
+
+    @Transactional
+    @Override
+    public RendezVous createRendezVousByAdmin(RendezVousRequest request) {
+        if (request.dateRendezVous() == null) {
+            throw new BadRequestException("La date du rendez-vous est obligatoire");
+        }
+        if (request.dateRendezVous().isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("La date du rendez-vous ne peut pas être dans le passé");
+        }
+
+        Vehicule vehicule = null;
+        if (request.vehiculeId() != null) {
+            vehicule = vehiculeRepository.findById(request.vehiculeId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Véhicule non trouvé avec l'identifiant " + request.vehiculeId()));
+        }
+
+        Client client = null;
+        if (request.clientId() != null) {
+            client = clientRepository.findById(request.clientId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Client non trouvé avec l'identifiant " + request.clientId()));
+        } else if (vehicule != null && vehicule.getClient() != null) {
+            client = vehicule.getClient();
+        } else {
+            throw new BadRequestException("Veuillez spécifier un client ou sélectionner un véhicule associé à un client");
+        }
+
+        if (vehicule != null && vehicule.getClient() != null && !vehicule.getClient().getId().equals(client.getId())) {
+            throw new BadRequestException("Le véhicule sélectionné n'appartient pas au client sélectionné");
+        }
+
+        if (vehicule != null) {
+            if (rendezvousRepository.existsByVehiculeIdAndStatut(vehicule.getId(), RendezVousStatus.EN_ATTENTE)) {
+                throw new BadRequestException("Ce véhicule a déjà un rendez-vous en attente");
+            }
+            if (rendezvousRepository.existsByVehiculeIdAndStatutAndDateRendezVousAfter(vehicule.getId(), RendezVousStatus.CONFIRME, LocalDateTime.now())) {
+                throw new BadRequestException("Ce véhicule a déjà un rendez-vous confirmé à venir");
+            }
+            if (ordreReparationService.existsByVehiculeIdAndStatutNotIn(vehicule.getId(),
+                    List.of(StatutOrdreReparation.TERMINE, StatutOrdreReparation.LIVRE))) {
+                throw new BadRequestException("Ce véhicule est actuellement en cours d'intervention/réparation");
+            }
+        }
+
+        Garage garage = null;
+        if (request.garageId() != null) {
+            garage = garageRepository.findById(request.garageId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Garage non trouvé avec l'identifiant " + request.garageId()));
+        } else {
+            garage = documentNumberGeneratorService.getCurrentGarage();
+            if (garage == null) {
+                garage = garageRepository.findAll().stream().findFirst().orElse(null);
+            }
+        }
+
+        RendezVousStatus statut = request.statut() != null ? request.statut() : RendezVousStatus.CONFIRME;
+
+        RendezVous rv = RendezVous.builder()
+                .numero(documentNumberGeneratorService.generateNextNumber(garage, DocumentType.RDV))
+                .client(client)
+                .vehicule(vehicule)
+                .garage(garage)
+                .dateRendezVous(request.dateRendezVous())
+                .motif(request.motif())
+                .statut(statut)
+                .commentaire(request.commentaire())
+                .build();
+
+        rendezvousRepository.save(rv);
+
+        // Notify client
+        if (client != null) {
+            notificationService.sendNotification(client, "Rendez-vous programmé",
+                    "Un rendez-vous a été programmé pour vous le " + request.dateRendezVous() +
+                            (request.motif() != null && !request.motif().isBlank() ? " (" + request.motif() + ")" : "") + ".");
+        }
+
+        return rv;
+    }
 
     @Transactional
     @Override

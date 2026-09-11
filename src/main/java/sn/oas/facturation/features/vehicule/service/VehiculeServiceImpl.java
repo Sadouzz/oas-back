@@ -43,11 +43,11 @@ public class VehiculeServiceImpl implements VehiculeService {
 
     @Transactional
     @Override
-    @Caching(evict = {
+    /*@Caching(evict = {
         @CacheEvict(value = "vehicules_page", allEntries = true),
         @CacheEvict(value = "dashboard_super_agent", allEntries = true),
         @CacheEvict(value = "dashboard_agent", allEntries = true)
-    })
+    })*/
     public Vehicule createVehicule(VehiculeRequest request) {
         if (request.immatriculation() != null && vehiculeRepository.existsByImmatriculation(request.immatriculation())) {
             throw new ResourceAlreadyExistsException("Immatriculation déjà existante : " + request.immatriculation());
@@ -71,11 +71,11 @@ public class VehiculeServiceImpl implements VehiculeService {
 
     @Transactional
     @Override
-    @Caching(evict = {
+    /*@Caching(evict = {
         @CacheEvict(value = "clients_page", allEntries = true),
         @CacheEvict(value = "dashboard_super_agent", allEntries = true),
         @CacheEvict(value = "dashboard_agent", allEntries = true)
-})
+})*/
     public Vehicule updateVehicule(Long id, VehiculeRequest request) {
         Vehicule vehicule = vehiculeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Véhicule non trouvé avec l'id : " + id));

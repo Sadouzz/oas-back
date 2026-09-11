@@ -29,7 +29,7 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable (value = "dashboard_super_agent")
+    //@Cacheable (value = "dashboard_super_agent")
     public DashboardSuperAgentResponseDTO getSuperAgentDashboard() {
         long totalClients = clientRepository.count();
         long totalVehicules = vehiculeRepository.count();
@@ -80,7 +80,7 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "dashboard_agent")
+    //@Cacheable(value = "dashboard_agent")
     public DashboardAgentResponse getAgentDashboard() {
         long totalClients = clientRepository.count();
         long totalVehicules = vehiculeRepository.count();
@@ -102,7 +102,7 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "dashboard_chef_atelier")
+    //@Cacheable(value = "dashboard_chef_atelier")
     public DashboardChefAtelierResponse getChefAtelierDashboard() {
         long totalBonsDeSortieEnAttente = bonDeSortieRepository.countByStatut(StatutBon.EN_ATTENTE);
         long totalVehicules = vehiculeRepository.count();
@@ -120,7 +120,7 @@ public class DashboardServiceImpl implements DashboardService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "dashboard_agent_magasin")
+    //@Cacheable(value = "dashboard_agent_magasin")
     public DashboardAgentMagasinResponse getAgentMagasinDashboard() {
         long totalAlertes = alerteService.getAlertes().size();
         long totalRuptures = alerteService.getRuptures().size();

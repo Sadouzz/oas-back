@@ -6,7 +6,7 @@ import org.springframework.util.StringUtils;
 
 import java.lang.reflect.Method;
 
-@Component("tenantKeyGenerator")
+//@Component("tenantKeyGenerator")
 public class TenantKeyGenerator implements KeyGenerator {
     @Override
     public Object generate(Object target, Method method, Object... params) {

@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -55,6 +57,14 @@ public class RendezVousController {
         return ResponseEntity.ok(rdvPage.map(RendezVousListResponse::from));
     }
 
+    @PostMapping("/admin")
+    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
+    @Operation(summary = "Créer un rendez-vous depuis le backoffice/admin")
+    public ResponseEntity<RendezVousResponse> createRendezVousByAdmin(@RequestBody RendezVousRequest request) {
+        RendezVous rv = rendezvousService.createRendezVousByAdmin(request);
+        return new ResponseEntity<>(RendezVousResponse.of(rv), HttpStatus.CREATED);
+    }
+
     @GetMapping("/client/{clientId}")
     @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
     @Operation(summary = "Lister les rendez-vous d'un client spécifique avec pagination (Agents/Admin)")
@@ -79,11 +89,20 @@ public class RendezVousController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('CLIENT')")
-    @Operation(summary = "Prendre un rendez-vous (Client uniquement)")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Prendre ou créer un rendez-vous (Client ou Agents/Admin)")
     public ResponseEntity<RendezVousResponse> bookRendezVous(@RequestBody RendezVousRequest request) {
-        Client client = clientService.getClientConnecte();
-        RendezVous rv = rendezvousService.bookRendezVous(client, request);
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isClient = auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_CLIENT"));
+
+        RendezVous rv;
+        if (isClient) {
+            Client client = clientService.getClientConnecte();
+            rv = rendezvousService.bookRendezVous(client, request);
+        } else {
+            rv = rendezvousService.createRendezVousByAdmin(request);
+        }
         return new ResponseEntity<>(RendezVousResponse.of(rv), HttpStatus.CREATED);
     }
 

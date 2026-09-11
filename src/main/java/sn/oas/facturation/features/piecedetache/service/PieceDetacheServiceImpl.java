@@ -99,7 +99,7 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = "piece_stats", keyGenerator = "tenantKeyGenerator")
+    //@Cacheable(value = "piece_stats", keyGenerator = "tenantKeyGenerator")
     public PieceStatsResponse getStats() {
         List<PieceDetache> allPieces = pieceDetacheRepository.findAll();
         long totalArticles = allPieces.size();
@@ -119,11 +119,11 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
 
     @Transactional
     @Override
-    @Caching(evict = {
+    /*@Caching(evict = {
             @CacheEvict(value = "piece_stats", allEntries = true),
             @CacheEvict(value = "dashboard_super_agent", allEntries = true),
             @CacheEvict(value = "dashboard_agent_magasin", allEntries = true)
-    })
+    })*/
     public PieceDetache create(PieceDetacheRequest request) {
         validateCreateRequest(request);
 
@@ -140,11 +140,11 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
 
     @Transactional
     @Override
-    @Caching(evict = {
+    /*@Caching(evict = {
             @CacheEvict(value = "piece_stats", allEntries = true),
             @CacheEvict(value = "dashboard_super_agent", allEntries = true),
             @CacheEvict(value = "dashboard_agent_magasin", allEntries = true)
-    })
+    })*/
     public PieceDetache update(Long id, PieceDetacheRequest request) {
         PieceDetache piece = getById(id);
         piece = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
@@ -170,11 +170,11 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
     }
 
     @Override
-    @Caching(evict = {
+    /*@Caching(evict = {
             @CacheEvict(value = "piece_stats", allEntries = true),
             @CacheEvict(value = "dashboard_super_agent", allEntries = true),
             @CacheEvict(value = "dashboard_agent_magasin", allEntries = true)
-    })
+    })*/
     public void delete(Long id) {
         if (!pieceDetacheRepository.existsById(id)) {
             throw new RuntimeException("Pièce détachée non trouvée");
@@ -192,11 +192,11 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
     }
 
     @Override
-    @Caching(evict = {
+    /*@Caching(evict = {
             @CacheEvict(value = "piece_stats", allEntries = true),
             @CacheEvict(value = "dashboard_super_agent", allEntries = true),
             @CacheEvict(value = "dashboard_agent_magasin", allEntries = true)
-    })
+    })*/
     public PieceDetache restore(Long id) {
         PieceDetache piece = pieceDetacheRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Pièce détachée non trouvée"));

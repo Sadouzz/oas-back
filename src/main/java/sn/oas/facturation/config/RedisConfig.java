@@ -11,10 +11,10 @@ import org.springframework.data.redis.serializer.RedisSerializer;
 import java.time.Duration;
 import java.util.Map;
 
-@Configuration
+//@Configuration
 public class RedisConfig {
 
-    @Bean
+    //@Bean
     public RedisCacheManager cacheManager(RedisConnectionFactory connectionFactory) {
         RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
                 .entryTtl(Duration.ofMinutes(10))

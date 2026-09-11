@@ -84,11 +84,11 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     private ProformaService proformaService;
 
     @Override
-    @Caching(evict = {
+    /*@Caching(evict = {
         @CacheEvict(value = "dashboard_super_agent", allEntries = true),
         @CacheEvict(value = "dashboard_chef_atelier", allEntries = true),
         @CacheEvict(value = "dashboard_agent", allEntries = true)
-    })
+    })*/
     public OrdreReparation createOrdreReparation(OrdreReparationRequest request) {
         Vehicule vehicule = null;
         if (request.getVehiculeId() != null) {
@@ -209,11 +209,11 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     }
 
     @Override
-    @Caching(evict = {
+    /*@Caching(evict = {
             @CacheEvict(value = "dashboard_super_agent", allEntries = true),
             @CacheEvict(value = "dashboard_chef_atelier", allEntries = true),
             @CacheEvict(value = "dashboard_agent", allEntries = true)
-    })
+    })*/
     public OrdreReparation updateOrdreReparation(Long id, OrdreReparationRequest request) {
         OrdreReparation ordreReparation = ordreReparationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
@@ -330,11 +330,11 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     }
 
     @Override
-    @Caching(evict = {
+    /*@Caching(evict = {
             @CacheEvict(value = "dashboard_super_agent", allEntries = true),
             @CacheEvict(value = "dashboard_chef_atelier", allEntries = true),
             @CacheEvict(value = "dashboard_agent", allEntries = true)
-    })
+    })*/
     public void deleteOrdreReparation(Long id) {
         OrdreReparation ordreReparation = ordreReparationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
@@ -343,11 +343,11 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
 
     @Transactional
     @Override
-    @Caching(evict = {
+    /*@Caching(evict = {
             @CacheEvict(value = "dashboard_super_agent", allEntries = true),
             @CacheEvict(value = "dashboard_chef_atelier", allEntries = true),
             @CacheEvict(value = "dashboard_agent", allEntries = true)
-    })
+    })*/
     public void assignTechnicien(Long ficheId, Long technicienId) {
         OrdreReparation fiche = ordreReparationRepository.findById(ficheId)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
@@ -362,11 +362,11 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
 
     @Transactional
     @Override
-    @Caching(evict = {
+    /*@Caching(evict = {
             @CacheEvict(value = "dashboard_super_agent", allEntries = true),
             @CacheEvict(value = "dashboard_chef_atelier", allEntries = true),
             @CacheEvict(value = "dashboard_agent", allEntries = true)
-    })
+    })*/
     public void removeTechnicien(Long ficheId, Long technicienId) {
         OrdreReparation fiche = ordreReparationRepository.findById(ficheId)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
@@ -379,11 +379,11 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
 
     @Transactional
     @Override
-    @Caching(evict = {
+    /*@Caching(evict = {
             @CacheEvict(value = "dashboard_super_agent", allEntries = true),
             @CacheEvict(value = "dashboard_chef_atelier", allEntries = true),
             @CacheEvict(value = "dashboard_agent", allEntries = true)
-    })
+    })*/
     public void assignTechnicienReparation(Long ficheId, Long technicienId) {
         OrdreReparation fiche = ordreReparationRepository.findById(ficheId)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
@@ -398,11 +398,11 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
 
     @Transactional
     @Override
-    @Caching(evict = {
+    /*@Caching(evict = {
             @CacheEvict(value = "dashboard_super_agent", allEntries = true),
             @CacheEvict(value = "dashboard_chef_atelier", allEntries = true),
             @CacheEvict(value = "dashboard_agent", allEntries = true)
-    })
+    })*/
     public void removeTechnicienReparation(Long ficheId, Long technicienId) {
         OrdreReparation fiche = ordreReparationRepository.findById(ficheId)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
@@ -415,11 +415,11 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
 
     @Transactional
     @Override
-    @Caching(evict = {
+    /*@Caching(evict = {
             @CacheEvict(value = "dashboard_super_agent", allEntries = true),
             @CacheEvict(value = "dashboard_chef_atelier", allEntries = true),
             @CacheEvict(value = "dashboard_agent", allEntries = true)
-    })
+    })*/
     public OrdreReparation updateStatut(Long id, String statut) {
         OrdreReparation fiche = ordreReparationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));

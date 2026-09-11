@@ -44,11 +44,11 @@ public class StockServiceImpl implements StockService {
 
     @Transactional
     @Override
-    @Caching(evict = {
+    /*@Caching(evict = {
             @CacheEvict(value = "piece_stats", allEntries = true),
             @CacheEvict(value = "dashboard_super_agent", allEntries = true),
             @CacheEvict(value = "dashboard_agent_magasin", allEntries = true)
-    })
+    })*/
     public PieceMouvement entree(EntreeStockRequest request) {
         PDP pdp = getPDP(request.pieceId());
         Agent agent = getAgentConnecte();
@@ -85,11 +85,11 @@ public class StockServiceImpl implements StockService {
 
     @Transactional
     @Override
-    @Caching(evict = {
+    /*@Caching(evict = {
             @CacheEvict(value = "piece_stats", allEntries = true),
             @CacheEvict(value = "dashboard_super_agent", allEntries = true),
             @CacheEvict(value = "dashboard_agent_magasin", allEntries = true)
-    })
+    })*/
     public PieceMouvement sortie(SortieStockRequest request) {
         PDP pdp = getPDP(request.pieceId());
         Agent agent = getAgentConnecte();
@@ -132,11 +132,11 @@ public class StockServiceImpl implements StockService {
 
     @Transactional
     @Override
-    @Caching(evict = {
+    /*@Caching(evict = {
             @CacheEvict(value = "piece_stats", allEntries = true),
             @CacheEvict(value = "dashboard_super_agent", allEntries = true),
             @CacheEvict(value = "dashboard_agent_magasin", allEntries = true)
-    })
+    })*/
     public PieceMouvement ajustement(AjustementStockRequest request) {
         PDP pdp = getPDP(request.pieceId());
         Agent agent = getAgentConnecte();
