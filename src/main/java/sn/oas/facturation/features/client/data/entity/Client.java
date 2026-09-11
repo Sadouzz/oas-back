@@ -1,10 +1,7 @@
 package sn.oas.facturation.features.client.data.entity;
 
 import jakarta.persistence.Table;
-import lombok.Builder;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 import sn.oas.facturation.features.user.data.entity.User;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
@@ -25,6 +22,7 @@ import java.util.List;
 @Table(name = "clients")
 @SuperBuilder
 @Data
+@ToString(callSuper = true)
 @EqualsAndHashCode(callSuper = true)
 @DiscriminatorValue("CLIENT")
 @NoArgsConstructor
@@ -35,6 +33,8 @@ public class Client extends User {
 
     @Builder.Default
     @OneToMany(mappedBy = "client")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private List<Vehicule> vehicules = new ArrayList<>();
 
     @Override

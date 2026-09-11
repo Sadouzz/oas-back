@@ -40,9 +40,13 @@ public class Vehicule extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id", nullable = false)
     @JsonIgnoreProperties("vehicules")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private Client client;
 
     @OneToMany(mappedBy = "vehicule", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private List<OrdreReparation> ordresReparation;
 }

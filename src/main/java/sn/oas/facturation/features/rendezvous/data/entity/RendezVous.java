@@ -1,10 +1,7 @@
 package sn.oas.facturation.features.rendezvous.data.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import sn.oas.facturation.features.rendezvous.data.enums.RendezVousStatus;
@@ -34,18 +31,26 @@ public class RendezVous {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id", nullable = false)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private Client client;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vehicule_id", nullable = true)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private Vehicule vehicule;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "garage_id")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private Garage garage;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "fiche_atelier_id", nullable = true)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private FicheAtelier ficheAtelier;
 
     @Column(name = "date_rendez_vous", nullable = false)

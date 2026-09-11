@@ -144,16 +144,27 @@ public class RendezVousController {
             @PathVariable Long id,
             @RequestBody Map<String, String> body) {
         String dateStr = body.get("nouvelleDate");
-        LocalDateTime nouvelleDate;
-        if (dateStr != null && dateStr.length() == 16) {
-            nouvelleDate = LocalDateTime.parse(dateStr + ":00");
-        } else if (dateStr != null) {
-            nouvelleDate = LocalDateTime.parse(dateStr);
-        } else {
-            throw new BadRequestException("La date de rendez-vous est obligatoire");
-        }
+        LocalDateTime nouvelleDate = parseDateTime(dateStr);
         RendezVous rv = rendezvousService.updateDate(id, nouvelleDate);
         return ResponseEntity.ok(RendezVousResponse.of(rv));
+    }
+
+    private LocalDateTime parseDateTime(String dateStr) {
+        if (dateStr == null || dateStr.isBlank()) {
+            throw new BadRequestException("La date de rendez-vous est obligatoire");
+        }
+        try {
+            return java.time.OffsetDateTime.parse(dateStr).toLocalDateTime();
+        } catch (Exception e) {
+            try {
+                if (dateStr.length() == 16) {
+                    return LocalDateTime.parse(dateStr + ":00");
+                }
+                return LocalDateTime.parse(dateStr);
+            } catch (Exception ex) {
+                throw new BadRequestException("Format de date invalide : " + dateStr);
+            }
+        }
     }
 
     // --- Consultation globale ---
