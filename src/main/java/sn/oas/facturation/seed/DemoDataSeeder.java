@@ -2,6 +2,7 @@ package sn.oas.facturation.seed;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -62,10 +63,12 @@ public class DemoDataSeeder implements CommandLineRunner {
     private final MessageRepository messageRepository;
     private final PasswordEncoder passwordEncoder;
     private final DocumentNumberGeneratorService documentNumberGeneratorService;
+    private final JdbcTemplate jdbcTemplate;
 
     @Override
     public void run(String... args) {
         log.info("=== Vérification des données de démonstration ===");
+        dropOutdatedConstraints();
 
         List<Garage> garages = seedGarages();
         Garage dakar = garages.get(0);
@@ -85,6 +88,23 @@ public class DemoDataSeeder implements CommandLineRunner {
         seedMessages(dakar, clients, agents);
 
         log.info("=== Données de démonstration prêtes (mot de passe commun : {}) ===", DEMO_PASSWORD);
+    }
+
+    private void dropOutdatedConstraints() {
+        String[] dropStatements = {
+                "ALTER TABLE agents DROP CONSTRAINT IF EXISTS agents_role_check",
+                "ALTER TABLE rendez_vous DROP CONSTRAINT IF EXISTS rendez_vous_statut_check",
+                "ALTER TABLE ordres_reparation DROP CONSTRAINT IF EXISTS ordres_reparation_statut_check",
+                "ALTER TABLE bons_de_sortie DROP CONSTRAINT IF EXISTS bons_de_sortie_statut_check",
+                "ALTER TABLE bons_de_commande DROP CONSTRAINT IF EXISTS bons_de_commande_statut_check"
+        };
+        for (String sql : dropStatements) {
+            try {
+                jdbcTemplate.execute(sql);
+            } catch (Exception e) {
+                log.debug("Impossible d'exécuter {}: {}", sql, e.getMessage());
+            }
+        }
     }
 
     // ── Garages ──────────────────────────────────────────────
