@@ -18,6 +18,5 @@ WORKDIR /app
 # Copier le JAR buildé
 COPY --from=build /app/target/*.jar app.jar
 
-ENV PORT=9090
-EXPOSE 9090 10000 8080
+EXPOSE 10000
 ENTRYPOINT ["sh", "-c", "java -Dserver.port=${PORT:-9090} -jar app.jar"]
