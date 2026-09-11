@@ -72,18 +72,18 @@ public class DemoDataSeeder implements CommandLineRunner {
 
         List<Garage> garages = seedGarages();
         Garage dakar = garages.get(0);
-        Garage thies = garages.get(1);
+        Garage saly = garages.get(1);
 
-        List<Agent> agents = seedAgents(dakar, thies);
+        List<Agent> agents = seedAgents(dakar, saly);
 
         List<Client> clients = seedClients();
         List<Vehicule> vehicules = seedVehicules(clients);
 
-        seedTechniciens(dakar, thies);
+        seedTechniciens(dakar, saly);
 
-        List<RendezVous> rendezVousList = seedRendezVous(dakar, thies, clients, vehicules);
+        List<RendezVous> rendezVousList = seedRendezVous(dakar, saly, clients, vehicules);
 
-        seedFichesAtelier(rendezVousList);
+        seedFichesAtelier(rendezVousList, dakar, saly);
 
         seedMessages(dakar, clients, agents);
 
@@ -126,7 +126,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                     .prefixe("SA")
                     .numeroFixe("+221 33 951 22 33")
                     .numeroWhatsapp("+221 77 951 22 33")
-                    .email("thies@orientautoservice.sn")
+                    .email("saly@orientautoservice.sn")
                     .build());
             return List.of(dakar, saly);
         }
@@ -143,7 +143,7 @@ public class DemoDataSeeder implements CommandLineRunner {
 
     // ── Agents ───────────────────────────────────────────────
 
-    private List<Agent> seedAgents(Garage dakar, Garage thies) {
+    private List<Agent> seedAgents(Garage dakar, Garage saly) {
         record ASpec(String firstName, String lastName, String username, String phone, String email, Role role, Garage garage) {}
         List<ASpec> specs = List.of(
                 new ASpec("Super", "Agent", "super_agent", "+221771111101", "super_agent@orientautoservice.sn", Role.SUPER_AGENT, dakar),
@@ -291,14 +291,14 @@ public class DemoDataSeeder implements CommandLineRunner {
     // Remplace l'ancien module mecanicien/ : Technicien est un compte utilisateur à part
     // entière (login propre), donc idempotence par username comme pour Agent/Client.
 
-    private void seedTechniciens(Garage dakar, Garage thies) {
+    private void seedTechniciens(Garage dakar, Garage saly) {
         record TSpec(String firstName, String lastName, String username, String phone, String email, SpecialiteTechnicien specialite, Garage garage) {}
         List<TSpec> specs = List.of(
                 new TSpec("Alioune Badara", "Diouf", "alioune.diouf", "+221771111201", "alioune.diouf@orientautoservice.sn", SpecialiteTechnicien.MECANIQUE_GENERALE, dakar),
                 new TSpec("Serigne", "Mbaye", "serigne.mbaye", "+221771111202", "serigne.mbaye@orientautoservice.sn", SpecialiteTechnicien.ELECTRICITE_AUTO, dakar),
                 new TSpec("Modou", "Lô Ndoye", "modou.ndoye", "+221771111203", "modou.ndoye@orientautoservice.sn", SpecialiteTechnicien.CARROSSERIE_PEINTURE, dakar),
-                new TSpec("Pape Abdou", "Fall", "pape.fall", "+221771111204", "pape.fall@orientautoservice.sn", SpecialiteTechnicien.MECANIQUE_GENERALE, thies),
-                new TSpec("Lamine", "Gueye", "lamine.gueye", "+221771111205", "lamine.gueye@orientautoservice.sn", SpecialiteTechnicien.DIAGNOSTIC_ELECTRONIQUE, thies)
+                new TSpec("Pape Abdou", "Fall", "pape.fall", "+221771111204", "pape.fall@orientautoservice.sn", SpecialiteTechnicien.MECANIQUE_GENERALE, saly),
+                new TSpec("Lamine", "Gueye", "lamine.gueye", "+221771111205", "lamine.gueye@orientautoservice.sn", SpecialiteTechnicien.DIAGNOSTIC_ELECTRONIQUE, saly)
         );
 
         boolean createdAny = false;
@@ -329,7 +329,7 @@ public class DemoDataSeeder implements CommandLineRunner {
 
     // ── Rendez-vous ──────────────────────────────────────────
 
-    private List<RendezVous> seedRendezVous(Garage dakar, Garage thies, List<Client> clients, List<Vehicule> vehicules) {
+    private List<RendezVous> seedRendezVous(Garage dakar, Garage saly, List<Client> clients, List<Vehicule> vehicules) {
         if (rendezVousRepository.count() > 0) {
             return rendezVousRepository.findAll();
         }
@@ -346,9 +346,9 @@ public class DemoDataSeeder implements CommandLineRunner {
                 rdv(dakar, clients.get(1), vehicules.get(1), now.plusDays(1).withHour(14).withMinute(30), "Bruit suspect au freinage", RendezVousStatus.CONFIRME, "Plaquettes à vérifier en priorité"),
                 rdv(dakar, clients.get(1), vehicules.get(2), now.plusDays(3).withHour(10).withMinute(0), "Climatisation ne refroidit plus", RendezVousStatus.EN_ATTENTE, null),
                 rdv(dakar, clients.get(2), vehicules.get(3), now.minusDays(5).withHour(11).withMinute(0), "Contrôle technique + pneus", RendezVousStatus.TERMINE, "Deux pneus avant remplacés"),
-                rdv(thies, clients.get(3), vehicules.get(4), now.plusDays(4).withHour(15).withMinute(0), "Voyant moteur allumé", RendezVousStatus.CONFIRME, "Diagnostic électronique programmé"),
+                rdv(saly, clients.get(3), vehicules.get(4), now.plusDays(4).withHour(15).withMinute(0), "Voyant moteur allumé", RendezVousStatus.CONFIRME, "Diagnostic électronique programmé"),
                 rdv(dakar, clients.get(4), vehicules.get(5), now.minusDays(10).withHour(9).withMinute(30), "Embrayage à changer", RendezVousStatus.TERMINE, "Embrayage complet remplacé"),
-                rdv(thies, clients.get(5), vehicules.get(6), now.minusDays(2).withHour(8).withMinute(0), "Entretien courant Sprinter", RendezVousStatus.CONFIRME, null),
+                rdv(saly, clients.get(5), vehicules.get(6), now.minusDays(2).withHour(8).withMinute(0), "Entretien courant Sprinter", RendezVousStatus.CONFIRME, null),
                 rdv(dakar, clients.get(5), vehicules.get(7), now.plusDays(6).withHour(16).withMinute(0), "Changement batterie", RendezVousStatus.EN_ATTENTE, null),
                 rdv(dakar, clients.get(0), vehicules.get(8), now.minusDays(1).withHour(13).withMinute(0), "Demande annulée par le client", RendezVousStatus.ANNULE, "Client indisponible"),
                 rdv(dakar, clients.get(2), vehicules.get(3), now.minusDays(15).withHour(10).withMinute(0), "Fuite d'huile moteur", RendezVousStatus.REFUSE, "Créneau garage indisponible, à replanifier")
@@ -371,23 +371,27 @@ public class DemoDataSeeder implements CommandLineRunner {
 
     // ── Fiches atelier ───────────────────────────────────────
 
-    private void seedFichesAtelier(List<RendezVous> rendezVousList) {
+    private void seedFichesAtelier(List<RendezVous> rendezVousList, Garage dakar, Garage saly) {
         if (ficheAtelierRepository.count() > 0 || rendezVousList.isEmpty()) {
             return;
         }
         log.info("--- Création des fiches atelier de démonstration ---");
 
         // Les deux rendez-vous CONFIRME/TERMINE créés ci-dessus, dans l'ordre de seedRendezVous().
+        // On utilise les entités dakar/saly fraîches (non-lazy) pour éviter LazyInitializationException
+        // dans generateNextNumber (REQUIRES_NEW transaction).
         RendezVous rdvFreinage = rendezVousList.get(1);   // CONFIRME - Khadija Sarr / Corolla
         RendezVous rdvEmbrayage = rendezVousList.get(5);  // TERMINE - Abdoulaye Thiam / Sportage
 
+        // rdvFreinage → garage dakar (index 1), rdvEmbrayage → garage dakar (index 5)
+        // On passe les entités fresh (dakar/saly) car rdv.getGarage() est un proxy lazy détaché.
         List<FicheAtelier> fiches = List.of(
                 FicheAtelier.builder()
-                        .numero(documentNumberGeneratorService.generateNextNumber(rdvFreinage.getGarage(), DocumentType.FA))
+                        .numero(documentNumberGeneratorService.generateNextNumber(dakar, DocumentType.FA))
                         .rendezVous(rdvFreinage)
                         .client(rdvFreinage.getClient())
                         .vehicule(rdvFreinage.getVehicule())
-                        .garage(rdvFreinage.getGarage())
+                        .garage(dakar)
                         .nomChauffeur("Khadija Sarr")
                         .telephoneChauffeur("+221701111202")
                         .niveauEssence("1/2")
@@ -408,11 +412,11 @@ public class DemoDataSeeder implements CommandLineRunner {
                         .build(),
 
                 FicheAtelier.builder()
-                        .numero(documentNumberGeneratorService.generateNextNumber(rdvEmbrayage.getGarage(), DocumentType.FA))
+                        .numero(documentNumberGeneratorService.generateNextNumber(dakar, DocumentType.FA))
                         .rendezVous(rdvEmbrayage)
                         .client(rdvEmbrayage.getClient())
                         .vehicule(rdvEmbrayage.getVehicule())
-                        .garage(rdvEmbrayage.getGarage())
+                        .garage(dakar)
                         .nomChauffeur("Abdoulaye Thiam")
                         .telephoneChauffeur("+221701111205")
                         .niveauEssence("Full")
