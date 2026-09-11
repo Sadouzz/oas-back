@@ -383,6 +383,7 @@ public class DemoDataSeeder implements CommandLineRunner {
 
         List<FicheAtelier> fiches = List.of(
                 FicheAtelier.builder()
+                        .numero(documentNumberGeneratorService.generateNextNumber(rdvFreinage.getGarage(), DocumentType.FA))
                         .rendezVous(rdvFreinage)
                         .client(rdvFreinage.getClient())
                         .vehicule(rdvFreinage.getVehicule())
@@ -407,6 +408,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                         .build(),
 
                 FicheAtelier.builder()
+                        .numero(documentNumberGeneratorService.generateNextNumber(rdvEmbrayage.getGarage(), DocumentType.FA))
                         .rendezVous(rdvEmbrayage)
                         .client(rdvEmbrayage.getClient())
                         .vehicule(rdvEmbrayage.getVehicule())
