@@ -1,4 +1,4 @@
-package sn.oas.facturation.features.ordreReparation.data.entity;
+package sn.oas.facturation.features.ficheAtelierConfig.data.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

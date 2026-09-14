@@ -1,6 +1,8 @@
-package sn.oas.facturation.features.ordreReparation.repository;
+package sn.oas.facturation.features.ficheAtelierConfig.repository;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-import sn.oas.facturation.features.ordreReparation.data.entity.FicheAtelierConfig;
+import sn.oas.facturation.features.ficheAtelierConfig.data.entity.FicheAtelierConfig;
+
 @Repository
 public interface FicheAtelierConfigRepository extends JpaRepository<FicheAtelierConfig, Long> {}
