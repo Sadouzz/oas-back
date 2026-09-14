@@ -1,7 +1,7 @@
-package sn.oas.facturation.features.ordreReparation.repository;
+package sn.oas.facturation.features.diagnostic.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import sn.oas.facturation.features.ordreReparation.data.entity.RemarqueDiagnostic;
+import sn.oas.facturation.features.diagnostic.data.entity.RemarqueDiagnostic;
 
 import java.util.List;
 

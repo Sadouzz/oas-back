@@ -1,11 +1,12 @@
-    package sn.oas.facturation.features.ordreReparation.data.entity;
+package sn.oas.facturation.features.diagnostic.data.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
-import sn.oas.facturation.features.ordreReparation.data.enums.TypePieceJointe;
+import sn.oas.facturation.features.diagnostic.data.enums.TypePieceJointe;
+import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.features.technicien.data.entity.Technicien;
 
 import java.time.LocalDateTime;

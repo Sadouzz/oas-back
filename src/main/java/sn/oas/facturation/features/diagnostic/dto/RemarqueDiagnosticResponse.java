@@ -1,10 +1,9 @@
-package sn.oas.facturation.features.ordreReparation.dto;
+package sn.oas.facturation.features.diagnostic.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import sn.oas.facturation.features.ordreReparation.data.enums.TypePieceJointe;
 
 import java.time.LocalDateTime;
 
@@ -12,13 +11,10 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PieceJointeDiagnosticResponse {
+public class RemarqueDiagnosticResponse {
     private Long id;
     private Long ordreReparationId;
-    private String url;
-    private TypePieceJointe type;
-    private String remarque;
     private String technicienNom;
+    private String contenu;
     private LocalDateTime createdAt;
 }
-

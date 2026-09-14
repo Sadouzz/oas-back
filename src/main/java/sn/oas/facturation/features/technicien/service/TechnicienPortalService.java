@@ -1,9 +1,9 @@
 package sn.oas.facturation.features.technicien.service;
 
+import sn.oas.facturation.features.diagnostic.data.enums.TypePieceJointe;
+import sn.oas.facturation.features.diagnostic.dto.PieceJointeDiagnosticRequest;
+import sn.oas.facturation.features.diagnostic.dto.PieceJointeDiagnosticResponse;
 import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
-import sn.oas.facturation.features.ordreReparation.data.enums.TypePieceJointe;
-import sn.oas.facturation.features.ordreReparation.dto.PieceJointeDiagnosticRequest;
-import sn.oas.facturation.features.ordreReparation.dto.PieceJointeDiagnosticResponse;
 import sn.oas.facturation.features.technicien.data.entity.Technicien;
 import sn.oas.facturation.features.technicien.dto.PannesRequest;
 import sn.oas.facturation.features.technicien.dto.TechnicienLigneMainDoeuvreRequest;

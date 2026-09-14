@@ -8,10 +8,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.*;
 
+import sn.oas.facturation.features.diagnostic.data.enums.TypePieceJointe;
+import sn.oas.facturation.features.diagnostic.dto.PieceJointeDiagnosticRequest;
+import sn.oas.facturation.features.diagnostic.dto.PieceJointeDiagnosticResponse;
 import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
-import sn.oas.facturation.features.ordreReparation.data.enums.TypePieceJointe;
-import sn.oas.facturation.features.ordreReparation.dto.PieceJointeDiagnosticRequest;
-import sn.oas.facturation.features.ordreReparation.dto.PieceJointeDiagnosticResponse;
 import sn.oas.facturation.features.ordreReparation.service.OrdreReparationService;
 import sn.oas.facturation.features.technicien.data.entity.Technicien;
 import sn.oas.facturation.features.technicien.dto.PannesRequest;

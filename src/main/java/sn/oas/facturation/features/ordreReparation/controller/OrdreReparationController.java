@@ -12,13 +12,13 @@ import org.springframework.data.domain.*;
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.service.ClientService;
 import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
-import sn.oas.facturation.features.ordreReparation.data.enums.TypePieceJointe;
+import sn.oas.facturation.features.diagnostic.data.enums.TypePieceJointe;
+import sn.oas.facturation.features.diagnostic.dto.PieceJointeDiagnosticRequest;
+import sn.oas.facturation.features.diagnostic.dto.PieceJointeDiagnosticResponse;
+import sn.oas.facturation.features.diagnostic.dto.RemarqueDiagnosticResponse;
 import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationRequest;
 import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationLightDTO;
 import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationListDTO;
-import sn.oas.facturation.features.ordreReparation.dto.PieceJointeDiagnosticRequest;
-import sn.oas.facturation.features.ordreReparation.dto.PieceJointeDiagnosticResponse;
-import sn.oas.facturation.features.ordreReparation.dto.RemarqueDiagnosticResponse;
 import sn.oas.facturation.features.ordreReparation.repository.OrdreReparationRepository;
 import sn.oas.facturation.features.ordreReparation.service.OrdreReparationService;
 

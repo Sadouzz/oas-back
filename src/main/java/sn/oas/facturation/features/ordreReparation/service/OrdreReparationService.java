@@ -8,12 +8,12 @@ import org.springframework.data.domain.Page;
 import java.util.List;
 import java.util.Optional;
 
+import sn.oas.facturation.features.diagnostic.data.enums.TypePieceJointe;
+import sn.oas.facturation.features.diagnostic.dto.PieceJointeDiagnosticRequest;
+import sn.oas.facturation.features.diagnostic.dto.PieceJointeDiagnosticResponse;
+import sn.oas.facturation.features.diagnostic.dto.RemarqueDiagnosticResponse;
 import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationLightDTO;
-import sn.oas.facturation.features.ordreReparation.dto.PieceJointeDiagnosticRequest;
-import sn.oas.facturation.features.ordreReparation.dto.PieceJointeDiagnosticResponse;
-import sn.oas.facturation.features.ordreReparation.dto.RemarqueDiagnosticResponse;
 import sn.oas.facturation.features.technicien.data.entity.Technicien;
-import sn.oas.facturation.features.ordreReparation.data.enums.TypePieceJointe;
 
 public interface OrdreReparationService {
     OrdreReparation createOrdreReparation(OrdreReparationRequest request);

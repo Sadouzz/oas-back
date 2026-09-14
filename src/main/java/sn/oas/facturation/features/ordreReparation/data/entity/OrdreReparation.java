@@ -12,6 +12,7 @@ import sn.oas.facturation.features.garage.data.entity.Garage;
 import sn.oas.facturation.features.bonDeSortie.data.entity.BonDeSortie;
 import sn.oas.facturation.features.facturation.data.entity.Facturation;
 import sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier;
+import sn.oas.facturation.features.diagnostic.data.entity.Diagnostic;
 import sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation;
 import sn.oas.facturation.features.technicien.data.entity.Technicien;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
@@ -76,7 +77,7 @@ public class OrdreReparation implements TenantAware  {
     @CreationTimestamp
     private LocalDateTime dateCreation = LocalDateTime.now();
 
-    @Column(name = "update_at", nullable = false)
+    @Column(name = "updated_at", nullable = false)
     @Builder.Default
     @UpdateTimestamp
     private LocalDateTime updatedAt = LocalDateTime.now();
@@ -87,8 +88,6 @@ public class OrdreReparation implements TenantAware  {
     @Column(name = "statut")
     @Builder.Default
     private StatutOrdreReparation statut = StatutOrdreReparation.A_FAIRE;
-
-    // â”€â”€ Relationship Block â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vehicule_id", nullable = false)
@@ -128,6 +127,10 @@ public class OrdreReparation implements TenantAware  {
     @JsonIgnoreProperties("ordreReparation") // Ignore le champ "ordreReparation" qui est DANS le "BonDeSortie"
     private BonDeSortie bonDeSortie;
 
+    @OneToOne(mappedBy = "ordreReparation", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnoreProperties("ordreReparation")
+    private Diagnostic diagnostic;
+
     @OneToMany(mappedBy = "ordreReparation", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     @JsonIgnore 
@@ -140,11 +143,6 @@ public class OrdreReparation implements TenantAware  {
     @OneToMany(mappedBy = "ordreReparation", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<LigneOrdreReparationMainDoeuvre> lignesOrdreReparationMainDoeuvres = new ArrayList<>();
-
-    @OneToMany(mappedBy = "ordreReparation", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    @JsonIgnore 
-    private List<PieceJointeDiagnostic> piecesJointesDiagnostic = new ArrayList<>();
 
     @Formula("((SELECT COUNT(*) FROM lignes_ordre_reparation_piece p WHERE p.ordre_reparation_id = id) > 0 OR (SELECT COUNT(*) FROM lignes_ordre_reparation_main_doeuvre m WHERE m.ordre_reparation_id = id) > 0)")
     private Boolean hasPiecesOrMo;
