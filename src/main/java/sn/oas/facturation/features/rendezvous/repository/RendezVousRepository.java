@@ -32,4 +32,5 @@ public interface RendezVousRepository extends JpaRepository<RendezVous, Long> {
 
     boolean existsByVehiculeIdAndStatut(Long vehiculeId, RendezVousStatus statut);
     boolean existsByVehiculeIdAndStatutAndDateRendezVousAfter(Long vehiculeId, RendezVousStatus statut, LocalDateTime date);
+    long countByClientIdAndStatutIn(Long clientId, List<RendezVousStatus> statuts);
 }

@@ -77,7 +77,7 @@ public class OrdreReparation implements TenantAware  {
     @CreationTimestamp
     private LocalDateTime dateCreation = LocalDateTime.now();
 
-    @Column(name = "updated_at", nullable = false)
+    @Column(name = "update_at")
     @Builder.Default
     @UpdateTimestamp
     private LocalDateTime updatedAt = LocalDateTime.now();

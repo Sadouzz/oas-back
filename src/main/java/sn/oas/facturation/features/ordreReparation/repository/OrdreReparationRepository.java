@@ -27,6 +27,7 @@ public interface OrdreReparationRepository extends JpaRepository<OrdreReparation
             "LOWER(f.vehicule.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<OrdreReparation> searchOrdresReparation(@Param("keyword") String keyword);
     List<OrdreReparation> findByVehiculeClientIdOrderByDateCreationDesc(Long clientId);
+    List<OrdreReparation> findByVehiculeIdOrderByDateCreationDesc(Long vehiculeId);
     List<OrdreReparation> findByVehiculeIdAndStatut(Long vehiculeId, StatutOrdreReparation statut);
     OrdreReparation findTopByOrderByIdDesc();
     OrdreReparation findTopByNumeroStartingWithOrderByNumeroDesc(String prefix);
