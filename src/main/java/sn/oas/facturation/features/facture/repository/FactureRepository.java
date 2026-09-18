@@ -35,4 +35,9 @@ public interface FactureRepository extends JpaRepository<Facture, Long> {
 
     List<Facture> findTop5ByOrderByDateCreationDesc();
     List<Facture> findByClientIdOrderByDateCreationDesc(Long clientId);
+
+    @Query("SELECT COALESCE(SUM(f.resteAPayer), 0) FROM Facture f WHERE f.client.id = :clientId")
+    java.math.BigDecimal sumResteAPayerByClientId(@Param("clientId") Long clientId);
+
+    java.util.Optional<Facture> findFirstByOrdreReparationId(Long ordreReparationId);
 }

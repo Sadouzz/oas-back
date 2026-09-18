@@ -13,4 +13,5 @@ public interface GarageRepository extends JpaRepository<Garage, Long> {
     Optional<Garage> findByPrefixeIgnoreCase(String prefixe);
     Optional<Garage> findByNomIgnoreCase(String nom);
     Page<Garage> findByArchivedFalse(Pageable pageable);
+    java.util.List<Garage> findByArchivedFalse();
 }

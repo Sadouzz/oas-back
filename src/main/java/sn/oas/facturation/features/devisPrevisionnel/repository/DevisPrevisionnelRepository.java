@@ -14,6 +14,8 @@ public interface DevisPrevisionnelRepository extends JpaRepository<DevisPrevisio
 
     List<DevisPrevisionnel> findByClientIdOrderByDateCreationDesc(Long clientId);
 
+    long countByClientIdAndStatut(Long clientId, sn.oas.facturation.features.facturation.data.enums.StatutFacturation statut);
+
     List<DevisPrevisionnel> findByVehiculeId(Long vehiculeId);
 
     java.util.Optional<DevisPrevisionnel> findByFicheAtelierId(Long ficheAtelierId);

@@ -161,10 +161,24 @@ public class DemoDataSeeder implements CommandLineRunner {
                     .map(Agent.class::cast)
                     .orElse(null);
             if (agent == null) {
+                // Recherche par téléphone ou email pour réutiliser un agent existant d'un seed antérieur
+                agent = userRepository.findAll().stream()
+                        .filter(u -> s.phone().equals(u.getPhone()) || s.email().equalsIgnoreCase(u.getEmail()))
+                        .filter(Agent.class::isInstance)
+                        .map(Agent.class::cast)
+                        .findFirst()
+                        .orElse(null);
+            }
+            if (agent == null && !userRepository.existsByPhone(s.phone()) && !userRepository.existsByEmail(s.email())) {
                 agent = agentRepository.save(newAgent(s.firstName(), s.lastName(), s.username(), s.phone(), s.email(), s.role(), s.garage()));
                 createdAny = true;
             }
-            result.add(agent);
+            if (agent != null) {
+                result.add(agent);
+            }
+        }
+        if (result.isEmpty()) {
+            result = agentRepository.findAll();
         }
         if (createdAny) {
             log.info("--- Agents de démonstration créés ---");
