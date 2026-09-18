@@ -178,7 +178,7 @@ public class AuthController {
     @PostMapping("/change-password")
     @Operation(summary = "Changer le mot de passe d'un utilisateur")
     public ResponseEntity<?> changePassword(@RequestBody ChangePasswordRequest request) {
-        User user = userRepository.findByUsername(request.username())
+        User user = userRepository.findFirstByUsername(request.username())
                 .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
 
         if (!passwordEncoder.matches(request.oldPassword(), user.getPassword())) {

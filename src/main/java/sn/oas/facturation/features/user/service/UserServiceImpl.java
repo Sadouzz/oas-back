@@ -160,7 +160,7 @@ public class UserServiceImpl implements UserService{
 
     @Override
     public Optional<User> findByUsernameOrEmail(String username, String email) {
-        return userRepository.findByUsernameOrEmail(username, email);
+        return userRepository.findFirstByUsernameOrEmail(username, email);
     }
 
     @Override
@@ -200,8 +200,8 @@ public class UserServiceImpl implements UserService{
             throw new UnauthorizedException("Utilisateur non authentifié");
         }
         String username = auth.getName();
-        return userRepository.findByUsername(username)
-                .or(() -> userRepository.findByEmail(username))
+        return userRepository.findFirstByUsername(username)
+                .or(() -> userRepository.findFirstByEmail(username))
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur connecté introuvable : " + username));
     }
 

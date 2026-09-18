@@ -64,8 +64,8 @@ public class AuthServiceImpl implements AuthService {
             
             Long garageId = null;
             String garageName = null;
-            User user = userRepository.findByUsername(userDetails.getUsername())
-                    .or(() -> userRepository.findByEmail(userDetails.getUsername()))
+            User user = userRepository.findFirstByUsername(userDetails.getUsername())
+                    .or(() -> userRepository.findFirstByEmail(userDetails.getUsername()))
                     .orElse(null);
             if (user instanceof Agent agent && agent.getGarage() != null) {
                 garageId = agent.getGarage().getId();
@@ -86,8 +86,8 @@ public class AuthServiceImpl implements AuthService {
         }
 
         String username = jwtUtil.getUsernameFromToken(currentRefreshToken);
-        User user = userRepository.findByUsername(username)
-                .or(() -> userRepository.findByEmail(username))
+        User user = userRepository.findFirstByUsername(username)
+                .or(() -> userRepository.findFirstByEmail(username))
                 .orElseThrow(() -> new BadCredentialsException("Utilisateur introuvable"));
 
         if (!user.isEnabled()) {
@@ -150,8 +150,8 @@ public class AuthServiceImpl implements AuthService {
             Garage garage = null;
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth != null && auth.isAuthenticated() && !auth.getName().equals("anonymousUser")) {
-                User currentUser = userRepository.findByUsername(auth.getName())
-                        .or(() -> userRepository.findByEmail(auth.getName()))
+                User currentUser = userRepository.findFirstByUsername(auth.getName())
+                        .or(() -> userRepository.findFirstByEmail(auth.getName()))
                         .orElse(null);
                 if (currentUser instanceof Agent currentAgent && currentAgent.getRole() == Role.MASTER) {
                     garage = currentAgent.getGarage();
@@ -287,8 +287,8 @@ public class AuthServiceImpl implements AuthService {
     public Agent getAgentConnecte() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String username = auth.getName();
-        User user = userRepository.findByUsername(username)
-                .or(() -> userRepository.findByEmail(username))
+        User user = userRepository.findFirstByUsername(username)
+                .or(() -> userRepository.findFirstByEmail(username))
                 .orElseThrow(() -> new RuntimeException("Utilisateur connecté introuvable"));
         if (!(user instanceof Agent agent)) {
             throw new IllegalStateException("Cette opération requiert un compte Agent");
