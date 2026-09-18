@@ -37,6 +37,10 @@ public class Vehicule extends BaseEntity {
     @Column(name = "numero_chassis", unique = true)
     private String numeroChassis;
 
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private boolean archiveParClient = false;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id", nullable = false)
     @JsonIgnoreProperties("vehicules")

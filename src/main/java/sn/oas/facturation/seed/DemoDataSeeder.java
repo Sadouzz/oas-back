@@ -138,7 +138,7 @@ public class DemoDataSeeder implements CommandLineRunner {
         List<Agent> result = new java.util.ArrayList<>();
         boolean createdAny = false;
         for (ASpec s : specs) {
-            Agent agent = userRepository.findByUsername(s.username())
+            Agent agent = userRepository.findFirstByUsername(s.username())
                     .filter(Agent.class::isInstance)
                     .map(Agent.class::cast)
                     .orElse(null);

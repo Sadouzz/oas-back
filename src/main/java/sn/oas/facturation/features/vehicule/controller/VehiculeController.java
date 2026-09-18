@@ -97,7 +97,7 @@ public class VehiculeController {
     public ResponseEntity<List<VehiculeListResponse>> getMyVehicules() {
         Client client = clientService.getClientConnecte();
         return ResponseEntity.ok(
-                vehiculeService.getVehiculesByClient(client.getId()).stream().map(VehiculeListResponse::from).toList());
+                vehiculeService.getVehiculesActifsByClient(client.getId()).stream().map(VehiculeListResponse::from).toList());
     }
 
     @PostMapping("/me")
@@ -113,5 +113,13 @@ public class VehiculeController {
                 request.numeroChassis(),
                 client.getId());
         return new ResponseEntity<>(vehiculeService.createVehicule(securedRequest), HttpStatus.CREATED);
+    }
+
+    @DeleteMapping("/me/{id}")
+    @Operation(summary = "Archiver un véhicule du client connecté")
+    public ResponseEntity<Void> archiveMyVehicule(@PathVariable Long id) {
+        Client client = clientService.getClientConnecte();
+        vehiculeService.archiveVehiculeByClient(id, client.getId());
+        return ResponseEntity.noContent().build();
     }
 }

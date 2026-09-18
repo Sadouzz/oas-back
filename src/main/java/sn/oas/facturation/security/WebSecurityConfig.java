@@ -98,6 +98,8 @@ public class WebSecurityConfig {
                                 "ROLE_AGENT", "AGENT", "CLIENT", "ROLE_CLIENT")
                         .requestMatchers("/api/technicien/**")
                         .hasAnyAuthority("ROLE_TECHNICIEN", "TECHNICIEN")
+                        .requestMatchers("/api/ordres-reparation/me")
+                        .hasAnyAuthority("CLIENT", "ROLE_CLIENT")
                         .requestMatchers("/api/ordres-reparation", "/api/ordres-reparation/**")
                         .hasAnyAuthority("ROLE_AGENT", "AGENT", "ROLE_SUPER_AGENT", "SUPER_AGENT", "ROLE_MASTER", "MASTER",
                                 "ROLE_CHEF_ATELIER", "CHEF_ATELIER")

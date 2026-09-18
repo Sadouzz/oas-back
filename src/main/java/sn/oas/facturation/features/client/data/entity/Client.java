@@ -35,6 +35,7 @@ public class Client extends User {
 
     @Builder.Default
     @OneToMany(mappedBy = "client")
+    @lombok.ToString.Exclude
     private List<Vehicule> vehicules = new ArrayList<>();
 
     @Override

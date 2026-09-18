@@ -3,7 +3,6 @@ package sn.oas.facturation.features.vehicule.service;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -130,5 +129,32 @@ public class VehiculeServiceImpl implements VehiculeService {
     @Override
     public List<Vehicule> getRecentVehicules() {
         return vehiculeRepository.findTop5ByOrderByCreatedAtDesc();
+    }
+
+    @Override
+    public List<Vehicule> getVehiculesActifsByClient(Long clientId) {
+        return vehiculeRepository.findByClientIdAndArchiveParClientFalse(clientId);
+    }
+
+    @Transactional
+    @Override
+    public void archiveVehiculeByClient(Long vehiculeId, Long clientId) {
+        Vehicule vehicule = vehiculeRepository.findById(vehiculeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Véhicule non trouvé avec l'id : " + vehiculeId));
+        
+        if (!vehicule.getClient().getId().equals(clientId)) {
+            throw new sn.oas.facturation.shared.exception.BadRequestException("Ce véhicule n'appartient pas à ce client");
+        }
+
+        boolean hasActiveRepairs = vehicule.getOrdresReparation() != null && 
+            vehicule.getOrdresReparation().stream().anyMatch(or -> 
+                !or.getStatut().name().equals("TERMINE") && !or.getStatut().name().equals("ANNULE"));
+
+        if (hasActiveRepairs) {
+             throw new sn.oas.facturation.shared.exception.BadRequestException("Impossible d'archiver un véhicule avec des réparations en cours");
+        }
+
+        vehicule.setArchiveParClient(true);
+        vehiculeRepository.save(vehicule);
     }
 }
