@@ -13,14 +13,16 @@ import org.springframework.stereotype.Repository;
 import sn.oas.facturation.features.user.data.entity.User;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
-    Optional <User> findByUsername(String username);
+    Optional <User> findFirstByUsername(String username);
     boolean existsByUsername(String username);
-    Optional <User> findByEmail(String email);
+    Optional <User> findByUsername(String username);
+    Optional <User> findFirstByEmail(String email);
     boolean existsByEmail(String email);
+    Optional <User> findByEmail(String email);
     boolean existsByPhone(String phone);
     boolean existsByMatricule(String matricule);
 
-    Optional<User> findByUsernameOrEmail(String username, String email);
+    Optional<User> findFirstByUsernameOrEmail(String username, String email);
 
     @Query("SELECT u FROM User u WHERE " +
             "LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +

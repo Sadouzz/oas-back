@@ -14,6 +14,7 @@ public interface VehiculeRepository extends JpaRepository<Vehicule, Long> {
     Optional<Vehicule> findByImmatriculation(String immatriculation);
     boolean existsByImmatriculation(String immatriculation);
     List<Vehicule> findByClientId(Long clientId);
+    List<Vehicule> findByClientIdAndArchiveParClientFalse(Long clientId);
 
     @Query("SELECT v FROM Vehicule v WHERE " +
             "LOWER(v.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
