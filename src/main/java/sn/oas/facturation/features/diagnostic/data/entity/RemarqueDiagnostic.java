@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.features.technicien.data.entity.Technicien;
 
 import java.time.LocalDateTime;
@@ -26,6 +27,11 @@ public class RemarqueDiagnostic {
     private Diagnostic diagnostic;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ordre_reparation_id")
+    @JsonIgnoreProperties({ "diagnostic", "vehicule", "garage", "bonDeSortie" })
+    private OrdreReparation ordreReparation;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "technicien_id")
     @JsonIgnoreProperties({ "password", "authorities", "garage" })
     private Technicien technicien;
@@ -37,4 +43,14 @@ public class RemarqueDiagnostic {
     @Builder.Default
     @CreationTimestamp
     private LocalDateTime createdAt = LocalDateTime.now();
+
+    @PrePersist
+    protected void onPrePersist() {
+        if (this.createdAt == null) {
+            this.createdAt = LocalDateTime.now();
+        }
+        if (this.ordreReparation == null && this.diagnostic != null && this.diagnostic.getOrdreReparation() != null) {
+            this.ordreReparation = this.diagnostic.getOrdreReparation();
+        }
+    }
 }

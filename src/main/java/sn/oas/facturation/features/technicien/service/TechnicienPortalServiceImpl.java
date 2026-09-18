@@ -12,6 +12,7 @@ import sn.oas.facturation.features.diagnostic.data.entity.PieceJointeDiagnostic;
 import sn.oas.facturation.features.diagnostic.data.enums.TypePieceJointe;
 import sn.oas.facturation.features.diagnostic.dto.PieceJointeDiagnosticRequest;
 import sn.oas.facturation.features.diagnostic.dto.PieceJointeDiagnosticResponse;
+import sn.oas.facturation.features.diagnostic.repository.DiagnosticRepository;
 import sn.oas.facturation.features.diagnostic.repository.PieceJointeDiagnosticRepository;
 import sn.oas.facturation.features.main_doeuvre.data.entity.MainDoeuvre;
 import sn.oas.facturation.features.main_doeuvre.repository.MainDoeuvreRepository;
@@ -35,6 +36,7 @@ import java.util.stream.Collectors;
 public class TechnicienPortalServiceImpl implements TechnicienPortalService {
 
     private final OrdreReparationRepository ordreReparationRepository;
+    private final DiagnosticRepository diagnosticRepository;
     private final PieceJointeDiagnosticRepository pieceJointeDiagnosticRepository;
     private final PieceDetacheRepository pieceDetacheRepository;
     private final MainDoeuvreRepository mainDoeuvreRepository;
@@ -94,19 +96,26 @@ public class TechnicienPortalServiceImpl implements TechnicienPortalService {
             throw new RuntimeException("Le type de la pièce jointe est obligatoire");
         }
 
-        Diagnostic diag = ordreReparation.getDiagnostic();
+        Diagnostic diag = diagnosticRepository.findByOrdreReparationId(ordreReparationId).orElse(null);
+        if (diag == null) {
+            diag = ordreReparation.getDiagnostic();
+        }
         if (diag == null) {
             diag = Diagnostic.builder()
                     .ordreReparation(ordreReparation)
                     .garage(ordreReparation.getGarage())
                     .technicien(technicien)
+                    .statut(sn.oas.facturation.features.diagnostic.data.enums.StatutDiagnostic.EN_COURS)
                     .build();
+            diag = diagnosticRepository.save(diag);
             ordreReparation.setDiagnostic(diag);
             ordreReparationRepository.save(ordreReparation);
         }
 
+        OrdreReparation orRef = diag.getOrdreReparation() != null ? diag.getOrdreReparation() : ordreReparation;
         PieceJointeDiagnostic pieceJointe = PieceJointeDiagnostic.builder()
                 .diagnostic(diag)
+                .ordreReparation(orRef)
                 .url(request.getUrl())
                 .type(request.getType())
                 .remarque(request.getRemarque())
@@ -147,18 +156,27 @@ public class TechnicienPortalServiceImpl implements TechnicienPortalService {
         OrdreReparation ordreReparation = ordreReparationRepository.findById(ordreReparationId)
                 .orElseThrow(() -> new RuntimeException("Ordre de réparation non trouvé"));
         verifierTechnicienAssigne(ordreReparation, technicien);
-        if (request.pieceId() == null) {
-            throw new RuntimeException("L'ID de la pièce est obligatoire");
+
+        boolean isCustom = Boolean.TRUE.equals(request.isCustom()) || request.pieceId() == null;
+        PDP pdp = null;
+
+        if (isCustom) {
+            if (request.designationPds() == null || request.designationPds().trim().isEmpty()) {
+                throw new RuntimeException("La désignation de la pièce spéciale (PDS) est obligatoire");
+            }
+        } else {
+            PieceDetache piece = pieceDetacheRepository.findById(request.pieceId())
+                    .orElseThrow(() -> new RuntimeException("Pièce non trouvée"));
+            pdp = (PDP) org.hibernate.Hibernate.unproxy(piece);
         }
-        PieceDetache piece = pieceDetacheRepository.findById(request.pieceId())
-                .orElseThrow(() -> new RuntimeException("Pièce non trouvée"));
-        PDP pdp = (PDP) org.hibernate.Hibernate.unproxy(piece);
 
         // Le technicien ne fixe jamais le prix : forcé à 0, ajusté ensuite par le chef
         // d'atelier via l'écran gestion existant (ordres-reparation.component.ts).
         ordreReparation.getLignesOrdreReparationPieces().add(LigneOrdreReparationPiece.builder()
                 .ordreReparation(ordreReparation)
                 .piece(pdp)
+                .isCustom(isCustom)
+                .designationPds(isCustom ? request.designationPds().trim() : null)
                 .quantite(request.quantite() != null ? request.quantite() : 1)
                 .prix(0)
                 .build());

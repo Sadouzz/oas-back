@@ -234,9 +234,18 @@ public class OrdreReparationController {
 
     @PostMapping("/{id}/diagnostic/remarques")
     @Operation(summary = "Ajouter une remarque de diagnostic (depuis le portail chef atelier)")
-    public ResponseEntity<?> addRemarqueDiagnostic(@PathVariable Long id, @RequestBody Map<String, String> body) {
+    public ResponseEntity<?> addRemarqueDiagnostic(@PathVariable Long id, @RequestBody(required = false) Map<String, Object> body) {
         try {
-            String contenu = body.get("contenu");
+            String contenu = null;
+            if (body != null) {
+                if (body.get("contenu") != null) {
+                    contenu = String.valueOf(body.get("contenu"));
+                } else if (body.get("remarque") != null) {
+                    contenu = String.valueOf(body.get("remarque"));
+                } else if (body.get("message") != null) {
+                    contenu = String.valueOf(body.get("message"));
+                }
+            }
             RemarqueDiagnosticResponse r = ordreReparationService.addRemarqueDiagnostic(id, null, contenu);
             return ResponseEntity.ok(r);
         } catch (RuntimeException e) {

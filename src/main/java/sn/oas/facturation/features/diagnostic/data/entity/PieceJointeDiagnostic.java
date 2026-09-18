@@ -6,6 +6,7 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import sn.oas.facturation.features.diagnostic.data.enums.TypePieceJointe;
+import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.features.technicien.data.entity.Technicien;
 
 import java.time.LocalDateTime;
@@ -26,6 +27,11 @@ public class PieceJointeDiagnostic {
     @JoinColumn(name = "diagnostic_id", nullable = false)
     @JsonIgnoreProperties({ "piecesJointes", "remarques", "ordreReparation" })
     private Diagnostic diagnostic;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ordre_reparation_id")
+    @JsonIgnoreProperties({ "diagnostic", "vehicule", "garage", "bonDeSortie" })
+    private OrdreReparation ordreReparation;
 
     @Column(nullable = false, length = 1000)
     private String url;
@@ -51,6 +57,9 @@ public class PieceJointeDiagnostic {
     protected void onCreate() {
         if (this.createdAt == null) {
             this.createdAt = LocalDateTime.now();
+        }
+        if (this.ordreReparation == null && this.diagnostic != null && this.diagnostic.getOrdreReparation() != null) {
+            this.ordreReparation = this.diagnostic.getOrdreReparation();
         }
     }
 }

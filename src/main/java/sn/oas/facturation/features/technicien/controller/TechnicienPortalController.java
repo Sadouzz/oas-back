@@ -186,12 +186,21 @@ public class TechnicienPortalController {
 
     @PostMapping("/ordres-reparation/{id}/diagnostic/remarques")
     @Operation(summary = "Ajouter une remarque de diagnostic (attribuée au technicien connecté)")
-    public ResponseEntity<?> addRemarqueDiagnostic(@PathVariable Long id, @RequestBody Map<String, String> body) {
+    public ResponseEntity<?> addRemarqueDiagnostic(@PathVariable Long id, @RequestBody(required = false) Map<String, Object> body) {
         try {
             Technicien technicien = technicienService.getTechnicienConnecte();
             // vérifie assignation
             technicienPortalService.getMonOrdreReparation(technicien, id);
-            String contenu = body.get("contenu");
+            String contenu = null;
+            if (body != null) {
+                if (body.get("contenu") != null) {
+                    contenu = String.valueOf(body.get("contenu"));
+                } else if (body.get("remarque") != null) {
+                    contenu = String.valueOf(body.get("remarque"));
+                } else if (body.get("message") != null) {
+                    contenu = String.valueOf(body.get("message"));
+                }
+            }
             return ResponseEntity.ok(ordreReparationService.addRemarqueDiagnostic(id, technicien, contenu));
         } catch (AccessDeniedException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", e.getMessage()));

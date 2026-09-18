@@ -89,6 +89,7 @@ public class DiagnosticServiceImpl implements DiagnosticService {
                 if (pjReq.getUrl() != null && pjReq.getType() != null) {
                     PieceJointeDiagnostic pj = PieceJointeDiagnostic.builder()
                             .diagnostic(saved)
+                            .ordreReparation(saved.getOrdreReparation())
                             .url(pjReq.getUrl())
                             .type(pjReq.getType())
                             .remarque(pjReq.getRemarque())
@@ -109,6 +110,7 @@ public class DiagnosticServiceImpl implements DiagnosticService {
                     }
                     RemarqueDiagnostic rem = RemarqueDiagnostic.builder()
                             .diagnostic(saved)
+                            .ordreReparation(saved.getOrdreReparation())
                             .technicien(remTech)
                             .contenu(remReq.getContenu())
                             .build();
@@ -303,6 +305,7 @@ public class DiagnosticServiceImpl implements DiagnosticService {
 
         PieceJointeDiagnostic pj = PieceJointeDiagnostic.builder()
                 .diagnostic(diagnostic)
+                .ordreReparation(diagnostic.getOrdreReparation())
                 .url(request.getUrl())
                 .type(request.getType())
                 .remarque(request.getRemarque())
@@ -326,7 +329,7 @@ public class DiagnosticServiceImpl implements DiagnosticService {
         Diagnostic diagnostic = diagnosticRepository.findById(diagnosticId)
                 .orElseThrow(() -> new RuntimeException("Diagnostic non trouvé avec l'id : " + diagnosticId));
 
-        if (contenu == null || contenu.trim().isEmpty()) {
+        if (contenu == null || contenu.isBlank()) {
             throw new IllegalArgumentException("Le contenu de la remarque est obligatoire");
         }
 
@@ -339,6 +342,7 @@ public class DiagnosticServiceImpl implements DiagnosticService {
 
         RemarqueDiagnostic rem = RemarqueDiagnostic.builder()
                 .diagnostic(diagnostic)
+                .ordreReparation(diagnostic.getOrdreReparation())
                 .technicien(tech)
                 .contenu(contenu)
                 .build();

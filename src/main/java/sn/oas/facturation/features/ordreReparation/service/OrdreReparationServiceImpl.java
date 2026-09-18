@@ -58,6 +58,7 @@ import sn.oas.facturation.features.diagnostic.data.enums.TypePieceJointe;
 import sn.oas.facturation.features.diagnostic.dto.PieceJointeDiagnosticRequest;
 import sn.oas.facturation.features.diagnostic.dto.PieceJointeDiagnosticResponse;
 import sn.oas.facturation.features.diagnostic.dto.RemarqueDiagnosticResponse;
+import sn.oas.facturation.features.diagnostic.repository.DiagnosticRepository;
 import sn.oas.facturation.features.diagnostic.repository.PieceJointeDiagnosticRepository;
 import sn.oas.facturation.features.diagnostic.repository.RemarqueDiagnosticRepository;
 import sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier;
@@ -76,6 +77,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     private final MainDoeuvreRepository mainDoeuvreRepository;
     private final AgentNotificationService agentNotificationService;
     private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
+    private final DiagnosticRepository diagnosticRepository;
     private final PieceJointeDiagnosticRepository pieceJointeDiagnosticRepository;
     private final RemarqueDiagnosticRepository remarqueDiagnosticRepository;
     private final FicheAtelierRepository ficheAtelierRepository;
@@ -512,18 +514,25 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             throw new RuntimeException("Le type de la pièce jointe est obligatoire");
         }
 
-        Diagnostic diag = ordreReparation.getDiagnostic();
+        Diagnostic diag = diagnosticRepository.findByOrdreReparationId(ordreReparationId).orElse(null);
+        if (diag == null) {
+            diag = ordreReparation.getDiagnostic();
+        }
         if (diag == null) {
             diag = Diagnostic.builder()
                     .ordreReparation(ordreReparation)
                     .garage(ordreReparation.getGarage())
+                    .statut(StatutDiagnostic.EN_COURS)
                     .build();
+            diag = diagnosticRepository.save(diag);
             ordreReparation.setDiagnostic(diag);
             ordreReparationRepository.save(ordreReparation);
         }
 
+        OrdreReparation orRef = diag.getOrdreReparation() != null ? diag.getOrdreReparation() : ordreReparation;
         PieceJointeDiagnostic pieceJointe = PieceJointeDiagnostic.builder()
                 .diagnostic(diag)
+                .ordreReparation(orRef)
                 .url(request.getUrl())
                 .type(request.getType())
                 .remarque(request.getRemarque())
@@ -556,7 +565,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         }
         Long orId = (p.getDiagnostic() != null && p.getDiagnostic().getOrdreReparation() != null)
                 ? p.getDiagnostic().getOrdreReparation().getId()
-                : null;
+                : (p.getOrdreReparation() != null ? p.getOrdreReparation().getId() : null);
         return PieceJointeDiagnosticResponse.builder()
                 .id(p.getId())
                 .ordreReparationId(orId)
@@ -588,18 +597,26 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             throw new RuntimeException("Le contenu de la remarque ne peut pas être vide");
         }
 
-        Diagnostic diag = ordreReparation.getDiagnostic();
+        Diagnostic diag = diagnosticRepository.findByOrdreReparationId(ordreReparationId).orElse(null);
+        if (diag == null) {
+            diag = ordreReparation.getDiagnostic();
+        }
         if (diag == null) {
             diag = Diagnostic.builder()
                     .ordreReparation(ordreReparation)
                     .garage(ordreReparation.getGarage())
+                    .technicien(technicien)
+                    .statut(StatutDiagnostic.EN_COURS)
                     .build();
+            diag = diagnosticRepository.save(diag);
             ordreReparation.setDiagnostic(diag);
             ordreReparationRepository.save(ordreReparation);
         }
 
+        OrdreReparation orRef = diag.getOrdreReparation() != null ? diag.getOrdreReparation() : ordreReparation;
         RemarqueDiagnostic remarque = RemarqueDiagnostic.builder()
                 .diagnostic(diag)
+                .ordreReparation(orRef)
                 .technicien(technicien)
                 .contenu(contenu.trim())
                 .build();
