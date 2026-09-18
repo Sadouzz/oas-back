@@ -185,9 +185,9 @@ public class FactureServiceImpl implements FactureService {
             }
         }
 
-        // Update OrdreReparation status to EN_ATTENTE_PAIEMENT
-        if (ordreReparation != null && ordreReparation.getStatut() != StatutOrdreReparation.EN_ATTENTE_PAIEMENT) {
-            ordreReparation.setStatut(StatutOrdreReparation.EN_ATTENTE_PAIEMENT);
+        // Update OrdreReparation status to PAIEMENT
+        if (ordreReparation != null && ordreReparation.getStatut() != StatutOrdreReparation.PAIEMENT) {
+            ordreReparation.setStatut(StatutOrdreReparation.PAIEMENT);
             ordreReparationRepository.save(ordreReparation);
         }        agentNotificationService.notifyRole(Role.AGENT, 
             "Nouvelle Facture", 

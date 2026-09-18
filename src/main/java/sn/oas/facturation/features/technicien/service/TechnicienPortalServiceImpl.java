@@ -1,6 +1,8 @@
 package sn.oas.facturation.features.technicien.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,6 +43,21 @@ public class TechnicienPortalServiceImpl implements TechnicienPortalService {
     @Transactional(readOnly = true)
     public List<OrdreReparation> getMesOrdresReparation(Technicien technicien) {
         return ordreReparationRepository.findByTechnicienAssigne(technicien.getId());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<OrdreReparation> getMesOrdresReparation(Technicien technicien, Pageable pageable) {
+        return getMesOrdresReparation(technicien, null, pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<OrdreReparation> getMesOrdresReparation(Technicien technicien, String keyword, Pageable pageable) {
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            return ordreReparationRepository.searchByTechnicienAssigne(technicien.getId(), keyword.trim(), pageable);
+        }
+        return ordreReparationRepository.findByTechnicienAssigne(technicien.getId(), pageable);
     }
 
     @Override

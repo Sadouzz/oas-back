@@ -8,11 +8,18 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+
 import sn.oas.facturation.features.diagnostic.data.enums.TypePieceJointe;
 import sn.oas.facturation.features.diagnostic.dto.PieceJointeDiagnosticRequest;
 import sn.oas.facturation.features.diagnostic.dto.PieceJointeDiagnosticResponse;
 import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
+import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationTechnicienListDto;
 import sn.oas.facturation.features.ordreReparation.service.OrdreReparationService;
+import sn.oas.facturation.shared.dto.PageResponse;
 import sn.oas.facturation.features.technicien.data.entity.Technicien;
 import sn.oas.facturation.features.technicien.dto.PannesRequest;
 import sn.oas.facturation.features.technicien.dto.TechnicienLigneMainDoeuvreRequest;
@@ -45,10 +52,17 @@ public class TechnicienPortalController {
     }
 
     @GetMapping("/ordres-reparation")
-    @Operation(summary = "Lister les ordres de réparation assignés au technicien connecté")
-    public ResponseEntity<List<OrdreReparation>> getMesOrdresReparation() {
+    @Operation(summary = "Lister les ordres de réparation assignés au technicien connecté avec pagination")
+    public ResponseEntity<PageResponse<OrdreReparationTechnicienListDto>> getMesOrdresReparation(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String keyword) {
         Technicien technicien = technicienService.getTechnicienConnecte();
-        return ResponseEntity.ok(technicienPortalService.getMesOrdresReparation(technicien));
+        Pageable pageable = PageRequest.of(page, size, Sort.by("dateCreation").descending());
+        Page<OrdreReparationTechnicienListDto> paged = technicienPortalService
+                .getMesOrdresReparation(technicien, keyword, pageable)
+                .map(OrdreReparationTechnicienListDto::fromEntity);
+        return ResponseEntity.ok(PageResponse.from(paged));
     }
 
     @GetMapping("/ordres-reparation/{id}")

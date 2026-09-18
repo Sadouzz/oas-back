@@ -1,5 +1,7 @@
 package sn.oas.facturation.features.ordreReparation.repository;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -44,4 +46,30 @@ public interface OrdreReparationRepository extends JpaRepository<OrdreReparation
             "WHERE d.technicien.id = :technicienId OR t2.id = :technicienId " +
             "ORDER BY f.dateCreation DESC")
     List<OrdreReparation> findByTechnicienAssigne(@Param("technicienId") Long technicienId);
+
+    @Query(value = "SELECT DISTINCT f FROM OrdreReparation f " +
+            "LEFT JOIN f.diagnostic d LEFT JOIN f.techniciensReparation t2 " +
+            "WHERE d.technicien.id = :technicienId OR t2.id = :technicienId",
+           countQuery = "SELECT COUNT(DISTINCT f) FROM OrdreReparation f " +
+            "LEFT JOIN f.diagnostic d LEFT JOIN f.techniciensReparation t2 " +
+            "WHERE d.technicien.id = :technicienId OR t2.id = :technicienId")
+    Page<OrdreReparation> findByTechnicienAssigne(@Param("technicienId") Long technicienId, Pageable pageable);
+
+    @Query(value = "SELECT DISTINCT f FROM OrdreReparation f " +
+            "LEFT JOIN f.diagnostic d LEFT JOIN f.techniciensReparation t2 " +
+            "LEFT JOIN f.vehicule v " +
+            "WHERE (d.technicien.id = :technicienId OR t2.id = :technicienId) AND (" +
+            "LOWER(f.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(v.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(v.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(v.modele) LIKE LOWER(CONCAT('%', :keyword, '%')))",
+           countQuery = "SELECT COUNT(DISTINCT f) FROM OrdreReparation f " +
+            "LEFT JOIN f.diagnostic d LEFT JOIN f.techniciensReparation t2 " +
+            "LEFT JOIN f.vehicule v " +
+            "WHERE (d.technicien.id = :technicienId OR t2.id = :technicienId) AND (" +
+            "LOWER(f.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(v.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(v.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(v.modele) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    Page<OrdreReparation> searchByTechnicienAssigne(@Param("technicienId") Long technicienId, @Param("keyword") String keyword, Pageable pageable);
 }

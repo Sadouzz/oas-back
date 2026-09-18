@@ -164,18 +164,18 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     private EtatOrdreReparationDTO buildEtatOrdresReparation() {
-        long diagnostic = ordreReparationRepository.countByStatut(StatutOrdreReparation.EN_DIAGNOSTIC)
-                + ordreReparationRepository.countByStatut(StatutOrdreReparation.A_FAIRE);
-        long attenteProforma = ordreReparationRepository.countByStatut(StatutOrdreReparation.EN_ATTENTE_PROFORMA);
-        long proformaValide = ordreReparationRepository.countByStatut(StatutOrdreReparation.PROFORMA_VALIDE);
-        long attentePieces = ordreReparationRepository.countByStatut(StatutOrdreReparation.EN_ATTENTE_COMMANDE);
-        long attenteSortie = ordreReparationRepository.countByStatut(StatutOrdreReparation.EN_ATTENTE_SORTIE);
-        long enReparation = ordreReparationRepository.countByStatut(StatutOrdreReparation.EN_COURS)
-                + ordreReparationRepository.countByStatut(StatutOrdreReparation.EN_ATTENTE_MECANICIEN);
-        long attentePaiement = ordreReparationRepository.countByStatut(StatutOrdreReparation.EN_ATTENTE_PAIEMENT);
-        long termine = ordreReparationRepository.countByStatut(StatutOrdreReparation.TERMINE)
+        long diagnostic = ordreReparationRepository.countByStatut(StatutOrdreReparation.DIAGNOSTIC)
+                + ordreReparationRepository.countByStatut(StatutOrdreReparation.RECEPTION);
+        long attenteProforma = ordreReparationRepository.countByStatut(StatutOrdreReparation.PIECES_MO);
+        long proformaValide = ordreReparationRepository.countByStatut(StatutOrdreReparation.PROFORMA);
+        long attentePieces = ordreReparationRepository.countByStatut(StatutOrdreReparation.BON_DE_COMMANDE);
+        long attenteSortie = ordreReparationRepository.countByStatut(StatutOrdreReparation.BON_DE_SORTIE);
+        long enReparation = ordreReparationRepository.countByStatut(StatutOrdreReparation.REPARATION)
+                + ordreReparationRepository.countByStatut(StatutOrdreReparation.ASSIGN_TECHNICIEN);
+        long attentePaiement = ordreReparationRepository.countByStatut(StatutOrdreReparation.PAIEMENT);
+        long termine = ordreReparationRepository.countByStatut(StatutOrdreReparation.PRET_A_LIVRER)
                 + ordreReparationRepository.countByStatut(StatutOrdreReparation.LIVRE);
-        long totalActifs = ordreReparationRepository.countByStatutNotIn(List.of(StatutOrdreReparation.TERMINE, StatutOrdreReparation.LIVRE));
+        long totalActifs = ordreReparationRepository.countByStatutNotIn(List.of(StatutOrdreReparation.PRET_A_LIVRER, StatutOrdreReparation.LIVRE));
 
         return EtatOrdreReparationDTO.builder()
                 .diagnostic(diagnostic)

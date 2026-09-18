@@ -288,11 +288,11 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
         if (bon.getOrdreReparation() != null) {
             OrdreReparation fiche = bon.getOrdreReparation();
             // Advancing the status if it's in one of the states waiting for parts
-            if (fiche.getStatut() == StatutOrdreReparation.EN_ATTENTE_SORTIE ||
-                    fiche.getStatut() == StatutOrdreReparation.PROFORMA_VALIDE ||
-                    fiche.getStatut() == StatutOrdreReparation.EN_ATTENTE_COMMANDE) {
+            if (fiche.getStatut() == StatutOrdreReparation.BON_DE_SORTIE ||
+                    fiche.getStatut() == StatutOrdreReparation.BON_DE_COMMANDE ||
+                    fiche.getStatut() == StatutOrdreReparation.PROFORMA) {
 
-                fiche.setStatut(StatutOrdreReparation.EN_ATTENTE_MECANICIEN);
+                fiche.setStatut(StatutOrdreReparation.ASSIGN_TECHNICIEN);
                 agentNotificationService.notifyRole(Role.CHEF_ATELIER,
                         "Mécanicien à assigner",
                         "Le bon de sortie " + bon.getReference() + " a été validé. La fiche " + fiche.getNumero()

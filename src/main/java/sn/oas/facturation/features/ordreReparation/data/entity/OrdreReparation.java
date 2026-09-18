@@ -87,7 +87,7 @@ public class OrdreReparation implements TenantAware  {
     @Enumerated(EnumType.STRING)
     @Column(name = "statut")
     @Builder.Default
-    private StatutOrdreReparation statut = StatutOrdreReparation.A_FAIRE;
+    private StatutOrdreReparation statut = StatutOrdreReparation.RECEPTION;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vehicule_id", nullable = false)
@@ -143,7 +143,7 @@ public class OrdreReparation implements TenantAware  {
             this.updatedAt = LocalDateTime.now();
         }
         if (this.statut == null) {
-            this.statut = StatutOrdreReparation.A_FAIRE;
+            this.statut = StatutOrdreReparation.RECEPTION;
         }
     }
 }

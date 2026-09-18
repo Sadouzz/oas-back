@@ -9,6 +9,9 @@ import sn.oas.facturation.features.technicien.dto.PannesRequest;
 import sn.oas.facturation.features.technicien.dto.TechnicienLigneMainDoeuvreRequest;
 import sn.oas.facturation.features.technicien.dto.TechnicienLignePieceRequest;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 import java.util.List;
 
 /**
@@ -19,6 +22,8 @@ import java.util.List;
  */
 public interface TechnicienPortalService {
     List<OrdreReparation> getMesOrdresReparation(Technicien technicien);
+    Page<OrdreReparation> getMesOrdresReparation(Technicien technicien, Pageable pageable);
+    Page<OrdreReparation> getMesOrdresReparation(Technicien technicien, String keyword, Pageable pageable);
     OrdreReparation getMonOrdreReparation(Technicien technicien, Long ordreReparationId);
 
     List<PieceJointeDiagnosticResponse> getPiecesJointesDiagnostic(Technicien technicien, Long ordreReparationId, TypePieceJointe type);

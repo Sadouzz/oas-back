@@ -255,7 +255,7 @@ public class ProformaServiceImpl implements ProformaService {
         Proforma saved = proformaRepository.save(proforma);
 
         if (ordreReparation != null) {
-            ordreReparation.setStatut(StatutOrdreReparation.EN_ATTENTE_PROFORMA);
+            ordreReparation.setStatut(StatutOrdreReparation.PROFORMA);
             ordreReparationRepository.save(ordreReparation);
         }
 
@@ -462,7 +462,7 @@ public class ProformaServiceImpl implements ProformaService {
         
         OrdreReparation ordreReparation = proforma.getOrdreReparation();
         if (ordreReparation != null) {
-            ordreReparation.setStatut(StatutOrdreReparation.PROFORMA_VALIDE);
+            ordreReparation.setStatut(StatutOrdreReparation.BON_DE_COMMANDE);
             ordreReparationRepository.save(ordreReparation);
         }
 
@@ -672,7 +672,7 @@ public class ProformaServiceImpl implements ProformaService {
 
         OrdreReparation ordreReparation = proforma.getOrdreReparation();
         if (ordreReparation != null) {
-            ordreReparation.setStatut(StatutOrdreReparation.PROFORMA_VALIDE);
+            ordreReparation.setStatut(StatutOrdreReparation.BON_DE_COMMANDE);
             ordreReparationRepository.save(ordreReparation);
         }
 

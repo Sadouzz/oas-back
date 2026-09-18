@@ -398,7 +398,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
             List<OrdreReparation> fiches = ordreReparationRepository
                     .findByVehiculeIdAndStatut(
                             bonDeCommande.getVehicule().getId(),
-                            StatutOrdreReparation.EN_ATTENTE_COMMANDE);
+                            StatutOrdreReparation.BON_DE_COMMANDE);
 
             for (OrdreReparation fiche : fiches) {
                 Proforma proforma = proformaRepository
@@ -439,7 +439,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
 
                         fiche.setBonDeSortie(bds);
                         fiche.setStatut(
-                                StatutOrdreReparation.EN_ATTENTE_SORTIE);
+                                StatutOrdreReparation.BON_DE_SORTIE);
                         ordreReparationRepository.save(fiche);
                     } catch (Exception e) {
                         log.error("Erreur auto bon de sortie FA-" + fiche.getId(), e);
@@ -549,7 +549,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
             List<OrdreReparation> fiches = ordreReparationRepository
                     .findByVehiculeIdAndStatut(
                             bonDeCommande.getVehicule().getId(),
-                            StatutOrdreReparation.EN_ATTENTE_COMMANDE);
+                            StatutOrdreReparation.BON_DE_COMMANDE);
 
             for (OrdreReparation fiche : fiches) {
                 Proforma proforma = proformaRepository
@@ -588,7 +588,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
 
                             fiche.setBonDeSortie(bds);
                             fiche.setStatut(
-                                    StatutOrdreReparation.EN_ATTENTE_SORTIE);
+                                    StatutOrdreReparation.BON_DE_SORTIE);
                             ordreReparationRepository.save(fiche);
                         } catch (Exception e) {
                             log.error("Erreur auto bon de sortie FA-" + fiche.getId(), e);

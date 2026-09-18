@@ -113,7 +113,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 .listeDefauts(request.getListeDefauts())
                 .dateSortie(request.getDateSortie())
                 .vehicule(vehicule)
-                .statut(request.getStatut() != null ? request.getStatut() : StatutOrdreReparation.A_FAIRE)
+                .statut(request.getStatut() != null ? request.getStatut() : StatutOrdreReparation.RECEPTION)
                 .build();
 
         if (request.getLignesPieces() != null) {
@@ -442,14 +442,14 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         }
 
         // Un technicien doit être affecté au diagnostic avant de pouvoir démarrer le diagnostic.
-        if (newStatut == StatutOrdreReparation.EN_DIAGNOSTIC
+        if (newStatut == StatutOrdreReparation.DIAGNOSTIC
                 && (fiche.getDiagnostic() == null || fiche.getDiagnostic().getTechnicien() == null)) {
             throw new RuntimeException("Veuillez affecter au moins un technicien au diagnostic avant de démarrer le diagnostic.");
         }
 
-        // Si la réparation commence (EN_COURS), on déduit les pièces
+        // Si la réparation commence (REPARATION), on déduit les pièces
         // du proforma du stock de l'atelier
-        if (newStatut == StatutOrdreReparation.EN_COURS && fiche.getStatut() != StatutOrdreReparation.EN_COURS) {
+        if (newStatut == StatutOrdreReparation.REPARATION && fiche.getStatut() != StatutOrdreReparation.REPARATION) {
             proformaRepository.findByOrdreReparationId(id).ifPresent(proforma -> {
                 for (LigneFacturationPiece lp : proforma
                         .getLignesFacturationPieces()) {
@@ -472,7 +472,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         fiche.setStatut(newStatut);
         OrdreReparation savedFiche = ordreReparationRepository.save(fiche);
 
-        if (newStatut == StatutOrdreReparation.EN_ATTENTE_COMMANDE || newStatut == StatutOrdreReparation.EN_ATTENTE_SORTIE) {
+        if (newStatut == StatutOrdreReparation.BON_DE_COMMANDE || newStatut == StatutOrdreReparation.BON_DE_SORTIE) {
             agentNotificationService.notifyRole(Role.AGENT_MAGASIN,
                     "Pièces en attente pour " + savedFiche.getNumero(),
                     "La fiche " + savedFiche.getNumero() + " est passée en " + newStatut + ".");
@@ -668,7 +668,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         
         java.util.Optional<OrdreReparation> activeOr = ordreReparationRepository.findFirstByVehiculeIdAndStatutNotIn(
                 ficheAtelier.getVehicule().getId(), 
-                java.util.List.of(StatutOrdreReparation.LIVRE, StatutOrdreReparation.TERMINE)
+                java.util.List.of(StatutOrdreReparation.LIVRE, StatutOrdreReparation.PRET_A_LIVRER)
         );
         if (activeOr.isPresent()) {
             return activeOr.get();
@@ -684,7 +684,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 .lignesReception(syntheseReception(ficheAtelier))
                 .vehicule(ficheAtelier.getVehicule())
                 .ficheAtelier(ficheAtelier)
-                .statut(StatutOrdreReparation.A_FAIRE)
+                .statut(StatutOrdreReparation.RECEPTION)
                 .build();
 
         return ordreReparationRepository.save(ordreReparation);
@@ -733,7 +733,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         if (fiche != null && fiche.getVehicule() != null) {
             return ordreReparationRepository.existsByVehiculeIdAndStatutNotIn(
                 fiche.getVehicule().getId(), 
-                List.of(StatutOrdreReparation.LIVRE, StatutOrdreReparation.TERMINE)
+                List.of(StatutOrdreReparation.LIVRE, StatutOrdreReparation.PRET_A_LIVRER)
             );
         }
         return false;
