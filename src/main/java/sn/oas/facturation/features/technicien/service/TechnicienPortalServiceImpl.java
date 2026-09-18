@@ -5,6 +5,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import sn.oas.facturation.features.diagnostic.data.entity.Diagnostic;
 import sn.oas.facturation.features.diagnostic.data.entity.PieceJointeDiagnostic;
 import sn.oas.facturation.features.diagnostic.data.enums.TypePieceJointe;
 import sn.oas.facturation.features.diagnostic.dto.PieceJointeDiagnosticRequest;
@@ -58,8 +59,8 @@ public class TechnicienPortalServiceImpl implements TechnicienPortalService {
                 .orElseThrow(() -> new RuntimeException("Ordre de réparation non trouvé"));
         verifierTechnicienAssigne(ordreReparation, technicien);
         List<PieceJointeDiagnostic> pieces = type != null
-                ? pieceJointeDiagnosticRepository.findByOrdreReparationIdAndTypeOrderByCreatedAtDesc(ordreReparationId, type)
-                : pieceJointeDiagnosticRepository.findByOrdreReparationIdOrderByCreatedAtDesc(ordreReparationId);
+                ? pieceJointeDiagnosticRepository.findByDiagnosticOrdreReparationIdAndTypeOrderByCreatedAtDesc(ordreReparationId, type)
+                : pieceJointeDiagnosticRepository.findByDiagnosticOrdreReparationIdOrderByCreatedAtDesc(ordreReparationId);
         return pieces.stream().map(this::toPieceJointeResponse).collect(Collectors.toList());
     }
 
@@ -76,8 +77,19 @@ public class TechnicienPortalServiceImpl implements TechnicienPortalService {
             throw new RuntimeException("Le type de la pièce jointe est obligatoire");
         }
 
+        Diagnostic diag = ordreReparation.getDiagnostic();
+        if (diag == null) {
+            diag = Diagnostic.builder()
+                    .ordreReparation(ordreReparation)
+                    .garage(ordreReparation.getGarage())
+                    .technicien(technicien)
+                    .build();
+            ordreReparation.setDiagnostic(diag);
+            ordreReparationRepository.save(ordreReparation);
+        }
+
         PieceJointeDiagnostic pieceJointe = PieceJointeDiagnostic.builder()
-                .ordreReparation(ordreReparation)
+                .diagnostic(diag)
                 .url(request.getUrl())
                 .type(request.getType())
                 .remarque(request.getRemarque())
@@ -95,7 +107,8 @@ public class TechnicienPortalServiceImpl implements TechnicienPortalService {
         verifierTechnicienAssigne(ordreReparation, technicien);
         PieceJointeDiagnostic pieceJointe = pieceJointeDiagnosticRepository.findById(pieceJointeId)
                 .orElseThrow(() -> new RuntimeException("Pièce jointe non trouvée"));
-        if (pieceJointe.getOrdreReparation() == null || !pieceJointe.getOrdreReparation().getId().equals(ordreReparationId)) {
+        if (pieceJointe.getDiagnostic() == null || pieceJointe.getDiagnostic().getOrdreReparation() == null
+                || !pieceJointe.getDiagnostic().getOrdreReparation().getId().equals(ordreReparationId)) {
             throw new RuntimeException("Cette pièce jointe n'appartient pas à cet ordre de réparation");
         }
         pieceJointeDiagnosticRepository.delete(pieceJointe);
@@ -163,8 +176,8 @@ public class TechnicienPortalServiceImpl implements TechnicienPortalService {
      * garage, requis avant toute lecture/écriture sur un endpoint du portail technicien.
      */
     private void verifierTechnicienAssigne(OrdreReparation ordreReparation, Technicien technicien) {
-        boolean assigne = (ordreReparation.getTechniciens() != null && ordreReparation.getTechniciens().stream()
-                .anyMatch(t -> t.getId().equals(technicien.getId())))
+        boolean assigne = (ordreReparation.getDiagnostic() != null && ordreReparation.getDiagnostic().getTechnicien() != null
+                && ordreReparation.getDiagnostic().getTechnicien().getId().equals(technicien.getId()))
                 || (ordreReparation.getTechniciensReparation() != null && ordreReparation.getTechniciensReparation().stream()
                 .anyMatch(t -> t.getId().equals(technicien.getId())));
         if (!assigne) {
@@ -180,9 +193,12 @@ public class TechnicienPortalServiceImpl implements TechnicienPortalService {
             techNom = (prenom + " " + nom).trim();
             if (techNom.isEmpty()) techNom = p.getTechnicien().getUsername();
         }
+        Long orId = (p.getDiagnostic() != null && p.getDiagnostic().getOrdreReparation() != null)
+                ? p.getDiagnostic().getOrdreReparation().getId()
+                : null;
         return PieceJointeDiagnosticResponse.builder()
                 .id(p.getId())
-                .ordreReparationId(p.getOrdreReparation() != null ? p.getOrdreReparation().getId() : null)
+                .ordreReparationId(orId)
                 .url(p.getUrl())
                 .type(p.getType())
                 .remarque(p.getRemarque())

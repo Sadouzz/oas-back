@@ -38,10 +38,10 @@ public interface OrdreReparationRepository extends JpaRepository<OrdreReparation
     Optional<OrdreReparation> findFirstByFicheAtelierId(Long ficheAtelierId);
     Optional<OrdreReparation> findFirstByVehiculeIdAndStatutNotIn(Long vehiculeId, List<StatutOrdreReparation> statuts);
 
-    // Portail technicien : ordres où le technicien figure dans le pool diagnostic OU réparation.
+    // Portail technicien : ordres où le technicien figure dans le diagnostic OU réparation.
     @Query("SELECT DISTINCT f FROM OrdreReparation f " +
-            "LEFT JOIN f.techniciens t1 LEFT JOIN f.techniciensReparation t2 " +
-            "WHERE t1.id = :technicienId OR t2.id = :technicienId " +
+            "LEFT JOIN f.diagnostic d LEFT JOIN f.techniciensReparation t2 " +
+            "WHERE d.technicien.id = :technicienId OR t2.id = :technicienId " +
             "ORDER BY f.dateCreation DESC")
     List<OrdreReparation> findByTechnicienAssigne(@Param("technicienId") Long technicienId);
 }

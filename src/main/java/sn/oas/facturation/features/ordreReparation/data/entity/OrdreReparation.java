@@ -100,19 +100,6 @@ public class OrdreReparation implements TenantAware  {
     @JsonIgnoreProperties({ "vehicule", "ordreReparation", "client", "garage" })
     private FicheAtelier ficheAtelier;
 
-    // Noms de table/colonne de jointure conservés tels quels (fiche_mecaniciens(_reparation),
-    // mecanicien_id) pour limiter l'ampleur du changement de schéma lors du remplacement de
-    // Mecanicien par Technicien — voir rapport de la tâche. Seul le type Java référencé change.
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "fiche_mecaniciens",
-        joinColumns = @JoinColumn(name = "fiche_id"),
-        inverseJoinColumns = @JoinColumn(name = "mecanicien_id")
-    )
-    @Builder.Default
-    @JsonIgnoreProperties({ "ordresReparation", "password", "authorities", "garage" })
-    private List<Technicien> techniciens = new ArrayList<>();
-
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
         name = "fiche_mecaniciens_reparation",

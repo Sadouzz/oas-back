@@ -67,13 +67,11 @@ public class Diagnostic extends BaseEntity implements TenantAware {
     private LocalDateTime dateFin;
 
     // Pièces jointes & remarques
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "diagnostic_id")
+    @OneToMany(mappedBy = "diagnostic", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<PieceJointeDiagnostic> piecesJointes = new ArrayList<>();
 
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "diagnostic_id")
+    @OneToMany(mappedBy = "diagnostic", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<RemarqueDiagnostic> remarques = new ArrayList<>();
 }

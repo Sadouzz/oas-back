@@ -6,17 +6,10 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
 import sn.oas.facturation.features.diagnostic.data.enums.TypePieceJointe;
-import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.features.technicien.data.entity.Technicien;
 
 import java.time.LocalDateTime;
 
-/**
- * Pièce jointe (photo ou PDF) rattachée au diagnostic d'un {@link OrdreReparation}.
- * Toujours accédée via son OrdreReparation parent, lui-même déjà filtré par garage
- * (@Filter garageFilter) : pas besoin d'implémenter TenantAware ici (pas de colonne
- * garage_id dédiée), cf. rapport de la tâche pour la justification détaillée.
- */
 @Entity
 @Table(name = "pieces_jointes_diagnostic")
 @Data
@@ -30,9 +23,9 @@ public class PieceJointeDiagnostic {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ordre_reparation_id", nullable = false)
-    @JsonIgnoreProperties({ "piecesJointesDiagnostic", "lignesOrdreReparationPieces", "lignesOrdreReparationMainDoeuvres", "facturations" })
-    private OrdreReparation ordreReparation;
+    @JoinColumn(name = "diagnostic_id", nullable = false)
+    @JsonIgnoreProperties({ "piecesJointes", "remarques", "ordreReparation" })
+    private Diagnostic diagnostic;
 
     @Column(nullable = false, length = 1000)
     private String url;
@@ -44,8 +37,6 @@ public class PieceJointeDiagnostic {
     @Column(columnDefinition = "TEXT")
     private String remarque;
 
-    // Nullable : renseigné uniquement quand la pièce jointe est ajoutée depuis le portail
-    // technicien (voir TechnicienPortalController), null quand ajoutée côté staff/agent.
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "technicien_id")
     @JsonIgnoreProperties({ "password", "authorities", "garage" })

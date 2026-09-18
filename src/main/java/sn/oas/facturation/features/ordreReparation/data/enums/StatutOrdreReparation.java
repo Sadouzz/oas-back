@@ -3,6 +3,7 @@ package sn.oas.facturation.features.ordreReparation.data.enums;
 public enum StatutOrdreReparation {
     A_FAIRE,
     EN_DIAGNOSTIC,
+    EN_ATTENTE_PIECES_MO,
     EN_ATTENTE_PROFORMA,
     PROFORMA_VALIDE,
     EN_ATTENTE_COMMANDE,

@@ -50,8 +50,10 @@ import sn.oas.facturation.features.facturation.dto.LigneFacturationMainDoeuvreRe
 import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationLightDTO;
 import sn.oas.facturation.features.ordreReparation.dto.VehiculeLightDTO;
 import sn.oas.facturation.features.ordreReparation.dto.ClientLightDTO;
+import sn.oas.facturation.features.diagnostic.data.entity.Diagnostic;
 import sn.oas.facturation.features.diagnostic.data.entity.PieceJointeDiagnostic;
 import sn.oas.facturation.features.diagnostic.data.entity.RemarqueDiagnostic;
+import sn.oas.facturation.features.diagnostic.data.enums.StatutDiagnostic;
 import sn.oas.facturation.features.diagnostic.data.enums.TypePieceJointe;
 import sn.oas.facturation.features.diagnostic.dto.PieceJointeDiagnosticRequest;
 import sn.oas.facturation.features.diagnostic.dto.PieceJointeDiagnosticResponse;
@@ -354,10 +356,19 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         Technicien technicien = technicienRepository.findById(technicienId)
                 .orElseThrow(() -> new RuntimeException("Technicien non trouvé"));
 
-        if (!fiche.getTechniciens().contains(technicien)) {
-            fiche.getTechniciens().add(technicien);
-            ordreReparationRepository.save(fiche);
+        Diagnostic diag = fiche.getDiagnostic();
+        if (diag == null) {
+            diag = Diagnostic.builder()
+                    .ordreReparation(fiche)
+                    .garage(fiche.getGarage())
+                    .technicien(technicien)
+                    .statut(StatutDiagnostic.EN_ATTENTE)
+                    .build();
+            fiche.setDiagnostic(diag);
+        } else {
+            diag.setTechnicien(technicien);
         }
+        ordreReparationRepository.save(fiche);
     }
 
     @Transactional
@@ -370,11 +381,11 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     public void removeTechnicien(Long ficheId, Long technicienId) {
         OrdreReparation fiche = ordreReparationRepository.findById(ficheId)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
-        Technicien technicien = technicienRepository.findById(technicienId)
-                .orElseThrow(() -> new RuntimeException("Technicien non trouvé"));
-
-        fiche.getTechniciens().remove(technicien);
-        ordreReparationRepository.save(fiche);
+        if (fiche.getDiagnostic() != null && fiche.getDiagnostic().getTechnicien() != null
+                && fiche.getDiagnostic().getTechnicien().getId().equals(technicienId)) {
+            fiche.getDiagnostic().setTechnicien(null);
+            ordreReparationRepository.save(fiche);
+        }
     }
 
     @Transactional
@@ -430,11 +441,10 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             throw new RuntimeException("Statut invalide : " + statut);
         }
 
-        // Au moins un technicien doit être affecté au pool "diagnostic" avant de
-        // pouvoir démarrer le diagnostic (voir spec point 4).
+        // Un technicien doit être affecté au diagnostic avant de pouvoir démarrer le diagnostic.
         if (newStatut == StatutOrdreReparation.EN_DIAGNOSTIC
-                && (fiche.getTechniciens() == null || fiche.getTechniciens().isEmpty())) {
-            throw new RuntimeException("Veuillez affecter au moins un technicien avant de démarrer le diagnostic.");
+                && (fiche.getDiagnostic() == null || fiche.getDiagnostic().getTechnicien() == null)) {
+            throw new RuntimeException("Veuillez affecter au moins un technicien au diagnostic avant de démarrer le diagnostic.");
         }
 
         // Si la réparation commence (EN_COURS), on déduit les pièces
@@ -482,13 +492,11 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     @Override
     @Transactional(readOnly = true)
     public List<PieceJointeDiagnosticResponse> getPiecesJointesDiagnostic(Long ordreReparationId, TypePieceJointe type) {
-        // PieceJointeDiagnostic n'a pas son propre filtre garage (cf. justification sur l'entité) :
-        // on passe par le repository filtré d'OrdreReparation pour garder l'isolation multi-tenant.
         ordreReparationRepository.findById(ordreReparationId)
                 .orElseThrow(() -> new RuntimeException("Ordre de réparation non trouvé"));
         List<PieceJointeDiagnostic> pieces = type != null
-                ? pieceJointeDiagnosticRepository.findByOrdreReparationIdAndTypeOrderByCreatedAtDesc(ordreReparationId, type)
-                : pieceJointeDiagnosticRepository.findByOrdreReparationIdOrderByCreatedAtDesc(ordreReparationId);
+                ? pieceJointeDiagnosticRepository.findByDiagnosticOrdreReparationIdAndTypeOrderByCreatedAtDesc(ordreReparationId, type)
+                : pieceJointeDiagnosticRepository.findByDiagnosticOrdreReparationIdOrderByCreatedAtDesc(ordreReparationId);
         return pieces.stream().map(this::toPieceJointeResponse).collect(Collectors.toList());
     }
 
@@ -504,8 +512,18 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             throw new RuntimeException("Le type de la pièce jointe est obligatoire");
         }
 
+        Diagnostic diag = ordreReparation.getDiagnostic();
+        if (diag == null) {
+            diag = Diagnostic.builder()
+                    .ordreReparation(ordreReparation)
+                    .garage(ordreReparation.getGarage())
+                    .build();
+            ordreReparation.setDiagnostic(diag);
+            ordreReparationRepository.save(ordreReparation);
+        }
+
         PieceJointeDiagnostic pieceJointe = PieceJointeDiagnostic.builder()
-                .ordreReparation(ordreReparation)
+                .diagnostic(diag)
                 .url(request.getUrl())
                 .type(request.getType())
                 .remarque(request.getRemarque())
@@ -517,12 +535,12 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     @Override
     @Transactional
     public void deletePieceJointeDiagnostic(Long ordreReparationId, Long pieceJointeId) {
-        // Idem : passage par le repository filtré d'OrdreReparation pour l'isolation multi-tenant.
         ordreReparationRepository.findById(ordreReparationId)
                 .orElseThrow(() -> new RuntimeException("Ordre de réparation non trouvé"));
         PieceJointeDiagnostic pieceJointe = pieceJointeDiagnosticRepository.findById(pieceJointeId)
                 .orElseThrow(() -> new RuntimeException("Pièce jointe non trouvée"));
-        if (pieceJointe.getOrdreReparation() == null || !pieceJointe.getOrdreReparation().getId().equals(ordreReparationId)) {
+        if (pieceJointe.getDiagnostic() == null || pieceJointe.getDiagnostic().getOrdreReparation() == null
+                || !pieceJointe.getDiagnostic().getOrdreReparation().getId().equals(ordreReparationId)) {
             throw new RuntimeException("Cette pièce jointe n'appartient pas à cet ordre de réparation");
         }
         pieceJointeDiagnosticRepository.delete(pieceJointe);
@@ -536,9 +554,12 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             techNom = (prenom + " " + nom).trim();
             if (techNom.isEmpty()) techNom = p.getTechnicien().getUsername();
         }
+        Long orId = (p.getDiagnostic() != null && p.getDiagnostic().getOrdreReparation() != null)
+                ? p.getDiagnostic().getOrdreReparation().getId()
+                : null;
         return PieceJointeDiagnosticResponse.builder()
                 .id(p.getId())
-                .ordreReparationId(p.getOrdreReparation() != null ? p.getOrdreReparation().getId() : null)
+                .ordreReparationId(orId)
                 .url(p.getUrl())
                 .type(p.getType())
                 .remarque(p.getRemarque())
@@ -551,11 +572,10 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
 
     @Override
     @Transactional(readOnly = true)
-
     public List<RemarqueDiagnosticResponse> getRemarquesDiagnostic(Long ordreReparationId) {
         ordreReparationRepository.findById(ordreReparationId)
                 .orElseThrow(() -> new RuntimeException("Ordre de réparation non trouvé"));
-        return remarqueDiagnosticRepository.findByOrdreReparationIdOrderByCreatedAtDesc(ordreReparationId)
+        return remarqueDiagnosticRepository.findByDiagnosticOrdreReparationIdOrderByCreatedAtDesc(ordreReparationId)
                 .stream().map(this::toRemarqueResponse).collect(Collectors.toList());
     }
 
@@ -567,8 +587,19 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         if (contenu == null || contenu.trim().isEmpty()) {
             throw new RuntimeException("Le contenu de la remarque ne peut pas être vide");
         }
+
+        Diagnostic diag = ordreReparation.getDiagnostic();
+        if (diag == null) {
+            diag = Diagnostic.builder()
+                    .ordreReparation(ordreReparation)
+                    .garage(ordreReparation.getGarage())
+                    .build();
+            ordreReparation.setDiagnostic(diag);
+            ordreReparationRepository.save(ordreReparation);
+        }
+
         RemarqueDiagnostic remarque = RemarqueDiagnostic.builder()
-                .ordreReparation(ordreReparation)
+                .diagnostic(diag)
                 .technicien(technicien)
                 .contenu(contenu.trim())
                 .build();
@@ -582,7 +613,8 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 .orElseThrow(() -> new RuntimeException("Ordre de réparation non trouvé"));
         RemarqueDiagnostic r = remarqueDiagnosticRepository.findById(remarqueId)
                 .orElseThrow(() -> new RuntimeException("Remarque non trouvée"));
-        if (r.getOrdreReparation() == null || !r.getOrdreReparation().getId().equals(ordreReparationId)) {
+        if (r.getDiagnostic() == null || r.getDiagnostic().getOrdreReparation() == null
+                || !r.getDiagnostic().getOrdreReparation().getId().equals(ordreReparationId)) {
             throw new RuntimeException("Cette remarque n'appartient pas à cet ordre de réparation");
         }
         remarqueDiagnosticRepository.delete(r);
@@ -596,9 +628,12 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             techNom = (prenom + " " + nom).trim();
             if (techNom.isEmpty()) techNom = r.getTechnicien().getUsername();
         }
+        Long orId = (r.getDiagnostic() != null && r.getDiagnostic().getOrdreReparation() != null)
+                ? r.getDiagnostic().getOrdreReparation().getId()
+                : null;
         return RemarqueDiagnosticResponse.builder()
                 .id(r.getId())
-                .ordreReparationId(r.getOrdreReparation() != null ? r.getOrdreReparation().getId() : null)
+                .ordreReparationId(orId)
                 .technicienNom(techNom)
                 .contenu(r.getContenu())
                 .createdAt(r.getCreatedAt())

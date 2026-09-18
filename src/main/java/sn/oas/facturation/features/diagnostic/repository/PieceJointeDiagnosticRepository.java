@@ -9,6 +9,8 @@ import java.util.List;
 
 @Repository
 public interface PieceJointeDiagnosticRepository extends JpaRepository<PieceJointeDiagnostic, Long> {
-    List<PieceJointeDiagnostic> findByOrdreReparationIdOrderByCreatedAtDesc(Long ordreReparationId);
-    List<PieceJointeDiagnostic> findByOrdreReparationIdAndTypeOrderByCreatedAtDesc(Long ordreReparationId, TypePieceJointe type);
+    List<PieceJointeDiagnostic> findByDiagnosticIdOrderByCreatedAtDesc(Long diagnosticId);
+    List<PieceJointeDiagnostic> findByDiagnosticIdAndTypeOrderByCreatedAtDesc(Long diagnosticId, TypePieceJointe type);
+    List<PieceJointeDiagnostic> findByDiagnosticOrdreReparationIdOrderByCreatedAtDesc(Long ordreReparationId);
+    List<PieceJointeDiagnostic> findByDiagnosticOrdreReparationIdAndTypeOrderByCreatedAtDesc(Long ordreReparationId, TypePieceJointe type);
 }

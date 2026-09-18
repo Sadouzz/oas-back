@@ -3,17 +3,11 @@ package sn.oas.facturation.features.diagnostic.data.entity;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
-import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
-import sn.oas.facturation.features.technicien.data.entity.Technicien;
-
 import org.hibernate.annotations.CreationTimestamp;
+import sn.oas.facturation.features.technicien.data.entity.Technicien;
 
 import java.time.LocalDateTime;
 
-/**
- * Remarque textuelle ajoutée par un technicien lors du diagnostic.
- * Plusieurs techniciens peuvent chacun ajouter leur propre remarque.
- */
 @Entity
 @Table(name = "remarques_diagnostic")
 @Data
@@ -27,9 +21,9 @@ public class RemarqueDiagnostic {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ordre_reparation_id", nullable = false)
-    @JsonIgnoreProperties({ "piecesJointesDiagnostic", "lignesOrdreReparationPieces", "lignesOrdreReparationMainDoeuvres" })
-    private OrdreReparation ordreReparation;
+    @JoinColumn(name = "diagnostic_id", nullable = false)
+    @JsonIgnoreProperties({ "piecesJointes", "remarques", "ordreReparation" })
+    private Diagnostic diagnostic;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "technicien_id")
