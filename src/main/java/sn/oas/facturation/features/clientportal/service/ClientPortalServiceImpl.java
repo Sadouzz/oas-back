@@ -43,8 +43,8 @@ public class ClientPortalServiceImpl implements ClientPortalService {
     private final GarageRepository garageRepository;
 
     private static final List<StatutOrdreReparation> TERMINATED_STATUSES = List.of(
-            StatutOrdreReparation.EN_ATTENTE_PAIEMENT,
-            StatutOrdreReparation.TERMINE,
+            StatutOrdreReparation.PAIEMENT,
+            StatutOrdreReparation.PRET_A_LIVRER,
             StatutOrdreReparation.LIVRE
     );
 
@@ -55,13 +55,12 @@ public class ClientPortalServiceImpl implements ClientPortalService {
             return new StageInfo("AUCUN_HISTORIQUE", -1, "Aucun historique", "neutral", false);
         }
         return switch (statut) {
-            case A_FAIRE -> new StageInfo("A_FAIRE", 0, "Prise en charge", "neutral", true);
-            case EN_DIAGNOSTIC -> new StageInfo("EN_DIAGNOSTIC", 1, "Diagnostic", "info", true);
-            case EN_ATTENTE_PIECES_MO, EN_ATTENTE_PROFORMA, PROFORMA_VALIDE,
-                 EN_ATTENTE_COMMANDE, EN_ATTENTE_SORTIE, EN_ATTENTE_MECANICIEN ->
+            case RECEPTION -> new StageInfo("RECEPTION", 0, "Prise en charge", "neutral", true);
+            case DIAGNOSTIC -> new StageInfo("DIAGNOSTIC", 1, "Diagnostic", "info", true);
+            case PIECES_MO, PROFORMA, BON_DE_COMMANDE, BON_DE_SORTIE, ASSIGN_TECHNICIEN ->
                     new StageInfo(statut.name(), 2, "Préparation", "pending", true);
-            case EN_COURS -> new StageInfo("EN_COURS", 3, "Réparation en cours", "info", true);
-            case EN_ATTENTE_PAIEMENT, TERMINE, LIVRE ->
+            case REPARATION -> new StageInfo("REPARATION", 3, "Réparation en cours", "info", true);
+            case PAIEMENT, PRET_A_LIVRER, LIVRE ->
                     new StageInfo(statut.name(), 4, "Terminée", "success", false);
         };
     }
