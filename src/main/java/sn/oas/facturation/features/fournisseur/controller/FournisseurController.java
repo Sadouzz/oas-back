@@ -11,7 +11,6 @@ import sn.oas.facturation.features.fournisseur.dto.FournisseurListResponse;
 import sn.oas.facturation.features.fournisseur.dto.FournisseurRequest;
 import sn.oas.facturation.features.fournisseur.service.FournisseurService;
 
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/fournisseurs")

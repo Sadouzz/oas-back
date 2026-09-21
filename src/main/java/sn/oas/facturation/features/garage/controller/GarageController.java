@@ -10,7 +10,6 @@ import sn.oas.facturation.features.garage.dto.GarageRequest;
 import sn.oas.facturation.features.garage.dto.GarageResponse;
 import sn.oas.facturation.features.garage.service.GarageService;
 
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/garages")

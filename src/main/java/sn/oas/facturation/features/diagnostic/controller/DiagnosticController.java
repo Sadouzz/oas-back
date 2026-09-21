@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.*;
 import sn.oas.facturation.features.diagnostic.data.enums.StatutDiagnostic;
 import sn.oas.facturation.features.diagnostic.dto.DiagnosticListResponse;
 import sn.oas.facturation.features.diagnostic.dto.DiagnosticRequest;
-import sn.oas.facturation.features.diagnostic.dto.DiagnosticResponse;
 import sn.oas.facturation.features.diagnostic.dto.PieceJointeDiagnosticRequest;
 import sn.oas.facturation.features.diagnostic.dto.PieceJointeDiagnosticResponse;
 import sn.oas.facturation.features.diagnostic.dto.RemarqueDiagnosticResponse;

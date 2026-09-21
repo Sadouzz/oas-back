@@ -18,10 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.oas.facturation.features.facturation.data.entity.LigneFacturationMainDoeuvre;
 import sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece;
-import sn.oas.facturation.features.facturation.dto.LigneFacturationMainDoeuvreResponse;
-import sn.oas.facturation.features.facturation.dto.LigneFacturationPieceResponse;
 import sn.oas.facturation.features.facture.data.entity.Facture;
-import sn.oas.facturation.features.facture.dto.FactureResponse;
 import sn.oas.facturation.features.facture.data.enums.StatutPaiement;
 import sn.oas.facturation.features.facture.repository.FactureRepository;
 import sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation;
@@ -31,7 +28,6 @@ import sn.oas.facturation.features.piecedetache.data.entity.PieceMouvement;
 import sn.oas.facturation.features.piecedetache.data.enums.TypeMouvement;
 import sn.oas.facturation.features.piecedetache.repository.PieceDetacheRepository;
 import sn.oas.facturation.features.piecedetache.repository.PieceMouvementRepository;
-import sn.oas.facturation.features.recu.dto.RecuResponse;
 import sn.oas.facturation.features.user.data.entity.Agent;
 import sn.oas.facturation.features.user.data.entity.User;
 import sn.oas.facturation.features.user.data.enums.Role;
@@ -57,7 +53,6 @@ import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor

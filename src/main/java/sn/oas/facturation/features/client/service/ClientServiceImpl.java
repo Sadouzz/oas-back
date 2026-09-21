@@ -16,12 +16,8 @@ import sn.oas.facturation.features.client.repository.ClientRepository;
 import sn.oas.facturation.features.user.data.entity.User;
 import sn.oas.facturation.features.user.data.enums.TypeUser;
 import sn.oas.facturation.features.user.dto.request.UserUpdateRequest;
-import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.features.vehicule.service.VehiculeService;
 
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;

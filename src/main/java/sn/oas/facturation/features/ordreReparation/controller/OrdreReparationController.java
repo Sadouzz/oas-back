@@ -17,7 +17,6 @@ import sn.oas.facturation.features.diagnostic.dto.PieceJointeDiagnosticRequest;
 import sn.oas.facturation.features.diagnostic.dto.PieceJointeDiagnosticResponse;
 import sn.oas.facturation.features.diagnostic.dto.RemarqueDiagnosticResponse;
 import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationRequest;
-import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationLightDTO;
 import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationListDTO;
 import sn.oas.facturation.features.ordreReparation.repository.OrdreReparationRepository;
 import sn.oas.facturation.features.ordreReparation.service.OrdreReparationService;

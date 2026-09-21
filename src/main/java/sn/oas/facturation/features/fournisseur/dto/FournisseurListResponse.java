@@ -3,7 +3,6 @@ package sn.oas.facturation.features.fournisseur.dto;
 import lombok.Builder;
 import sn.oas.facturation.features.fournisseur.data.entity.Fournisseur;
 
-import java.time.LocalDateTime;
 
 @Builder
 public record FournisseurListResponse(

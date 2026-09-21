@@ -1,12 +1,9 @@
 package sn.oas.facturation.features.bonDeSortie.dto;
 
 import lombok.Builder;
-import sn.oas.facturation.features.bonDeSortie.data.entity.BonDeSortie;
 import sn.oas.facturation.features.bonDeSortie.data.entity.BonDeSortieHistorique;
-import sn.oas.facturation.features.bonDeSortie.data.enums.StatutBon;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Builder
 public record BonDeSortieHistoriqueListResponse(

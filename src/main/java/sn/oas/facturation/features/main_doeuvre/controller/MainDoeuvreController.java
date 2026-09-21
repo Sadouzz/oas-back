@@ -11,7 +11,6 @@ import sn.oas.facturation.features.main_doeuvre.data.entity.MainDoeuvre;
 import sn.oas.facturation.features.main_doeuvre.dto.MainDoeuvreListResponse;
 import sn.oas.facturation.features.main_doeuvre.dto.MainDoeuvreRequest;
 import sn.oas.facturation.features.main_doeuvre.service.MainDoeuvreService;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/main-doeuvres")

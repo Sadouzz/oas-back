@@ -5,7 +5,6 @@ import sn.oas.facturation.features.devisPrevisionnel.data.entity.DevisPrevisionn
 import sn.oas.facturation.features.facturation.data.enums.StatutFacturation;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 
 @Builder
 public record DevisPrevisionnelListResponse(

@@ -14,16 +14,13 @@ import org.springframework.transaction.annotation.Transactional;
 import sn.oas.facturation.features.user.repository.UserRepository;
 import sn.oas.facturation.features.avoirHT.data.entity.AvoirHT;
 import sn.oas.facturation.features.avoirHT.dto.request.AvoirHTCreateRequest;
-import sn.oas.facturation.features.avoirHT.dto.response.AvoirHTResponse;
 import sn.oas.facturation.features.avoirHT.repository.AvoirHTRepository;
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.facturation.data.entity.LigneFacturationMainDoeuvre;
 import sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece;
 import sn.oas.facturation.features.facturation.data.enums.StatutFacturation;
 import sn.oas.facturation.features.facturation.dto.LigneFacturationMainDoeuvreRequest;
-import sn.oas.facturation.features.facturation.dto.LigneFacturationMainDoeuvreResponse;
 import sn.oas.facturation.features.facturation.dto.LigneFacturationPieceRequest;
-import sn.oas.facturation.features.facturation.dto.LigneFacturationPieceResponse;
 import sn.oas.facturation.features.garage.data.entity.Garage;
 import sn.oas.facturation.features.garage.repository.GarageRepository;
 import sn.oas.facturation.features.main_doeuvre.data.entity.MainDoeuvre;
@@ -46,7 +43,6 @@ import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor

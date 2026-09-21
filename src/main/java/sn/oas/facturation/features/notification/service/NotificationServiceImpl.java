@@ -6,11 +6,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.notification.data.entity.Notification;
-import sn.oas.facturation.features.notification.dto.NotificationResponse;
 import sn.oas.facturation.features.notification.repository.NotificationRepository;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor

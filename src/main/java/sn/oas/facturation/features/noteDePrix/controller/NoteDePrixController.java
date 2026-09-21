@@ -11,7 +11,6 @@ import sn.oas.facturation.features.noteDePrix.dto.NoteDePrixRequest;
 import sn.oas.facturation.features.noteDePrix.dto.NoteDePrixResponse;
 import sn.oas.facturation.features.noteDePrix.service.NoteDePrixService;
 
-import java.util.List;
 
 @RestController
 @RequestMapping({"/api/notes-prix", "/api/notes-de-prix"})

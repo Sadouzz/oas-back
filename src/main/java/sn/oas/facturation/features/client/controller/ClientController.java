@@ -5,8 +5,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,9 +14,7 @@ import sn.oas.facturation.features.client.dto.ClientCreateRequest;
 import sn.oas.facturation.features.client.dto.ClientCreateResponse;
 import sn.oas.facturation.features.client.dto.ClientListResponse;
 import sn.oas.facturation.features.client.service.ClientService;
-import sn.oas.facturation.features.user.data.enums.TypeUser;
 import sn.oas.facturation.features.user.dto.request.UserUpdateRequest;
-import sn.oas.facturation.features.auth.dto.request.RegisterRequest;
 import sn.oas.facturation.features.auth.service.AuthService;
 
 @RestController

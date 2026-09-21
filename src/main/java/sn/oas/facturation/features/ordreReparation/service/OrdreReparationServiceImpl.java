@@ -33,8 +33,6 @@ import sn.oas.facturation.features.piecedetache.data.entity.PieceDetache;
 import sn.oas.facturation.features.main_doeuvre.data.entity.MainDoeuvre;
 import sn.oas.facturation.features.main_doeuvre.repository.MainDoeuvreRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Caching;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.transaction.annotation.Transactional;
 

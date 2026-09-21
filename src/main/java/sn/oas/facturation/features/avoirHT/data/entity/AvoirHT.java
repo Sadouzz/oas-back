@@ -6,7 +6,6 @@ import org.hibernate.annotations.FilterDef;
 import org.hibernate.annotations.ParamDef;
 import sn.oas.facturation.shared.tenant.TenantAware;
 import sn.oas.facturation.shared.tenant.TenantListener;
-import sn.oas.facturation.features.garage.data.entity.Garage;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 
 import lombok.AllArgsConstructor;

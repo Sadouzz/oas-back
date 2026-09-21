@@ -10,7 +10,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.data.domain.Page;
 
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.service.ClientService;
