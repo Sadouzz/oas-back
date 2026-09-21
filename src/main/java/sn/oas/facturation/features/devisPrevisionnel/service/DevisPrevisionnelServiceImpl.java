@@ -29,6 +29,9 @@ import org.springframework.data.domain.Pageable;
 import sn.oas.facturation.features.ficheAtelier.repository.FicheAtelierRepository;
 import sn.oas.facturation.features.user.data.entity.Agent;
 import sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier;
+import sn.oas.facturation.features.garage.data.entity.Garage;
+import sn.oas.facturation.shared.exception.BadRequestException;
+import sn.oas.facturation.shared.exception.ResourceNotFoundException;
 
 @Service
 @RequiredArgsConstructor
@@ -44,28 +47,67 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
     @Transactional
     @Override
     public DevisPrevisionnel creer(DevisPrevisionnelRequest request) {
-        Agent agent = authService.getAgentConnecte();
-        Client client = userService.getClientById(request.clientId());
-        Vehicule vehicule = getVehicule(request.vehiculeId());
-
-        if (!vehicule.getClient().getId().equals(client.getId())) {
-            throw new IllegalArgumentException("Le véhicule ne correspond pas au client");
+        if (request == null) {
+            throw new BadRequestException("Les données du devis sont obligatoires");
         }
-        
+
+        Agent agent = authService.getAgentConnecte();
+
         FicheAtelier ficheAtelier = null;
         if (request.ficheAtelierId() != null) {
             ficheAtelier = ficheAtelierRepository.findById(request.ficheAtelierId())
-                .orElseThrow(() -> new IllegalArgumentException("Fiche atelier introuvable"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Fiche atelier introuvable avec l'id : " + request.ficheAtelierId()));
         }
 
+        Client client = null;
+        if (request.clientId() != null) {
+            client = userService.getClientById(request.clientId());
+        } else if (ficheAtelier != null && ficheAtelier.getClient() != null) {
+            client = ficheAtelier.getClient();
+        }
+
+        if (client == null) {
+            throw new BadRequestException("Le client est obligatoire pour créer un devis prévisionnel");
+        }
+
+        Vehicule vehicule = null;
+        if (request.vehiculeId() != null) {
+            vehicule = getVehicule(request.vehiculeId());
+        } else if (ficheAtelier != null && ficheAtelier.getVehicule() != null) {
+            vehicule = ficheAtelier.getVehicule();
+        }
+
+        if (vehicule == null) {
+            throw new BadRequestException("Le véhicule est obligatoire pour créer un devis prévisionnel");
+        }
+
+        if (vehicule.getClient() != null && !vehicule.getClient().getId().equals(client.getId())) {
+            throw new BadRequestException("Le véhicule ne correspond pas au client");
+        }
+
+        Garage garage = (agent != null && agent.getGarage() != null)
+                ? agent.getGarage()
+                : (ficheAtelier != null && ficheAtelier.getGarage() != null ? ficheAtelier.getGarage() : documentNumberGeneratorService.getCurrentGarage());
+
+        Double kilometrage = request.kilometrageVehicule();
+        if (kilometrage == null && ficheAtelier != null && ficheAtelier.getKilometrage() != null) {
+            kilometrage = ficheAtelier.getKilometrage().doubleValue();
+        }
+        if (kilometrage == null) {
+            kilometrage = 0.0;
+        }
+
+        java.math.BigDecimal montant = request.montantTotal() != null ? request.montantTotal() : java.math.BigDecimal.ZERO;
+
         DevisPrevisionnel devis = DevisPrevisionnel.builder()
-                .numero(documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.DP))
+                .numero(documentNumberGeneratorService.generateNextNumber(garage, sn.oas.facturation.shared.documentNumber.DocumentType.DP))
                 .notesReparation(request.notesReparation())
-                .montantTotal(request.montantTotal())
-                .kilometrageVehicule(request.kilometrageVehicule())
+                .montantTotal(montant)
+                .kilometrageVehicule(kilometrage)
                 .vehicule(vehicule)
                 .client(client)
                 .agent(agent)
+                .garage(garage)
                 .ficheAtelier(ficheAtelier)
                 .build();
 
@@ -80,18 +122,50 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
     @Transactional
     @Override
     public DevisPrevisionnel modifier(Long id, DevisPrevisionnelRequest request) {
+        if (id == null) {
+            throw new BadRequestException("L'identifiant du devis est obligatoire");
+        }
         DevisPrevisionnel devis = getById(id);
 
-        Client client = userService.getClientById(request.clientId());
-        Vehicule vehicule = getVehicule(request.vehiculeId());
-
-        if (!vehicule.getClient().getId().equals(client.getId())) {
-            throw new IllegalArgumentException("Le véhicule ne correspond pas au client");
+        FicheAtelier ficheAtelier = devis.getFicheAtelier();
+        if (request.ficheAtelierId() != null) {
+            ficheAtelier = ficheAtelierRepository.findById(request.ficheAtelierId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Fiche atelier introuvable avec l'id : " + request.ficheAtelierId()));
+            devis.setFicheAtelier(ficheAtelier);
         }
 
-        devis.setNotesReparation(request.notesReparation());
-        devis.setMontantTotal(request.montantTotal());
-        devis.setKilometrageVehicule(request.kilometrageVehicule());
+        Client client = null;
+        if (request.clientId() != null) {
+            client = userService.getClientById(request.clientId());
+        } else if (ficheAtelier != null && ficheAtelier.getClient() != null) {
+            client = ficheAtelier.getClient();
+        } else {
+            client = devis.getClient();
+        }
+
+        Vehicule vehicule = null;
+        if (request.vehiculeId() != null) {
+            vehicule = getVehicule(request.vehiculeId());
+        } else if (ficheAtelier != null && ficheAtelier.getVehicule() != null) {
+            vehicule = ficheAtelier.getVehicule();
+        } else {
+            vehicule = devis.getVehicule();
+        }
+
+        if (client == null) {
+            throw new BadRequestException("Le client est obligatoire");
+        }
+        if (vehicule == null) {
+            throw new BadRequestException("Le véhicule est obligatoire");
+        }
+
+        if (vehicule.getClient() != null && !vehicule.getClient().getId().equals(client.getId())) {
+            throw new BadRequestException("Le véhicule ne correspond pas au client");
+        }
+
+        if (request.notesReparation() != null) devis.setNotesReparation(request.notesReparation());
+        if (request.montantTotal() != null) devis.setMontantTotal(request.montantTotal());
+        if (request.kilometrageVehicule() != null) devis.setKilometrageVehicule(request.kilometrageVehicule());
         devis.setVehicule(vehicule);
         devis.setClient(client);
 
@@ -101,8 +175,10 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
     @Transactional
     @Override
     public void supprimer(Long id) {
-        DevisPrevisionnel devis = devisPrevisionnelRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Devis prévisionnel introuvable avec l'id : " + id));
+        if (id == null) {
+            throw new BadRequestException("L'identifiant du devis est obligatoire");
+        }
+        DevisPrevisionnel devis = getById(id);
         if (devis.getFicheAtelier() != null) {
             FicheAtelier fa = devis.getFicheAtelier();
             fa.setDevisPrevisionnel(null);
@@ -113,8 +189,11 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
 
     @Override
     public DevisPrevisionnel getById(Long id) {
+        if (id == null) {
+            throw new BadRequestException("L'identifiant du devis est obligatoire");
+        }
         return devisPrevisionnelRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Devis prévisionnel introuvable avec l'id : " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Devis prévisionnel introuvable avec l'id : " + id));
     }
 
     @Override
