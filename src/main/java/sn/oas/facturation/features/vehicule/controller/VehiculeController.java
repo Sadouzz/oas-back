@@ -56,7 +56,7 @@ public class VehiculeController {
         return ResponseEntity.ok(vehiculeService.getVehiculeById(id));
     }
 
-    @PostMapping("/create")
+    @PostMapping({"", "/create"})
     @Operation(summary = "Créer un nouveau véhicule")
     /*@Caching(evict = {
         @CacheEvict(value = "dashboard_super_agent", allEntries = true),
@@ -64,7 +64,25 @@ public class VehiculeController {
         @CacheEvict(value = "dashboard_agent", allEntries = true)
     })*/
     public ResponseEntity<Vehicule> createVehicule(@RequestBody VehiculeRequest request) {
-        return new ResponseEntity<>(vehiculeService.createVehicule(request), HttpStatus.CREATED);
+        VehiculeRequest effectiveRequest = request;
+        if (effectiveRequest.clientId() == null) {
+            try {
+                Client client = clientService.getClientConnecte();
+                if (client != null && client.getId() != null) {
+                    effectiveRequest = new VehiculeRequest(
+                            request.immatriculation(),
+                            request.annee(),
+                            request.modele(),
+                            request.marque(),
+                            request.kilometrage(),
+                            request.numeroChassis(),
+                            client.getId());
+                }
+            } catch (Exception ignored) {
+                // L'utilisateur n'est pas un client connecté (ex: agent), la validation du service s'appliquera
+            }
+        }
+        return new ResponseEntity<>(vehiculeService.createVehicule(effectiveRequest), HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")

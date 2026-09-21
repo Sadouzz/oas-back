@@ -42,7 +42,7 @@ public class FournisseurController {
         }
     }
 
-    @PostMapping("/create")
+    @PostMapping({"", "/create"})
     @Operation(summary = "Créer un nouveau fournisseur")
     public ResponseEntity<?> addFournisseur(@RequestBody FournisseurRequest request){
         try {

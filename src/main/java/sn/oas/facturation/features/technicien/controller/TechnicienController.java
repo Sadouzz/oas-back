@@ -53,7 +53,7 @@ public class TechnicienController {
         }
     }
 
-    @PostMapping("/create")
+    @PostMapping({"", "/create"})
     @Operation(summary = "Créer un nouveau compte technicien")
     public ResponseEntity<?> createTechnicien(@RequestBody TechnicienRequest request) {
         try {

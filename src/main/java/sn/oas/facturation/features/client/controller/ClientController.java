@@ -72,7 +72,7 @@ public class ClientController {
         }
     }
 
-    @PostMapping("/create")
+    @PostMapping({"", "/create"})
     @Operation(summary = "Créer un nouveau client")
     public ResponseEntity<ClientCreateResponse> createClient(@RequestBody @Valid ClientCreateRequest request) {
         ClientCreateResponse response = clientService.createClient(request);

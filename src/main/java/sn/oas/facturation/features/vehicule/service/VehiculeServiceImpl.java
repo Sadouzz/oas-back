@@ -16,6 +16,7 @@ import sn.oas.facturation.features.client.repository.ClientRepository;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.features.vehicule.dto.VehiculeRequest;
 import sn.oas.facturation.features.vehicule.repository.VehiculeRepository;
+import sn.oas.facturation.shared.exception.BadRequestException;
 import sn.oas.facturation.shared.exception.ResourceAlreadyExistsException;
 import sn.oas.facturation.shared.exception.ResourceNotFoundException;
 
@@ -42,26 +43,38 @@ public class VehiculeServiceImpl implements VehiculeService {
 
     @Transactional
     @Override
-    /*@Caching(evict = {
-        @CacheEvict(value = "vehicules_page", allEntries = true),
-        @CacheEvict(value = "dashboard_super_agent", allEntries = true),
-        @CacheEvict(value = "dashboard_agent", allEntries = true)
-    })*/
     public Vehicule createVehicule(VehiculeRequest request) {
-        if (request.immatriculation() != null && vehiculeRepository.existsByImmatriculation(request.immatriculation())) {
-            throw new ResourceAlreadyExistsException("Immatriculation déjà existante : " + request.immatriculation());
+        String immat = (request.immatriculation() != null && !request.immatriculation().trim().isEmpty())
+                ? request.immatriculation().trim().toUpperCase()
+                : null;
+        if (immat == null) {
+            throw new BadRequestException("L'immatriculation du véhicule est obligatoire.");
+        }
+        if (vehiculeRepository.existsByImmatriculationIgnoreCase(immat)) {
+            throw new ResourceAlreadyExistsException("Immatriculation déjà existante : " + immat);
+        }
+
+        String chassis = (request.numeroChassis() != null && !request.numeroChassis().trim().isEmpty())
+                ? request.numeroChassis().trim()
+                : null;
+        if (chassis != null && vehiculeRepository.existsByNumeroChassis(chassis)) {
+            throw new ResourceAlreadyExistsException("Numéro de châssis déjà existant : " + chassis);
+        }
+
+        if (request.clientId() == null) {
+            throw new BadRequestException("L'identifiant du client est obligatoire pour créer un véhicule.");
         }
 
         Client client = clientRepository.findById(request.clientId())
                 .orElseThrow(() -> new ResourceNotFoundException("Client non trouvé avec l'id : " + request.clientId()));
 
         Vehicule vehicule = Vehicule.builder()
-                .immatriculation(request.immatriculation())
+                .immatriculation(immat)
                 .annee(request.annee())
-                .modele(request.modele())
-                .marque(request.marque())
+                .modele(request.modele() != null ? request.modele().trim() : null)
+                .marque(request.marque() != null ? request.marque().trim() : null)
                 .kilometrage(request.kilometrage() != null ? request.kilometrage() : 0.0)
-                .numeroChassis(request.numeroChassis())
+                .numeroChassis(chassis)
                 .client(client)
                 .build();
 
@@ -70,20 +83,30 @@ public class VehiculeServiceImpl implements VehiculeService {
 
     @Transactional
     @Override
-    /*@Caching(evict = {
-        @CacheEvict(value = "clients_page", allEntries = true),
-        @CacheEvict(value = "dashboard_super_agent", allEntries = true),
-        @CacheEvict(value = "dashboard_agent", allEntries = true)
-})*/
     public Vehicule updateVehicule(Long id, VehiculeRequest request) {
         Vehicule vehicule = vehiculeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Véhicule non trouvé avec l'id : " + id));
 
-        if (request.immatriculation() != null && !request.immatriculation().equalsIgnoreCase(vehicule.getImmatriculation())) {
-            if (vehiculeRepository.existsByImmatriculation(request.immatriculation())) {
-                throw new ResourceAlreadyExistsException("Immatriculation déjà existante : " + request.immatriculation());
+        String immat = (request.immatriculation() != null && !request.immatriculation().trim().isEmpty())
+                ? request.immatriculation().trim().toUpperCase()
+                : null;
+        if (immat != null && !immat.equalsIgnoreCase(vehicule.getImmatriculation())) {
+            if (vehiculeRepository.existsByImmatriculationIgnoreCase(immat)) {
+                throw new ResourceAlreadyExistsException("Immatriculation déjà existante : " + immat);
             }
-            vehicule.setImmatriculation(request.immatriculation());
+            vehicule.setImmatriculation(immat);
+        }
+
+        String chassis = (request.numeroChassis() != null && !request.numeroChassis().trim().isEmpty())
+                ? request.numeroChassis().trim()
+                : null;
+        if (chassis != null && !chassis.equalsIgnoreCase(vehicule.getNumeroChassis())) {
+            if (vehiculeRepository.existsByNumeroChassis(chassis)) {
+                throw new ResourceAlreadyExistsException("Numéro de châssis déjà existant : " + chassis);
+            }
+            vehicule.setNumeroChassis(chassis);
+        } else if (request.numeroChassis() != null && request.numeroChassis().trim().isEmpty()) {
+            vehicule.setNumeroChassis(null);
         }
 
         if (request.clientId() != null && !request.clientId().equals(vehicule.getClient().getId())) {
@@ -93,10 +116,9 @@ public class VehiculeServiceImpl implements VehiculeService {
         }
 
         if (request.annee() != null) vehicule.setAnnee(request.annee());
-        if (request.modele() != null) vehicule.setModele(request.modele());
-        if (request.marque() != null) vehicule.setMarque(request.marque());
+        if (request.modele() != null) vehicule.setModele(request.modele().trim());
+        if (request.marque() != null) vehicule.setMarque(request.marque().trim());
         if (request.kilometrage() != null) vehicule.setKilometrage(request.kilometrage());
-        if (request.numeroChassis() != null) vehicule.setNumeroChassis(request.numeroChassis());
 
         return vehiculeRepository.save(vehicule);
     }

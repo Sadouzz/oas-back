@@ -70,7 +70,7 @@ public class OrdreReparationController {
         }
     }
 
-    @PostMapping("/create")
+    @PostMapping({"", "/create"})
     @Operation(summary = "Créer une nouvelle fiche atelier")
     public ResponseEntity<?> createOrdreReparation(@RequestBody OrdreReparationRequest request) {
         try {

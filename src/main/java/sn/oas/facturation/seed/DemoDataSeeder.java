@@ -96,7 +96,17 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "ALTER TABLE rendez_vous DROP CONSTRAINT IF EXISTS rendez_vous_statut_check",
                 "ALTER TABLE ordres_reparation DROP CONSTRAINT IF EXISTS ordres_reparation_statut_check",
                 "ALTER TABLE bons_de_sortie DROP CONSTRAINT IF EXISTS bons_de_sortie_statut_check",
-                "ALTER TABLE bons_de_commande DROP CONSTRAINT IF EXISTS bons_de_commande_statut_check"
+                "ALTER TABLE bons_de_commande DROP CONSTRAINT IF EXISTS bons_de_commande_statut_check",
+                "ALTER TABLE vehicules ALTER COLUMN update_at DROP NOT NULL",
+                "ALTER TABLE vehicules ALTER COLUMN update_at SET DEFAULT NOW()",
+                "ALTER TABLE ordres_reparation ALTER COLUMN update_at DROP NOT NULL",
+                "ALTER TABLE ordres_reparation ALTER COLUMN update_at SET DEFAULT NOW()",
+                "ALTER TABLE ordres_reparation ALTER COLUMN updated_at DROP NOT NULL",
+                "ALTER TABLE ordres_reparation ALTER COLUMN updated_at SET DEFAULT NOW()",
+                "ALTER TABLE pieces_detachees ALTER COLUMN update_at DROP NOT NULL",
+                "ALTER TABLE pieces_detachees ALTER COLUMN update_at SET DEFAULT NOW()",
+                "ALTER TABLE pieces_detachees ALTER COLUMN updated_at DROP NOT NULL",
+                "ALTER TABLE pieces_detachees ALTER COLUMN updated_at SET DEFAULT NOW()"
         };
         for (String sql : dropStatements) {
             try {
