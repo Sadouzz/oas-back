@@ -58,7 +58,7 @@ public class TechnicienPortalController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String keyword) {
         Technicien technicien = technicienService.getTechnicienConnecte();
-        Pageable pageable = PageRequest.of(page, size, Sort.by("dateCreation").descending());
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Order.desc("updatedAt").nullsLast(), Sort.Order.desc("dateCreation")));
         Page<OrdreReparationTechnicienListDto> paged = technicienPortalService
                 .getMesOrdresReparation(technicien, keyword, pageable)
                 .map(OrdreReparationTechnicienListDto::fromEntity);

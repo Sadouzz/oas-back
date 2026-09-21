@@ -10,6 +10,7 @@ import sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier;
 import sn.oas.facturation.features.ficheAtelier.dto.FicheAtelierRequest;
 import sn.oas.facturation.features.ficheAtelier.repository.FicheAtelierRepository;
 import sn.oas.facturation.features.rendezvous.data.entity.RendezVous;
+import sn.oas.facturation.features.rendezvous.data.enums.RendezVousStatus;
 import sn.oas.facturation.features.rendezvous.repository.RendezVousRepository;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.features.vehicule.repository.VehiculeRepository;
@@ -89,6 +90,7 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
         FicheAtelier saved = ficheAtelierRepository.save(fiche);
         if (rendezVous != null) {
             rendezVous.setFicheAtelier(saved);
+            rendezVous.setStatut(RendezVousStatus.TERMINE);
             rendezVousRepository.save(rendezVous);
         }
         return saved;
@@ -152,6 +154,7 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
         if (fiche.getRendezVous() != null) {
             RendezVous rv = fiche.getRendezVous();
             rv.setFicheAtelier(null);
+            rv.setStatut(RendezVousStatus.CONFIRME);
             rendezVousRepository.save(rv);
         }
         ficheAtelierRepository.delete(fiche);

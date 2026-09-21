@@ -50,7 +50,7 @@ import java.util.List;
 @Order(1)
 public class DemoDataSeeder implements CommandLineRunner {
 
-    private static final String DEMO_PASSWORD = "Passer@2026";
+    private static final String DEMO_PASSWORD = "passer";
 
     private final GarageRepository garageRepository;
     private final AgentRepository agentRepository;
@@ -106,7 +106,10 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "ALTER TABLE pieces_detachees ALTER COLUMN update_at DROP NOT NULL",
                 "ALTER TABLE pieces_detachees ALTER COLUMN update_at SET DEFAULT NOW()",
                 "ALTER TABLE pieces_detachees ALTER COLUMN updated_at DROP NOT NULL",
-                "ALTER TABLE pieces_detachees ALTER COLUMN updated_at SET DEFAULT NOW()"
+                "ALTER TABLE pieces_detachees ALTER COLUMN updated_at SET DEFAULT NOW()",
+                "UPDATE ordres_reparation SET updated_at = date_creation WHERE updated_at IS NULL",
+                "UPDATE rendez_vous SET statut = 'TERMINE' WHERE id IN (SELECT rendez_vous_id FROM fiches_atelier WHERE rendez_vous_id IS NOT NULL)",
+                "UPDATE rendez_vous SET fiche_atelier_id = (SELECT f.id FROM fiches_atelier f WHERE f.rendez_vous_id = rendez_vous.id LIMIT 1) WHERE id IN (SELECT rendez_vous_id FROM fiches_atelier WHERE rendez_vous_id IS NOT NULL) AND fiche_atelier_id IS NULL"
         };
         for (String sql : dropStatements) {
             try {

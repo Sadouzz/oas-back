@@ -146,5 +146,10 @@ public class OrdreReparation implements TenantAware  {
             this.statut = StatutOrdreReparation.RECEPTION;
         }
     }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }
 
