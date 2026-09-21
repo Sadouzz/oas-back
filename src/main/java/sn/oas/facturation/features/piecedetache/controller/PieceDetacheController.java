@@ -76,7 +76,7 @@ public class PieceDetacheController {
             @ApiResponse(responseCode = "200", description = "Pièce créée avec succès"),
             @ApiResponse(responseCode = "400", description = "Données invalides ou numéro de série déjà existant")
     })
-    @PostMapping("/create")
+    @PostMapping({"", "/create"})
     public ResponseEntity<?> create(@RequestBody PieceDetacheRequest request) {
         try {
             return ResponseEntity.ok(pieceDetacheService.create(request));

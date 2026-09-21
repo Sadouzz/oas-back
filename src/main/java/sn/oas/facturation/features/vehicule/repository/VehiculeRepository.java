@@ -13,6 +13,8 @@ import java.util.Optional;
 public interface VehiculeRepository extends JpaRepository<Vehicule, Long> {
     Optional<Vehicule> findByImmatriculation(String immatriculation);
     boolean existsByImmatriculation(String immatriculation);
+    boolean existsByImmatriculationIgnoreCase(String immatriculation);
+    boolean existsByNumeroChassis(String numeroChassis);
     List<Vehicule> findByClientId(Long clientId);
     List<Vehicule> findByClientIdAndArchiveParClientFalse(Long clientId);
 

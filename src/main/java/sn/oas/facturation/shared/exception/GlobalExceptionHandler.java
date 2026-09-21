@@ -9,6 +9,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -125,13 +126,49 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex, HttpServletRequest request) {
+        log.warn("Méthode HTTP non supportée : {} pour {} ", ex.getMethod(), request.getRequestURI());
+        ErrorResponse error = ErrorResponse.of(
+                HttpStatus.METHOD_NOT_ALLOWED.value(),
+                "Method Not Allowed",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(error);
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException ex, HttpServletRequest request) {
-        log.error("Violation d'intégrité des données : {} - URI: {}", ex.getMessage(), request.getRequestURI());
+        Throwable rootCause = ex.getMostSpecificCause();
+        String rootMsg = rootCause != null ? rootCause.getMessage() : ex.getMessage();
+        log.error("Violation d'intégrité des données : {} - URI: {}", rootMsg, request.getRequestURI());
+
+        String message = "Une contrainte d'intégrité a été violée (doublon ou référence invalide).";
+        if (rootMsg != null) {
+            String lower = rootMsg.toLowerCase();
+            if (lower.contains("immatriculation")) {
+                message = "Un véhicule avec cette immatriculation existe déjà.";
+            } else if (lower.contains("numero_chassis") || lower.contains("numerochassis")) {
+                message = "Un véhicule avec ce numéro de châssis existe déjà.";
+            } else if (lower.contains("telephone") || lower.contains("phone")) {
+                message = "Ce numéro de téléphone est déjà utilisé.";
+            } else if (lower.contains("email")) {
+                message = "Cette adresse email est déjà utilisée.";
+            } else if (rootMsg.contains("Detail:") || rootMsg.contains("Détail :")) {
+                String detail = rootMsg.contains("Detail:")
+                        ? rootMsg.substring(rootMsg.indexOf("Detail:") + 7).trim()
+                        : rootMsg.substring(rootMsg.indexOf("Détail :") + 8).trim();
+                message = "Conflit d'intégrité : " + detail;
+            } else {
+                message = rootMsg;
+            }
+        }
+
         ErrorResponse error = ErrorResponse.of(
                 HttpStatus.CONFLICT.value(),
                 "Conflict",
-                "Une contrainte d'intégrité a été violée (ex: doublon d'identifiant ou référence liée)",
+                message,
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(error);

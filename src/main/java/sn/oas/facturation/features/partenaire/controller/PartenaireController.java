@@ -28,7 +28,7 @@ public class PartenaireController {
         return ResponseEntity.ok(PartenaireResponse.from(partenaireService.getPartenaireById(id)));
     }
 
-    @PostMapping("/create")
+    @PostMapping({"", "/create"})
     public ResponseEntity<PartenaireResponse> create(@RequestBody PartenaireRequest request) {
         return ResponseEntity.ok(PartenaireResponse.from(partenaireService.createPartenaire(request)));
     }
