@@ -54,6 +54,16 @@ public class FicheAtelierController {
         return ResponseEntity.ok(ficheAtelierService.getAll(page, size).map(FicheAtelierListResponse::from));
     }
 
+    @GetMapping("/check-vehicule/{vehiculeId}")
+    public ResponseEntity<Map<String, Object>> checkVehicule(@PathVariable Long vehiculeId) {
+        boolean bloque = ficheAtelierService.isVehiculeEnReparationNonLivre(vehiculeId);
+        return ResponseEntity.ok(Map.of(
+                "eligible", !bloque,
+                "bloque", bloque,
+                "message", bloque ? "Ce véhicule a un ordre de réparation en cours non encore livré." : "Véhicule disponible."
+        ));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         ficheAtelierService.delete(id);
