@@ -1,35 +1,43 @@
 package sn.oas.facturation.features.ficheAtelier.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier;
+import sn.oas.facturation.features.ficheAtelier.data.entity.LigneDefaut;
+import sn.oas.facturation.features.ficheAtelier.data.entity.LigneReception;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Builder
 public record FicheAtelierListResponse(
         Long id,
         String numero,
-        // Long rendezVousId,
-        // Long clientId,
         String clientName,
-        // Long vehiculeId,
         String vehiculeImmatriculation,
         String nomChauffeur,
-        // String telephoneChauffeur,
-        // Integer kilometrage,
-        // String designationTravaux,
-        // LocalDateTime dateSortiePrevue,
+        List<LigneReception> lignesReception,
+        List<LigneDefaut> lignesDefauts,
         LocalDateTime createdAt,
+        LocalDateTime updatedAt,
         boolean hasOrdreReparation) {
+
+    @JsonProperty("defautsConstates")
+    public List<LigneDefaut> getDefautsConstates() {
+        return this.lignesDefauts;
+    }
+
+    @JsonProperty("reception")
+    public List<LigneReception> getReception() {
+        return this.lignesReception;
+    }
 
     public static FicheAtelierListResponse from(FicheAtelier f) {
         if (f == null)
             return null;
 
-        // Long clientId = null;
         String clientName = null;
         if (f.getClient() != null) {
-            // clientId = f.getClient().getId();
             String fn = f.getClient().getFirstName() != null ? f.getClient().getFirstName() : "";
             String ln = f.getClient().getLastName() != null ? f.getClient().getLastName() : "";
             clientName = (fn + " " + ln).trim();
@@ -38,17 +46,13 @@ public record FicheAtelierListResponse(
         return FicheAtelierListResponse.builder()
                 .id(f.getId())
                 .numero(f.getNumero())
-                // .rendezVousId(f.getRendezVous() != null ? f.getRendezVous().getId() : null)
-                // .clientId(clientId)
                 .clientName(clientName)
-                // .vehiculeId(f.getVehicule() != null ? f.getVehicule().getId() : null)
                 .vehiculeImmatriculation(f.getVehicule() != null ? f.getVehicule().getImmatriculation() : null)
                 .nomChauffeur(f.getNomChauffeur())
-                // .telephoneChauffeur(f.getTelephoneChauffeur())
-                // .kilometrage(f.getKilometrage())
-                // .designationTravaux(f.getDesignationTravaux())
-                // .dateSortiePrevue(f.getDateSortiePrevue())
+                .lignesReception(f.getLignesReception())
+                .lignesDefauts(f.getLignesDefauts())
                 .createdAt(f.getCreatedAt())
+                .updatedAt(f.getUpdatedAt())
                 .hasOrdreReparation(f.getOrdreReparation() != null)
                 .build();
     }

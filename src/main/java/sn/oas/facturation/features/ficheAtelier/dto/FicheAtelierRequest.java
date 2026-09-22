@@ -1,5 +1,8 @@
 package sn.oas.facturation.features.ficheAtelier.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonSetter;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,6 +18,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class FicheAtelierRequest {
 
     private Long rendezVousId;
@@ -31,7 +35,10 @@ public class FicheAtelierRequest {
     private Integer kilometrage;
     private String designationTravaux;
 
+    @JsonAlias({"reception", "lignesReceptions", "checklist"})
     private List<LigneReception> lignesReception;
+
+    @JsonAlias({"defautsConstates", "defauts", "defautsCarrosserie", "rubriquesDefauts", "lignesDefaut"})
     private List<LigneDefaut> lignesDefauts;
 
     private String nb;
@@ -39,4 +46,18 @@ public class FicheAtelierRequest {
     private String garantie;
     private String signatureReceptionnaireBase64;
     private String signatureBase64;
+
+    @JsonSetter("defautsConstates")
+    public void setDefautsConstates(List<LigneDefaut> defautsConstates) {
+        if (this.lignesDefauts == null || this.lignesDefauts.isEmpty()) {
+            this.lignesDefauts = defautsConstates;
+        }
+    }
+
+    @JsonSetter("reception")
+    public void setReception(List<LigneReception> reception) {
+        if (this.lignesReception == null || this.lignesReception.isEmpty()) {
+            this.lignesReception = reception;
+        }
+    }
 }

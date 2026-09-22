@@ -137,13 +137,21 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     @Transactional(readOnly = true)
     @Override
     public Page<FicheAtelier> getAll(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(page, size, org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Order.desc("updatedAt").nullsLast(),
+                org.springframework.data.domain.Sort.Order.desc("createdAt").nullsLast(),
+                org.springframework.data.domain.Sort.Order.desc("id")
+        ));
         return ficheAtelierRepository.findAll(pageable);
     }
 
     @Override
     public List<FicheAtelier> getAll() {
-        return ficheAtelierRepository.findAll();
+        return ficheAtelierRepository.findAll(org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Order.desc("updatedAt").nullsLast(),
+                org.springframework.data.domain.Sort.Order.desc("createdAt").nullsLast(),
+                org.springframework.data.domain.Sort.Order.desc("id")
+        ));
     }
 
     @Transactional
