@@ -675,15 +675,9 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             return existingExact.get();
         }
         
-        java.util.Optional<DevisPrevisionnel> devisOpt = devisPrevisionnelRepository.findByFicheAtelierId(ficheAtelierId);
-        if (devisOpt.isEmpty()) {
-            throw new RuntimeException("Un devis prévisionnel doit être créé et accepté avant de créer l'ordre de réparation.");
-        }
-        DevisPrevisionnel devis = devisOpt.get();
-        if (devis.getStatut() != StatutFacturation.ACCEPTE &&
-            devis.getStatut() != StatutFacturation.PAYEE) {
-            throw new RuntimeException("Le devis prévisionnel doit être accepté avant de créer l'ordre de réparation.");
-        }
+        // Le devis prévisionnel sur la fiche atelier n'est plus obligatoire
+        java.util.List<DevisPrevisionnel> devisList = devisPrevisionnelRepository.findByFicheAtelierIdOrderByDateCreationDesc(ficheAtelierId);
+
         if (ficheAtelier.getVehicule() == null) {
             throw new RuntimeException("La fiche atelier n'a pas de véhicule associé");
         }
@@ -709,7 +703,19 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 .statut(StatutOrdreReparation.RECEPTION)
                 .build();
 
-        return ordreReparationRepository.save(ordreReparation);
+        OrdreReparation saved = ordreReparationRepository.save(ordreReparation);
+
+        // Lier les éventuels devis existants de la fiche atelier à ce nouvel ordre de réparation
+        if (devisList != null) {
+            for (DevisPrevisionnel d : devisList) {
+                if (d.getOrdreReparation() == null) {
+                    d.setOrdreReparation(saved);
+                    devisPrevisionnelRepository.save(d);
+                }
+            }
+        }
+
+        return saved;
     }
 
     /**

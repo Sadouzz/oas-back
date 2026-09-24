@@ -296,21 +296,8 @@ public class RendezVousServiceImpl implements RendezVousService {
         rv.setStatut(RendezVousStatus.CONFIRME);
         rendezvousRepository.save(rv);
 
-        OrdreReparationRequest faReq = new OrdreReparationRequest();
-        faReq.setVehiculeId(rv.getVehicule().getId());
-        faReq.setDescriptionTravaux(rv.getMotif());
-        faReq.setStatut(StatutOrdreReparation.RECEPTION);
-        
-        OrdreReparation fiche = ordreReparationService.createOrdreReparation(faReq);
-        
-        if (mecanicienIds != null) {
-            for (Long mId : mecanicienIds) {
-                ordreReparationService.assignTechnicien(fiche.getId(), mId);
-            }
-        }
-
         notificationService.sendNotification(rv.getClient(), "Rendez-vous validé", 
-                "Votre rendez-vous du " + rv.getDateRendezVous() + " a été validé et une fiche atelier a été créée.");
+                "Votre rendez-vous du " + rv.getDateRendezVous() + " a été validé et confirmé.");
 
         return rv;
     }
@@ -320,14 +307,72 @@ public class RendezVousServiceImpl implements RendezVousService {
     public RendezVous updateDate(Long id, LocalDateTime nouvelleDate) {
         RendezVous rv = rendezvousRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Rendez-vous non trouvé avec l'identifiant " + id));
-        if (nouvelleDate.isBefore(LocalDateTime.now())) {
+        if (nouvelleDate == null) {
+            throw new BadRequestException("La date du rendez-vous est obligatoire");
+        }
+        if (nouvelleDate.toLocalDate().isBefore(java.time.LocalDate.now())) {
             throw new BadRequestException("La nouvelle date ne peut pas être dans le passé");
         }
         rv.setDateRendezVous(nouvelleDate);
         rendezvousRepository.save(rv);
 
-        notificationService.sendNotification(rv.getClient(), "Date de rendez-vous modifiée",
-                "La date de votre rendez-vous a été modifiée au " + nouvelleDate + ".");
+        if (rv.getClient() != null) {
+            notificationService.sendNotification(rv.getClient(), "Date de rendez-vous modifiée",
+                    "La date de votre rendez-vous a été modifiée au " + nouvelleDate + ".");
+        }
+
+        return rv;
+    }
+
+    @Transactional
+    @Override
+    public RendezVous updateRendezVous(Long id, RendezVousRequest request) {
+        RendezVous rv = rendezvousRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Rendez-vous non trouvé avec l'identifiant " + id));
+
+        if (request.dateRendezVous() != null) {
+            if (request.dateRendezVous().toLocalDate().isBefore(java.time.LocalDate.now())) {
+                throw new BadRequestException("La date du rendez-vous ne peut pas être dans le passé");
+            }
+            rv.setDateRendezVous(request.dateRendezVous());
+        }
+
+        if (request.motif() != null) {
+            rv.setMotif(request.motif());
+        }
+
+        if (request.commentaire() != null) {
+            rv.setCommentaire(request.commentaire());
+        }
+
+        if (request.statut() != null) {
+            rv.setStatut(request.statut());
+        }
+
+        if (request.vehiculeId() != null && (rv.getVehicule() == null || !request.vehiculeId().equals(rv.getVehicule().getId()))) {
+            Vehicule vehicule = vehiculeRepository.findById(request.vehiculeId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Véhicule non trouvé avec l'identifiant " + request.vehiculeId()));
+            rv.setVehicule(vehicule);
+        }
+
+        if (request.clientId() != null && (rv.getClient() == null || !request.clientId().equals(rv.getClient().getId()))) {
+            Client client = clientRepository.findById(request.clientId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Client non trouvé avec l'identifiant " + request.clientId()));
+            rv.setClient(client);
+        }
+
+        if (request.garageId() != null && (rv.getGarage() == null || !request.garageId().equals(rv.getGarage().getId()))) {
+            Garage garage = garageRepository.findById(request.garageId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Garage non trouvé avec l'identifiant " + request.garageId()));
+            rv.setGarage(garage);
+        }
+
+        rendezvousRepository.save(rv);
+
+        if (rv.getClient() != null && request.dateRendezVous() != null) {
+            notificationService.sendNotification(rv.getClient(), "Rendez-vous modifié",
+                    "Les informations de votre rendez-vous ont été mises à jour (Date : " + rv.getDateRendezVous() + ").");
+        }
 
         return rv;
     }

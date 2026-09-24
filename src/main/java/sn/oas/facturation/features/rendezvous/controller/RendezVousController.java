@@ -117,7 +117,7 @@ public class RendezVousController {
 
     // --- Agents / Backoffice uniquement ---
     @PutMapping("/{id}/statut")
-    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER')")
+    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
     @Operation(summary = "Mettre à jour le statut d'un rendez-vous (Agents/Admin)")
     public ResponseEntity<RendezVousResponse> updateRendezVousStatus(
             @PathVariable Long id,
@@ -128,7 +128,7 @@ public class RendezVousController {
     }
 
     @PostMapping("/{id}/valider")
-    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER')")
+    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
     @Operation(summary = "Valider un rendez-vous et créer une fiche atelier (Agents/Admin)")
     public ResponseEntity<RendezVousResponse> validerRendezVous(
             @PathVariable Long id,
@@ -137,21 +137,65 @@ public class RendezVousController {
         return ResponseEntity.ok(RendezVousResponse.of(rv));
     }
 
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
+    @Operation(summary = "Modifier un rendez-vous (Agents/Admin, même après validation)")
+    public ResponseEntity<RendezVousResponse> updateRendezVous(
+            @PathVariable Long id,
+            @RequestBody RendezVousRequest request) {
+        RendezVous rv = rendezvousService.updateRendezVous(id, request);
+        return ResponseEntity.ok(RendezVousResponse.of(rv));
+    }
+
+    @PatchMapping("/{id}")
+    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
+    @Operation(summary = "Modifier partiellement un rendez-vous (Agents/Admin, même après validation)")
+    public ResponseEntity<RendezVousResponse> patchRendezVous(
+            @PathVariable Long id,
+            @RequestBody RendezVousRequest request) {
+        return updateRendezVous(id, request);
+    }
+
     @PutMapping("/{id}/date")
-    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER')")
-    @Operation(summary = "Modifier la date d'un rendez-vous (Agents/Admin)")
+    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
+    @Operation(summary = "Modifier la date d'un rendez-vous (Agents/Admin, même après validation)")
     public ResponseEntity<RendezVousResponse> updateDate(
             @PathVariable Long id,
-            @RequestBody Map<String, String> body) {
-        String dateStr = body.get("nouvelleDate");
-        LocalDateTime nouvelleDate = parseDateTime(dateStr);
+            @RequestBody Map<String, Object> body) {
+        Object rawDate = body.get("nouvelleDate");
+        if (rawDate == null) {
+            rawDate = body.get("dateRendezVous");
+        }
+        if (rawDate == null) {
+            rawDate = body.get("date");
+        }
+        if (rawDate == null) {
+            rawDate = body.get("newDate");
+        }
+        if (rawDate == null) {
+            throw new BadRequestException("La date de rendez-vous est obligatoire");
+        }
+        LocalDateTime nouvelleDate = parseDateTime(rawDate.toString());
         RendezVous rv = rendezvousService.updateDate(id, nouvelleDate);
         return ResponseEntity.ok(RendezVousResponse.of(rv));
+    }
+
+    @PatchMapping("/{id}/date")
+    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
+    @Operation(summary = "Modifier la date d'un rendez-vous via PATCH (Agents/Admin, même après validation)")
+    public ResponseEntity<RendezVousResponse> patchDate(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> body) {
+        return updateDate(id, body);
     }
 
     private LocalDateTime parseDateTime(String dateStr) {
         if (dateStr == null || dateStr.isBlank()) {
             throw new BadRequestException("La date de rendez-vous est obligatoire");
+        }
+        dateStr = dateStr.trim();
+        if (dateStr.startsWith("\"") && dateStr.endsWith("\"") && dateStr.length() > 2) {
+            dateStr = dateStr.substring(1, dateStr.length() - 1).trim();
         }
         try {
             return java.time.OffsetDateTime.parse(dateStr).toLocalDateTime();
@@ -159,6 +203,15 @@ public class RendezVousController {
             try {
                 if (dateStr.length() == 16) {
                     return LocalDateTime.parse(dateStr + ":00");
+                }
+                if (dateStr.contains(" ") && !dateStr.contains("T")) {
+                    dateStr = dateStr.replace(" ", "T");
+                    if (dateStr.length() == 16) {
+                        return LocalDateTime.parse(dateStr + ":00");
+                    }
+                }
+                if (dateStr.length() == 10) {
+                    return java.time.LocalDate.parse(dateStr).atTime(8, 0);
                 }
                 return LocalDateTime.parse(dateStr);
             } catch (Exception ex) {

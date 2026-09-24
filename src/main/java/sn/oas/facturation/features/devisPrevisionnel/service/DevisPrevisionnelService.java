@@ -26,6 +26,10 @@ public interface DevisPrevisionnelService {
 
     java.util.Optional<DevisPrevisionnel> getByFicheAtelierId(Long ficheAtelierId);
 
+    List<DevisPrevisionnel> getListByFicheAtelierId(Long ficheAtelierId);
+
+    List<DevisPrevisionnel> getByOrdreReparationId(Long ordreReparationId);
+
     List<DevisPrevisionnel> getClientDevis(Client client);
 
     List<DevisPrevisionnel> search(String keyword);

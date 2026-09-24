@@ -26,12 +26,17 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import sn.oas.facturation.features.ficheAtelier.repository.FicheAtelierRepository;
 import sn.oas.facturation.features.user.data.entity.Agent;
 import sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier;
 import sn.oas.facturation.features.garage.data.entity.Garage;
+import sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService;
 import sn.oas.facturation.shared.exception.BadRequestException;
 import sn.oas.facturation.shared.exception.ResourceNotFoundException;
+
+import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
+import sn.oas.facturation.features.ordreReparation.repository.OrdreReparationRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -39,10 +44,11 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
 
     private final DevisPrevisionnelRepository devisPrevisionnelRepository;
     private final FicheAtelierRepository ficheAtelierRepository;
+    private final OrdreReparationRepository ordreReparationRepository;
     private final VehiculeService vehiculeService;
     private final AuthService authService;
     private final UserService userService;
-    private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
+    private final DocumentNumberGeneratorService documentNumberGeneratorService;
 
     @Transactional
     @Override
@@ -59,11 +65,22 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
                     .orElseThrow(() -> new ResourceNotFoundException("Fiche atelier introuvable avec l'id : " + request.ficheAtelierId()));
         }
 
+        OrdreReparation ordreReparation = null;
+        if (request.ordreReparationId() != null) {
+            ordreReparation = ordreReparationRepository.findById(request.ordreReparationId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Ordre de réparation introuvable avec l'id : " + request.ordreReparationId()));
+            if (ficheAtelier == null && ordreReparation.getFicheAtelier() != null) {
+                ficheAtelier = ordreReparation.getFicheAtelier();
+            }
+        }
+
         Client client = null;
         if (request.clientId() != null) {
             client = userService.getClientById(request.clientId());
         } else if (ficheAtelier != null && ficheAtelier.getClient() != null) {
             client = ficheAtelier.getClient();
+        } else if (ordreReparation != null && ordreReparation.getVehicule() != null && ordreReparation.getVehicule().getClient() != null) {
+            client = ordreReparation.getVehicule().getClient();
         }
 
         if (client == null) {
@@ -75,6 +92,8 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
             vehicule = getVehicule(request.vehiculeId());
         } else if (ficheAtelier != null && ficheAtelier.getVehicule() != null) {
             vehicule = ficheAtelier.getVehicule();
+        } else if (ordreReparation != null && ordreReparation.getVehicule() != null) {
+            vehicule = ordreReparation.getVehicule();
         }
 
         if (vehicule == null) {
@@ -87,7 +106,11 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
 
         Garage garage = (agent != null && agent.getGarage() != null)
                 ? agent.getGarage()
-                : (ficheAtelier != null && ficheAtelier.getGarage() != null ? ficheAtelier.getGarage() : documentNumberGeneratorService.getCurrentGarage());
+                : (ficheAtelier != null && ficheAtelier.getGarage() != null
+                    ? ficheAtelier.getGarage()
+                    : (ordreReparation != null && ordreReparation.getGarage() != null
+                        ? ordreReparation.getGarage()
+                        : documentNumberGeneratorService.getCurrentGarage()));
 
         Double kilometrage = request.kilometrageVehicule();
         if (kilometrage == null && ficheAtelier != null && ficheAtelier.getKilometrage() != null) {
@@ -109,6 +132,7 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
                 .agent(agent)
                 .garage(garage)
                 .ficheAtelier(ficheAtelier)
+                .ordreReparation(ordreReparation)
                 .build();
 
         DevisPrevisionnel saved = devisPrevisionnelRepository.save(devis);
@@ -132,6 +156,12 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
             ficheAtelier = ficheAtelierRepository.findById(request.ficheAtelierId())
                     .orElseThrow(() -> new ResourceNotFoundException("Fiche atelier introuvable avec l'id : " + request.ficheAtelierId()));
             devis.setFicheAtelier(ficheAtelier);
+        }
+
+        if (request.ordreReparationId() != null) {
+            OrdreReparation or = ordreReparationRepository.findById(request.ordreReparationId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Ordre de réparation introuvable avec l'id : " + request.ordreReparationId()));
+            devis.setOrdreReparation(or);
         }
 
         Client client = null;
@@ -168,6 +198,7 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
         if (request.kilometrageVehicule() != null) devis.setKilometrageVehicule(request.kilometrageVehicule());
         devis.setVehicule(vehicule);
         devis.setClient(client);
+        devis.setUpdatedAt(java.time.LocalDateTime.now());
 
         return devisPrevisionnelRepository.save(devis);
     }
@@ -197,34 +228,52 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
     }
 
     @Override
-    public org.springframework.data.domain.Page<DevisPrevisionnel> getAll(int page, int size) {
-        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+    public Page<DevisPrevisionnel> getAll(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by(
+                Sort.Order.desc("updatedAt").nullsLast(),
+                Sort.Order.desc("dateCreation").nullsLast(),
+                Sort.Order.desc("id")
+        ));
         return devisPrevisionnelRepository.findAll(pageable);
     }
 
     @Override
     public List<DevisPrevisionnel> getAll() {
-        return devisPrevisionnelRepository.findAll();
+        return devisPrevisionnelRepository.findAll(Sort.by(
+                Sort.Order.desc("updatedAt").nullsLast(),
+                Sort.Order.desc("dateCreation").nullsLast(),
+                Sort.Order.desc("id")
+        ));
     }
 
     @Override
     public List<DevisPrevisionnel> getByClient(Long clientId) {
-        return devisPrevisionnelRepository.findByClientId(clientId);
+        return devisPrevisionnelRepository.findByClientIdOrderByUpdatedAtDesc(clientId);
     }
 
     @Override
     public List<DevisPrevisionnel> getByVehicule(Long vehiculeId) {
-        return devisPrevisionnelRepository.findByVehiculeId(vehiculeId);
+        return devisPrevisionnelRepository.findByVehiculeIdOrderByUpdatedAtDesc(vehiculeId);
     }
 
     public java.util.Optional<DevisPrevisionnel> getByFicheAtelierId(Long ficheAtelierId) {
-        return devisPrevisionnelRepository.findByFicheAtelierId(ficheAtelierId);
+        return devisPrevisionnelRepository.findFirstByFicheAtelierIdOrderByUpdatedAtDesc(ficheAtelierId);
+    }
+
+    @Override
+    public List<DevisPrevisionnel> getListByFicheAtelierId(Long ficheAtelierId) {
+        return devisPrevisionnelRepository.findByFicheAtelierIdOrderByUpdatedAtDesc(ficheAtelierId);
+    }
+
+    @Override
+    public List<DevisPrevisionnel> getByOrdreReparationId(Long ordreReparationId) {
+        return devisPrevisionnelRepository.findByOrdreReparationIdOrderByUpdatedAtDesc(ordreReparationId);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<DevisPrevisionnel> getClientDevis(Client client) {
-        return devisPrevisionnelRepository.findByClientIdOrderByDateCreationDesc(client.getId());
+        return devisPrevisionnelRepository.findByClientIdOrderByUpdatedAtDesc(client.getId());
     }
 
     @Override
@@ -236,7 +285,11 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
     @Override
     @Transactional(readOnly = true)
     public Page<DevisPrevisionnel> search(String keyword, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, org.springframework.data.domain.Sort.by("id").descending());
+        Pageable pageable = PageRequest.of(page, size, Sort.by(
+                Sort.Order.desc("updatedAt").nullsLast(),
+                Sort.Order.desc("dateCreation").nullsLast(),
+                Sort.Order.desc("id")
+        ));
         return devisPrevisionnelRepository.searchDevis(keyword, pageable);
     }
 
