@@ -25,6 +25,7 @@ public interface RendezVousService {
     Page<RendezVous> getByStatut(RendezVousStatus status, int page, int size);
     RendezVous updateRendezVousStatus(Long id, RendezVousStatus status, String commentaire);
     RendezVous validerRendezVous(Long id, List<Long> mecanicienIds);
+    RendezVous updateRendezVous(Long id, RendezVousRequest request);
     RendezVous getById(Long id);
     RendezVous updateDate(Long id, LocalDateTime nouvelleDate);
 }

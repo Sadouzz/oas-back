@@ -61,11 +61,16 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
                         vehicule.getId(), List.of(StatutOrdreReparation.LIVRE));
         if (ordreEnCours.isPresent()) {
             OrdreReparation or = ordreEnCours.get();
-            String statutLabel = or.getStatut() != null ? or.getStatut().getLabel() : "en cours";
-            throw new BadRequestException(
-                    "Impossible de créer une fiche atelier : le véhicule " + vehicule.getImmatriculation()
-                    + " a déjà un ordre de réparation en cours (" + or.getNumero()
-                    + " - Statut : " + statutLabel + ") et n'est pas encore livré.");
+            // Si cet ordre est un ordre orphelin (sans fiche atelier) issu de l'ancienne validation de RDV, on le supprime
+            if (or.getFicheAtelier() == null) {
+                ordreReparationRepository.delete(or);
+            } else {
+                String statutLabel = or.getStatut() != null ? or.getStatut().getLabel() : "en cours";
+                throw new BadRequestException(
+                        "Impossible de créer une fiche atelier : le véhicule " + vehicule.getImmatriculation()
+                        + " a déjà un ordre de réparation en cours (" + or.getNumero()
+                        + " - Statut : " + statutLabel + ") et n'est pas encore livré.");
+            }
         }
 
         RendezVous rendezVous = null;
@@ -205,7 +210,9 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     @Override
     public boolean isVehiculeEnReparationNonLivre(Long vehiculeId) {
         if (vehiculeId == null) return false;
-        return ordreReparationRepository.existsByVehiculeIdAndStatutNotIn(
-                vehiculeId, java.util.List.of(sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation.LIVRE));
+        return ordreReparationRepository.findFirstByVehiculeIdAndStatutNotIn(
+                vehiculeId, java.util.List.of(sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation.LIVRE))
+                .filter(or -> or.getFicheAtelier() != null)
+                .isPresent();
     }
 }
