@@ -13,7 +13,8 @@ public record TechnicienListResponse(
         String lastName,
         String email,
         String adresse,
-        String specialite
+        String specialite,
+        String specialiteCode
 ) {
 
     public static TechnicienListResponse from(Technicien t) {
@@ -29,6 +30,7 @@ public record TechnicienListResponse(
                 .email(t.getEmail())
                 .adresse(t.getAdresse())
                 .specialite(t.getSpecialite() != null ? t.getSpecialite().getLabel() : null)
+                .specialiteCode(t.getSpecialite() != null ? t.getSpecialite().name() : null)
                 .build();
     }
 }

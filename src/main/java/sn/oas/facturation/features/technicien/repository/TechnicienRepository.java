@@ -6,6 +6,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import sn.oas.facturation.features.technicien.data.entity.Technicien;
+import sn.oas.facturation.features.technicien.data.enums.SpecialiteTechnicien;
 
 import java.util.List;
 
@@ -27,4 +28,19 @@ public interface TechnicienRepository extends JpaRepository<Technicien, Long> {
             "LOWER(t.phone) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(t.email) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     org.springframework.data.domain.Page<Technicien> searchTechniciens(@Param("keyword") String keyword, org.springframework.data.domain.Pageable pageable);
+
+    org.springframework.data.domain.Page<Technicien> findBySpecialite(SpecialiteTechnicien specialite, org.springframework.data.domain.Pageable pageable);
+
+    List<Technicien> findBySpecialite(SpecialiteTechnicien specialite);
+
+    @Query("SELECT t FROM Technicien t WHERE t.specialite = :specialite AND (" +
+            "LOWER(t.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(t.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(t.matricule) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(t.phone) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(t.email) LIKE LOWER(CONCAT('%', :keyword, '%')))")
+    org.springframework.data.domain.Page<Technicien> searchTechniciensWithSpecialite(
+            @Param("keyword") String keyword,
+            @Param("specialite") SpecialiteTechnicien specialite,
+            org.springframework.data.domain.Pageable pageable);
 }
