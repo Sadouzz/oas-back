@@ -22,6 +22,7 @@ import lombok.experimental.SuperBuilder;
 import sn.oas.facturation.features.piecedetache.data.enums.StatutPiece;
 import sn.oas.facturation.features.piecedetache.data.enums.TypePiece;
 import sn.oas.facturation.features.categorie_pieces.data.entity.Categorie;
+import sn.oas.facturation.features.depot_pieces.data.entity.Depot;
 
 
 @Entity
@@ -135,5 +136,10 @@ public abstract class PieceDetache implements TenantAware {
 
     public String getNumeroDeSerie() {
         return this.reference;
+    }
+
+    @Transient
+    public Depot getDepot() {
+        return this.categorie != null ? this.categorie.getDepot() : null;
     }
 }

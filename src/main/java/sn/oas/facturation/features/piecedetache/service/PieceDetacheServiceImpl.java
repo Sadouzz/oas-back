@@ -25,6 +25,13 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
+import java.util.ArrayList;
+import sn.oas.facturation.features.categorie_pieces.data.entity.Categorie;
+import sn.oas.facturation.features.depot_pieces.data.entity.Depot;
 import sn.oas.facturation.features.piecedetache.dto.PieceStatsResponse;
 
 @Service
@@ -80,6 +87,101 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
         Page<PieceDetache> pageResult = pieceDetacheRepository.searchPieces(keyword, pageable);
         setEstUtiliseFlag(pageResult.getContent());
         return pageResult;
+    }
+
+    @Override
+    public List<PieceDetache> filterByDepot(Long depotId) {
+        return getPieces(null, depotId, null);
+    }
+
+    @Override
+    public Page<PieceDetache> filterByDepot(Long depotId, int page, int size) {
+        return getPieces(null, depotId, null, page, size);
+    }
+
+    @Override
+    public Page<PieceDetache> getPieces(TypePiece type, Long depotId, String keyword, int page, int size) {
+        return getPieces(type, null, depotId, null, keyword, page, size);
+    }
+
+    @Override
+    public List<PieceDetache> getPieces(TypePiece type, Long depotId, String keyword) {
+        return getPieces(type, null, depotId, null, keyword);
+    }
+
+    @Override
+    public Page<PieceDetache> getPieces(TypePiece type, StatutPiece statut, Long depotId, String depotNom, String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        if (type == null && statut == null && depotId == null && (depotNom == null || depotNom.isBlank()) && (keyword == null || keyword.trim().isEmpty())) {
+            Page<PieceDetache> pageResult = pieceDetacheRepository.findAll(pageable);
+            setEstUtiliseFlag(pageResult.getContent());
+            return pageResult;
+        }
+        Specification<PieceDetache> spec = buildFilterSpec(type, statut, depotId, depotNom, keyword);
+        Page<PieceDetache> pageResult = pieceDetacheRepository.findAll(spec, pageable);
+        setEstUtiliseFlag(pageResult.getContent());
+        return pageResult;
+    }
+
+    @Override
+    public List<PieceDetache> getPieces(TypePiece type, StatutPiece statut, Long depotId, String depotNom, String keyword) {
+        if (type == null && statut == null && depotId == null && (depotNom == null || depotNom.isBlank()) && (keyword == null || keyword.trim().isEmpty())) {
+            List<PieceDetache> pieces = pieceDetacheRepository.findAll(Sort.by("id").descending());
+            setEstUtiliseFlag(pieces);
+            return pieces;
+        }
+        Specification<PieceDetache> spec = buildFilterSpec(type, statut, depotId, depotNom, keyword);
+        List<PieceDetache> pieces = pieceDetacheRepository.findAll(spec, Sort.by("id").descending());
+        setEstUtiliseFlag(pieces);
+        return pieces;
+    }
+
+    private Specification<PieceDetache> buildFilterSpec(TypePiece type, StatutPiece statut, Long depotId, String depotNom, String keyword) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (type != null) {
+                predicates.add(cb.equal(root.get("type"), type));
+            }
+
+            if (statut != null) {
+                predicates.add(cb.equal(root.get("statut"), statut));
+            }
+
+            boolean hasDepotId = (depotId != null);
+            boolean hasDepotNom = (depotNom != null && !depotNom.isBlank());
+            boolean hasKeyword = (keyword != null && !keyword.trim().isEmpty());
+
+            Join<PieceDetache, Categorie> catJoin = null;
+            if (hasDepotId || hasDepotNom || hasKeyword) {
+                catJoin = root.join("categorie", (hasDepotId || hasDepotNom) ? JoinType.INNER : JoinType.LEFT);
+            }
+
+            if ((hasDepotId || hasDepotNom) && catJoin != null) {
+                Join<Categorie, Depot> depotJoin = catJoin.join("depot", JoinType.INNER);
+                if (hasDepotId) {
+                    predicates.add(cb.equal(depotJoin.get("id"), depotId));
+                }
+                if (hasDepotNom) {
+                    predicates.add(cb.like(cb.lower(depotJoin.get("nom")), "%" + depotNom.trim().toLowerCase() + "%"));
+                }
+            }
+
+            if (hasKeyword) {
+                String pattern = "%" + keyword.trim().toLowerCase() + "%";
+                Predicate refPred = cb.like(cb.lower(root.get("reference")), pattern);
+                Predicate desPred = cb.like(cb.lower(root.get("designation")), pattern);
+                Predicate numPred = cb.like(cb.lower(root.get("numero")), pattern);
+                Predicate catPred = catJoin != null ? cb.like(cb.lower(catJoin.get("nom")), pattern) : cb.disjunction();
+
+                predicates.add(cb.or(refPred, desPred, numPred, catPred));
+            }
+
+            if (predicates.isEmpty()) {
+                return cb.conjunction();
+            }
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
     }
 
     private void setEstUtiliseFlag(List<PieceDetache> pieces) {
