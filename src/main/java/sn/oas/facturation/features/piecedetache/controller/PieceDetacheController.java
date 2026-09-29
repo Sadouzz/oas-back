@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import sn.oas.facturation.features.piecedetache.data.entity.PieceDetache;
 import sn.oas.facturation.features.piecedetache.data.enums.TypeMouvement;
+import sn.oas.facturation.features.piecedetache.data.enums.StatutPiece;
 import sn.oas.facturation.features.piecedetache.data.enums.TypePiece;
 import sn.oas.facturation.features.piecedetache.dto.PieceDetacheListResponse;
 import sn.oas.facturation.features.piecedetache.dto.PieceDetacheRequest;
@@ -31,22 +32,59 @@ public class PieceDetacheController {
     private final PieceDetacheService pieceDetacheService;
     private final StockService stockService;
 
-    @Operation(summary = "Lister les pièces", description = "Retourne toutes les pièces. Filtrable par type ou mot-clé avec pagination.")
+    @Operation(summary = "Lister les pièces", description = "Retourne toutes les pièces. Filtrable par mot-clé, type, statut, dépôt (ID ou nom) avec pagination.")
     @ApiResponse(responseCode = "200", description = "Liste retournée avec succès")
     @GetMapping
     public ResponseEntity<Page<PieceDetacheListResponse>> list(
-            @RequestParam(required = false) TypePiece type,
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String statut,
+            @RequestParam(required = false) Long depotId,
+            @RequestParam(required = false) String depot,
+            @RequestParam(required = false) String depotNom,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            return ResponseEntity.ok(pieceDetacheService.searchPieces(keyword.trim(), page, size).map(PieceDetacheListResponse::from));
+        TypePiece parsedType = null;
+        if (type != null && !type.isBlank()) {
+            try {
+                parsedType = TypePiece.valueOf(type.trim().toUpperCase());
+            } catch (IllegalArgumentException ignored) {}
         }
-        if (type != null) {
-            return ResponseEntity.ok(pieceDetacheService.filterByType(type, page, size).map(PieceDetacheListResponse::from));
+
+        StatutPiece parsedStatut = null;
+        if (statut != null && !statut.isBlank()) {
+            try {
+                parsedStatut = StatutPiece.valueOf(statut.trim().toUpperCase());
+            } catch (IllegalArgumentException ignored) {}
         }
-        return ResponseEntity.ok(pieceDetacheService.getAllPieces(page, size).map(PieceDetacheListResponse::from));
+
+        Long resolvedDepotId = depotId;
+        String resolvedDepotNom = depotNom;
+        if (resolvedDepotId == null && depot != null && !depot.isBlank()) {
+            if (depot.trim().matches("\\d+")) {
+                resolvedDepotId = Long.parseLong(depot.trim());
+            } else {
+                resolvedDepotNom = depot.trim();
+            }
+        }
+
+        return ResponseEntity.ok(
+                pieceDetacheService.getPieces(parsedType, parsedStatut, resolvedDepotId, resolvedDepotNom, keyword != null ? keyword.trim() : null, page, size)
+                        .map(PieceDetacheListResponse::from)
+        );
+    }
+
+    @Operation(summary = "Lister les pièces d'un dépôt", description = "Retourne toutes les pièces d'un dépôt spécifique avec ou sans pagination.")
+    @GetMapping("/depot/{depotId}")
+    public ResponseEntity<?> getByDepotId(
+            @PathVariable Long depotId,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        if (page != null && size != null) {
+            return ResponseEntity.ok(pieceDetacheService.filterByDepot(depotId, page, size).map(PieceDetacheListResponse::from));
+        }
+        return ResponseEntity.ok(pieceDetacheService.filterByDepot(depotId).stream().map(PieceDetacheListResponse::from).toList());
     }
 
     @Operation(summary = "Statistiques des pièces détachées", description = "Retourne le nombre total d'articles, la valeur totale du stock, les stocks critiques et les ruptures.")

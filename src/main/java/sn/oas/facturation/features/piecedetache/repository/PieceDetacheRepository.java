@@ -3,6 +3,7 @@ package sn.oas.facturation.features.piecedetache.repository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -12,7 +13,7 @@ import sn.oas.facturation.features.piecedetache.data.enums.TypePiece;
 import java.util.List;
 
 @Repository
-public interface PieceDetacheRepository extends JpaRepository<PieceDetache, Long> {
+public interface PieceDetacheRepository extends JpaRepository<PieceDetache, Long>, JpaSpecificationExecutor<PieceDetache> {
 
     boolean existsByReference(String reference);
 
