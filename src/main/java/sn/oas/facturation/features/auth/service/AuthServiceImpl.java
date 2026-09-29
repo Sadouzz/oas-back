@@ -70,6 +70,9 @@ public class AuthServiceImpl implements AuthService {
             if (user instanceof Agent agent && agent.getGarage() != null) {
                 garageId = agent.getGarage().getId();
                 garageName = agent.getGarage().getNom();
+            } else if (user instanceof sn.oas.facturation.features.technicien.data.entity.Technicien technicien && technicien.getGarage() != null) {
+                garageId = technicien.getGarage().getId();
+                garageName = technicien.getGarage().getNom();
             }
             
             return AuthResponse.of(accessToken, refreshToken, userDetails.getUsername(), role, garageId, garageName);
@@ -106,6 +109,9 @@ public class AuthServiceImpl implements AuthService {
         if (user instanceof Agent agent && agent.getGarage() != null) {
             garageId = agent.getGarage().getId();
             garageName = agent.getGarage().getNom();
+        } else if (user instanceof sn.oas.facturation.features.technicien.data.entity.Technicien technicien && technicien.getGarage() != null) {
+            garageId = technicien.getGarage().getId();
+            garageName = technicien.getGarage().getNom();
         }
 
         return AuthResponse.of(newAccessToken, newRefreshToken, user.getUsername(), role, garageId, garageName);

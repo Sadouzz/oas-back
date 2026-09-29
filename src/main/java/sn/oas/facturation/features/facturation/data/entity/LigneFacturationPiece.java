@@ -5,7 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import sn.oas.facturation.features.piecedetache.data.entity.PDP;
+import sn.oas.facturation.features.piecedetache.data.entity.PieceDetache;
 
 @Entity
 @Table(name = "lignes_facturation_piece")
@@ -26,7 +26,7 @@ public class LigneFacturationPiece {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "piece_id", nullable = true) // <-- Nullable for custom pieces
-    private PDP piece;
+    private PieceDetache piece;
 
     @Builder.Default
     private Boolean isCustom = false;

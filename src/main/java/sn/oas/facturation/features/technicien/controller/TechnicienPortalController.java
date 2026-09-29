@@ -51,6 +51,17 @@ public class TechnicienPortalController {
         return ResponseEntity.ok(technicienService.getTechnicienConnecte());
     }
 
+    @GetMapping("/dashboard")
+    @Operation(summary = "Récupérer les métriques du dashboard technicien")
+    public ResponseEntity<?> getDashboard() {
+        try {
+            Technicien technicien = technicienService.getTechnicienConnecte();
+            return ResponseEntity.ok(technicienPortalService.getDashboardMetrics(technicien));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
     @GetMapping("/ordres-reparation")
     @Operation(summary = "Lister les ordres de réparation assignés au technicien connecté avec pagination")
     public ResponseEntity<PageResponse<OrdreReparationTechnicienListDto>> getMesOrdresReparation(
@@ -153,12 +164,40 @@ public class TechnicienPortalController {
         }
     }
 
+    @DeleteMapping("/ordres-reparation/{id}/pieces/{pieceLigneId}")
+    @Operation(summary = "Supprimer une ligne de pièce proposée")
+    public ResponseEntity<?> supprimerPiece(@PathVariable Long id, @PathVariable Long pieceLigneId) {
+        try {
+            Technicien technicien = technicienService.getTechnicienConnecte();
+            technicienPortalService.supprimerPiece(technicien, id, pieceLigneId);
+            return ResponseEntity.ok().build();
+        } catch (AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", e.getMessage()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
     @PostMapping("/ordres-reparation/{id}/main-doeuvre")
     @Operation(summary = "Proposer une main d'œuvre (sans prix) sur un ordre assigné")
     public ResponseEntity<?> proposerMainDoeuvre(@PathVariable Long id, @RequestBody TechnicienLigneMainDoeuvreRequest request) {
         try {
             Technicien technicien = technicienService.getTechnicienConnecte();
             technicienPortalService.proposerMainDoeuvre(technicien, id, request);
+            return ResponseEntity.ok().build();
+        } catch (AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", e.getMessage()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/ordres-reparation/{id}/main-doeuvre/{moLigneId}")
+    @Operation(summary = "Supprimer une ligne de main d'œuvre proposée")
+    public ResponseEntity<?> supprimerMainDoeuvre(@PathVariable Long id, @PathVariable Long moLigneId) {
+        try {
+            Technicien technicien = technicienService.getTechnicienConnecte();
+            technicienPortalService.supprimerMainDoeuvre(technicien, id, moLigneId);
             return ResponseEntity.ok().build();
         } catch (AccessDeniedException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", e.getMessage()));
@@ -189,8 +228,8 @@ public class TechnicienPortalController {
     public ResponseEntity<?> addRemarqueDiagnostic(@PathVariable Long id, @RequestBody(required = false) Map<String, Object> body) {
         try {
             Technicien technicien = technicienService.getTechnicienConnecte();
-            // vérifie assignation
-            technicienPortalService.getMonOrdreReparation(technicien, id);
+            // vérifie assignation et droit de modification
+            technicienPortalService.verifierAccesIntervention(technicien, id);
             String contenu = null;
             if (body != null) {
                 if (body.get("contenu") != null) {
@@ -214,7 +253,7 @@ public class TechnicienPortalController {
     public ResponseEntity<?> deleteRemarqueDiagnostic(@PathVariable Long id, @PathVariable Long remarqueId) {
         try {
             Technicien technicien = technicienService.getTechnicienConnecte();
-            technicienPortalService.getMonOrdreReparation(technicien, id);
+            technicienPortalService.verifierAccesIntervention(technicien, id);
             ordreReparationService.deleteRemarqueDiagnostic(id, remarqueId);
             return ResponseEntity.ok().build();
         } catch (AccessDeniedException e) {

@@ -582,7 +582,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     public List<RemarqueDiagnosticResponse> getRemarquesDiagnostic(Long ordreReparationId) {
         ordreReparationRepository.findById(ordreReparationId)
                 .orElseThrow(() -> new RuntimeException("Ordre de réparation non trouvé"));
-        return remarqueDiagnosticRepository.findByDiagnosticOrdreReparationIdOrderByCreatedAtDesc(ordreReparationId)
+        return remarqueDiagnosticRepository.findByOrdreReparationIdOrderByCreatedAtDesc(ordreReparationId)
                 .stream().map(this::toRemarqueResponse).collect(Collectors.toList());
     }
 
@@ -628,8 +628,10 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 .orElseThrow(() -> new RuntimeException("Ordre de réparation non trouvé"));
         RemarqueDiagnostic r = remarqueDiagnosticRepository.findById(remarqueId)
                 .orElseThrow(() -> new RuntimeException("Remarque non trouvée"));
-        if (r.getDiagnostic() == null || r.getDiagnostic().getOrdreReparation() == null
-                || !r.getDiagnostic().getOrdreReparation().getId().equals(ordreReparationId)) {
+        boolean matchOr = (r.getOrdreReparation() != null && r.getOrdreReparation().getId().equals(ordreReparationId))
+                || (r.getDiagnostic() != null && r.getDiagnostic().getOrdreReparation() != null
+                && r.getDiagnostic().getOrdreReparation().getId().equals(ordreReparationId));
+        if (!matchOr) {
             throw new RuntimeException("Cette remarque n'appartient pas à cet ordre de réparation");
         }
         remarqueDiagnosticRepository.delete(r);

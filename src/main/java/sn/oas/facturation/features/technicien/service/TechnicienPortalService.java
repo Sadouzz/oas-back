@@ -14,6 +14,8 @@ import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
+import sn.oas.facturation.features.technicien.dto.TechnicienDashboardDto;
+
 /**
  * Portail technicien (self-service). Chaque méthode qui touche à un ordre de réparation
  * vérifie explicitement que le technicien connecté fait partie des techniciens assignés à
@@ -21,10 +23,12 @@ import java.util.List;
  * nouveau, sans précédent direct dans le projet, cf. rapport de la tâche.
  */
 public interface TechnicienPortalService {
+    TechnicienDashboardDto getDashboardMetrics(Technicien technicien);
     List<OrdreReparation> getMesOrdresReparation(Technicien technicien);
     Page<OrdreReparation> getMesOrdresReparation(Technicien technicien, Pageable pageable);
     Page<OrdreReparation> getMesOrdresReparation(Technicien technicien, String keyword, Pageable pageable);
     OrdreReparation getMonOrdreReparation(Technicien technicien, Long ordreReparationId);
+    void verifierAccesIntervention(Technicien technicien, Long ordreReparationId);
 
     List<PieceJointeDiagnosticResponse> getPiecesJointesDiagnostic(Technicien technicien, Long ordreReparationId, TypePieceJointe type);
     PieceJointeDiagnosticResponse addPieceJointeDiagnostic(Technicien technicien, Long ordreReparationId, PieceJointeDiagnosticRequest request);
@@ -33,5 +37,8 @@ public interface TechnicienPortalService {
     OrdreReparation updatePannesDetectees(Technicien technicien, Long ordreReparationId, PannesRequest request);
 
     void proposerPiece(Technicien technicien, Long ordreReparationId, TechnicienLignePieceRequest request);
+    void supprimerPiece(Technicien technicien, Long ordreReparationId, Long pieceLigneId);
+
     void proposerMainDoeuvre(Technicien technicien, Long ordreReparationId, TechnicienLigneMainDoeuvreRequest request);
+    void supprimerMainDoeuvre(Technicien technicien, Long ordreReparationId, Long moLigneId);
 }

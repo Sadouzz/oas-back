@@ -22,12 +22,12 @@ public class RemarqueDiagnostic {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "diagnostic_id", nullable = false)
+    @JoinColumn(name = "diagnostic_id")
     @JsonIgnoreProperties({ "piecesJointes", "remarques", "ordreReparation" })
     private Diagnostic diagnostic;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ordre_reparation_id")
+    @JoinColumn(name = "ordre_reparation_id", nullable = false)
     @JsonIgnoreProperties({ "diagnostic", "vehicule", "garage", "bonDeSortie" })
     private OrdreReparation ordreReparation;
 
