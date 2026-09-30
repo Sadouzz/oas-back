@@ -20,7 +20,6 @@ import sn.oas.facturation.features.ordreReparation.data.entity.LigneOrdreReparat
 import sn.oas.facturation.features.ordreReparation.data.entity.LigneOrdreReparationPiece;
 import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.features.ordreReparation.repository.OrdreReparationRepository;
-import sn.oas.facturation.features.piecedetache.data.entity.PDP;
 import sn.oas.facturation.features.piecedetache.data.entity.PieceDetache;
 import sn.oas.facturation.features.piecedetache.repository.PieceDetacheRepository;
 import sn.oas.facturation.features.technicien.data.entity.Technicien;
@@ -28,6 +27,10 @@ import sn.oas.facturation.features.technicien.dto.PannesRequest;
 import sn.oas.facturation.features.technicien.dto.TechnicienLigneMainDoeuvreRequest;
 import sn.oas.facturation.features.technicien.dto.TechnicienLignePieceRequest;
 
+import sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation;
+import sn.oas.facturation.features.technicien.dto.TechnicienDashboardDto;
+
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -40,6 +43,25 @@ public class TechnicienPortalServiceImpl implements TechnicienPortalService {
     private final PieceJointeDiagnosticRepository pieceJointeDiagnosticRepository;
     private final PieceDetacheRepository pieceDetacheRepository;
     private final MainDoeuvreRepository mainDoeuvreRepository;
+
+    @Override
+    @Transactional(readOnly = true)
+    public TechnicienDashboardDto getDashboardMetrics(Technicien technicien) {
+        long diagnostics = ordreReparationRepository.countByTechnicienAssigneAndStatutIn(
+                technicien.getId(), Arrays.asList(StatutOrdreReparation.DIAGNOSTIC));
+        
+        long reparations = ordreReparationRepository.countByTechnicienAssigneAndStatutIn(
+                technicien.getId(), Arrays.asList(StatutOrdreReparation.REPARATION));
+        
+        long termines = ordreReparationRepository.countByTechnicienAssigneAndStatutIn(
+                technicien.getId(), Arrays.asList(StatutOrdreReparation.PAIEMENT, StatutOrdreReparation.PRET_A_LIVRER, StatutOrdreReparation.LIVRE));
+
+        return TechnicienDashboardDto.builder()
+                .totalDiagnostics(diagnostics)
+                .totalReparations(reparations)
+                .totalTermines(termines)
+                .build();
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -78,8 +100,8 @@ public class TechnicienPortalServiceImpl implements TechnicienPortalService {
                 .orElseThrow(() -> new RuntimeException("Ordre de réparation non trouvé"));
         verifierTechnicienAssigne(ordreReparation, technicien);
         List<PieceJointeDiagnostic> pieces = type != null
-                ? pieceJointeDiagnosticRepository.findByDiagnosticOrdreReparationIdAndTypeOrderByCreatedAtDesc(ordreReparationId, type)
-                : pieceJointeDiagnosticRepository.findByDiagnosticOrdreReparationIdOrderByCreatedAtDesc(ordreReparationId);
+                ? pieceJointeDiagnosticRepository.findByOrdreReparationIdAndTypeOrderByCreatedAtDesc(ordreReparationId, type)
+                : pieceJointeDiagnosticRepository.findByOrdreReparationIdOrderByCreatedAtDesc(ordreReparationId);
         return pieces.stream().map(this::toPieceJointeResponse).collect(Collectors.toList());
     }
 
@@ -88,7 +110,7 @@ public class TechnicienPortalServiceImpl implements TechnicienPortalService {
     public PieceJointeDiagnosticResponse addPieceJointeDiagnostic(Technicien technicien, Long ordreReparationId, PieceJointeDiagnosticRequest request) {
         OrdreReparation ordreReparation = ordreReparationRepository.findById(ordreReparationId)
                 .orElseThrow(() -> new RuntimeException("Ordre de réparation non trouvé"));
-        verifierTechnicienAssigne(ordreReparation, technicien);
+        verifierAccesIntervention(ordreReparation, technicien);
         if (request.getUrl() == null || request.getUrl().trim().isEmpty()) {
             throw new RuntimeException("L'URL de la pièce jointe est obligatoire");
         }
@@ -130,11 +152,13 @@ public class TechnicienPortalServiceImpl implements TechnicienPortalService {
     public void deletePieceJointeDiagnostic(Technicien technicien, Long ordreReparationId, Long pieceJointeId) {
         OrdreReparation ordreReparation = ordreReparationRepository.findById(ordreReparationId)
                 .orElseThrow(() -> new RuntimeException("Ordre de réparation non trouvé"));
-        verifierTechnicienAssigne(ordreReparation, technicien);
+        verifierAccesIntervention(ordreReparation, technicien);
         PieceJointeDiagnostic pieceJointe = pieceJointeDiagnosticRepository.findById(pieceJointeId)
                 .orElseThrow(() -> new RuntimeException("Pièce jointe non trouvée"));
-        if (pieceJointe.getDiagnostic() == null || pieceJointe.getDiagnostic().getOrdreReparation() == null
-                || !pieceJointe.getDiagnostic().getOrdreReparation().getId().equals(ordreReparationId)) {
+        boolean matchOr = (pieceJointe.getOrdreReparation() != null && pieceJointe.getOrdreReparation().getId().equals(ordreReparationId))
+                || (pieceJointe.getDiagnostic() != null && pieceJointe.getDiagnostic().getOrdreReparation() != null
+                && pieceJointe.getDiagnostic().getOrdreReparation().getId().equals(ordreReparationId));
+        if (!matchOr) {
             throw new RuntimeException("Cette pièce jointe n'appartient pas à cet ordre de réparation");
         }
         pieceJointeDiagnosticRepository.delete(pieceJointe);
@@ -145,8 +169,14 @@ public class TechnicienPortalServiceImpl implements TechnicienPortalService {
     public OrdreReparation updatePannesDetectees(Technicien technicien, Long ordreReparationId, PannesRequest request) {
         OrdreReparation ordreReparation = ordreReparationRepository.findById(ordreReparationId)
                 .orElseThrow(() -> new RuntimeException("Ordre de réparation non trouvé"));
-        verifierTechnicienAssigne(ordreReparation, technicien);
+        verifierAccesIntervention(ordreReparation, technicien);
         ordreReparation.setListeDefauts(request.listeDefauts());
+        Diagnostic diag = diagnosticRepository.findByOrdreReparationId(ordreReparationId).orElse(null);
+        if (diag != null) {
+            diag.setPannesDetectees(request.listeDefauts());
+            diag.setObservations(request.listeDefauts());
+            diagnosticRepository.save(diag);
+        }
         return ordreReparationRepository.save(ordreReparation);
     }
 
@@ -155,26 +185,25 @@ public class TechnicienPortalServiceImpl implements TechnicienPortalService {
     public void proposerPiece(Technicien technicien, Long ordreReparationId, TechnicienLignePieceRequest request) {
         OrdreReparation ordreReparation = ordreReparationRepository.findById(ordreReparationId)
                 .orElseThrow(() -> new RuntimeException("Ordre de réparation non trouvé"));
-        verifierTechnicienAssigne(ordreReparation, technicien);
+        verifierAccesIntervention(ordreReparation, technicien);
 
         boolean isCustom = Boolean.TRUE.equals(request.isCustom()) || request.pieceId() == null;
-        PDP pdp = null;
+        PieceDetache piece = null;
 
         if (isCustom) {
             if (request.designationPds() == null || request.designationPds().trim().isEmpty()) {
                 throw new RuntimeException("La désignation de la pièce spéciale (PDS) est obligatoire");
             }
         } else {
-            PieceDetache piece = pieceDetacheRepository.findById(request.pieceId())
+            piece = pieceDetacheRepository.findById(request.pieceId())
                     .orElseThrow(() -> new RuntimeException("Pièce non trouvée"));
-            pdp = (PDP) org.hibernate.Hibernate.unproxy(piece);
         }
 
         // Le technicien ne fixe jamais le prix : forcé à 0, ajusté ensuite par le chef
         // d'atelier via l'écran gestion existant (ordres-reparation.component.ts).
         ordreReparation.getLignesOrdreReparationPieces().add(LigneOrdreReparationPiece.builder()
                 .ordreReparation(ordreReparation)
-                .piece(pdp)
+                .piece(piece)
                 .isCustom(isCustom)
                 .designationPds(isCustom ? request.designationPds().trim() : null)
                 .quantite(request.quantite() != null ? request.quantite() : 1)
@@ -185,10 +214,20 @@ public class TechnicienPortalServiceImpl implements TechnicienPortalService {
 
     @Override
     @Transactional
+    public void supprimerPiece(Technicien technicien, Long ordreReparationId, Long pieceLigneId) {
+        OrdreReparation ordreReparation = ordreReparationRepository.findById(ordreReparationId)
+                .orElseThrow(() -> new RuntimeException("Ordre de réparation non trouvé"));
+        verifierAccesIntervention(ordreReparation, technicien);
+        ordreReparation.getLignesOrdreReparationPieces().removeIf(l -> l.getId() != null && l.getId().equals(pieceLigneId));
+        ordreReparationRepository.save(ordreReparation);
+    }
+
+    @Override
+    @Transactional
     public void proposerMainDoeuvre(Technicien technicien, Long ordreReparationId, TechnicienLigneMainDoeuvreRequest request) {
         OrdreReparation ordreReparation = ordreReparationRepository.findById(ordreReparationId)
                 .orElseThrow(() -> new RuntimeException("Ordre de réparation non trouvé"));
-        verifierTechnicienAssigne(ordreReparation, technicien);
+        verifierAccesIntervention(ordreReparation, technicien);
         if (request.mainDoeuvreId() == null) {
             throw new RuntimeException("L'ID de la main d'œuvre est obligatoire");
         }
@@ -205,6 +244,33 @@ public class TechnicienPortalServiceImpl implements TechnicienPortalService {
         ordreReparationRepository.save(ordreReparation);
     }
 
+    @Override
+    @Transactional
+    public void supprimerMainDoeuvre(Technicien technicien, Long ordreReparationId, Long moLigneId) {
+        OrdreReparation ordreReparation = ordreReparationRepository.findById(ordreReparationId)
+                .orElseThrow(() -> new RuntimeException("Ordre de réparation non trouvé"));
+        verifierAccesIntervention(ordreReparation, technicien);
+        ordreReparation.getLignesOrdreReparationMainDoeuvres().removeIf(l -> l.getId() != null && l.getId().equals(moLigneId));
+        ordreReparationRepository.save(ordreReparation);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public void verifierAccesIntervention(Technicien technicien, Long ordreReparationId) {
+        OrdreReparation ordreReparation = ordreReparationRepository.findById(ordreReparationId)
+                .orElseThrow(() -> new RuntimeException("Ordre de réparation non trouvé"));
+        verifierAccesIntervention(ordreReparation, technicien);
+    }
+
+    private void verifierAccesIntervention(OrdreReparation ordreReparation, Technicien technicien) {
+        verifierTechnicienAssigne(ordreReparation, technicien);
+        
+        StatutOrdreReparation statut = ordreReparation.getStatut();
+        if (statut != StatutOrdreReparation.DIAGNOSTIC) {
+            throw new AccessDeniedException("Vous ne pouvez intervenir sur cet ordre de réparation que lorsqu'il est en phase de diagnostic.");
+        }
+    }
+
     /**
      * Vérifie explicitement que le technicien connecté fait partie des techniciens assignés à
      * l'ordre (pool diagnostic OU pool réparation) — contrôle nouveau, en plus du filtre
@@ -216,6 +282,10 @@ public class TechnicienPortalServiceImpl implements TechnicienPortalService {
                 || (ordreReparation.getTechniciensReparation() != null && ordreReparation.getTechniciensReparation().stream()
                 .anyMatch(t -> t.getId().equals(technicien.getId())));
         if (!assigne) {
+            Diagnostic diag = diagnosticRepository.findByOrdreReparationId(ordreReparation.getId()).orElse(null);
+            if (diag != null && diag.getTechnicien() != null && diag.getTechnicien().getId().equals(technicien.getId())) {
+                return;
+            }
             throw new AccessDeniedException("Vous n'êtes pas assigné à cet ordre de réparation");
         }
     }
