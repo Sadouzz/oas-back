@@ -74,4 +74,9 @@ public interface OrdreReparationRepository extends JpaRepository<OrdreReparation
             "LOWER(v.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(v.modele) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     Page<OrdreReparation> searchByTechnicienAssigne(@Param("technicienId") Long technicienId, @Param("keyword") String keyword, Pageable pageable);
+
+    @Query("SELECT COUNT(DISTINCT f) FROM OrdreReparation f " +
+           "LEFT JOIN f.diagnostic d LEFT JOIN f.techniciensReparation t2 " +
+           "WHERE (d.technicien.id = :technicienId OR t2.id = :technicienId) AND f.statut IN :statuts")
+    long countByTechnicienAssigneAndStatutIn(@Param("technicienId") Long technicienId, @Param("statuts") List<StatutOrdreReparation> statuts);
 }

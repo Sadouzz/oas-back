@@ -9,5 +9,6 @@ import java.util.List;
 @Repository
 public interface RemarqueDiagnosticRepository extends JpaRepository<RemarqueDiagnostic, Long> {
     List<RemarqueDiagnostic> findByDiagnosticIdOrderByCreatedAtDesc(Long diagnosticId);
+    List<RemarqueDiagnostic> findByOrdreReparationIdOrderByCreatedAtDesc(Long ordreReparationId);
     List<RemarqueDiagnostic> findByDiagnosticOrdreReparationIdOrderByCreatedAtDesc(Long ordreReparationId);
 }

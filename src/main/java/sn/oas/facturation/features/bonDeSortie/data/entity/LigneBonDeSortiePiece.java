@@ -6,7 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import sn.oas.facturation.features.piecedetache.data.entity.PDP;
+import sn.oas.facturation.features.piecedetache.data.entity.PieceDetache;
 
 @Entity
 @Table(name = "lignes_bon_de_sortie_piece")
@@ -27,7 +27,7 @@ public class LigneBonDeSortiePiece {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "piece_id", nullable = false)
-    private PDP piece;
+    private PieceDetache piece;
 
     @Column(nullable = false)
     private Integer quantite;

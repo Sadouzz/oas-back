@@ -10,7 +10,7 @@ import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
 import org.hibernate.annotations.ParamDef;
 
-import sn.oas.facturation.features.piecedetache.data.entity.PDP;
+import sn.oas.facturation.features.piecedetache.data.entity.PieceDetache;
 import sn.oas.facturation.features.user.data.entity.Agent;
 import sn.oas.facturation.features.garage.data.entity.Garage;
 import sn.oas.facturation.shared.tenant.TenantAware;
@@ -45,7 +45,7 @@ public class BonDeSortieHistorique implements TenantAware {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "piece_id")
     @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"categorie", "depot"})
-    private PDP piece;
+    private PieceDetache piece;
 
     private Double quantite;
 
