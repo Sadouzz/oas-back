@@ -30,6 +30,8 @@ import sn.oas.facturation.features.ficheAtelier.repository.FicheAtelierRepositor
 import sn.oas.facturation.features.user.data.entity.Agent;
 import sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier;
 import sn.oas.facturation.features.garage.data.entity.Garage;
+import sn.oas.facturation.features.pdfGenerator.service.DevisPrevisionnelGenerator;
+import sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService;
 import sn.oas.facturation.shared.exception.BadRequestException;
 import sn.oas.facturation.shared.exception.ResourceNotFoundException;
 
@@ -42,7 +44,8 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
     private final VehiculeService vehiculeService;
     private final AuthService authService;
     private final UserService userService;
-    private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
+    private final DocumentNumberGeneratorService documentNumberGeneratorService;
+    private final DevisPrevisionnelGenerator devisPrevisionnelGenerator;
 
     @Transactional
     @Override
@@ -244,33 +247,7 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
     @Transactional(readOnly = true)
     public byte[] generatePdf(Long id) {
         DevisPrevisionnel devis = getById(id);
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        Document document = new Document();
-
-        try {
-            PdfWriter.getInstance(document, outputStream);
-            document.open();
-
-            Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16);
-            Font normalFont = FontFactory.getFont(FontFactory.HELVETICA, 10);
-
-            Paragraph title = new Paragraph("Devis prévisionnel", titleFont);
-            title.setAlignment(Element.ALIGN_CENTER);
-            document.add(title);
-            document.add(new Paragraph(" ", normalFont));
-            document.add(new Paragraph("Numéro : " + devis.getId(), normalFont));
-            document.add(new Paragraph("Client : " + devis.getClient().getFirstName() + " " + devis.getClient().getLastName(), normalFont));
-            document.add(new Paragraph("Véhicule : " + devis.getVehicule().getImmatriculation(), normalFont));
-            document.add(new Paragraph("Montant total : " + devis.getMontantTotal(), normalFont));
-            document.add(new Paragraph("Statut : " + devis.getStatut(), normalFont));
-            document.add(new Paragraph("Notes : " + (devis.getNotesReparation() != null ? devis.getNotesReparation() : ""), normalFont));
-        } catch (DocumentException e) {
-            throw new RuntimeException("Erreur lors de la génération du PDF", e);
-        } finally {
-            document.close();
-        }
-
-        return outputStream.toByteArray();
+        return devisPrevisionnelGenerator.genererDevisPrevisionnelPdf(devis);
     }
 
     @Override
