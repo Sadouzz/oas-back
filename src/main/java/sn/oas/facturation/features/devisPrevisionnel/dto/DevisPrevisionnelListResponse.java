@@ -20,6 +20,7 @@ public record DevisPrevisionnelListResponse(
         StatutFacturation statut,
         VehiculeSummary vehicule,
         ClientSummary client,
+        AgentSummary agent,
         Long ficheAtelierId,
         Long ordreReparationId
 ) {
@@ -34,6 +35,11 @@ public record DevisPrevisionnelListResponse(
             String firstName,
             String lastName
             // String phone
+    ) {}
+    public record AgentSummary(
+            Long id,
+            String firstName,
+            String lastName
     ) {}
 
     public static DevisPrevisionnelListResponse from(DevisPrevisionnel d) {
@@ -59,6 +65,15 @@ public record DevisPrevisionnelListResponse(
             );
         }
 
+        AgentSummary agentSummary = null;
+        if (d.getAgent() != null) {
+            agentSummary = new AgentSummary(
+                    d.getAgent().getId(),
+                    d.getAgent().getFirstName(),
+                    d.getAgent().getLastName()
+            );
+        }
+
         return DevisPrevisionnelListResponse.builder()
                 .id(d.getId())
                 .numero(d.getNumero())
@@ -71,6 +86,7 @@ public record DevisPrevisionnelListResponse(
                 .statut(d.getStatut())
                 .vehicule(vehiculeSummary)
                 .client(clientSummary)
+                .agent(agentSummary)
                 .ficheAtelierId(d.getFicheAtelier() != null ? d.getFicheAtelier().getId() : null)
                 .ordreReparationId(d.getOrdreReparation() != null ? d.getOrdreReparation().getId() : null)
                 .build();
