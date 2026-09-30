@@ -131,10 +131,13 @@ public class DevisPrevisionnelController {
     @Operation(summary = "Générer le PDF d'un devis prévisionnel")
     @GetMapping("/{id}/pdf")
     public ResponseEntity<byte[]> generatePdf(@PathVariable Long id) {
+        DevisPrevisionnel devis = devisPrevisionnelService.getById(id);
         byte[] pdfBytes = devisPrevisionnelService.generatePdf(id);
+        String numero = devis.getNumero() != null ? devis.getNumero() : String.valueOf(id);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
-        headers.setContentDispositionFormData("attachment", "Devis_" + id + ".pdf");
+        headers.set(HttpHeaders.CONTENT_DISPOSITION,
+                "inline; filename=\"Devis-" + numero + ".pdf\"");
         return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
     }
 
