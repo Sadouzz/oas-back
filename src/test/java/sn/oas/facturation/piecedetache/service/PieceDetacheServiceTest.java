@@ -5,6 +5,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import sn.oas.facturation.features.categorie_pieces.repository.CategorieRepository;
 import sn.oas.facturation.features.piecedetache.data.entity.PDG;
 import sn.oas.facturation.features.piecedetache.data.enums.TypePiece;
 import sn.oas.facturation.features.piecedetache.dto.PieceDetacheRequest;
@@ -22,6 +23,12 @@ class PieceDetacheServiceTest {
 
     @Mock
     private PieceDetacheRepository pieceDetacheRepository;
+
+    @Mock
+    private sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
+
+    @Mock
+    private CategorieRepository categorieRepository;
 
     @InjectMocks
     private PieceDetacheServiceImpl pieceDetacheService;

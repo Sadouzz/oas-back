@@ -259,6 +259,21 @@ public class ProformaServiceImpl implements ProformaService {
             "Nouveau Proforma", 
             "Le proforma " + saved.getNumero() + " a été généré et est en attente.");
 
+        if (ordreReparation != null && ordreReparation.getVehicule() != null && ordreReparation.getVehicule().getClient() != null) {
+            String clientEmail = ordreReparation.getVehicule().getClient().getEmail();
+            if (clientEmail != null && !clientEmail.isEmpty()) {
+                byte[] pdfBytes = generatePdf(saved.getId());
+                emailService.sendEmailWithAttachment(
+                        clientEmail,
+                        "Validation requise pour votre Proforma",
+                        "Bonjour,\n\nVotre proforma numéro " + saved.getNumero() + " vient d'être créé.\nMerci d'en prendre connaissance et de nous faire un retour pour validation.\n\nCordialement.",
+                        "Proforma_" + saved.getNumero() + ".pdf",
+                        pdfBytes,
+                        "application/pdf"
+                );
+            }
+        }
+
         return saved;
     }
 

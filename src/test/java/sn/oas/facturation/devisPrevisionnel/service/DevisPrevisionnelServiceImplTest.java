@@ -45,13 +45,13 @@ class DevisPrevisionnelServiceImplTest {
     void getClientDevis_shouldReturnClientDevisOrdered() {
         Client client = Client.builder().id(10L).build();
         DevisPrevisionnel devis = DevisPrevisionnel.builder().id(1L).client(client).build();
-        when(devisPrevisionnelRepository.findByClientIdOrderByDateCreationDesc(10L)).thenReturn(List.of(devis));
+        when(devisPrevisionnelRepository.findByClientIdOrderByUpdatedAtDesc(10L)).thenReturn(List.of(devis));
 
         List<DevisPrevisionnel> result = devisPrevisionnelService.getClientDevis(client);
 
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getId()).isEqualTo(1L);
-        verify(devisPrevisionnelRepository).findByClientIdOrderByDateCreationDesc(10L);
+        verify(devisPrevisionnelRepository).findByClientIdOrderByUpdatedAtDesc(10L);
     }
 
     @Test

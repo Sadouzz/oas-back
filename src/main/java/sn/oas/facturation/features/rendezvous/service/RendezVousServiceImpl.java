@@ -13,6 +13,7 @@ import sn.oas.facturation.features.client.repository.ClientRepository;
 import sn.oas.facturation.features.garage.data.entity.Garage;
 import sn.oas.facturation.features.garage.repository.GarageRepository;
 import sn.oas.facturation.features.notification.service.NotificationService;
+import sn.oas.facturation.features.notification.service.EmailService;
 import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation;
 import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationRequest;
@@ -43,6 +44,7 @@ public class RendezVousServiceImpl implements RendezVousService {
     private final NotificationService notificationService;
     private final OrdreReparationService ordreReparationService;
     private final DocumentNumberGeneratorService documentNumberGeneratorService;
+    private final EmailService emailService;
 
     @Transactional
     @Override
@@ -175,6 +177,10 @@ public class RendezVousServiceImpl implements RendezVousService {
         // Notify client
         notificationService.sendNotification(client, "Rendez-vous enregistré", 
                 "Votre demande de rendez-vous pour le " + request.dateRendezVous() + " a bien été enregistrée et est en attente de confirmation.");
+        if (client != null && client.getEmail() != null) {
+            emailService.sendSimpleEmail(client.getEmail(), "Rendez-vous enregistré", 
+                    "Bonjour " + client.getFirstName() + ",\n\nVotre demande de rendez-vous pour le " + request.dateRendezVous() + " a bien été enregistrée et est en attente de confirmation.");
+        }
 
         return rv;
     }
@@ -280,6 +286,9 @@ public class RendezVousServiceImpl implements RendezVousService {
             message += " Commentaire : " + commentaire;
         }
         notificationService.sendNotification(rv.getClient(), titre, message);
+        if (rv.getClient() != null && rv.getClient().getEmail() != null) {
+            emailService.sendSimpleEmail(rv.getClient().getEmail(), titre, "Bonjour " + rv.getClient().getFirstName() + ",\n\n" + message);
+        }
 
         return rv;
     }
@@ -298,6 +307,10 @@ public class RendezVousServiceImpl implements RendezVousService {
 
         notificationService.sendNotification(rv.getClient(), "Rendez-vous validé", 
                 "Votre rendez-vous du " + rv.getDateRendezVous() + " a été validé et confirmé.");
+        if (rv.getClient() != null && rv.getClient().getEmail() != null) {
+            emailService.sendSimpleEmail(rv.getClient().getEmail(), "Rendez-vous validé", 
+                    "Bonjour " + rv.getClient().getFirstName() + ",\n\nVotre rendez-vous du " + rv.getDateRendezVous() + " a été validé et confirmé.");
+        }
 
         return rv;
     }
