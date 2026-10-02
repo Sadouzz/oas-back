@@ -18,6 +18,7 @@ import sn.oas.facturation.features.diagnostic.dto.PieceJointeDiagnosticResponse;
 import sn.oas.facturation.features.diagnostic.dto.RemarqueDiagnosticResponse;
 import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationRequest;
 import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationListDTO;
+import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationResponseDTO;
 import sn.oas.facturation.features.ordreReparation.repository.OrdreReparationRepository;
 import sn.oas.facturation.features.ordreReparation.service.OrdreReparationService;
 
@@ -70,9 +71,8 @@ public class OrdreReparationController {
     @Operation(summary = "Récupérer une fiche atelier par son ID")
     public ResponseEntity<?> getOrdreReparationById(@PathVariable Long id) {
         try {
-            OrdreReparation ordreReparation = ordreReparationService.getOrdreReparationById(id)
-                    .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
-            return ResponseEntity.ok(ordreReparation);
+            OrdreReparationResponseDTO dto = ordreReparationService.getOrdreReparationResponseById(id);
+            return ResponseEntity.ok(dto);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
         }

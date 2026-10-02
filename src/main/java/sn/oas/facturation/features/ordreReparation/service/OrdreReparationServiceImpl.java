@@ -48,6 +48,7 @@ import sn.oas.facturation.features.proforma.dto.ProformaCreateRequest;
 import sn.oas.facturation.features.facturation.dto.LigneFacturationPieceRequest;
 import sn.oas.facturation.features.facturation.dto.LigneFacturationMainDoeuvreRequest;
 import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationLightDTO;
+import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationResponseDTO;
 import sn.oas.facturation.features.ordreReparation.dto.VehiculeLightDTO;
 import sn.oas.facturation.features.ordreReparation.dto.ClientLightDTO;
 import sn.oas.facturation.features.diagnostic.data.entity.Diagnostic;
@@ -224,6 +225,154 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     @Override
     public Optional<OrdreReparation> getOrdreReparationById(Long id) {
         return ordreReparationRepository.findById(id);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OrdreReparationResponseDTO getOrdreReparationResponseById(Long id) {
+        OrdreReparation o = ordreReparationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        return mapToResponseDTO(o);
+    }
+
+    private OrdreReparationResponseDTO mapToResponseDTO(OrdreReparation o) {
+        // Véhicule + Client
+        OrdreReparationResponseDTO.VehiculeDto vehiculeDto = null;
+        if (o.getVehicule() != null) {
+            OrdreReparationResponseDTO.ClientDto clientDto = null;
+            if (o.getVehicule().getClient() != null) {
+                clientDto = OrdreReparationResponseDTO.ClientDto.builder()
+                        .id(o.getVehicule().getClient().getId())
+                        .firstName(o.getVehicule().getClient().getFirstName())
+                        .lastName(o.getVehicule().getClient().getLastName())
+                        .phone(o.getVehicule().getClient().getPhone())
+                        .build();
+            }
+            vehiculeDto = OrdreReparationResponseDTO.VehiculeDto.builder()
+                    .id(o.getVehicule().getId())
+                    .immatriculation(o.getVehicule().getImmatriculation())
+                    .marque(o.getVehicule().getMarque())
+                    .modele(o.getVehicule().getModele())
+                    .kilometrage(o.getVehicule().getKilometrage() != null ? o.getVehicule().getKilometrage().intValue() : null)
+                    .client(clientDto)
+                    .build();
+        }
+
+        // Diagnostic
+        OrdreReparationResponseDTO.DiagnosticDto diagnosticDto = null;
+        if (o.getDiagnostic() != null) {
+            diagnosticDto = OrdreReparationResponseDTO.DiagnosticDto.builder()
+                    .id(o.getDiagnostic().getId())
+                    .build();
+        }
+
+        // Techniciens (diagnostic)
+        List<OrdreReparationResponseDTO.TechnicienDto> techniciens = null;
+        if (o.getDiagnostic() != null && o.getDiagnostic().getTechnicien() != null) {
+            techniciens = List.of(OrdreReparationResponseDTO.TechnicienDto.builder()
+                    .id(o.getDiagnostic().getTechnicien().getId())
+                    .firstName(o.getDiagnostic().getTechnicien().getFirstName())
+                    .lastName(o.getDiagnostic().getTechnicien().getLastName())
+                    .specialite(o.getDiagnostic().getTechnicien().getSpecialite() != null ? o.getDiagnostic().getTechnicien().getSpecialite().name() : null)
+                    .build());
+        }
+
+        // Techniciens réparation
+        List<OrdreReparationResponseDTO.TechnicienDto> techniciensReparation = null;
+        if (o.getTechniciensReparation() != null) {
+            techniciensReparation = o.getTechniciensReparation().stream()
+                    .map(t -> OrdreReparationResponseDTO.TechnicienDto.builder()
+                            .id(t.getId())
+                            .firstName(t.getFirstName())
+                            .lastName(t.getLastName())
+                            .specialite(t.getSpecialite() != null ? t.getSpecialite().name() : null)
+                            .build())
+                    .collect(Collectors.toList());
+        }
+
+        // Bon de sortie
+        OrdreReparationResponseDTO.BonDeSortieDto bonDeSortieDto = null;
+        if (o.getBonDeSortie() != null) {
+            bonDeSortieDto = OrdreReparationResponseDTO.BonDeSortieDto.builder()
+                    .id(o.getBonDeSortie().getId())
+                    .reference(o.getBonDeSortie().getReference())
+                    .statut(o.getBonDeSortie().getStatut() != null ? o.getBonDeSortie().getStatut().name() : null)
+                    .build();
+        }
+
+        // Lignes pièces
+        List<OrdreReparationResponseDTO.LigneOrdreReparationPieceDto> lignesPieces = null;
+        if (o.getLignesOrdreReparationPieces() != null) {
+            lignesPieces = o.getLignesOrdreReparationPieces().stream().map(lp -> {
+                OrdreReparationResponseDTO.PieceDto pieceDto = null;
+                if (lp.getPiece() != null) {
+                    pieceDto = OrdreReparationResponseDTO.PieceDto.builder()
+                            .id(lp.getPiece().getId())
+                            .reference(lp.getPiece().getReference())
+                            .designation(lp.getPiece().getDesignation())
+                            .prix(lp.getPiece().getPrixUnitaire() != null ? lp.getPiece().getPrixUnitaire() : null)
+                            .type(lp.getPiece().getClass().getSimpleName())
+                            .build();
+                }
+                return OrdreReparationResponseDTO.LigneOrdreReparationPieceDto.builder()
+                        .id(lp.getId())
+                        .piece(pieceDto)
+                        .isCustom(lp.getIsCustom())
+                        .designationPds(lp.getDesignationPds())
+                        .quantite(lp.getQuantite())
+                        .prix(lp.getPrix() != null ? lp.getPrix().doubleValue() : null)
+                        .build();
+            }).collect(Collectors.toList());
+        }
+
+        // Lignes main d'oeuvre
+        List<OrdreReparationResponseDTO.LigneOrdreReparationMainDoeuvreDto> lignesMo = null;
+        if (o.getLignesOrdreReparationMainDoeuvres() != null) {
+            lignesMo = o.getLignesOrdreReparationMainDoeuvres().stream().map(lm -> {
+                OrdreReparationResponseDTO.MainDoeuvreDto moDto = null;
+                if (lm.getMainDoeuvre() != null) {
+                    OrdreReparationResponseDTO.CategorieDto catDto = null;
+                    if (lm.getMainDoeuvre().getCategorie() != null) {
+                        catDto = OrdreReparationResponseDTO.CategorieDto.builder()
+                                .nom(lm.getMainDoeuvre().getCategorie().getNom())
+                                .build();
+                    }
+                    moDto = OrdreReparationResponseDTO.MainDoeuvreDto.builder()
+                            .id(lm.getMainDoeuvre().getId())
+                            .prix(lm.getMainDoeuvre().getPrix() != null ? lm.getMainDoeuvre().getPrix().doubleValue() : null)
+                            .nbreHeure(lm.getMainDoeuvre().getNbreHeure())
+                            .description(lm.getMainDoeuvre().getDescription())
+                            .categorie(catDto)
+                            .build();
+                }
+                return OrdreReparationResponseDTO.LigneOrdreReparationMainDoeuvreDto.builder()
+                        .id(lm.getId())
+                        .mainDoeuvre(moDto)
+                        .nbreHeure(lm.getNbreHeure())
+                        .prix(lm.getPrix() != null ? lm.getPrix().doubleValue() : null)
+                        .build();
+            }).collect(Collectors.toList());
+        }
+
+        return OrdreReparationResponseDTO.builder()
+                .id(o.getId())
+                .numero(o.getNumero())
+                .descriptionTravaux(o.getDescriptionTravaux())
+                .lignesTravaux(o.getLignesTravaux())
+                .lignesReception(o.getLignesReception())
+                .listeDefauts(o.getListeDefauts())
+                .dateCreation(o.getDateCreation())
+                .updatedAt(o.getUpdatedAt())
+                .dateSortie(o.getDateSortie())
+                .statut(o.getStatut())
+                .vehicule(vehiculeDto)
+                .diagnostic(diagnosticDto)
+                .techniciens(techniciens)
+                .techniciensReparation(techniciensReparation)
+                .bonDeSortie(bonDeSortieDto)
+                .lignesOrdreReparationPieces(lignesPieces)
+                .lignesOrdreReparationMainDoeuvres(lignesMo)
+                .build();
     }
 
     @Override
