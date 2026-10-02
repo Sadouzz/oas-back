@@ -157,7 +157,11 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             }
         }
 
-        return ordreReparationRepository.save(ordreReparation);
+        OrdreReparation saved = ordreReparationRepository.save(ordreReparation);
+        agentNotificationService.notifyRole(sn.oas.facturation.features.user.data.enums.Role.CHEF_ATELIER,
+                "Nouvel Ordre de Réparation",
+                "Un nouvel ordre de réparation (" + saved.getNumero() + ") a été créé.");
+        return saved;
     }
 
     @Override
@@ -716,6 +720,10 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 }
             }
         }
+
+        agentNotificationService.notifyRole(sn.oas.facturation.features.user.data.enums.Role.CHEF_ATELIER,
+                "Nouvel Ordre de Réparation",
+                "L'ordre de réparation (" + saved.getNumero() + ") a été généré depuis une fiche atelier.");
 
         return saved;
     }

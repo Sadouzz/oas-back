@@ -12,11 +12,13 @@ import sn.oas.facturation.features.user.service.UserService;
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.dto.ClientCreateRequest;
 import sn.oas.facturation.features.client.dto.ClientCreateResponse;
+import sn.oas.facturation.features.client.dto.ClientFideleRequest;
 import sn.oas.facturation.features.client.repository.ClientRepository;
 import sn.oas.facturation.features.user.data.entity.User;
 import sn.oas.facturation.features.user.data.enums.TypeUser;
 import sn.oas.facturation.features.user.dto.request.UserUpdateRequest;
 import sn.oas.facturation.features.vehicule.service.VehiculeService;
+import sn.oas.facturation.shared.exception.ResourceNotFoundException;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -232,4 +234,91 @@ public class ClientServiceImpl implements ClientService {
         }
         return client;
     }
+
+    public void updateClientFideleConfig(Long id, ClientFideleRequest request) {
+        Client client = clientRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Client non trouvé"));
+
+        client.setClientFidele(true);
+
+        // On ne met à jour que les champs qui ont été envoyés (non null)
+        if (request.montantRemise() != null) {
+            client.setMontantRemise(request.montantRemise());
+        }
+        if (request.montantPlafond() != null) {
+            client.setMontantPlafond(request.montantPlafond());
+        }
+        if (request.echeance() != null) {
+            client.setEcheance(request.echeance());
+        }
+        if (request.ninea() != null) {
+            client.setNinea(request.ninea());
+        }
+        if (request.rccm() != null) {
+            client.setRccm(request.rccm());
+        }
+        if (request.rib() != null) {
+            client.setRib(request.rib());
+        }
+
+        clientRepository.save(client);
+    }
+
+    @Override
+    public void removeClientFidele(Long id) {
+        Client client = clientRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Client non trouvé"));
+        client.setClientFidele(false);
+        client.setMontantRemise(null);
+        client.setMontantPlafond(null);
+        client.setEcheance(null);
+        client.setNinea(null);
+        client.setRccm(null);
+        client.setRib(null);
+        clientRepository.save(client);
+    }
+
+    /*
+    @Override
+    public void toggleClientFidele(Long id) {
+        Client client = clientRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Client non trouvé"));
+        client.setClientFidele(!client.isClientFidele());
+        clientRepository.save(client);
+    }
+
+
+
+    @Override
+    public void updateClientFidele(Long id, ClientFideleRequest request) {
+        Client client = clientRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Client non trouvé"));
+        client.setClientFidele(request.isClientFidele());
+        clientRepository.save(client);
+    }
+
+    @Override
+    public void updateClientNinea(Long id, ClientFideleRequest request) {
+        Client client = clientRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Client non trouvé"));
+        client.setNinea(request.ninea());
+        clientRepository.save(client);
+    }
+
+    @Override
+    public void updateClientRccm(Long id, ClientFideleRequest request) {
+        Client client = clientRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Client non trouvé"));
+        client.setRccm(request.rccm());
+        clientRepository.save(client);
+    }
+
+    @Override
+    public void updateClientRib(Long id, ClientFideleRequest request) {
+        Client client = clientRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Client non trouvé"));
+        client.setRib(request.rib());
+        clientRepository.save(client);
+    }
+        */
 }

@@ -13,6 +13,7 @@ import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.dto.ClientCreateRequest;
 import sn.oas.facturation.features.client.dto.ClientCreateResponse;
 import sn.oas.facturation.features.client.dto.ClientListResponse;
+import sn.oas.facturation.features.client.dto.ClientFideleRequest;
 import sn.oas.facturation.features.client.service.ClientService;
 import sn.oas.facturation.features.user.dto.request.UserUpdateRequest;
 import sn.oas.facturation.features.auth.service.AuthService;
@@ -128,5 +129,19 @@ public class ClientController {
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    @PatchMapping("/{id}/fidele")
+    @Operation(summary = "Passer un client en fidèle ou mettre à jour ses paramètres")
+    public ResponseEntity<?> updateClientFideleConfig(@PathVariable Long id, @RequestBody ClientFideleRequest request) {
+        clientService.updateClientFideleConfig(id, request);
+        return ResponseEntity.ok("Configuration du client fidèle mise à jour avec succès !");
+    }
+
+    @DeleteMapping("/{id}/fidele")
+    @Operation(summary = "Retirer le statut de client fidèle")
+    public ResponseEntity<?> removeClientFidele(@PathVariable Long id) {
+        clientService.removeClientFidele(id);
+        return ResponseEntity.ok("Statut client fidèle retiré avec succès !");
     }
 }

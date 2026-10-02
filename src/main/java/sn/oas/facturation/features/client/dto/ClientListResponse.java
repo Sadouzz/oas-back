@@ -16,7 +16,14 @@ public record ClientListResponse(
         String email,
         boolean enabled,
         LocalDateTime createdAt,
-        Integer vehiculeNumbers
+        Integer vehiculeNumbers,
+        boolean clientFidele, 
+        Integer montantRemise,
+        Integer montantPlafond,
+        Integer echeance,
+        String ninea,
+        String rccm,
+        String rib
 ) {
     public static ClientListResponse from(Client client) {
         if (client == null) return null;
@@ -31,6 +38,13 @@ public record ClientListResponse(
                 .enabled(client.isEnabled())
                 .createdAt(client.getCreatedAt())
                 .vehiculeNumbers(client.getVehicules().size())
+                .clientFidele(client.isClientFidele())
+                .montantRemise(client.getMontantRemise())
+                .montantPlafond(client.getMontantPlafond())
+                .echeance(client.getEcheance())
+                .ninea(client.getNinea())
+                .rccm(client.getRccm())
+                .rib(client.getRib())
                 .build();
     }
 }

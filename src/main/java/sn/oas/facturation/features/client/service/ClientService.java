@@ -3,6 +3,7 @@ package sn.oas.facturation.features.client.service;
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.dto.ClientCreateRequest;
 import sn.oas.facturation.features.client.dto.ClientCreateResponse;
+import sn.oas.facturation.features.client.dto.ClientFideleRequest;
 import sn.oas.facturation.features.user.dto.request.UserUpdateRequest;
 
 import org.springframework.data.domain.Page;
@@ -23,4 +24,18 @@ public interface ClientService {
     Page<Client> getArchivedClients(int page, int size);
     List<Client> getRecentClients();
     Client getClientConnecte();
+
+    void updateClientFideleConfig(Long id, ClientFideleRequest request);
+
+    void removeClientFidele(Long id);
+
+
+    // void toggleClientFidele(Long id);
+    // void updateClientFidele(Long id, ClientFideleRequest request);
+    // void updateClientRemise(Long id, ClientFideleRequest request);
+    // void updateClientPlafond(Long id, ClientFideleRequest request);
+    // void updateClientEcheance(Long id, ClientFideleRequest request);
+    // void updateClientNinea(Long id, ClientFideleRequest request);
+    // void updateClientRccm(Long id, ClientFideleRequest request);
+    // void updateClientRib(Long id, ClientFideleRequest request);
 }

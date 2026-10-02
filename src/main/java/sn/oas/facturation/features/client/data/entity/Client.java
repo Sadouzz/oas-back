@@ -37,6 +37,33 @@ public class Client extends User {
     @EqualsAndHashCode.Exclude
     private List<Vehicule> vehicules = new ArrayList<>();
 
+    @Column(name = "code_client", nullable = true, unique = true)
+    private String codeClient;
+
+
+    //Compte client fidèle
+    @Builder.Default
+    @Column(name = "is_client_fidele", nullable = false, columnDefinition = "boolean default false")
+    private boolean isClientFidele = false;
+
+    @Column(name = "montant_remise", nullable = true)
+    private Integer montantRemise;
+
+    @Column(name = "montant_plafond", nullable = true)
+    private Integer montantPlafond;
+
+    @Column(name = "echeance", nullable = true)
+    private Integer echeance;
+
+    @Column(name = "ninea", nullable = true)
+    private String ninea;
+
+    @Column(name = "rccm", nullable = true)
+    private String rccm;
+
+    @Column(name = "rib", nullable = true)
+    private String rib;
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_CLIENT"));

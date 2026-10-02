@@ -43,6 +43,7 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     private final VehiculeRepository vehiculeRepository;
     private final OrdreReparationRepository ordreReparationRepository;
     private final DocumentNumberGeneratorService documentNumberGeneratorService;
+    private final sn.oas.facturation.features.notification.service.AgentNotificationService agentNotificationService;
 
     @Transactional
     @Override
@@ -118,6 +119,11 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
             rendezVous.setStatut(RendezVousStatus.TERMINE);
             rendezVousRepository.save(rendezVous);
         }
+        
+        agentNotificationService.notifyRole(sn.oas.facturation.features.user.data.enums.Role.CHEF_ATELIER,
+                "Nouvelle Fiche Atelier",
+                "Une nouvelle fiche atelier (" + saved.getNumero() + ") a été créée.");
+                
         return saved;
     }
 
