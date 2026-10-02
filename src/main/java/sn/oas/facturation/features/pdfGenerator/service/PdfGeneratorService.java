@@ -20,6 +20,12 @@ import java.time.format.DateTimeFormatter;
 @Service
 public class PdfGeneratorService {
 
+    private final HtmlToPdfService htmlToPdfService;
+
+    public PdfGeneratorService(HtmlToPdfService htmlToPdfService) {
+        this.htmlToPdfService = htmlToPdfService;
+    }
+
     public byte[] genererBonDeCommandePdf(BonDeCommande bonDeCommande) {
         Document document = new Document();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -114,4 +120,5 @@ public class PdfGeneratorService {
 
         return out.toByteArray();
     }
+
 }

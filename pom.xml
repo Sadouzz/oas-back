@@ -118,6 +118,12 @@
 			<artifactId>openpdf</artifactId>
 			<version>1.3.36</version>
 		</dependency>
+		<!-- HTML vers PDF (Flying Saucer + OpenPDF) -->
+		<dependency>
+			<groupId>org.xhtmlrenderer</groupId>
+			<artifactId>flying-saucer-pdf</artifactId>
+			<version>9.4.0</version>
+		</dependency>
 		<dependency>
 			<groupId>com.cloudinary</groupId>
 			<artifactId>cloudinary-http44</artifactId>

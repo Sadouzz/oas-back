@@ -26,6 +26,9 @@ public record RendezVousListResponse(
             clientName = (firstName + " " + lastName).trim();
         }
 
+        boolean hasFiche = rv.getFicheAtelier() != null || rv.getStatut() == RendezVousStatus.TERMINE;
+        RendezVousStatus statut = hasFiche ? RendezVousStatus.TERMINE : rv.getStatut();
+
         return RendezVousListResponse.builder()
                 .id(rv.getId())
                 .numero(rv.getNumero())
@@ -33,8 +36,8 @@ public record RendezVousListResponse(
                 .clientName(clientName)
                 .vehiculeImmatriculation(rv.getVehicule() != null ? rv.getVehicule().getImmatriculation() : null)
                 .motif(rv.getMotif())
-                .statut(rv.getStatut())
-                .hasFicheAtelier(rv.getFicheAtelier() != null)
+                .statut(statut)
+                .hasFicheAtelier(hasFiche)
                 .build();
     }
 }

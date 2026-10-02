@@ -60,6 +60,7 @@ public class FicheAtelier implements TenantAware {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "devis_previsionnel_id", nullable = true)
+    @JsonIgnoreProperties({"ficheAtelier", "ordreReparation"})
     private DevisPrevisionnel devisPrevisionnel;
 
     @OneToOne(fetch = FetchType.LAZY)

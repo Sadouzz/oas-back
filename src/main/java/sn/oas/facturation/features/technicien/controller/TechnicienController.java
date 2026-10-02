@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import sn.oas.facturation.features.technicien.data.entity.Technicien;
+import sn.oas.facturation.features.technicien.data.enums.SpecialiteTechnicien;
 import sn.oas.facturation.features.technicien.dto.TechnicienListResponse;
 import sn.oas.facturation.features.technicien.dto.TechnicienRequest;
 import sn.oas.facturation.features.technicien.service.TechnicienService;
@@ -30,15 +31,23 @@ public class TechnicienController {
     private final TechnicienService technicienService;
 
     @GetMapping
-    @Operation(summary = "Lister tous les techniciens ou rechercher par mot-clé")
+    @Operation(summary = "Lister tous les techniciens avec filtres optionnels (mot-clé, spécialité)")
     public ResponseEntity<Page<TechnicienListResponse>> getAllTechniciens(
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String specialite,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            return ResponseEntity.ok(technicienService.searchTechniciens(keyword.trim(), page, size).map(TechnicienListResponse::from));
+
+        SpecialiteTechnicien specEnum = null;
+        if (specialite != null && !specialite.trim().isEmpty()) {
+            specEnum = SpecialiteTechnicien.fromString(specialite);
+            if (specEnum == null) {
+                return ResponseEntity.ok(Page.empty());
+            }
         }
-        return ResponseEntity.ok(technicienService.getAllTechniciens(page, size).map(TechnicienListResponse::from));
+
+        return ResponseEntity.ok(technicienService.getAllTechniciens(keyword, specEnum, page, size)
+                .map(TechnicienListResponse::from));
     }
 
     @GetMapping("/{id}")

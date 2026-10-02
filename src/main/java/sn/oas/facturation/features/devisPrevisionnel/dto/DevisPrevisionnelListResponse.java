@@ -5,6 +5,7 @@ import sn.oas.facturation.features.devisPrevisionnel.data.entity.DevisPrevisionn
 import sn.oas.facturation.features.facturation.data.enums.StatutFacturation;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Builder
 public record DevisPrevisionnelListResponse(
@@ -13,12 +14,15 @@ public record DevisPrevisionnelListResponse(
         String notesReparation,
         BigDecimal montantTotal,
         Double kilometrageVehicule,
-        // LocalDateTime dateCreation,
-        // LocalDateTime createdAt,
+        LocalDateTime dateCreation,
+        LocalDateTime createdAt,
+        LocalDateTime updatedAt,
         StatutFacturation statut,
         VehiculeSummary vehicule,
-        ClientSummary client
-        // Long ficheAtelierId
+        ClientSummary client,
+        AgentSummary agent,
+        Long ficheAtelierId,
+        Long ordreReparationId
 ) {
     public record VehiculeSummary(
             Long id,
@@ -31,6 +35,11 @@ public record DevisPrevisionnelListResponse(
             String firstName,
             String lastName
             // String phone
+    ) {}
+    public record AgentSummary(
+            Long id,
+            String firstName,
+            String lastName
     ) {}
 
     public static DevisPrevisionnelListResponse from(DevisPrevisionnel d) {
@@ -56,18 +65,30 @@ public record DevisPrevisionnelListResponse(
             );
         }
 
+        AgentSummary agentSummary = null;
+        if (d.getAgent() != null) {
+            agentSummary = new AgentSummary(
+                    d.getAgent().getId(),
+                    d.getAgent().getFirstName(),
+                    d.getAgent().getLastName()
+            );
+        }
+
         return DevisPrevisionnelListResponse.builder()
                 .id(d.getId())
                 .numero(d.getNumero())
                 .notesReparation(d.getNotesReparation())
                 .montantTotal(d.getMontantTotal())
                 .kilometrageVehicule(d.getKilometrageVehicule())
-                // .dateCreation(d.getDateCreation())
-                // .createdAt(d.getDateCreation())
+                .dateCreation(d.getDateCreation())
+                .createdAt(d.getDateCreation())
+                .updatedAt(d.getUpdatedAt())
                 .statut(d.getStatut())
                 .vehicule(vehiculeSummary)
                 .client(clientSummary)
-                // .ficheAtelierId(d.getFicheAtelier() != null ? d.getFicheAtelier().getId() : null)
+                .agent(agentSummary)
+                .ficheAtelierId(d.getFicheAtelier() != null ? d.getFicheAtelier().getId() : null)
+                .ordreReparationId(d.getOrdreReparation() != null ? d.getOrdreReparation().getId() : null)
                 .build();
     }
 }

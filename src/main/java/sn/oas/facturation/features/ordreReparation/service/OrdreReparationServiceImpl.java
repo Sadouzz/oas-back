@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import sn.oas.facturation.features.devisPrevisionnel.data.entity.DevisPrevisionnel;
 import sn.oas.facturation.features.devisPrevisionnel.repository.DevisPrevisionnelRepository;
@@ -38,6 +39,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import sn.oas.facturation.features.notification.service.AgentNotificationService;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -174,7 +176,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
 
     @Override
     public Page<OrdreReparation> getAllOrdresReparation(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Order.desc("updatedAt").nullsLast(), Sort.Order.desc("id")));
         return ordreReparationRepository.findAll(pageable);
     }
 
@@ -382,6 +384,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         } else {
             diag.setTechnicien(technicien);
         }
+        fiche.setUpdatedAt(LocalDateTime.now());
         ordreReparationRepository.save(fiche);
     }
 
@@ -398,6 +401,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         if (fiche.getDiagnostic() != null && fiche.getDiagnostic().getTechnicien() != null
                 && fiche.getDiagnostic().getTechnicien().getId().equals(technicienId)) {
             fiche.getDiagnostic().setTechnicien(null);
+            fiche.setUpdatedAt(LocalDateTime.now());
             ordreReparationRepository.save(fiche);
         }
     }
@@ -417,6 +421,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
 
         if (!fiche.getTechniciensReparation().contains(technicien)) {
             fiche.getTechniciensReparation().add(technicien);
+            fiche.setUpdatedAt(LocalDateTime.now());
             ordreReparationRepository.save(fiche);
         }
     }
@@ -435,6 +440,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 .orElseThrow(() -> new RuntimeException("Technicien non trouvé"));
 
         fiche.getTechniciensReparation().remove(technicien);
+        fiche.setUpdatedAt(LocalDateTime.now());
         ordreReparationRepository.save(fiche);
     }
 
@@ -484,6 +490,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         }
 
         fiche.setStatut(newStatut);
+        fiche.setUpdatedAt(LocalDateTime.now());
         OrdreReparation savedFiche = ordreReparationRepository.save(fiche);
 
         if (newStatut == StatutOrdreReparation.BON_DE_COMMANDE || newStatut == StatutOrdreReparation.BON_DE_SORTIE) {
@@ -695,15 +702,9 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             return existingExact.get();
         }
         
-        java.util.Optional<DevisPrevisionnel> devisOpt = devisPrevisionnelRepository.findByFicheAtelierId(ficheAtelierId);
-        if (devisOpt.isEmpty()) {
-            throw new RuntimeException("Un devis prévisionnel doit être créé et accepté avant de créer l'ordre de réparation.");
-        }
-        DevisPrevisionnel devis = devisOpt.get();
-        if (devis.getStatut() != StatutFacturation.ACCEPTE &&
-            devis.getStatut() != StatutFacturation.PAYEE) {
-            throw new RuntimeException("Le devis prévisionnel doit être accepté avant de créer l'ordre de réparation.");
-        }
+        // Le devis prévisionnel sur la fiche atelier n'est plus obligatoire
+        java.util.List<DevisPrevisionnel> devisList = devisPrevisionnelRepository.findByFicheAtelierIdOrderByDateCreationDesc(ficheAtelierId);
+
         if (ficheAtelier.getVehicule() == null) {
             throw new RuntimeException("La fiche atelier n'a pas de véhicule associé");
         }
@@ -739,6 +740,16 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                         "Création de votre Ordre de Réparation",
                         "<p>Bonjour,</p><p>Nous vous informons de la création de l'ordre de réparation <b>" + savedOrdre.getNumero() + "</b> pour votre véhicule " + savedOrdre.getVehicule().getImmatriculation() + ".</p><p>Cordialement.</p>"
                 );
+            }
+        }
+
+        // Lier les éventuels devis existants de la fiche atelier à ce nouvel ordre de réparation
+        if (devisList != null) {
+            for (DevisPrevisionnel d : devisList) {
+                if (d.getOrdreReparation() == null) {
+                    d.setOrdreReparation(savedOrdre);
+                    devisPrevisionnelRepository.save(d);
+                }
             }
         }
 

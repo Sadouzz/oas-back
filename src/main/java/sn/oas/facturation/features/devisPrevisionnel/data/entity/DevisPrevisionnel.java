@@ -3,16 +3,21 @@ package sn.oas.facturation.features.devisPrevisionnel.data.entity;
 import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
 import org.hibernate.annotations.ParamDef;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier;
 import sn.oas.facturation.shared.tenant.TenantAware;
 import sn.oas.facturation.shared.tenant.TenantListener;
 import sn.oas.facturation.features.garage.data.entity.Garage;
+import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.features.user.data.entity.Agent;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -52,6 +57,11 @@ public class DevisPrevisionnel implements TenantAware {
     @Column(nullable = false)
     private LocalDateTime dateCreation;
 
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    @Builder.Default
+    private LocalDateTime updatedAt = LocalDateTime.now();
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "agent_id", nullable = false)
     private Agent agent;
@@ -73,12 +83,26 @@ public class DevisPrevisionnel implements TenantAware {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "fiche_atelier_id", nullable = true)
+    @JsonIgnoreProperties ({"devisPrevisionnel", "ordreReparation", "client", "vehicule", "garage"})
     private FicheAtelier ficheAtelier;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ordre_reparation_id", nullable = true)
+    @JsonIgnoreProperties({"devisPrevisionnels", "bonDeSortie", "diagnostic", "facturations", "techniciensReparation", "ficheAtelier", "vehicule", "garage"})
+    private OrdreReparation ordreReparation;
 
     @PrePersist
     protected void onCreate() {
         if (this.dateCreation == null) {
             this.dateCreation = LocalDateTime.now();
         }
+        if (this.updatedAt == null) {
+            this.updatedAt = LocalDateTime.now();
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 }

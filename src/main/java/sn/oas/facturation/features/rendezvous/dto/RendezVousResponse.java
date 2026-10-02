@@ -20,6 +20,9 @@ public record RendezVousResponse(
         boolean hasFicheAtelier) {
 
     public static RendezVousResponse of(RendezVous rv) {
+        boolean hasFiche = rv.getFicheAtelier() != null || rv.getStatut() == RendezVousStatus.TERMINE;
+        RendezVousStatus statut = hasFiche ? RendezVousStatus.TERMINE : rv.getStatut();
+
         return new RendezVousResponse(
                 rv.getId(),
                 rv.getNumero(),
@@ -29,9 +32,9 @@ public record RendezVousResponse(
                 rv.getVehicule() != null ? rv.getVehicule().getImmatriculation() : null,
                 rv.getDateRendezVous(),
                 rv.getMotif(),
-                rv.getStatut(),
+                statut,
                 rv.getCommentaire(),
                 rv.getDateCreation(),
-                rv.getFicheAtelier() != null);
+                hasFiche);
     }
 }

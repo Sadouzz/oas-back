@@ -16,6 +16,7 @@ public record PieceDetacheListResponse(
         String reference,
         String designation,
         CategorieSummary categorie,
+        DepotSummary depot,
         Double prix,
         Double prixUnitaire,
         // Double prixGros,
@@ -28,14 +29,32 @@ public record PieceDetacheListResponse(
         boolean estUtilise
         // LocalDateTime createdAt
 ) {
-    public record CategorieSummary(Long id, String nom) {}
+    public record DepotSummary(Long id, String nom) {}
+
+    public record CategorieSummary(Long id, String nom, DepotSummary depot) {
+        public CategorieSummary(Long id, String nom) {
+            this(id, nom, null);
+        }
+    }
 
     public static PieceDetacheListResponse from(PieceDetache p) {
         if (p == null) return null;
 
+        DepotSummary depotSummary = null;
+        if (p.getCategorie() != null && p.getCategorie().getDepot() != null) {
+            depotSummary = new DepotSummary(
+                    p.getCategorie().getDepot().getId(),
+                    p.getCategorie().getDepot().getNom()
+            );
+        }
+
         CategorieSummary categorieSummary = null;
         if (p.getCategorie() != null) {
-            categorieSummary = new CategorieSummary(p.getCategorie().getId(), p.getCategorie().getNom());
+            categorieSummary = new CategorieSummary(
+                    p.getCategorie().getId(),
+                    p.getCategorie().getNom(),
+                    depotSummary
+            );
         }
 
         Double qteReelle = null;
@@ -52,6 +71,7 @@ public record PieceDetacheListResponse(
                 .reference(p.getReference())
                 .designation(p.getDesignation())
                 .categorie(categorieSummary)
+                .depot(depotSummary)
                 .prix(p.getPrixUnitaire())
                 .prixUnitaire(p.getPrixUnitaire())
                 // .prixGros(p.getPrixGros())

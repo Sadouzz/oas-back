@@ -10,19 +10,27 @@ import sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier;
 import sn.oas.facturation.features.ficheAtelier.dto.FicheAtelierRequest;
 import sn.oas.facturation.features.ficheAtelier.repository.FicheAtelierRepository;
 import sn.oas.facturation.features.rendezvous.data.entity.RendezVous;
+import sn.oas.facturation.features.rendezvous.data.enums.RendezVousStatus;
 import sn.oas.facturation.features.rendezvous.repository.RendezVousRepository;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.features.vehicule.repository.VehiculeRepository;
+import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
+import sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation;
 import sn.oas.facturation.features.ordreReparation.repository.OrdreReparationRepository;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
+import java.util.Optional;
 
 import sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService;
 import sn.oas.facturation.shared.documentNumber.DocumentType;
+import sn.oas.facturation.shared.exception.ResourceNotFoundException;
+import sn.oas.facturation.shared.exception.BadRequestException;
+import sn.oas.facturation.shared.exception.ResourceAlreadyExistsException;
 import sn.oas.facturation.features.garage.data.entity.Garage;
 
 @Service
@@ -40,22 +48,40 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     @Override
     public FicheAtelier create(FicheAtelierRequest request) {
         Client client = clientRepository.findById(request.getClientId())
-                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException(
+                .orElseThrow(() -> new ResourceNotFoundException(
                         "Client non trouvé avec l'id : " + request.getClientId()));
 
         Vehicule vehicule = vehiculeRepository.findById(request.getVehiculeId())
-                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException(
+                .orElseThrow(() -> new ResourceNotFoundException(
                         "Véhicule non trouvé avec l'id : " + request.getVehiculeId()));
+
+        // BLOCAGE : Si le véhicule a un ordre de réparation qui n'est pas encore livré
+        Optional<OrdreReparation> ordreEnCours =
+                ordreReparationRepository.findFirstByVehiculeIdAndStatutNotIn(
+                        vehicule.getId(), List.of(StatutOrdreReparation.LIVRE));
+        if (ordreEnCours.isPresent()) {
+            OrdreReparation or = ordreEnCours.get();
+            // Si cet ordre est un ordre orphelin (sans fiche atelier) issu de l'ancienne validation de RDV, on le supprime
+            if (or.getFicheAtelier() == null) {
+                ordreReparationRepository.delete(or);
+            } else {
+                String statutLabel = or.getStatut() != null ? or.getStatut().getLabel() : "en cours";
+                throw new BadRequestException(
+                        "Impossible de créer une fiche atelier : le véhicule " + vehicule.getImmatriculation()
+                        + " a déjà un ordre de réparation en cours (" + or.getNumero()
+                        + " - Statut : " + statutLabel + ") et n'est pas encore livré.");
+            }
+        }
 
         RendezVous rendezVous = null;
         if (request.getRendezVousId() != null) {
             rendezVous = rendezVousRepository.findById(request.getRendezVousId())
-                    .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException(
+                    .orElseThrow(() -> new ResourceNotFoundException(
                             "Rendez-vous non trouvé avec l'id : " + request.getRendezVousId()));
 
             // Check if already exists
             if (ficheAtelierRepository.findByRendezVousId(rendezVous.getId()).isPresent()) {
-                throw new sn.oas.facturation.shared.exception.ResourceAlreadyExistsException(
+                throw new ResourceAlreadyExistsException(
                         "Une fiche atelier existe déjà pour ce rendez-vous");
             }
         }
@@ -89,6 +115,7 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
         FicheAtelier saved = ficheAtelierRepository.save(fiche);
         if (rendezVous != null) {
             rendezVous.setFicheAtelier(saved);
+            rendezVous.setStatut(RendezVousStatus.TERMINE);
             rendezVousRepository.save(rendezVous);
         }
         return saved;
@@ -98,7 +125,7 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     @Override
     public FicheAtelier update(Long id, FicheAtelierRequest request) {
         FicheAtelier fiche = ficheAtelierRepository.findById(id)
-                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException(
+                .orElseThrow(() -> new ResourceNotFoundException(
                         "Fiche Atelier non trouvée avec l'id : " + id));
 
         fiche.setNomChauffeur(request.getNomChauffeur());
@@ -121,7 +148,7 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     @Override
     public FicheAtelier getById(Long id) {
         return ficheAtelierRepository.findById(id)
-                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException(
+                .orElseThrow(() -> new ResourceNotFoundException(
                         "Fiche Atelier non trouvée avec l'id : " + id));
     }
 
@@ -135,23 +162,32 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     @Transactional(readOnly = true)
     @Override
     public Page<FicheAtelier> getAll(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(
+                Sort.Order.desc("updatedAt").nullsLast(),
+                Sort.Order.desc("createdAt").nullsLast(),
+                Sort.Order.desc("id")
+        ));
         return ficheAtelierRepository.findAll(pageable);
     }
 
     @Override
     public List<FicheAtelier> getAll() {
-        return ficheAtelierRepository.findAll();
+        return ficheAtelierRepository.findAll(Sort.by(
+                Sort.Order.desc("updatedAt").nullsLast(),
+                Sort.Order.desc("createdAt").nullsLast(),
+                Sort.Order.desc("id")
+        ));
     }
 
     @Transactional
     @Override
     public void delete(Long id) {
         FicheAtelier fiche = ficheAtelierRepository.findById(id)
-                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Fiche Atelier non trouvée avec l'id : " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Fiche Atelier non trouvée avec l'id : " + id));
         if (fiche.getRendezVous() != null) {
             RendezVous rv = fiche.getRendezVous();
             rv.setFicheAtelier(null);
+            rv.setStatut(RendezVousStatus.CONFIRME);
             rendezVousRepository.save(rv);
         }
         ficheAtelierRepository.delete(fiche);
@@ -160,7 +196,7 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     @Override
     public FicheAtelier signForExit(Long id, String signature) {
         FicheAtelier fiche = ficheAtelierRepository.findById(id)
-                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException(
+                .orElseThrow(() -> new ResourceNotFoundException(
                         "Fiche atelier non trouvée avec l'id : " + id));
         fiche.setSignatureSortieBase64(signature);
         return ficheAtelierRepository.save(fiche);
@@ -169,5 +205,14 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     @Override 
     public boolean existsByOrdreReparationId(Long ordreReparationId) {
         return ficheAtelierRepository.existsByOrdreReparationId(ordreReparationId);
+    }
+
+    @Override
+    public boolean isVehiculeEnReparationNonLivre(Long vehiculeId) {
+        if (vehiculeId == null) return false;
+        return ordreReparationRepository.findFirstByVehiculeIdAndStatutNotIn(
+                vehiculeId, java.util.List.of(sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation.LIVRE))
+                .filter(or -> or.getFicheAtelier() != null)
+                .isPresent();
     }
 }

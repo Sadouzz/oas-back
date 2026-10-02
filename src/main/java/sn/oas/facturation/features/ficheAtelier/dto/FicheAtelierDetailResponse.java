@@ -40,6 +40,14 @@ public class FicheAtelierDetailResponse {
     private List<LigneReception> lignesReception;
     private List<LigneDefaut> lignesDefauts;
 
+    public List<LigneDefaut> getDefautsConstates() {
+        return this.lignesDefauts;
+    }
+
+    public List<LigneReception> getReception() {
+        return this.lignesReception;
+    }
+
     private String nb;
     private LocalDateTime dateSortiePrevue;
     private String garantie;

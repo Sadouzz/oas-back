@@ -15,7 +15,7 @@ import java.util.Optional;
 @Repository
 public interface OrdreReparationRepository extends JpaRepository<OrdreReparation, Long> {
 
-    @Query("SELECT f FROM OrdreReparation f JOIN FETCH f.vehicule v LEFT JOIN FETCH v.client ORDER BY f.id DESC")
+    @Query("SELECT f FROM OrdreReparation f JOIN FETCH f.vehicule v LEFT JOIN FETCH v.client ORDER BY COALESCE(f.updatedAt, f.dateCreation) DESC, f.id DESC")
     List<OrdreReparation> findAllWithVehiculeAndClient();
 
     @Query("SELECT f FROM OrdreReparation f WHERE " +
@@ -26,7 +26,8 @@ public interface OrdreReparationRepository extends JpaRepository<OrdreReparation
             "LOWER(f.vehicule.marque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(f.vehicule.modele) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(f.vehicule.client.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(f.vehicule.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+            "LOWER(f.vehicule.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "ORDER BY COALESCE(f.updatedAt, f.dateCreation) DESC, f.id DESC")
     List<OrdreReparation> searchOrdresReparation(@Param("keyword") String keyword);
     List<OrdreReparation> findByVehiculeClientIdOrderByDateCreationDesc(Long clientId);
     List<OrdreReparation> findByVehiculeIdOrderByDateCreationDesc(Long vehiculeId);
@@ -45,7 +46,7 @@ public interface OrdreReparationRepository extends JpaRepository<OrdreReparation
     @Query("SELECT DISTINCT f FROM OrdreReparation f " +
             "LEFT JOIN f.diagnostic d LEFT JOIN f.techniciensReparation t2 " +
             "WHERE d.technicien.id = :technicienId OR t2.id = :technicienId " +
-            "ORDER BY f.dateCreation DESC")
+            "ORDER BY COALESCE(f.updatedAt, f.dateCreation) DESC, f.id DESC")
     List<OrdreReparation> findByTechnicienAssigne(@Param("technicienId") Long technicienId);
 
     @Query(value = "SELECT DISTINCT f FROM OrdreReparation f " +

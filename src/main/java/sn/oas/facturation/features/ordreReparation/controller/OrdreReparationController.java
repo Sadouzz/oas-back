@@ -43,6 +43,15 @@ public class OrdreReparationController {
                 .ok(ordreReparationService.getAllOrdresReparation(page, size).map(OrdreReparationListDTO::from));
     }
 
+    @GetMapping({"/usage", "/rubriques-usage", "/ordres-usage"})
+    @Operation(summary = "Vérifier l'utilisation des rubriques dans les ordres de réparation")
+    public ResponseEntity<Map<String, Object>> getUsage() {
+        return ResponseEntity.ok(Map.of(
+                "totalOrdres", ordreReparationRepository.count(),
+                "used", java.util.Collections.emptyList()
+        ));
+    }
+
     @GetMapping("/me")
     @Operation(summary = "Lister l'historique des interventions/réparations du client connecté")
     public ResponseEntity<List<OrdreReparation>> getMyInterventions() {

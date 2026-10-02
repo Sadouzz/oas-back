@@ -12,6 +12,7 @@ public record OrdreReparationListDTO(
                 String numero,
                 String descriptionTravaux,
                 LocalDateTime dateCreation,
+                LocalDateTime updatedAt,
                 LocalDateTime dateSortie,
                 StatutOrdreReparation statut,
                 VehiculeSummary vehicule,
@@ -70,6 +71,7 @@ public record OrdreReparationListDTO(
                                 .numero(o.getNumero())
                                 .descriptionTravaux(o.getDescriptionTravaux())
                                 .dateCreation(o.getDateCreation())
+                                .updatedAt(o.getUpdatedAt())
                                 .dateSortie(o.getDateSortie())
                                 .statut(o.getStatut())
                                 .vehicule(vehiculeSummary)

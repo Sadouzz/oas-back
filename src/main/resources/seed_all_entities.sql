@@ -158,9 +158,9 @@ SELECT setval(pg_get_serial_sequence('partenaire', 'id'), GREATEST((SELECT MAX(i
 -- 10. FICHE ATELIER CONFIGS
 INSERT INTO fiche_atelier_configs (id, garage_id, config_json)
 VALUES
-  (1, 1, '{"lignesReception": ["Roue de secours", "Cric et manivelle", "Poste radio", "Gilet et triangle", "Documents de bord", "Tapis de sol"], "defautsCarrosserie": ["Rayure porte AVG", "Impact pare-chocs AV", "Optique phare rayé"]}'),
-  (2, 2, '{"lignesReception": ["Roue de secours", "Cric et manivelle", "Poste radio", "Extincteur"], "defautsCarrosserie": ["Impact pare-brise", "Éraflure aile ARD"]}')
-ON CONFLICT (id) DO NOTHING;
+  (1, 1, '{"lignesReception": ["Carrosserie", "Intérieur / Habitacle", "Vitrage / Pare-brise", "Eclairage", "Accessoires (Cric, roue de secours...)"], "defautsConstates": ["Mécanique", "Électrique", "Climatisation", "Peinture", "Tôlerie"], "rubriquesDefauts": ["Mécanique", "Électrique", "Climatisation", "Peinture", "Tôlerie"], "lignesDefauts": ["Mécanique", "Électrique", "Climatisation", "Peinture", "Tôlerie"], "defautsCarrosserie": ["Mécanique", "Électrique", "Climatisation", "Peinture", "Tôlerie"]}'),
+  (2, 2, '{"lignesReception": ["Carrosserie", "Intérieur / Habitacle", "Vitrage / Pare-brise", "Eclairage", "Accessoires (Cric, roue de secours...)"], "defautsConstates": ["Mécanique", "Électrique", "Climatisation", "Peinture", "Tôlerie"], "rubriquesDefauts": ["Mécanique", "Électrique", "Climatisation", "Peinture", "Tôlerie"], "lignesDefauts": ["Mécanique", "Électrique", "Climatisation", "Peinture", "Tôlerie"], "defautsCarrosserie": ["Mécanique", "Électrique", "Climatisation", "Peinture", "Tôlerie"]}')
+ON CONFLICT (id) DO UPDATE SET config_json = EXCLUDED.config_json;
 SELECT setval(pg_get_serial_sequence('fiche_atelier_configs', 'id'), GREATEST((SELECT MAX(id) FROM fiche_atelier_configs), 10));
 
 -- 11. BONS DE COMMANDE

@@ -77,7 +77,7 @@ public class DevisPrevisionnelController {
         return ResponseEntity.ok(devisPrevisionnelService.getById(id));
     }
 
-    @Operation(summary = "Obtenir un devis par l'ID de la fiche atelier")
+    @Operation(summary = "Obtenir le dernier devis par l'ID de la fiche atelier")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Devis trouvé"),
             @ApiResponse(responseCode = "204", description = "Aucun devis lié à cette fiche atelier")
@@ -87,6 +87,20 @@ public class DevisPrevisionnelController {
         return devisPrevisionnelService.getByFicheAtelierId(ficheAtelierId)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.noContent().build());
+    }
+
+    @Operation(summary = "Lister tous les devis d'une fiche atelier")
+    @GetMapping("/fiche-atelier/{ficheAtelierId}/list")
+    public ResponseEntity<List<DevisPrevisionnelListResponse>> getListByFicheAtelierId(@PathVariable Long ficheAtelierId) {
+        return ResponseEntity.ok(devisPrevisionnelService.getListByFicheAtelierId(ficheAtelierId)
+                .stream().map(DevisPrevisionnelListResponse::from).toList());
+    }
+
+    @Operation(summary = "Lister tous les devis d'un ordre de réparation")
+    @GetMapping("/ordre-reparation/{ordreReparationId}")
+    public ResponseEntity<List<DevisPrevisionnelListResponse>> getByOrdreReparationId(@PathVariable Long ordreReparationId) {
+        return ResponseEntity.ok(devisPrevisionnelService.getByOrdreReparationId(ordreReparationId)
+                .stream().map(DevisPrevisionnelListResponse::from).toList());
     }
 
     @Operation(summary = "Lister les devis prévisionnels", description = "Retourne tous les devis. Filtrable par clientId, vehiculeId ou keyword, avec pagination.")
@@ -117,10 +131,13 @@ public class DevisPrevisionnelController {
     @Operation(summary = "Générer le PDF d'un devis prévisionnel")
     @GetMapping("/{id}/pdf")
     public ResponseEntity<byte[]> generatePdf(@PathVariable Long id) {
+        DevisPrevisionnel devis = devisPrevisionnelService.getById(id);
         byte[] pdfBytes = devisPrevisionnelService.generatePdf(id);
+        String numero = devis.getNumero() != null ? devis.getNumero() : String.valueOf(id);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
-        headers.setContentDispositionFormData("attachment", "Devis_" + id + ".pdf");
+        headers.set(HttpHeaders.CONTENT_DISPOSITION,
+                "inline; filename=\"Devis-" + numero + ".pdf\"");
         return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
     }
 

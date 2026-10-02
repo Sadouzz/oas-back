@@ -50,7 +50,7 @@ import java.util.List;
 @Order(1)
 public class DemoDataSeeder implements CommandLineRunner {
 
-    private static final String DEMO_PASSWORD = "Passer@2026";
+    private static final String DEMO_PASSWORD = "passer";
 
     private final GarageRepository garageRepository;
     private final AgentRepository agentRepository;
@@ -106,7 +106,18 @@ public class DemoDataSeeder implements CommandLineRunner {
                 "ALTER TABLE pieces_detachees ALTER COLUMN update_at DROP NOT NULL",
                 "ALTER TABLE pieces_detachees ALTER COLUMN update_at SET DEFAULT NOW()",
                 "ALTER TABLE pieces_detachees ALTER COLUMN updated_at DROP NOT NULL",
-                "ALTER TABLE pieces_detachees ALTER COLUMN updated_at SET DEFAULT NOW()"
+                "ALTER TABLE pieces_detachees ALTER COLUMN updated_at SET DEFAULT NOW()",
+                "ALTER TABLE devis_previsionnels ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()",
+                "ALTER TABLE devis_previsionnels ALTER COLUMN updated_at DROP NOT NULL",
+                "ALTER TABLE devis_previsionnels ALTER COLUMN updated_at SET DEFAULT NOW()",
+                "UPDATE devis_previsionnels SET updated_at = date_creation WHERE updated_at IS NULL",
+                "UPDATE ordres_reparation SET updated_at = date_creation WHERE updated_at IS NULL",
+                "UPDATE rendez_vous SET statut = 'TERMINE' WHERE id IN (SELECT rendez_vous_id FROM fiches_atelier WHERE rendez_vous_id IS NOT NULL)",
+                "UPDATE rendez_vous SET fiche_atelier_id = (SELECT f.id FROM fiches_atelier f WHERE f.rendez_vous_id = rendez_vous.id LIMIT 1) WHERE id IN (SELECT rendez_vous_id FROM fiches_atelier WHERE rendez_vous_id IS NOT NULL) AND fiche_atelier_id IS NULL",
+                "UPDATE fiches_atelier SET updated_at = created_at WHERE updated_at IS NULL",
+                "UPDATE fiches_atelier SET lignes_defauts = '[{\"nom\": \"Mécanique\", \"designation\": \"Diagnostic et révision moteur\", \"present\": true}, {\"nom\": \"Électrique\", \"designation\": \"Contrôle circuit de charge\", \"present\": true}, {\"nom\": \"Climatisation\", \"designation\": \"Contrôle climatiseur\", \"present\": true}, {\"nom\": \"Peinture\", \"designation\": \"Retouche peinture\", \"present\": true}, {\"nom\": \"Tôlerie\", \"designation\": \"Ajustement\", \"present\": true}, {\"nom\": \"Vidange\", \"designation\": \"Vidange moteur et filtre\", \"present\": true}]'::jsonb WHERE lignes_defauts IS NULL OR jsonb_array_length(lignes_defauts) <= 2",
+                "UPDATE fiches_atelier SET lignes_reception = '[{\"nom\": \"Carrosserie\", \"etat\": true}, {\"nom\": \"Intérieur / Habitacle\", \"etat\": true}, {\"nom\": \"Vitrage / Pare-brise\", \"etat\": true}, {\"nom\": \"Eclairage\", \"etat\": true}, {\"nom\": \"Accessoires (Cric, roue de secours...)\", \"etat\": true}]'::jsonb WHERE lignes_reception IS NULL OR jsonb_array_length(lignes_reception) <= 3",
+                "UPDATE fiche_atelier_configs SET config_json = '{\"lignesReception\": [{\"nom\": \"Carrosserie\", \"etat\": null, \"archive\": false}, {\"nom\": \"Intérieur / Habitacle\", \"etat\": null, \"archive\": false}, {\"nom\": \"Vitrage / Pare-brise\", \"etat\": null, \"archive\": false}, {\"nom\": \"Eclairage\", \"etat\": null, \"archive\": false}, {\"nom\": \"Accessoires (Cric, roue de secours...)\", \"etat\": null, \"archive\": false}], \"defautsConstates\": [{\"nom\": \"Mécanique\", \"designation\": \"\", \"archive\": false}, {\"nom\": \"Électrique\", \"designation\": \"\", \"archive\": false}, {\"nom\": \"Climatisation\", \"designation\": \"\", \"archive\": false}, {\"nom\": \"Peinture\", \"designation\": \"\", \"archive\": false}, {\"nom\": \"Tôlerie\", \"designation\": \"\", \"archive\": false}, {\"nom\": \"Vidange\", \"designation\": \"\", \"archive\": false}]}' WHERE config_json LIKE '%Roue de secours%' OR config_json IS NULL OR config_json = ''"
         };
         for (String sql : dropStatements) {
             try {

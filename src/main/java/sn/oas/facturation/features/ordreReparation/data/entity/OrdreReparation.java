@@ -10,6 +10,7 @@ import sn.oas.facturation.shared.tenant.TenantListener;
 import sn.oas.facturation.features.garage.data.entity.Garage;
 
 import sn.oas.facturation.features.bonDeSortie.data.entity.BonDeSortie;
+import sn.oas.facturation.features.devisPrevisionnel.data.entity.DevisPrevisionnel;
 import sn.oas.facturation.features.facturation.data.entity.Facturation;
 import sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier;
 import sn.oas.facturation.features.diagnostic.data.entity.Diagnostic;
@@ -120,6 +121,11 @@ public class OrdreReparation implements TenantAware  {
 
     @OneToMany(mappedBy = "ordreReparation", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
+    @JsonIgnoreProperties({"ordreReparation"})
+    private List<DevisPrevisionnel> devisPrevisionnels = new ArrayList<>();
+
+    @OneToMany(mappedBy = "ordreReparation", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
     @JsonIgnore 
     private List<Facturation> facturations = new ArrayList<>();
 
@@ -145,6 +151,11 @@ public class OrdreReparation implements TenantAware  {
         if (this.statut == null) {
             this.statut = StatutOrdreReparation.RECEPTION;
         }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 }
 

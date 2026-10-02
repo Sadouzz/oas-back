@@ -17,4 +17,5 @@ public interface FicheAtelierService {
     void delete(Long id);
     FicheAtelier signForExit(Long id, String signature);
     boolean existsByOrdreReparationId(Long ordreReparationId);
+    boolean isVehiculeEnReparationNonLivre(Long vehiculeId);
 }

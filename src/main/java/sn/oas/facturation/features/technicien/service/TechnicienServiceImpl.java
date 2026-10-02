@@ -12,6 +12,7 @@ import sn.oas.facturation.features.auth.service.AuthService;
 import sn.oas.facturation.features.garage.data.entity.Garage;
 import sn.oas.facturation.features.garage.repository.GarageRepository;
 import sn.oas.facturation.features.technicien.data.entity.Technicien;
+import sn.oas.facturation.features.technicien.data.enums.SpecialiteTechnicien;
 import sn.oas.facturation.features.technicien.dto.TechnicienRequest;
 import sn.oas.facturation.features.technicien.repository.TechnicienRepository;
 import sn.oas.facturation.features.user.data.entity.User;
@@ -35,13 +36,39 @@ public class TechnicienServiceImpl implements TechnicienService {
 
     @Override
     public Page<Technicien> getAllTechniciens(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        return technicienRepository.findAll(pageable);
+        return getAllTechniciens(null, null, page, size);
+    }
+
+    @Override
+    public Page<Technicien> getAllTechniciens(String keyword, SpecialiteTechnicien specialite, int page, int size) {
+        boolean hasKeyword = keyword != null && !keyword.trim().isEmpty();
+        boolean hasSpecialite = specialite != null;
+
+        if (hasKeyword && hasSpecialite) {
+            Pageable pageable = PageRequest.of(page, size, org.springframework.data.domain.Sort.by("id").descending());
+            return technicienRepository.searchTechniciensWithSpecialite(keyword.trim(), specialite, pageable);
+        } else if (hasSpecialite) {
+            Pageable pageable = PageRequest.of(page, size);
+            return technicienRepository.findBySpecialite(specialite, pageable);
+        } else if (hasKeyword) {
+            return searchTechniciens(keyword.trim(), page, size);
+        } else {
+            Pageable pageable = PageRequest.of(page, size);
+            return technicienRepository.findAll(pageable);
+        }
     }
 
     @Override
     public List<Technicien> getAllTechniciens() {
         return technicienRepository.findAll();
+    }
+
+    @Override
+    public List<Technicien> getAllTechniciens(SpecialiteTechnicien specialite) {
+        if (specialite == null) {
+            return technicienRepository.findAll();
+        }
+        return technicienRepository.findBySpecialite(specialite);
     }
 
     @Override

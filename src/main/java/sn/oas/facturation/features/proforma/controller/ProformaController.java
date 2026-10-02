@@ -108,10 +108,13 @@ public class ProformaController {
     @GetMapping("/{id}/pdf")
     @Operation(summary = "Générer le PDF d'un proforma")
     public ResponseEntity<byte[]> generatePdf(@PathVariable Long id) {
+        var proforma = proformaService.getById(id);
         byte[] pdfBytes = proformaService.generatePdf(id);
+        String numero = proforma.getNumero() != null ? proforma.getNumero() : String.valueOf(id);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
-        headers.setContentDispositionFormData("attachment", "Proforma_" + id + ".pdf");
+        headers.set(HttpHeaders.CONTENT_DISPOSITION,
+                "inline; filename=\"Proforma-" + numero + ".pdf\"");
         return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
     }
 
