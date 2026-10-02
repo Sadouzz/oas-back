@@ -482,6 +482,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                         : 0.0)
                 .lignesFacturationPieces(new ArrayList<>())
                 .lignesFacturationMainDoeuvres(new ArrayList<>())
+                .montantTimbre(BigDecimal.ZERO)
                 .build();
 
         BigDecimal montantHT = BigDecimal.ZERO;

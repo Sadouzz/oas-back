@@ -3,6 +3,8 @@ package sn.oas.facturation.features.devisPrevisionnel.service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import sn.oas.facturation.features.pdfGenerator.service.DevisPrevisionnelGenerator;
 import sn.oas.facturation.features.pdfGenerator.service.HtmlToPdfService;
 
 import sn.oas.facturation.features.auth.service.AuthService;
@@ -31,7 +33,7 @@ import sn.oas.facturation.features.garage.data.entity.Garage;
 import sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService;
 import sn.oas.facturation.shared.exception.BadRequestException;
 import sn.oas.facturation.shared.exception.ResourceNotFoundException;
-
+import sn.oas.facturation.features.notification.service.EmailService;
 import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.features.ordreReparation.repository.OrdreReparationRepository;
 
@@ -46,7 +48,8 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
     private final AuthService authService;
     private final UserService userService;
     private final DocumentNumberGeneratorService documentNumberGeneratorService;
-    private final sn.oas.facturation.features.pdfGenerator.service.DevisPrevisionnelGenerator devisPrevisionnelGenerator;
+    private final EmailService emailService;
+    private final DevisPrevisionnelGenerator devisPrevisionnelGenerator;
 
     @Transactional
     @Override
@@ -138,6 +141,19 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
             ficheAtelier.setDevisPrevisionnel(saved);
             ficheAtelierRepository.save(ficheAtelier);
         }
+
+        if (client.getEmail() != null && !client.getEmail().isEmpty()) {
+            byte[] pdfBytes = generatePdf(saved.getId());
+            emailService.sendEmailWithAttachment(
+                    client.getEmail(),
+                    "Votre devis prévisionnel",
+                    "<p>Bonjour,</p><p>Veuillez trouver ci-joint le devis prévisionnel <b>" + saved.getNumero() + "</b> pour votre véhicule " + vehicule.getImmatriculation() + ".</p><p>Cordialement.</p>",
+                    "devis_" + saved.getNumero() + ".pdf",
+                    pdfBytes,
+                    "application/pdf"
+            );
+        }
+
         return saved;
     }
 

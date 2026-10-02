@@ -1,0 +1,31 @@
+--- src/test/java/sn/oas/facturation/FacturationApplicationTests.java
++++ src/test/java/sn/oas/facturation/FacturationApplicationTests.java
+@@ -98,16 +98,18 @@
+ 	@Test
+ 	@org.springframework.transaction.annotation.Transactional
+ 	void testReceptionAndUpdateStock() {
+-		Long bcId = jdbcTemplate.queryForObject("SELECT id FROM bons_de_commande LIMIT 1", Long.class);
+-		Long pieceId = jdbcTemplate.queryForObject("SELECT piece_id FROM lignes_facturation_piece WHERE facturation_id = ? LIMIT 1", Long.class, bcId);
+-		Long ligneId = jdbcTemplate.queryForObject("SELECT id FROM lignes_facturation_piece WHERE facturation_id = ? AND piece_id = ? LIMIT 1", Long.class, bcId, pieceId);
+-
+-		// 1. Reset database state for BC 13 and piece 1
+-		// jdbcTemplate.execute("DELETE FROM lignes_facturation_piece WHERE piece_id = " + pieceId);
+-		jdbcTemplate.execute("DELETE FROM bons_de_reception WHERE bon_de_commande_id = " + bcId);
+-		jdbcTemplate.execute("DELETE FROM stock_mouvements WHERE piece_id = " + pieceId + " AND type = 'ENTREE'");
+-		jdbcTemplate.execute("UPDATE bons_de_commande SET statut = 'ENVOYE' WHERE id = " + bcId);
+-		jdbcTemplate.execute("UPDATE pieces_detachees SET stock_magasin = 0, stock_atelier = 30, qte_reelle = 30 WHERE id = " + pieceId);
++		// Insert a mock BonDeCommande and Piece
++		jdbcTemplate.execute("INSERT INTO bons_de_commande (id, numero, date_creation, statut) VALUES (13, 'BC-001', CURRENT_DATE, 'ENVOYE') ON CONFLICT DO NOTHING");
++		jdbcTemplate.execute("UPDATE bons_de_commande SET statut = 'ENVOYE' WHERE id = 13");
++		
++		jdbcTemplate.execute("INSERT INTO pieces_detachees (id, type_piece, designation, reference, stock_magasin, stock_atelier, qte_reelle) VALUES (1, 'PDP', 'Piece 1', 'REF-001', 0, 30, 30) ON CONFLICT DO NOTHING");
++		jdbcTemplate.execute("UPDATE pieces_detachees SET stock_magasin = 0, stock_atelier = 30, qte_reelle = 30 WHERE id = 1");
++		
++		jdbcTemplate.execute("INSERT INTO lignes_facturation_piece (id, type_ligne, facturation_id, piece_id, quantite, prix) VALUES (16, 'LigneBonDeCommande', 13, 1, 210, 100) ON CONFLICT DO NOTHING");
++		
++		Long bcId = 13L;
++		Long pieceId = 1L;
++		Long ligneId = 16L;
+ 
+ 		// Find an agent in the database to authenticate
+ 		String agentUsername = jdbcTemplate.queryForObject(

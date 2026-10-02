@@ -7,7 +7,10 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 
 //@EnableCaching
+import org.springframework.scheduling.annotation.EnableAsync;
+
 @SpringBootApplication
+@EnableAsync
 public class FacturationApplication {
 
 	public static void main(String[] args) {

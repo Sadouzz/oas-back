@@ -31,7 +31,7 @@ class PieceDetacheControllerIntegrationTest {
                         .content("""
                                 {
                                   "type": "PDP",
-                                  "numeroDeSerie": "SN-PDP-TEST-001",
+                                  "designation": "SN-PDP-TEST-001",
                                   "reference": "REF-PDP-001",
                                   "categorie": "Freinage",
                                   "pourcentage": 12.5,
@@ -41,10 +41,10 @@ class PieceDetacheControllerIntegrationTest {
                                 }
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.numeroDeSerie").value("SN-PDP-TEST-001"))
-                .andExpect(jsonPath("$.qteReelle").value(50))
-                .andExpect(jsonPath("$.stockAtelier").value(0))
-                .andExpect(jsonPath("$.type").value("PDP"));
+                .andExpect(jsonPath("$.data.designation").value("SN-PDP-TEST-001"))
+                .andExpect(jsonPath("$.data.qteReelle").value(50))
+                .andExpect(jsonPath("$.data.stockAtelier").value(0))
+                .andExpect(jsonPath("$.data.type").value("PDP"));
     }
 
     @Test
@@ -56,19 +56,19 @@ class PieceDetacheControllerIntegrationTest {
                         .with(user("agent@test.sn").roles("AGENT"))
                         .param("type", "PDG"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(greaterThanOrEqualTo(1))))
-                .andExpect(jsonPath("$[*].type", everyItem(is("PDG"))));
+                .andExpect(jsonPath("$.data.content", hasSize(greaterThanOrEqualTo(1))))
+                .andExpect(jsonPath("$.data.content[*].type", everyItem(is("PDG"))));
     }
 
     @Test
-    void searchByKeyword_findsByCategorie() throws Exception {
+    void searchByKeyword_findsByDesignation() throws Exception {
         createPdgViaApi("SN-SEARCH-001", "REF-S1", "Transmission");
 
         mockMvc.perform(get("/api/pieces-detachees")
                         .with(user("agent@test.sn").roles("AGENT"))
-                        .param("keyword", "transmis"))
+                        .param("keyword", "SEARCH"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[*].categorie", hasItem(containsStringIgnoringCase("transmis"))));
+                .andExpect(jsonPath("$.data.content[*].designation", hasItem(containsStringIgnoringCase("SEARCH"))));
     }
 
     @Test
@@ -78,14 +78,14 @@ class PieceDetacheControllerIntegrationTest {
                         .content("""
                                 {
                                   "type": "PDG",
-                                  "numeroDeSerie": "SN-NO-AUTH",
+                                  "designation": "SN-NO-AUTH",
                                   "reference": "REF-NA",
                                   "categorie": "Test",
                                   "pourcentage": 1.0,
                                   "statut": "ACTIF"
                                 }
                                 """))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     private void createPdgViaApi(String numeroSerie, String reference, String categorie) throws Exception {
@@ -95,7 +95,7 @@ class PieceDetacheControllerIntegrationTest {
                         .content("""
                                 {
                                   "type": "PDG",
-                                  "numeroDeSerie": "%s",
+                                  "designation": "%s",
                                   "reference": "%s",
                                   "categorie": "%s",
                                   "pourcentage": 8.0,
