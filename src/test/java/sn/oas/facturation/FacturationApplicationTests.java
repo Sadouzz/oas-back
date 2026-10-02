@@ -61,7 +61,7 @@ class FacturationApplicationTests {
 
 		// 4. Bon de livraison linked to BC 13
 		List<Map<String, Object>> bls = jdbcTemplate.queryForList(
-				"SELECT id, numero, montant_total, statut FROM bons_de_livraison WHERE bon_de_commande_id = 13");
+				"SELECT id, numero, montant_total, statut FROM bons_de_reception WHERE bon_de_commande_id = 13");
 		for (Map<String, Object> bl : bls) {
 			System.out.println("BL: id=" + bl.get("id") + ", numero=" + bl.get("numero") + 
 					", total=" + bl.get("montant_total") + ", statut=" + bl.get("statut"));
@@ -98,12 +98,18 @@ class FacturationApplicationTests {
 	@Test
 	@org.springframework.transaction.annotation.Transactional
 	void testReceptionAndUpdateStock() {
-		// 1. Reset database state for BC 13 and piece 1
-		jdbcTemplate.execute("DELETE FROM lignes_facturation_piece WHERE piece_id = 1");
-		jdbcTemplate.execute("DELETE FROM bons_de_livraison WHERE bon_de_commande_id = 13");
-		jdbcTemplate.execute("DELETE FROM stock_mouvements WHERE piece_id = 1 AND type = 'ENTREE'");
+		// Insert a mock BonDeCommande and Piece
+		jdbcTemplate.execute("INSERT INTO bons_de_commande (id, numero, date_commande, statut) VALUES (13, 'BC-001', CURRENT_DATE, 'ENVOYE') ON CONFLICT DO NOTHING");
 		jdbcTemplate.execute("UPDATE bons_de_commande SET statut = 'ENVOYE' WHERE id = 13");
+		
+		jdbcTemplate.execute("INSERT INTO pieces_detachees (id, type_piece, designation, reference, numero_serie, statut, stock_magasin, stock_atelier, qte_reelle, created_at, deleted) VALUES (1, 'PDP', 'Piece 1', 'REF-001', 'NS-001', 'ACTIF', 0, 30, 30, CURRENT_TIMESTAMP, false) ON CONFLICT DO NOTHING");
 		jdbcTemplate.execute("UPDATE pieces_detachees SET stock_magasin = 0, stock_atelier = 30, qte_reelle = 30 WHERE id = 1");
+		
+		jdbcTemplate.execute("INSERT INTO Ligne_Bon_De_Commande (id, bon_commande_id, piece_detachee_id, quantite, prix_unitaire, quantite_recue) VALUES (16, 13, 1, 210, 100, 0) ON CONFLICT DO NOTHING");
+		
+		Long bcId = 13L;
+		Long pieceId = 1L;
+		Long ligneId = 16L;
 
 		// Find an agent in the database to authenticate
 		String agentUsername = jdbcTemplate.queryForObject(
@@ -119,15 +125,15 @@ class FacturationApplicationTests {
 		// 2. Execute reception
 		ReceptionBonDeCommandeRequest request = new ReceptionBonDeCommandeRequest();
 		ReceptionBonDeCommandeRequest.LigneReception ligne = new ReceptionBonDeCommandeRequest.LigneReception();
-		ligne.setLigneId(16L); // ligne_bon_de_commande id for piece_id=1
+		ligne.setLigneId(ligneId); // ligne_bon_de_commande id for piece_id=1
 		ligne.setQuantiteRecue(210); // user requested: "j'avais commandé 210 articles... stock devait devenir 240"
 		request.setLignes(java.util.List.of(ligne));
 
 		System.out.println("====== EXECUTING TEST RECEPTION ======");
-		bonDeCommandeService.receptionnerAvecQuantites(13L, request);
+		bonDeCommandeService.receptionnerAvecQuantites(bcId, request);
 
 		// 3. Assert and verify
-		PieceDetache piece = pieceDetacheRepository.findById(1L).orElseThrow();
+		PieceDetache piece = pieceDetacheRepository.findById(pieceId).orElseThrow();
 		piece = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
 		org.junit.jupiter.api.Assertions.assertTrue(piece instanceof PDP);
 		PDP pdp = (PDP) piece;

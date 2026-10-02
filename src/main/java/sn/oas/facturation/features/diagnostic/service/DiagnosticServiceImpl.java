@@ -30,9 +30,22 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.io.ByteArrayOutputStream;
+
+import com.lowagie.text.Document;
+import com.lowagie.text.Element;
+import com.lowagie.text.Font;
+import com.lowagie.text.FontFactory;
+import com.lowagie.text.Paragraph;
+
+import com.lowagie.text.pdf.PdfWriter;
+import sn.oas.facturation.features.notification.service.EmailService;
+import lombok.extern.slf4j.Slf4j;
+
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DiagnosticServiceImpl implements DiagnosticService {
 
     private final DiagnosticRepository diagnosticRepository;
@@ -40,6 +53,7 @@ public class DiagnosticServiceImpl implements DiagnosticService {
     private final TechnicienRepository technicienRepository;
     private final PieceJointeDiagnosticRepository pieceJointeDiagnosticRepository;
     private final RemarqueDiagnosticRepository remarqueDiagnosticRepository;
+    private final EmailService emailService;
 
     @Override
     @Transactional
@@ -116,6 +130,21 @@ public class DiagnosticServiceImpl implements DiagnosticService {
                             .build();
                     remarqueDiagnosticRepository.save(rem);
                 }
+            }
+        }
+
+        if (ordreReparation.getVehicule() != null && ordreReparation.getVehicule().getClient() != null) {
+            String clientEmail = ordreReparation.getVehicule().getClient().getEmail();
+            if (clientEmail != null && !clientEmail.isEmpty()) {
+                byte[] pdfBytes = generatePdf(saved.getId());
+                emailService.sendEmailWithAttachment(
+                        clientEmail,
+                        "Fiche de Diagnostic - " + ordreReparation.getVehicule().getImmatriculation(),
+                        "Bonjour, \n\nVeuillez trouver ci-joint la fiche de diagnostic de votre véhicule.",
+                        "Diagnostic_" + saved.getId() + ".pdf",
+                        pdfBytes,
+                        "application/pdf"
+                );
             }
         }
 
@@ -287,6 +316,21 @@ public class DiagnosticServiceImpl implements DiagnosticService {
             }
         }
 
+        if (ordreReparation.getVehicule() != null && ordreReparation.getVehicule().getClient() != null) {
+            String clientEmail = ordreReparation.getVehicule().getClient().getEmail();
+            if (clientEmail != null && !clientEmail.isEmpty()) {
+                byte[] pdfBytes = generatePdf(saved.getId());
+                emailService.sendEmailWithAttachment(
+                        clientEmail,
+                        "Fiche de Diagnostic - " + ordreReparation.getVehicule().getImmatriculation(),
+                        "Bonjour, \n\nVeuillez trouver ci-joint la fiche de diagnostic de votre véhicule.",
+                        "Diagnostic_" + saved.getId() + ".pdf",
+                        pdfBytes,
+                        "application/pdf"
+                );
+            }
+        }
+
         return toDiagnosticResponse(saved);
     }
 
@@ -356,6 +400,64 @@ public class DiagnosticServiceImpl implements DiagnosticService {
         RemarqueDiagnostic rem = remarqueDiagnosticRepository.findById(remarqueId)
                 .orElseThrow(() -> new RuntimeException("Remarque non trouvée avec l'id : " + remarqueId));
         remarqueDiagnosticRepository.delete(rem);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] generatePdf(Long id) {
+        Diagnostic diagnostic = diagnosticRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Diagnostic non trouvé avec l'id : " + id));
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        Document document = new Document();
+
+        try {
+            PdfWriter.getInstance(document, baos);
+            document.open();
+
+            Font fontTitre = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18);
+            Font fontSousTitre = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12);
+            Font fontTexte = FontFactory.getFont(FontFactory.HELVETICA, 10);
+
+            Paragraph titre = new Paragraph("FICHE DE DIAGNOSTIC", fontTitre);
+            titre.setAlignment(Element.ALIGN_CENTER);
+            titre.setSpacingAfter(20);
+            document.add(titre);
+
+            if (diagnostic.getOrdreReparation() != null && diagnostic.getOrdreReparation().getVehicule() != null) {
+                Vehicule v = diagnostic.getOrdreReparation().getVehicule();
+                document.add(new Paragraph("Véhicule : " + v.getMarque() + " " + v.getModele() + " (" + v.getImmatriculation() + ")", fontSousTitre));
+            }
+            
+            document.add(new Paragraph("Kilométrage : " + (diagnostic.getKilometrage() != null ? diagnostic.getKilometrage() : "Non renseigné"), fontTexte));
+            document.add(new Paragraph("Date : " + diagnostic.getDateDebut(), fontTexte));
+            
+            if (diagnostic.getTechnicien() != null) {
+                document.add(new Paragraph("Technicien : " + formatTechnicienNom(diagnostic.getTechnicien()), fontTexte));
+            }
+
+            document.add(new Paragraph(" "));
+            
+            document.add(new Paragraph("Pannes Détectées :", fontSousTitre));
+            document.add(new Paragraph(diagnostic.getPannesDetectees() != null ? diagnostic.getPannesDetectees() : "Aucune", fontTexte));
+            document.add(new Paragraph(" "));
+
+            document.add(new Paragraph("Observations :", fontSousTitre));
+            document.add(new Paragraph(diagnostic.getObservations() != null ? diagnostic.getObservations() : "Aucune", fontTexte));
+            document.add(new Paragraph(" "));
+
+            document.add(new Paragraph("Recommandations :", fontSousTitre));
+            document.add(new Paragraph(diagnostic.getRecommandations() != null ? diagnostic.getRecommandations() : "Aucune", fontTexte));
+            document.add(new Paragraph(" "));
+
+        } catch (Exception e) {
+            log.error("Erreur lors de la génération du PDF", e);
+            throw new RuntimeException("Erreur lors de la génération du PDF", e);
+        } finally {
+            document.close();
+        }
+
+        return baos.toByteArray();
     }
 
     public DiagnosticListResponse toDiagnosticListResponse(Diagnostic d) {

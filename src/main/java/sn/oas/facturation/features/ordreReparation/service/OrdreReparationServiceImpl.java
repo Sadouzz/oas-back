@@ -76,6 +76,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     private final PieceDetacheRepository pieceDetacheRepository;
     private final MainDoeuvreRepository mainDoeuvreRepository;
     private final AgentNotificationService agentNotificationService;
+    private final sn.oas.facturation.features.notification.service.EmailService emailService;
     private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
     private final DiagnosticRepository diagnosticRepository;
     private final PieceJointeDiagnosticRepository pieceJointeDiagnosticRepository;
@@ -157,11 +158,24 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             }
         }
 
-        OrdreReparation saved = ordreReparationRepository.save(ordreReparation);
+        OrdreReparation savedOrdre = ordreReparationRepository.save(ordreReparation);
+
         agentNotificationService.notifyRole(sn.oas.facturation.features.user.data.enums.Role.CHEF_ATELIER,
                 "Nouvel Ordre de Réparation",
-                "Un nouvel ordre de réparation (" + saved.getNumero() + ") a été créé.");
-        return saved;
+                "Un nouvel ordre de réparation (" + savedOrdre.getNumero() + ") a été créé.");
+        
+        if (savedOrdre.getVehicule() != null && savedOrdre.getVehicule().getClient() != null) {
+            String clientEmail = savedOrdre.getVehicule().getClient().getEmail();
+            if (clientEmail != null && !clientEmail.isEmpty()) {
+                emailService.sendHtmlEmail(
+                        clientEmail,
+                        "Création de votre Ordre de Réparation",
+                        "<p>Bonjour,</p><p>Nous vous informons de la création de l'ordre de réparation <b>" + savedOrdre.getNumero() + "</b> pour votre véhicule " + savedOrdre.getVehicule().getImmatriculation() + ".</p><p>Cordialement.</p>"
+                );
+            }
+        }
+
+        return savedOrdre;
     }
 
     @Override
@@ -487,6 +501,17 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             agentNotificationService.notifyRole(Role.AGENT_MAGASIN,
                     "Pièces en attente pour " + savedFiche.getNumero(),
                     "La fiche " + savedFiche.getNumero() + " est passée en " + newStatut + ".");
+        } else if (newStatut == StatutOrdreReparation.PRET_A_LIVRER) {
+            if (savedFiche.getVehicule() != null && savedFiche.getVehicule().getClient() != null) {
+                String clientEmail = savedFiche.getVehicule().getClient().getEmail();
+                if (clientEmail != null && !clientEmail.isEmpty()) {
+                    emailService.sendHtmlEmail(
+                            clientEmail,
+                            "Votre véhicule est prêt",
+                            "<p>Bonjour,</p><p>Toutes les réparations sont terminées. Vous pouvez venir récupérer votre véhicule " + savedFiche.getVehicule().getImmatriculation() + ".</p><p>Cordialement.</p>"
+                    );
+                }
+            }
         }
 
         return savedFiche;
@@ -709,13 +734,24 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 .statut(StatutOrdreReparation.RECEPTION)
                 .build();
 
-        OrdreReparation saved = ordreReparationRepository.save(ordreReparation);
+        OrdreReparation savedOrdre = ordreReparationRepository.save(ordreReparation);
+        
+        if (savedOrdre.getVehicule() != null && savedOrdre.getVehicule().getClient() != null) {
+            String clientEmail = savedOrdre.getVehicule().getClient().getEmail();
+            if (clientEmail != null && !clientEmail.isEmpty()) {
+                emailService.sendHtmlEmail(
+                        clientEmail,
+                        "Création de votre Ordre de Réparation",
+                        "<p>Bonjour,</p><p>Nous vous informons de la création de l'ordre de réparation <b>" + savedOrdre.getNumero() + "</b> pour votre véhicule " + savedOrdre.getVehicule().getImmatriculation() + ".</p><p>Cordialement.</p>"
+                );
+            }
+        }
 
         // Lier les éventuels devis existants de la fiche atelier à ce nouvel ordre de réparation
         if (devisList != null) {
             for (DevisPrevisionnel d : devisList) {
                 if (d.getOrdreReparation() == null) {
-                    d.setOrdreReparation(saved);
+                    d.setOrdreReparation(savedOrdre);
                     devisPrevisionnelRepository.save(d);
                 }
             }
@@ -723,9 +759,9 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
 
         agentNotificationService.notifyRole(sn.oas.facturation.features.user.data.enums.Role.CHEF_ATELIER,
                 "Nouvel Ordre de Réparation",
-                "L'ordre de réparation (" + saved.getNumero() + ") a été généré depuis une fiche atelier.");
+                "L'ordre de réparation (" + savedOrdre.getNumero() + ") a été généré depuis une fiche atelier.");
 
-        return saved;
+        return savedOrdre;
     }
 
     /**

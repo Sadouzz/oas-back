@@ -8,7 +8,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.oas.facturation.features.pdfGenerator.service.HtmlToPdfService;
-
+import sn.oas.facturation.features.pdfGenerator.service.ProformaGenerator;
 import sn.oas.facturation.features.auth.service.AuthService;
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.repository.ClientRepository;
@@ -35,6 +35,8 @@ import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.features.ordreReparation.repository.OrdreReparationRepository;
 import sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation;
 import sn.oas.facturation.features.notification.service.AgentNotificationService;
+import sn.oas.facturation.features.notification.service.EmailService;
+import sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService;
 import sn.oas.facturation.shared.exception.ResourceNotFoundException;
 
 import java.math.BigDecimal;
@@ -63,8 +65,9 @@ public class ProformaServiceImpl implements ProformaService {
     private final OrdreReparationRepository ordreReparationRepository;
     private final AuthService authService;
     private final AgentNotificationService agentNotificationService;
-    private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
-    private final sn.oas.facturation.features.pdfGenerator.service.ProformaGenerator proformaGenerator;
+    private final DocumentNumberGeneratorService documentNumberGeneratorService;
+    private final EmailService emailService;
+    private final ProformaGenerator proformaGenerator;
     @Override
     @Transactional
     public Proforma create(ProformaCreateRequest request) {
@@ -257,6 +260,21 @@ public class ProformaServiceImpl implements ProformaService {
         agentNotificationService.notifyRole(Role.AGENT, 
             "Nouveau Proforma", 
             "Le proforma " + saved.getNumero() + " a été généré et est en attente.");
+
+        if (ordreReparation != null && ordreReparation.getVehicule() != null && ordreReparation.getVehicule().getClient() != null) {
+            String clientEmail = ordreReparation.getVehicule().getClient().getEmail();
+            if (clientEmail != null && !clientEmail.isEmpty()) {
+                byte[] pdfBytes = generatePdf(saved.getId());
+                emailService.sendEmailWithAttachment(
+                        clientEmail,
+                        "Validation requise pour votre Proforma",
+                        "Bonjour,\n\nVotre proforma numéro " + saved.getNumero() + " vient d'être créé.\nMerci d'en prendre connaissance et de nous faire un retour pour validation.\n\nCordialement.",
+                        "Proforma_" + saved.getNumero() + ".pdf",
+                        pdfBytes,
+                        "application/pdf"
+                );
+            }
+        }
 
         return saved;
     }
@@ -472,7 +490,24 @@ public class ProformaServiceImpl implements ProformaService {
                 .orElseThrow(() -> new ResourceNotFoundException("Proforma non trouvé avec l'id : " + id));
 
         proforma.setVisibleClient(true);
-        return proformaRepository.save(proforma);
+        Proforma saved = proformaRepository.save(proforma);
+
+        if (saved.getOrdreReparation() != null && saved.getOrdreReparation().getVehicule() != null && saved.getOrdreReparation().getVehicule().getClient() != null) {
+            String email = saved.getOrdreReparation().getVehicule().getClient().getEmail();
+            if (email != null && !email.isEmpty()) {
+                byte[] pdfBytes = generatePdf(saved.getId());
+                emailService.sendEmailWithAttachment(
+                        email,
+                        "Validation de votre proforma",
+                        "<p>Bonjour,</p><p>Votre proforma <b>" + saved.getNumero() + "</b> a été créé. Veuillez le trouver en pièce jointe et le valider depuis votre espace.</p><p>Cordialement.</p>",
+                        "proforma_" + saved.getNumero() + ".pdf",
+                        pdfBytes,
+                        "application/pdf"
+                );
+            }
+        }
+
+        return saved;
     }
 
     @Override

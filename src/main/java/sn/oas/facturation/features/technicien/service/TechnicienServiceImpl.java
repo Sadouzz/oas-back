@@ -100,6 +100,7 @@ public class TechnicienServiceImpl implements TechnicienService {
                 request.getLastName(),
                 request.getEmail(),
                 request.getPassword(),
+                request.getPassword(), // confirmPassword
                 TypeUser.TECHNICIEN,
                 null,
                 request.getGarageId(),
