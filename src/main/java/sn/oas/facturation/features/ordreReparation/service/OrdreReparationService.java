@@ -13,6 +13,7 @@ import sn.oas.facturation.features.diagnostic.dto.PieceJointeDiagnosticRequest;
 import sn.oas.facturation.features.diagnostic.dto.PieceJointeDiagnosticResponse;
 import sn.oas.facturation.features.diagnostic.dto.RemarqueDiagnosticResponse;
 import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationLightDTO;
+import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationResponseDTO;
 import sn.oas.facturation.features.technicien.data.entity.Technicien;
 
 public interface OrdreReparationService {
@@ -20,6 +21,7 @@ public interface OrdreReparationService {
     Page<OrdreReparation> getAllOrdresReparation(int page, int size);
     List<OrdreReparationLightDTO> getAllOrdresReparation();
     Optional<OrdreReparation> getOrdreReparationById(Long id);
+    OrdreReparationResponseDTO getOrdreReparationResponseById(Long id);
     OrdreReparation updateOrdreReparation(Long id, OrdreReparationRequest request);
     void deleteOrdreReparation(Long id);
     void assignTechnicien(Long ficheId, Long technicienId);
