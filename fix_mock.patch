@@ -1,0 +1,20 @@
+--- src/test/java/sn/oas/facturation/piecedetache/service/PieceDetacheServiceTest.java
++++ src/test/java/sn/oas/facturation/piecedetache/service/PieceDetacheServiceTest.java
+@@ -10,6 +10,7 @@
+ import org.mockito.InjectMocks;
+ import org.mockito.Mock;
+ import org.mockito.junit.jupiter.MockitoExtension;
++import sn.oas.facturation.features.categorie_pieces.repository.CategorieRepository;
+ import sn.oas.facturation.features.piecedetache.data.entity.PDG;
+ import sn.oas.facturation.features.piecedetache.dto.PieceDetacheCreateRequest;
+ import sn.oas.facturation.features.piecedetache.repository.PieceDetacheRepository;
+@@ -28,6 +29,9 @@
+     @Mock
+     private sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
+ 
++    @Mock
++    private CategorieRepository categorieRepository;
++
+     @InjectMocks
+     private PieceDetacheServiceImpl pieceDetacheService;
+ 

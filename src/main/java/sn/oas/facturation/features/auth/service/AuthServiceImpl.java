@@ -126,6 +126,9 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void register(RegisterRequest request) {
+        if (request.password() == null || request.confirmPassword() == null || !request.password().equals(request.confirmPassword())) {
+            throw new IllegalArgumentException("Le mot de passe et la confirmation ne correspondent pas.");
+        }
         if (userService.existsByUsername(request.username())) {
             throw new IllegalArgumentException("Username already in use: " + request.username());
         }

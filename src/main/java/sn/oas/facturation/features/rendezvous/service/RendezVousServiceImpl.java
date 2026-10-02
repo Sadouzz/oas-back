@@ -14,9 +14,7 @@ import sn.oas.facturation.features.garage.data.entity.Garage;
 import sn.oas.facturation.features.garage.repository.GarageRepository;
 import sn.oas.facturation.features.notification.service.NotificationService;
 import sn.oas.facturation.features.notification.service.EmailService;
-import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation;
-import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationRequest;
 import sn.oas.facturation.features.ordreReparation.service.OrdreReparationService;
 import sn.oas.facturation.features.rendezvous.data.entity.RendezVous;
 import sn.oas.facturation.features.rendezvous.data.enums.RendezVousStatus;
@@ -193,6 +191,9 @@ public class RendezVousServiceImpl implements RendezVousService {
         if (!rv.getClient().getId().equals(client.getId())) {
             throw new ForbiddenException("Accès non autorisé à ce rendez-vous");
         }
+        if (rv.getFicheAtelier() != null) {
+            throw new BadRequestException("Impossible d'annuler le rendez-vous : une fiche d'atelier a déjà été créée.");
+        }
         rv.setStatut(RendezVousStatus.ANNULE);
         rendezvousRepository.save(rv);
 
@@ -273,6 +274,11 @@ public class RendezVousServiceImpl implements RendezVousService {
     public RendezVous updateRendezVousStatus(Long id, RendezVousStatus status, String commentaire) {
         RendezVous rv = rendezvousRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Rendez-vous non trouvé avec l'identifiant " + id));
+        
+        if (status == RendezVousStatus.ANNULE && rv.getFicheAtelier() != null) {
+            throw new BadRequestException("Impossible d'annuler le rendez-vous : une fiche d'atelier a déjà été créée.");
+        }
+        
         rv.setStatut(status);
         if (commentaire != null) {
             rv.setCommentaire(commentaire);
