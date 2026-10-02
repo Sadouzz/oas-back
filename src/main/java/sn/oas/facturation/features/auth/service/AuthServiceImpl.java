@@ -22,6 +22,7 @@ import sn.oas.facturation.features.client.repository.ClientRepository;
 import sn.oas.facturation.features.connectionHistory.service.ConnectionHistoryService;
 import sn.oas.facturation.features.garage.data.entity.Garage;
 import sn.oas.facturation.features.garage.repository.GarageRepository;
+import sn.oas.facturation.features.notification.service.EmailService;
 import sn.oas.facturation.features.technicien.data.entity.Technicien;
 import sn.oas.facturation.features.user.data.entity.Agent;
 import sn.oas.facturation.features.user.data.entity.User;
@@ -44,6 +45,7 @@ public class AuthServiceImpl implements AuthService {
     private final ClientRepository clientRepository;
     private final GarageRepository garageRepository;
     private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
+    private final EmailService emailService;
 
     @Override
     public AuthResponse login(LoginRequest request) {
@@ -73,6 +75,11 @@ public class AuthServiceImpl implements AuthService {
             } else if (user instanceof sn.oas.facturation.features.technicien.data.entity.Technicien technicien && technicien.getGarage() != null) {
                 garageId = technicien.getGarage().getId();
                 garageName = technicien.getGarage().getNom();
+            }
+            
+            if (user != null && user.getEmail() != null) {
+                emailService.sendSimpleEmail(user.getEmail(), "Nouvelle connexion à votre compte OAS",
+                        "Bonjour " + user.getFirstName() + ",\n\nUne nouvelle connexion à votre compte a été détectée depuis l'adresse IP " + ip + ".\nSi ce n'est pas vous, veuillez contacter le support immédiatement.");
             }
             
             return AuthResponse.of(accessToken, refreshToken, userDetails.getUsername(), role, garageId, garageName);
@@ -237,6 +244,11 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalArgumentException("Type d'utilisateur non reconnu");
         }
         userService.saveUser(user);
+        
+        if (request.email() != null && !request.email().isEmpty()) {
+            emailService.sendSimpleEmail(request.email(), "Bienvenue chez Orient Auto Service",
+                    "Bonjour " + request.firstName() + ",\n\nVotre compte a été créé avec succès.\nVous pouvez dès maintenant vous connecter à votre espace client pour prendre rendez-vous et suivre l'entretien de votre véhicule.\n\nÀ très bientôt !");
+        }
     }
 
     private static final java.util.Set<Role> ROLES_AUTORISES_CREATION_TECHNICIEN =

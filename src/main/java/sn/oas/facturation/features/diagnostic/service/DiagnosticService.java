@@ -36,4 +36,6 @@ public interface DiagnosticService {
     RemarqueDiagnosticResponse addRemarque(Long diagnosticId, String contenu, Long technicienId);
 
     void deleteRemarque(Long remarqueId);
+
+    byte[] generatePdf(Long id);
 }

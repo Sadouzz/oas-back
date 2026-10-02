@@ -69,6 +69,7 @@ public class ProformaServiceImpl implements ProformaService {
     private final AuthService authService;
     private final AgentNotificationService agentNotificationService;
     private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
+    private final sn.oas.facturation.features.notification.service.EmailService emailService;
 
     @Override
     @Transactional
@@ -477,7 +478,24 @@ public class ProformaServiceImpl implements ProformaService {
                 .orElseThrow(() -> new ResourceNotFoundException("Proforma non trouvé avec l'id : " + id));
 
         proforma.setVisibleClient(true);
-        return proformaRepository.save(proforma);
+        Proforma saved = proformaRepository.save(proforma);
+
+        if (saved.getOrdreReparation() != null && saved.getOrdreReparation().getVehicule() != null && saved.getOrdreReparation().getVehicule().getClient() != null) {
+            String email = saved.getOrdreReparation().getVehicule().getClient().getEmail();
+            if (email != null && !email.isEmpty()) {
+                byte[] pdfBytes = generatePdf(saved.getId());
+                emailService.sendEmailWithAttachment(
+                        email,
+                        "Validation de votre proforma",
+                        "<p>Bonjour,</p><p>Votre proforma <b>" + saved.getNumero() + "</b> a été créé. Veuillez le trouver en pièce jointe et le valider depuis votre espace.</p><p>Cordialement.</p>",
+                        "proforma_" + saved.getNumero() + ".pdf",
+                        pdfBytes,
+                        "application/pdf"
+                );
+            }
+        }
+
+        return saved;
     }
 
     @Override

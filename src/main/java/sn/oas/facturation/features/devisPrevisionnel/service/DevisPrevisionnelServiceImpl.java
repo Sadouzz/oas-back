@@ -40,6 +40,7 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
     private final AuthService authService;
     private final UserService userService;
     private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
+    private final sn.oas.facturation.features.notification.service.EmailService emailService;
 
     @Transactional
     @Override
@@ -74,6 +75,19 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
             ficheAtelier.setDevisPrevisionnel(saved);
             ficheAtelierRepository.save(ficheAtelier);
         }
+
+        if (client.getEmail() != null && !client.getEmail().isEmpty()) {
+            byte[] pdfBytes = generatePdf(saved.getId());
+            emailService.sendEmailWithAttachment(
+                    client.getEmail(),
+                    "Votre devis prévisionnel",
+                    "<p>Bonjour,</p><p>Veuillez trouver ci-joint le devis prévisionnel <b>" + saved.getNumero() + "</b> pour votre véhicule " + vehicule.getImmatriculation() + ".</p><p>Cordialement.</p>",
+                    "devis_" + saved.getNumero() + ".pdf",
+                    pdfBytes,
+                    "application/pdf"
+            );
+        }
+
         return saved;
     }
 

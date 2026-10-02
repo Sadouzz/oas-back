@@ -67,6 +67,7 @@ public class FactureServiceImpl implements FactureService {
     private final DocumentNumberGeneratorService documentNumberGeneratorService;
     private final PieceDetacheRepository pieceDetacheRepository;
     private final PieceMouvementRepository pieceMouvementRepository;
+    private final sn.oas.facturation.features.notification.service.EmailService emailService;
 
     @Override
     @Transactional
@@ -188,6 +189,18 @@ public class FactureServiceImpl implements FactureService {
             "Nouvelle Facture", 
             "La facture " + facture.getNumero() + " a été générée et est en attente de paiement.");
 
+        if (client.getEmail() != null && !client.getEmail().isEmpty()) {
+            byte[] pdfBytes = generatePdf(facture.getId());
+            emailService.sendEmailWithAttachment(
+                    client.getEmail(),
+                    "Votre facture et lien de paiement",
+                    "<p>Bonjour,</p><p>Votre facture <b>" + facture.getNumero() + "</b> a été générée. Vous pouvez la trouver en pièce jointe.</p><p>Veuillez procéder au paiement depuis votre espace client pour récupérer votre véhicule.</p><p>Cordialement.</p>",
+                    "facture_" + facture.getNumero() + ".pdf",
+                    pdfBytes,
+                    "application/pdf"
+            );
+        }
+
         return facture;
     }
 
@@ -304,6 +317,18 @@ public class FactureServiceImpl implements FactureService {
         agentNotificationService.notifyRole(Role.AGENT, 
             "Nouvelle Facture Auto", 
             "La facture " + facture.getNumero() + " a été générée automatiquement et est en attente de paiement.");
+
+        if (client != null && client.getEmail() != null && !client.getEmail().isEmpty()) {
+            byte[] pdfBytes = generatePdf(facture.getId());
+            emailService.sendEmailWithAttachment(
+                    client.getEmail(),
+                    "Votre facture et lien de paiement",
+                    "<p>Bonjour,</p><p>Votre facture <b>" + facture.getNumero() + "</b> a été générée. Vous pouvez la trouver en pièce jointe.</p><p>Veuillez procéder au paiement depuis votre espace client pour récupérer votre véhicule.</p><p>Cordialement.</p>",
+                    "facture_" + facture.getNumero() + ".pdf",
+                    pdfBytes,
+                    "application/pdf"
+            );
+        }
 
         return facture;
     }

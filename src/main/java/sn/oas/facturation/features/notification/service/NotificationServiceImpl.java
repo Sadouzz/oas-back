@@ -15,6 +15,7 @@ import java.util.List;
 public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
+    private final EmailService emailService;
 
     @Transactional
     @Override
@@ -26,6 +27,10 @@ public class NotificationServiceImpl implements NotificationService {
                 .lu(false)
                 .build();
         notificationRepository.save(notification);
+        
+        if (client.getEmail() != null && !client.getEmail().isEmpty()) {
+            emailService.sendSimpleEmail(client.getEmail(), titre, message);
+        }
     }
 
     @Override
