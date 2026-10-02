@@ -55,7 +55,8 @@ public class DiagnosticController {
         try {
             return ResponseEntity.ok(diagnosticService.getByOrdreReparationId(ordreReparationId));
         } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", e.getMessage()));
+            // Pas de diagnostic encore créé pour cet ordre → 204 No Content (pas une erreur)
+            return ResponseEntity.noContent().build();
         }
     }
 
