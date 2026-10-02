@@ -122,21 +122,21 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
 
         if (request.getLignesPieces() != null) {
             for (LigneOrdreReparationPieceRequest ligneReq : request.getLignesPieces()) {
-                PDP pdp = null;
+                PieceDetache piece = null;
                 Integer prix = ligneReq.prix();
                 
                 if (Boolean.TRUE.equals(ligneReq.isCustom())) {
                     if (prix == null) prix = 0;
                 } else {
-                    PieceDetache piece = pieceDetacheRepository.findById(ligneReq.pieceId())
+                    piece = pieceDetacheRepository.findById(ligneReq.pieceId())
                             .orElseThrow(() -> new RuntimeException("Pièce non trouvée"));
-                    pdp = (PDP) org.hibernate.Hibernate.unproxy(piece);
-                    if (prix == null) prix = (pdp.getPrixUnitaire() != null ? pdp.getPrixUnitaire().intValue() : 0);
+                    piece = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
+                    if (prix == null) prix = (piece.getPrixUnitaire() != null ? piece.getPrixUnitaire().intValue() : 0);
                 }
 
                 ordreReparation.getLignesOrdreReparationPieces().add(LigneOrdreReparationPiece.builder()
                         .ordreReparation(ordreReparation)
-                        .piece(pdp)
+                        .piece(piece)
                         .isCustom(Boolean.TRUE.equals(ligneReq.isCustom()))
                         .designationPds(ligneReq.designationPds())
                         .quantite(ligneReq.quantite())
@@ -409,22 +409,22 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         if (request.getLignesPieces() != null) {
             ordreReparation.getLignesOrdreReparationPieces().clear();
             for (LigneOrdreReparationPieceRequest ligneReq : request.getLignesPieces()) {
-                PDP pdp = null;
+                PieceDetache piece = null;
                 Integer prix = ligneReq.prix();
                 
                 if (Boolean.TRUE.equals(ligneReq.isCustom())) {
-                    // Custom piece, no PDP needed
+                    // Custom piece, pas de pièce en stock
                     if (prix == null) prix = 0;
                 } else {
-                    PieceDetache piece = pieceDetacheRepository.findById(ligneReq.pieceId())
+                    piece = pieceDetacheRepository.findById(ligneReq.pieceId())
                             .orElseThrow(() -> new RuntimeException("Pièce non trouvée"));
-                    pdp = (PDP) org.hibernate.Hibernate.unproxy(piece);
-                    if (prix == null) prix = (pdp.getPrixUnitaire() != null ? pdp.getPrixUnitaire().intValue() : 0);
+                    piece = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
+                    if (prix == null) prix = (piece.getPrixUnitaire() != null ? piece.getPrixUnitaire().intValue() : 0);
                 }
 
                 ordreReparation.getLignesOrdreReparationPieces().add(LigneOrdreReparationPiece.builder()
                         .ordreReparation(ordreReparation)
-                        .piece(pdp)
+                        .piece(piece)
                         .isCustom(Boolean.TRUE.equals(ligneReq.isCustom()))
                         .designationPds(ligneReq.designationPds())
                         .quantite(ligneReq.quantite())
