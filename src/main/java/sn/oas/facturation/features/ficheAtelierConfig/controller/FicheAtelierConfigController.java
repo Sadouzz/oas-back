@@ -37,11 +37,16 @@ public class FicheAtelierConfigController {
     public static final String DEFAULT_CONFIG_JSON = """
             {
               "lignesReception": [
-                { "nom": "Carrosserie", "etat": null, "archive": false },
-                { "nom": "Intérieur / Habitacle", "etat": null, "archive": false },
-                { "nom": "Vitrage / Pare-brise", "etat": null, "archive": false },
-                { "nom": "Eclairage", "etat": null, "archive": false },
-                { "nom": "Accessoires (Cric, roue de secours...)", "etat": null, "archive": false }
+                { "nom": "Voyants allumés", "etat": null, "archive": false },
+                { "nom": "Climatisation", "etat": null, "archive": false },
+                { "nom": "Phares", "etat": null, "archive": false },
+                { "nom": "Feux", "etat": null, "archive": false },
+                { "nom": "Poste radio", "etat": null, "archive": false },
+                { "nom": "Rétroviseurs", "etat": null, "archive": false },
+                { "nom": "Klaxon", "etat": null, "archive": false },
+                { "nom": "Contrôle des lève-vitres", "etat": null, "archive": false },
+                { "nom": "État du pare-brise", "etat": null, "archive": false },
+                { "nom": "Lunette arrière", "etat": null, "archive": false }
               ],
               "defautsConstates": [
                 { "nom": "Mécanique", "designation": "", "archive": false },
