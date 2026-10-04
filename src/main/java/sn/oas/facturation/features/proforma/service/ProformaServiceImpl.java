@@ -196,7 +196,7 @@ public class ProformaServiceImpl implements ProformaService {
 
         if (hasPieces) {
             for (LigneFacturationPieceRequest p : request.getLignesPieces()) {
-                PDP pdp = null;
+                PieceDetache pieceUnproxied = null;
                 Integer prix = p.getPrix();
 
                 if (Boolean.TRUE.equals(p.getIsCustom())) {
@@ -204,13 +204,13 @@ public class ProformaServiceImpl implements ProformaService {
                 } else {
                     PieceDetache piece = pieceDetacheRepository.findById(p.getPieceId())
                             .orElseThrow(() -> new RuntimeException("Pièce non trouvée"));
-                    pdp = (PDP) org.hibernate.Hibernate.unproxy(piece);
-                    if (prix == null) prix = pdp.getPrixUnitaire() != null ? pdp.getPrixUnitaire().intValue() : 0;
+                    pieceUnproxied = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
+                    if (prix == null) prix = pieceUnproxied.getPrixUnitaire() != null ? pieceUnproxied.getPrixUnitaire().intValue() : 0;
                 }
                 
                 LigneFacturationPiece ligne = LigneFacturationPiece.builder()
                         .facturation(proforma)
-                        .piece(pdp)
+                        .piece(pieceUnproxied)
                         .isCustom(Boolean.TRUE.equals(p.getIsCustom()))
                         .designationPds(p.getDesignationPds())
                         .quantite(p.getQuantite())
@@ -340,7 +340,7 @@ public class ProformaServiceImpl implements ProformaService {
                         throw new IllegalArgumentException("Le prix de chaque pièce doit être positif ou nul.");
                     }
                     
-                    PDP pdp = null;
+                    PieceDetache pieceUnproxied = null;
                     Integer prix = lReq.getPrix();
                     
                     if (Boolean.TRUE.equals(lReq.getIsCustom())) {
@@ -348,13 +348,13 @@ public class ProformaServiceImpl implements ProformaService {
                     } else {
                         PieceDetache piece = pieceDetacheRepository.findById(lReq.getPieceId())
                                 .orElseThrow(() -> new RuntimeException("Pièce non trouvée"));
-                        pdp = (PDP) org.hibernate.Hibernate.unproxy(piece);
-                        if (prix == null) prix = pdp.getPrixUnitaire() != null ? pdp.getPrixUnitaire().intValue() : 0;
+                        pieceUnproxied = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
+                        if (prix == null) prix = pieceUnproxied.getPrixUnitaire() != null ? pieceUnproxied.getPrixUnitaire().intValue() : 0;
                     }
 
                     proforma.getLignesFacturationPieces().add(LigneFacturationPiece.builder()
                             .facturation(proforma)
-                            .piece(pdp)
+                            .piece(pieceUnproxied)
                             .isCustom(Boolean.TRUE.equals(lReq.getIsCustom()))
                             .designationPds(lReq.getDesignationPds())
                             .quantite(lReq.getQuantite())

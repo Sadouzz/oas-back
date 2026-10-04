@@ -78,6 +78,17 @@ public class OrdreReparationController {
         }
     }
 
+    @GetMapping("/{id}/summary")
+    @Operation(summary = "Récupérer le résumé minimal d'une fiche atelier (pour le header)")
+    public ResponseEntity<?> getOrdreReparationSummary(@PathVariable Long id) {
+        try {
+            sn.oas.facturation.features.ordreReparation.dto.responses.OrdreReparationSummaryDto summary = ordreReparationService.getOrdreReparationSummary(id);
+            return ResponseEntity.ok(sn.oas.facturation.shared.dto.ApiResponse.success("Opération effectuée avec succès", summary));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
     @PostMapping({"", "/create"})
     @Operation(summary = "Créer une nouvelle fiche atelier")
     public ResponseEntity<?> createOrdreReparation(@RequestBody OrdreReparationRequest request) {
@@ -95,6 +106,226 @@ public class OrdreReparationController {
         try {
             OrdreReparation ordreReparation = ordreReparationService.updateOrdreReparation(id, request);
             return ResponseEntity.ok(ordreReparation);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
+    @GetMapping("/{id}/step-reception")
+    @Operation(summary = "Obtenir l'étape Réception")
+    public ResponseEntity<?> getStepReception(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(ordreReparationService.getStepReception(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
+    @GetMapping("/{id}/step-diagnostic")
+    @Operation(summary = "Obtenir l'étape Diagnostic")
+    public ResponseEntity<?> getStepDiagnostic(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(ordreReparationService.getStepDiagnostic(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
+    @GetMapping("/{id}/step-pieces-mo")
+    @Operation(summary = "Obtenir l'étape Pièces et Main d'Oeuvre")
+    public ResponseEntity<?> getStepPiecesMo(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(ordreReparationService.getStepPiecesMo(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
+    @GetMapping("/{id}/step-assignation")
+    @Operation(summary = "Obtenir l'étape Assignation")
+    public ResponseEntity<?> getStepAssignation(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(ordreReparationService.getStepAssignation(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
+    @GetMapping("/{id}/step-proforma")
+    @Operation(summary = "Obtenir l'étape Proforma")
+    public ResponseEntity<?> getStepProforma(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(ordreReparationService.getStepProforma(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
+    @GetMapping("/{id}/step-approvisionnement")
+    @Operation(summary = "Obtenir l'étape Approvisionnement")
+    public ResponseEntity<?> getStepApprovisionnement(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(ordreReparationService.getStepApprovisionnement(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
+    @GetMapping("/{id}/step-bon-sortie")
+    @Operation(summary = "Obtenir l'étape Bon de Sortie")
+    public ResponseEntity<?> getStepBonSortie(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(ordreReparationService.getStepBonSortie(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
+    @GetMapping("/{id}/step-paiement")
+    @Operation(summary = "Obtenir l'étape Paiement")
+    public ResponseEntity<?> getStepPaiement(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(ordreReparationService.getStepPaiement(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
+    @GetMapping("/{id}/step-pret-a-livrer")
+    @Operation(summary = "Obtenir l'étape Prêt à Livrer")
+    public ResponseEntity<?> getStepPretALivrer(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(ordreReparationService.getStepPretALivrer(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
+    @GetMapping("/{id}/step-reparation")
+    @Operation(summary = "Obtenir l'étape Réparation")
+    public ResponseEntity<?> getStepReparation(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(ordreReparationService.getStepReparation(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
+    @GetMapping("/{id}/step-livraison")
+    @Operation(summary = "Obtenir l'étape Livraison")
+    public ResponseEntity<?> getStepLivraison(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(ordreReparationService.getStepLivraison(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
+    @PutMapping("/{id}/step-reception")
+    @Operation(summary = "Mettre à jour l'étape Réception")
+    public ResponseEntity<?> updateStepReception(@PathVariable Long id, @RequestBody sn.oas.facturation.features.ordreReparation.dto.steps.StepReceptionDto request) {
+        try {
+            return ResponseEntity.ok(ordreReparationService.updateStepReception(id, request));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
+    @PutMapping("/{id}/step-diagnostic")
+    @Operation(summary = "Mettre à jour l'étape Diagnostic")
+    public ResponseEntity<?> updateStepDiagnostic(@PathVariable Long id, @RequestBody sn.oas.facturation.features.ordreReparation.dto.steps.StepDiagnosticDto request) {
+        try {
+            return ResponseEntity.ok(ordreReparationService.updateStepDiagnostic(id, request));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
+    @PutMapping("/{id}/step-pieces-mo")
+    @Operation(summary = "Mettre à jour l'étape Pièces et Main d'Oeuvre")
+    public ResponseEntity<?> updateStepPiecesMo(@PathVariable Long id, @RequestBody sn.oas.facturation.features.ordreReparation.dto.steps.StepPiecesMoDto request) {
+        try {
+            return ResponseEntity.ok(ordreReparationService.updateStepPiecesMo(id, request));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
+    @PutMapping("/{id}/step-assignation")
+    @Operation(summary = "Mettre à jour l'étape Assignation")
+    public ResponseEntity<?> updateStepAssignation(@PathVariable Long id, @RequestBody sn.oas.facturation.features.ordreReparation.dto.steps.StepAssignationDto request) {
+        try {
+            return ResponseEntity.ok(ordreReparationService.updateStepAssignation(id, request));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
+    @PutMapping("/{id}/step-proforma")
+    @Operation(summary = "Mettre à jour l'étape Proforma")
+    public ResponseEntity<?> updateStepProforma(@PathVariable Long id, @RequestBody sn.oas.facturation.features.ordreReparation.dto.steps.StepProformaDto request) {
+        try {
+            return ResponseEntity.ok(ordreReparationService.updateStepProforma(id, request));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
+    @PutMapping("/{id}/step-approvisionnement")
+    @Operation(summary = "Mettre à jour l'étape Approvisionnement")
+    public ResponseEntity<?> updateStepApprovisionnement(@PathVariable Long id, @RequestBody sn.oas.facturation.features.ordreReparation.dto.steps.StepApprovisionnementDto request) {
+        try {
+            return ResponseEntity.ok(ordreReparationService.updateStepApprovisionnement(id, request));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
+    @PutMapping("/{id}/step-bon-sortie")
+    @Operation(summary = "Mettre à jour l'étape Bon de Sortie")
+    public ResponseEntity<?> updateStepBonSortie(@PathVariable Long id, @RequestBody sn.oas.facturation.features.ordreReparation.dto.steps.StepBonSortieDto request) {
+        try {
+            return ResponseEntity.ok(ordreReparationService.updateStepBonSortie(id, request));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
+    @PutMapping("/{id}/step-paiement")
+    @Operation(summary = "Mettre à jour l'étape Paiement")
+    public ResponseEntity<?> updateStepPaiement(@PathVariable Long id, @RequestBody sn.oas.facturation.features.ordreReparation.dto.steps.StepPaiementDto request) {
+        try {
+            return ResponseEntity.ok(ordreReparationService.updateStepPaiement(id, request));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
+    @PutMapping("/{id}/step-pret-a-livrer")
+    @Operation(summary = "Mettre à jour l'étape Prêt à Livrer")
+    public ResponseEntity<?> updateStepPretALivrer(@PathVariable Long id, @RequestBody sn.oas.facturation.features.ordreReparation.dto.steps.StepPretALivrerDto request) {
+        try {
+            return ResponseEntity.ok(ordreReparationService.updateStepPretALivrer(id, request));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
+    @PutMapping("/{id}/step-reparation")
+    @Operation(summary = "Mettre à jour l'étape Réparation")
+    public ResponseEntity<?> updateStepReparation(@PathVariable Long id, @RequestBody sn.oas.facturation.features.ordreReparation.dto.steps.StepReparationDto request) {
+        try {
+            return ResponseEntity.ok(ordreReparationService.updateStepReparation(id, request));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
+    @PutMapping("/{id}/step-livraison")
+    @Operation(summary = "Mettre à jour l'étape Livraison")
+    public ResponseEntity<?> updateStepLivraison(@PathVariable Long id, @RequestBody sn.oas.facturation.features.ordreReparation.dto.steps.StepLivraisonDto request) {
+        try {
+            return ResponseEntity.ok(ordreReparationService.updateStepLivraison(id, request));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
         }

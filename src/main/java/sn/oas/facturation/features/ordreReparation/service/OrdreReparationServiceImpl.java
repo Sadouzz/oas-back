@@ -44,12 +44,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import sn.oas.facturation.features.proforma.service.ProformaService;
+import sn.oas.facturation.features.proforma.data.entity.Proforma;
 import sn.oas.facturation.features.proforma.dto.ProformaCreateRequest;
+import sn.oas.facturation.features.proforma.dto.ProformaUpdateRequest;
 import sn.oas.facturation.features.facturation.dto.LigneFacturationPieceRequest;
 import sn.oas.facturation.features.facturation.dto.LigneFacturationMainDoeuvreRequest;
 import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationLightDTO;
 import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationResponseDTO;
 import sn.oas.facturation.features.ordreReparation.dto.VehiculeLightDTO;
+import sn.oas.facturation.features.ordreReparation.dto.responses.ProformaSummaryDto;
 import sn.oas.facturation.features.ordreReparation.dto.ClientLightDTO;
 import sn.oas.facturation.features.diagnostic.data.entity.Diagnostic;
 import sn.oas.facturation.features.diagnostic.data.entity.PieceJointeDiagnostic;
@@ -64,6 +67,38 @@ import sn.oas.facturation.features.diagnostic.repository.PieceJointeDiagnosticRe
 import sn.oas.facturation.features.diagnostic.repository.RemarqueDiagnosticRepository;
 import sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier;
 import sn.oas.facturation.features.ficheAtelier.repository.FicheAtelierRepository;
+import sn.oas.facturation.features.notification.service.EmailService;
+import sn.oas.facturation.features.ordreReparation.dto.responses.AdditionalStubs.LigneProformaMoDto;
+import sn.oas.facturation.features.ordreReparation.dto.responses.AdditionalStubs.LigneProformaPieceDto;
+import sn.oas.facturation.features.ordreReparation.dto.responses.ClientHeaderDto;
+import sn.oas.facturation.features.ordreReparation.dto.responses.LigneMoOrdreDto;
+import sn.oas.facturation.features.ordreReparation.dto.responses.LignePieceOrdreDto;
+import sn.oas.facturation.features.ordreReparation.dto.responses.OrdreReparationSummaryDto;
+import sn.oas.facturation.features.ordreReparation.dto.responses.PieceSummaryDto;
+import sn.oas.facturation.features.ordreReparation.dto.responses.StepApprovisionnementResponseDto;
+import sn.oas.facturation.features.ordreReparation.dto.responses.StepAssignationResponseDto;
+import sn.oas.facturation.features.ordreReparation.dto.responses.StepBonSortieResponseDto;
+import sn.oas.facturation.features.ordreReparation.dto.responses.StepDiagnosticResponseDto;
+import sn.oas.facturation.features.ordreReparation.dto.responses.StepLivraisonResponseDto;
+import sn.oas.facturation.features.ordreReparation.dto.responses.StepPaiementResponseDto;
+import sn.oas.facturation.features.ordreReparation.dto.responses.StepPiecesMoResponseDto;
+import sn.oas.facturation.features.ordreReparation.dto.responses.StepPretALivrerResponseDto;
+import sn.oas.facturation.features.ordreReparation.dto.responses.StepProformaResponseDto;
+import sn.oas.facturation.features.ordreReparation.dto.responses.StepReceptionResponseDto;
+import sn.oas.facturation.features.ordreReparation.dto.responses.StepReparationResponseDto;
+import sn.oas.facturation.features.ordreReparation.dto.responses.VehiculeHeaderDto;
+import sn.oas.facturation.features.ordreReparation.dto.steps.BaseStepDto;
+import sn.oas.facturation.features.ordreReparation.dto.steps.StepApprovisionnementDto;
+import sn.oas.facturation.features.ordreReparation.dto.steps.StepAssignationDto;
+import sn.oas.facturation.features.ordreReparation.dto.steps.StepBonSortieDto;
+import sn.oas.facturation.features.ordreReparation.dto.steps.StepDiagnosticDto;
+import sn.oas.facturation.features.ordreReparation.dto.steps.StepLivraisonDto;
+import sn.oas.facturation.features.ordreReparation.dto.steps.StepPaiementDto;
+import sn.oas.facturation.features.ordreReparation.dto.steps.StepPiecesMoDto;
+import sn.oas.facturation.features.ordreReparation.dto.steps.StepPretALivrerDto;
+import sn.oas.facturation.features.ordreReparation.dto.steps.StepProformaDto;
+import sn.oas.facturation.features.ordreReparation.dto.steps.StepReceptionDto;
+import sn.oas.facturation.features.ordreReparation.dto.steps.StepReparationDto;
 import java.util.stream.Collectors;
 
 @Service
@@ -77,7 +112,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     private final PieceDetacheRepository pieceDetacheRepository;
     private final MainDoeuvreRepository mainDoeuvreRepository;
     private final AgentNotificationService agentNotificationService;
-    private final sn.oas.facturation.features.notification.service.EmailService emailService;
+    private final EmailService emailService;
     private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
     private final DiagnosticRepository diagnosticRepository;
     private final PieceJointeDiagnosticRepository pieceJointeDiagnosticRepository;
@@ -161,7 +196,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
 
         OrdreReparation savedOrdre = ordreReparationRepository.save(ordreReparation);
 
-        agentNotificationService.notifyRole(sn.oas.facturation.features.user.data.enums.Role.CHEF_ATELIER,
+        agentNotificationService.notifyRole(Role.CHEF_ATELIER,
                 "Nouvel Ordre de Réparation",
                 "Un nouvel ordre de réparation (" + savedOrdre.getNumero() + ") a été créé.");
         
@@ -237,6 +272,42 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         OrdreReparation o = ordreReparationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
         return mapToResponseDTO(o);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OrdreReparationSummaryDto getOrdreReparationSummary(Long id) {
+        OrdreReparation ordre = ordreReparationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Ordre de Réparation non trouvé"));
+                
+        OrdreReparationSummaryDto dto = new OrdreReparationSummaryDto();
+        dto.setId(ordre.getId());
+        dto.setNumero(ordre.getNumero());
+        dto.setStatut(ordre.getStatut() != null ? ordre.getStatut().name() : null);
+        dto.setHasDiagnostic(ordre.getDiagnostic() != null);
+        
+        boolean hasPieces = ordre.getLignesOrdreReparationPieces() != null && !ordre.getLignesOrdreReparationPieces().isEmpty();
+        boolean hasMo = ordre.getLignesOrdreReparationMainDoeuvres() != null && !ordre.getLignesOrdreReparationMainDoeuvres().isEmpty();
+        dto.setHasPiecesMo(hasPieces || hasMo);
+
+        if (ordre.getVehicule() != null) {
+            VehiculeHeaderDto vehiculeDto = new VehiculeHeaderDto();
+            vehiculeDto.setId(ordre.getVehicule().getId());
+            vehiculeDto.setImmatriculation(ordre.getVehicule().getImmatriculation());
+            vehiculeDto.setMarque(ordre.getVehicule().getMarque());
+            vehiculeDto.setModele(ordre.getVehicule().getModele());
+            
+            if (ordre.getVehicule().getClient() != null) {
+                ClientHeaderDto clientDto = new ClientHeaderDto();
+                clientDto.setId(ordre.getVehicule().getClient().getId());
+                clientDto.setFirstName(ordre.getVehicule().getClient().getFirstName());
+                clientDto.setLastName(ordre.getVehicule().getClient().getLastName());
+                vehiculeDto.setClient(clientDto);
+            }
+            dto.setVehicule(vehiculeDto);
+        }
+
+        return dto;
     }
 
     private OrdreReparationResponseDTO mapToResponseDTO(OrdreReparation o) {
@@ -906,7 +977,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             }
         }
 
-        agentNotificationService.notifyRole(sn.oas.facturation.features.user.data.enums.Role.CHEF_ATELIER,
+        agentNotificationService.notifyRole(Role.CHEF_ATELIER,
                 "Nouvel Ordre de Réparation",
                 "L'ordre de réparation (" + savedOrdre.getNumero() + ") a été généré depuis une fiche atelier.");
 
@@ -960,5 +1031,403 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             );
         }
         return false;
+    }
+
+    private void updateBaseStepFields(OrdreReparation ordre, BaseStepDto dto) {
+        if (dto.getNumero() != null) ordre.setNumero(dto.getNumero());
+        if (dto.getDescriptionTravaux() != null) ordre.setDescriptionTravaux(dto.getDescriptionTravaux());
+        if (dto.getStatut() != null) ordre.setStatut(dto.getStatut());
+        if (dto.getVehiculeId() != null) {
+            Vehicule vehicule = vehiculeRepository.findById(dto.getVehiculeId()).orElseThrow(() -> new RuntimeException("Véhicule non trouvé"));
+            ordre.setVehicule(vehicule);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StepReceptionResponseDto getStepReception(Long id) {
+        OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        StepReceptionResponseDto dto = new StepReceptionResponseDto();
+        dto.setId(ordre.getId());
+        dto.setNumero(ordre.getNumero());
+        dto.setStatut(ordre.getStatut() != null ? ordre.getStatut().name() : null);
+        if (ordre.getVehicule() != null) dto.setVehiculeId(ordre.getVehicule().getId());
+        dto.setDescriptionTravaux(ordre.getDescriptionTravaux());
+        return dto;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StepDiagnosticResponseDto getStepDiagnostic(Long id) {
+        OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        StepDiagnosticResponseDto dto = new StepDiagnosticResponseDto();
+        dto.setId(ordre.getId());
+        dto.setNumero(ordre.getNumero());
+        dto.setStatut(ordre.getStatut() != null ? ordre.getStatut().name() : null);
+        if (ordre.getVehicule() != null) dto.setVehiculeId(ordre.getVehicule().getId());
+        dto.setListeDefauts(ordre.getListeDefauts());
+        return dto;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StepPiecesMoResponseDto getStepPiecesMo(Long id) {
+        OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        StepPiecesMoResponseDto dto = new StepPiecesMoResponseDto();
+        dto.setId(ordre.getId());
+        dto.setNumero(ordre.getNumero());
+        dto.setStatut(ordre.getStatut() != null ? ordre.getStatut().name() : null);
+        if (ordre.getVehicule() != null) dto.setVehiculeId(ordre.getVehicule().getId());
+        
+        dto.setLignesOrdreReparationPieces(ordre.getLignesOrdreReparationPieces().stream().map(ligne -> {
+            LignePieceOrdreDto ligneDto = new LignePieceOrdreDto();
+            ligneDto.setId(ligne.getId());
+            ligneDto.setQuantite(ligne.getQuantite());
+            ligneDto.setPrix(ligne.getPrix());
+            ligneDto.setIsCustom(ligne.getIsCustom());
+            ligneDto.setDesignationPds(ligne.getDesignationPds());
+            if (ligne.getPiece() != null) {
+                ligneDto.setPieceId(ligne.getPiece().getId());
+                PieceSummaryDto pieceDto = new PieceSummaryDto();
+                pieceDto.setId(ligne.getPiece().getId());
+                pieceDto.setReference(ligne.getPiece().getReference());
+                pieceDto.setDesignation(ligne.getPiece().getDesignation());
+                pieceDto.setType(ligne.getPiece().getType() != null ? ligne.getPiece().getType().name() : null);
+                pieceDto.setStockMagasin(ligne.getPiece().getStockMagasin());
+                ligneDto.setPiece(pieceDto);
+            }
+            return ligneDto;
+        }).collect(Collectors.toList()));
+
+        dto.setLignesOrdreReparationMainDoeuvres(ordre.getLignesOrdreReparationMainDoeuvres().stream().map(ligne -> {
+            LigneMoOrdreDto ligneDto = new LigneMoOrdreDto();
+            ligneDto.setId(ligne.getId());
+            ligneDto.setHeures(ligne.getNbreHeure());
+            ligneDto.setPrix(ligne.getPrix());
+            if (ligne.getMainDoeuvre() != null) {
+                ligneDto.setDescription(ligne.getMainDoeuvre().getDescription());
+            }
+            return ligneDto;
+        }).collect(Collectors.toList()));
+
+        return dto;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StepProformaResponseDto getStepProforma(Long id) {
+        OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        StepProformaResponseDto dto = new StepProformaResponseDto();
+        dto.setId(ordre.getId());
+        dto.setNumero(ordre.getNumero());
+        dto.setStatut(ordre.getStatut() != null ? ordre.getStatut().name() : null);
+        dto.setUpdatedAt(ordre.getUpdatedAt());
+        dto.setDateCreation(ordre.getDateCreation());
+        if (ordre.getVehicule() != null) {
+            dto.setVehiculeId(ordre.getVehicule().getId());
+            VehiculeHeaderDto vDto = new VehiculeHeaderDto();
+            vDto.setId(ordre.getVehicule().getId());
+            vDto.setImmatriculation(ordre.getVehicule().getImmatriculation());
+            vDto.setMarque(ordre.getVehicule().getMarque());
+            vDto.setModele(ordre.getVehicule().getModele());
+            vDto.setKilometrage(ordre.getVehicule().getKilometrage() != null ? ordre.getVehicule().getKilometrage().intValue() : 0);
+            if (ordre.getVehicule().getClient() != null) {
+                ClientHeaderDto cDto = new ClientHeaderDto();
+                cDto.setId(ordre.getVehicule().getClient().getId());
+                cDto.setFirstName(ordre.getVehicule().getClient().getFirstName());
+                cDto.setLastName(ordre.getVehicule().getClient().getLastName());
+                cDto.setPhone(ordre.getVehicule().getClient().getPhone());
+                vDto.setClient(cDto);
+            }
+            dto.setVehicule(vDto);
+        }
+        if (ordre.getDiagnostic() != null) {
+            StepProformaResponseDto.DiagnosticDto dDto = new StepProformaResponseDto.DiagnosticDto();
+            dDto.setKilometrage(ordre.getDiagnostic().getKilometrage());
+            dto.setDiagnostic(dDto);
+        }
+        if (ordre.getProforma() != null){
+            ProformaSummaryDto proformaDto = new ProformaSummaryDto();
+            proformaDto.setId(ordre.getProforma().getId());
+            proformaDto.setNumero(ordre.getProforma().getNumero());
+            proformaDto.setDateCreation(ordre.getProforma().getDateCreation());
+            proformaDto.setStatut(ordre.getProforma().getStatut() != null ? ordre.getProforma().getStatut().name() : null);
+            proformaDto.setMontantHT(ordre.getProforma().getMontantHT() != null ? ordre.getProforma().getMontantHT().doubleValue() : 0.0);
+            proformaDto.setMontantTVA(ordre.getProforma().getMontantTVA() != null ? ordre.getProforma().getMontantTVA().doubleValue() : 0.0);
+            proformaDto.setMontantTTC(ordre.getProforma().getMontantTTC() != null ? ordre.getProforma().getMontantTTC().doubleValue() : 0.0);
+            
+            proformaDto.setLignesPieces(ordre.getProforma().getLignesFacturationPieces().stream().map(ligne -> {
+                LigneProformaPieceDto ligneDto = new LigneProformaPieceDto();
+                ligneDto.setId(ligne.getId());
+                ligneDto.setNom(ligne.getIsCustom() != null && ligne.getIsCustom() ? ligne.getDesignationPds() : (ligne.getPiece() != null ? ligne.getPiece().getDesignation() : "Pièce"));
+                ligneDto.setQuantite(ligne.getQuantite());
+                ligneDto.setPrix(ligne.getPrix() != null ? ligne.getPrix().doubleValue() : 0.0);
+                ligneDto.setMontantTotal(ligne.getPrix() != null && ligne.getQuantite() != null ? ligne.getPrix().doubleValue() * ligne.getQuantite() : 0.0);
+                ligneDto.setIsCustom(ligne.getIsCustom());
+                ligneDto.setType(ligne.getPiece() != null && ligne.getPiece().getType() != null ? ligne.getPiece().getType().name() : null);
+                return ligneDto;
+            }).collect(Collectors.toList()));
+            
+            proformaDto.setLignesMainDoeuvres(ordre.getProforma().getLignesFacturationMainDoeuvres().stream().map(ligne -> {
+                LigneProformaMoDto ligneDto = new LigneProformaMoDto();
+                ligneDto.setId(ligne.getId());
+                ligneDto.setNom(ligne.getMainDoeuvre() != null ? ligne.getMainDoeuvre().getDescription() : "Main d'œuvre");
+                ligneDto.setNbreHeure(ligne.getNbreHeure());
+                ligneDto.setTarifHoraire(ligne.getTarifHoraire() != null ? ligne.getTarifHoraire().doubleValue() : 0.0);
+                ligneDto.setMontantTotal(ligne.getTarifHoraire() != null && ligne.getNbreHeure() != null ? ligne.getTarifHoraire().doubleValue() * ligne.getNbreHeure() : 0.0);
+                return ligneDto;
+            }).collect(Collectors.toList()));
+            
+            dto.setProforma(proformaDto);
+        }
+        return dto;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StepApprovisionnementResponseDto getStepApprovisionnement(Long id) {
+        OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        StepApprovisionnementResponseDto dto = new StepApprovisionnementResponseDto();
+        dto.setId(ordre.getId());
+        dto.setNumero(ordre.getNumero());
+        dto.setStatut(ordre.getStatut() != null ? ordre.getStatut().name() : null);
+        if (ordre.getVehicule() != null) dto.setVehiculeId(ordre.getVehicule().getId());
+        return dto;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StepBonSortieResponseDto getStepBonSortie(Long id) {
+        OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        StepBonSortieResponseDto dto = new StepBonSortieResponseDto();
+        dto.setId(ordre.getId());
+        dto.setNumero(ordre.getNumero());
+        dto.setStatut(ordre.getStatut() != null ? ordre.getStatut().name() : null);
+        if (ordre.getVehicule() != null) dto.setVehiculeId(ordre.getVehicule().getId());
+        return dto;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StepAssignationResponseDto getStepAssignation(Long id) {
+        OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        StepAssignationResponseDto dto = new StepAssignationResponseDto();
+        dto.setId(ordre.getId());
+        dto.setNumero(ordre.getNumero());
+        dto.setStatut(ordre.getStatut() != null ? ordre.getStatut().name() : null);
+        if (ordre.getVehicule() != null) dto.setVehiculeId(ordre.getVehicule().getId());
+        return dto;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StepReparationResponseDto getStepReparation(Long id) {
+        OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        StepReparationResponseDto dto = new StepReparationResponseDto();
+        dto.setId(ordre.getId());
+        dto.setNumero(ordre.getNumero());
+        dto.setStatut(ordre.getStatut() != null ? ordre.getStatut().name() : null);
+        if (ordre.getVehicule() != null) dto.setVehiculeId(ordre.getVehicule().getId());
+        return dto;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StepPaiementResponseDto getStepPaiement(Long id) {
+        OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        StepPaiementResponseDto dto = new StepPaiementResponseDto();
+        dto.setId(ordre.getId());
+        dto.setNumero(ordre.getNumero());
+        dto.setStatut(ordre.getStatut() != null ? ordre.getStatut().name() : null);
+        if (ordre.getVehicule() != null) dto.setVehiculeId(ordre.getVehicule().getId());
+        return dto;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StepPretALivrerResponseDto getStepPretALivrer(Long id) {
+        OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        StepPretALivrerResponseDto dto = new StepPretALivrerResponseDto();
+        dto.setId(ordre.getId());
+        dto.setNumero(ordre.getNumero());
+        dto.setStatut(ordre.getStatut() != null ? ordre.getStatut().name() : null);
+        if (ordre.getVehicule() != null) dto.setVehiculeId(ordre.getVehicule().getId());
+        return dto;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StepLivraisonResponseDto getStepLivraison(Long id) {
+        OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        StepLivraisonResponseDto dto = new StepLivraisonResponseDto();
+        dto.setId(ordre.getId());
+        dto.setNumero(ordre.getNumero());
+        dto.setStatut(ordre.getStatut() != null ? ordre.getStatut().name() : null);
+        if (ordre.getVehicule() != null) dto.setVehiculeId(ordre.getVehicule().getId());
+        return dto;
+    }
+
+    @Override
+    @Transactional
+    public StepReceptionDto updateStepReception(Long id, StepReceptionDto dto) {
+        OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        updateBaseStepFields(ordre, dto);
+        if (dto.getListeDefauts() != null) ordre.setListeDefauts(dto.getListeDefauts());
+        if (dto.getLignesTravaux() != null) ordre.setLignesTravaux(dto.getLignesTravaux());
+        if (dto.getLignesReception() != null) ordre.setLignesReception(dto.getLignesReception());
+        ordreReparationRepository.save(ordre);
+        return dto;
+    }
+
+    @Override
+    @Transactional
+    public StepDiagnosticDto updateStepDiagnostic(Long id, StepDiagnosticDto dto) {
+        OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        updateBaseStepFields(ordre, dto);
+        if (dto.getTechnicienId() != null) {
+            Technicien technicien = technicienRepository.findById(dto.getTechnicienId()).orElseThrow(() -> new RuntimeException("Technicien non trouvé"));
+            Diagnostic diag = ordre.getDiagnostic();
+            if (diag == null) {
+                diag = Diagnostic.builder().ordreReparation(ordre).technicien(technicien).build();
+                ordre.setDiagnostic(diag);
+            } else {
+                diag.setTechnicien(technicien);
+            }
+        }
+        ordreReparationRepository.save(ordre);
+        return dto;
+    }
+
+    @Override
+    @Transactional
+    public StepPiecesMoDto updateStepPiecesMo(Long id, StepPiecesMoDto dto) {
+        OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        updateBaseStepFields(ordre, dto);
+        ordreReparationRepository.save(ordre);
+
+        OrdreReparationRequest req = new OrdreReparationRequest();
+        if (dto.getLignesPieces() != null) {
+            req.setLignesPieces(dto.getLignesPieces().stream().map(l -> 
+                new LigneOrdreReparationPieceRequest(l.getPieceId(), l.getQuantite(), (l.getPrix() != null ? l.getPrix().intValue() : 0), l.getIsCustom(), l.getDesignationPds())
+            ).collect(Collectors.toList()));
+        }
+        if (dto.getLignesMainDoeuvres() != null) {
+            req.setLignesMainDoeuvres(dto.getLignesMainDoeuvres().stream().map(l -> 
+                new LigneOrdreReparationMainDoeuvreRequest(l.getMainDoeuvreId(), l.getNbreHeure(), (l.getPrix() != null ? l.getPrix().intValue() : 0))
+            ).collect(Collectors.toList()));
+        }
+        updateOrdreReparation(id, req);
+
+            Proforma proforma = proformaService.getByOrdreReparationId(id);
+            if (proforma != null) {
+                ProformaUpdateRequest proformaReq = new ProformaUpdateRequest();
+                if (dto.getLignesPieces() != null) {
+                    proformaReq.setLignesPieces(dto.getLignesPieces().stream().map(l -> {
+                        LigneFacturationPieceRequest pReq = new LigneFacturationPieceRequest();
+                        pReq.setPieceId(l.getPieceId());
+                        pReq.setQuantite(l.getQuantite());
+                        pReq.setPrix(l.getPrix() != null ? l.getPrix().intValue() : 0);
+                        pReq.setIsCustom(l.getIsCustom());
+                        pReq.setDesignationPds(l.getDesignationPds());
+                        return pReq;
+                    }).collect(Collectors.toList()));
+                }
+                if (dto.getLignesMainDoeuvres() != null) {
+                    proformaReq.setLignesMainDoeuvres(dto.getLignesMainDoeuvres().stream().map(l -> {
+                        LigneFacturationMainDoeuvreRequest mReq = new LigneFacturationMainDoeuvreRequest();
+                        mReq.setMainDoeuvreId(l.getMainDoeuvreId());
+                        mReq.setNbreHeure(l.getNbreHeure());
+                        mReq.setTarifHoraire(l.getPrix() != null ? l.getPrix().intValue() : 0);
+                        return mReq;
+                    }).collect(Collectors.toList()));
+                }
+                proformaService.update(proforma.getId(), proformaReq);
+            }
+
+        return dto;
+    }
+
+    @Override
+    @Transactional
+    public StepProformaDto updateStepProforma(Long id, StepProformaDto dto) {
+        OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        updateBaseStepFields(ordre, dto);
+        ordreReparationRepository.save(ordre);
+        return dto;
+    }
+
+    @Override
+    @Transactional
+    public StepApprovisionnementDto updateStepApprovisionnement(Long id, StepApprovisionnementDto dto) {
+        OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        updateBaseStepFields(ordre, dto);
+        ordreReparationRepository.save(ordre);
+        return dto;
+    }
+
+    @Override
+    @Transactional
+    public StepBonSortieDto updateStepBonSortie(Long id, StepBonSortieDto dto) {
+        OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        updateBaseStepFields(ordre, dto);
+        ordreReparationRepository.save(ordre);
+        return dto;
+    }
+
+    @Override
+    @Transactional
+    public StepAssignationDto updateStepAssignation(Long id, StepAssignationDto dto) {
+        OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        updateBaseStepFields(ordre, dto);
+        if (dto.getTechniciensIds() != null) {
+            ordre.getTechniciensReparation().clear();
+            for (Long tId : dto.getTechniciensIds()) {
+                Technicien t = technicienRepository.findById(tId).orElseThrow(() -> new RuntimeException("Technicien non trouvé"));
+                ordre.getTechniciensReparation().add(t);
+            }
+        }
+        ordreReparationRepository.save(ordre);
+        return dto;
+    }
+
+    @Override
+    @Transactional
+    public StepReparationDto updateStepReparation(Long id, StepReparationDto dto) {
+        OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        updateBaseStepFields(ordre, dto);
+        ordreReparationRepository.save(ordre);
+        return dto;
+    }
+
+    @Override
+    @Transactional
+    public StepPaiementDto updateStepPaiement(Long id, StepPaiementDto dto) {
+        OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        updateBaseStepFields(ordre, dto);
+        ordreReparationRepository.save(ordre);
+        return dto;
+    }
+
+    @Override
+    @Transactional
+    public StepPretALivrerDto updateStepPretALivrer(Long id, StepPretALivrerDto dto) {
+        OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        updateBaseStepFields(ordre, dto);
+        ordreReparationRepository.save(ordre);
+        return dto;
+    }
+
+    @Override
+    @Transactional
+    public StepLivraisonDto updateStepLivraison(Long id, StepLivraisonDto dto) {
+        OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        updateBaseStepFields(ordre, dto);
+        if (dto.getDateSortie() != null) {
+            try {
+                ordre.setDateSortie(LocalDateTime.parse(dto.getDateSortie()));
+            } catch (Exception e) {}
+        }
+        ordreReparationRepository.save(ordre);
+        return dto;
     }
 }

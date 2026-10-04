@@ -15,6 +15,7 @@ import sn.oas.facturation.features.facturation.data.entity.Facturation;
 import sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier;
 import sn.oas.facturation.features.diagnostic.data.entity.Diagnostic;
 import sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation;
+import sn.oas.facturation.features.proforma.data.entity.Proforma;
 import sn.oas.facturation.features.technicien.data.entity.Technicien;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 import jakarta.persistence.*;
@@ -118,6 +119,10 @@ public class OrdreReparation implements TenantAware  {
     @OneToOne(mappedBy = "ordreReparation", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnoreProperties("ordreReparation")
     private Diagnostic diagnostic;
+
+    @OneToOne(mappedBy = "ordreReparation", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnoreProperties("ordreReparation")
+    private Proforma proforma;
 
     @OneToMany(mappedBy = "ordreReparation", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
