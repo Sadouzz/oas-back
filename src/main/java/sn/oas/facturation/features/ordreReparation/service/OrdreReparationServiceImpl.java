@@ -66,6 +66,7 @@ import sn.oas.facturation.features.diagnostic.repository.DiagnosticRepository;
 import sn.oas.facturation.features.diagnostic.repository.PieceJointeDiagnosticRepository;
 import sn.oas.facturation.features.diagnostic.repository.RemarqueDiagnosticRepository;
 import sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier;
+import sn.oas.facturation.features.ficheAtelier.dto.FicheAtelierDetailsResponse;
 import sn.oas.facturation.features.ficheAtelier.repository.FicheAtelierRepository;
 import sn.oas.facturation.features.notification.service.EmailService;
 import sn.oas.facturation.features.ordreReparation.dto.responses.AdditionalStubs.LigneProformaMoDto;
@@ -1046,13 +1047,41 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     @Override
     @Transactional(readOnly = true)
     public StepReceptionResponseDto getStepReception(Long id) {
-        OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Ordre de réparation non trouvé"));
         StepReceptionResponseDto dto = new StepReceptionResponseDto();
         dto.setId(ordre.getId());
         dto.setNumero(ordre.getNumero());
         dto.setStatut(ordre.getStatut() != null ? ordre.getStatut().name() : null);
-        if (ordre.getVehicule() != null) dto.setVehiculeId(ordre.getVehicule().getId());
         dto.setDescriptionTravaux(ordre.getDescriptionTravaux());
+        dto.setLignesTravaux(ordre.getLignesTravaux());
+        dto.setLignesReception(ordre.getLignesReception());
+        dto.setListeDefauts(ordre.getListeDefauts());
+
+        if (ordre.getVehicule() != null) {
+            dto.setVehiculeId(ordre.getVehicule().getId());
+            VehiculeHeaderDto vDto = new VehiculeHeaderDto();
+            vDto.setId(ordre.getVehicule().getId());
+            vDto.setImmatriculation(ordre.getVehicule().getImmatriculation());
+            vDto.setMarque(ordre.getVehicule().getMarque());
+            vDto.setModele(ordre.getVehicule().getModele());
+            vDto.setKilometrage(ordre.getVehicule().getKilometrage() != null ? ordre.getVehicule().getKilometrage().intValue() : null);
+            if (ordre.getVehicule().getClient() != null) {
+                ClientHeaderDto cDto = new ClientHeaderDto();
+                cDto.setId(ordre.getVehicule().getClient().getId());
+                cDto.setFirstName(ordre.getVehicule().getClient().getFirstName());
+                cDto.setLastName(ordre.getVehicule().getClient().getLastName());
+                cDto.setPhone(ordre.getVehicule().getClient().getPhone());
+                vDto.setClient(cDto);
+            }
+            dto.setVehicule(vDto);
+        }
+
+        if (ordre.getFicheAtelier() != null) {
+            dto.setFicheAtelierId(ordre.getFicheAtelier().getId());
+            dto.setFicheAtelier(FicheAtelierDetailsResponse.from(ordre.getFicheAtelier()));
+            dto.setLignesDefauts(ordre.getFicheAtelier().getLignesDefauts());
+        }
+
         return dto;
     }
 
@@ -1270,11 +1299,14 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     @Override
     @Transactional
     public StepReceptionDto updateStepReception(Long id, StepReceptionDto dto) {
-        OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Ordre de réparation non trouvé"));
         updateBaseStepFields(ordre, dto);
         if (dto.getListeDefauts() != null) ordre.setListeDefauts(dto.getListeDefauts());
         if (dto.getLignesTravaux() != null) ordre.setLignesTravaux(dto.getLignesTravaux());
         if (dto.getLignesReception() != null) ordre.setLignesReception(dto.getLignesReception());
+        if (dto.getLignesDefauts() != null && ordre.getFicheAtelier() != null) {
+            ordre.getFicheAtelier().setLignesDefauts(dto.getLignesDefauts());
+        }
         ordreReparationRepository.save(ordre);
         return dto;
     }
