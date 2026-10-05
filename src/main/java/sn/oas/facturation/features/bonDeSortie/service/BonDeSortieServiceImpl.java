@@ -86,7 +86,10 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                     throw new IllegalArgumentException(
                             "La quantité doit être supérieure à zéro pour la pièce id=" + ligneReq.pieceId());
                 }
-                Double prixPiece = pdp.getPrixUnitaire() != null ? pdp.getPrixUnitaire() : 0.0;
+                Double customPrix = ligneReq.getEffectivePrix();
+                Double prixPiece = (customPrix != null && customPrix >= 0)
+                        ? customPrix
+                        : (pdp.getPrixUnitaire() != null ? pdp.getPrixUnitaire() : 0.0);
                 LigneBonDeSortiePiece ligne = LigneBonDeSortiePiece.builder()
                         .bonDeSortie(bon)
                         .piece(pdp)
