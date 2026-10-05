@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -317,13 +318,21 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
 
     @Override
     public Page<BonDeCommande> getAll(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(
+                Sort.Order.desc("dateModification").nullsLast(),
+                Sort.Order.desc("dateCommande").nullsLast(),
+                Sort.Order.desc("id")
+        ));
         return bonDeCommandeRepository.findAll(pageable);
     }
 
     @Override
     public List<BonDeCommande> getAll() {
-        return bonDeCommandeRepository.findAll();
+        return bonDeCommandeRepository.findAll(Sort.by(
+                Sort.Order.desc("dateModification").nullsLast(),
+                Sort.Order.desc("dateCommande").nullsLast(),
+                Sort.Order.desc("id")
+        ));
     }
 
     @Override
@@ -333,7 +342,11 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
 
     @Override
     public Page<BonDeCommande> search(String keyword, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(
+                Sort.Order.desc("dateModification").nullsLast(),
+                Sort.Order.desc("dateCommande").nullsLast(),
+                Sort.Order.desc("id")
+        ));
         return bonDeCommandeRepository.searchBonsDeCommande(keyword, pageable);
     }
 
