@@ -41,8 +41,8 @@ public class ClientServiceImpl implements ClientService {
     @Override
     public Page<Client> getAllClients(int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(
-                Sort.Order.desc("updatedAt"),
-                Sort.Order.desc("createdAt"),
+                Sort.Order.desc("updatedAt").nullsLast(),
+                Sort.Order.desc("createdAt").nullsLast(),
                 Sort.Order.desc("id")
         ));
         return clientRepository.findAll(pageable);
@@ -51,8 +51,8 @@ public class ClientServiceImpl implements ClientService {
     @Override
     public List<Client> getAllClients() {
         return clientRepository.findAll(Sort.by(
-                Sort.Order.desc("updatedAt"),
-                Sort.Order.desc("createdAt"),
+                Sort.Order.desc("updatedAt").nullsLast(),
+                Sort.Order.desc("createdAt").nullsLast(),
                 Sort.Order.desc("id")
         ));
     }
@@ -131,6 +131,7 @@ public class ClientServiceImpl implements ClientService {
         if (request.firstName() != null) client.setFirstName(request.firstName());
         if (request.lastName() != null) client.setLastName(request.lastName());
         if (request.email() != null) client.setEmail(request.email());
+        client.setUpdatedAt(java.time.LocalDateTime.now());
 
         return clientRepository.save(client);
     }
@@ -145,6 +146,7 @@ public class ClientServiceImpl implements ClientService {
         Client client = clientRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Client non trouvé"));
         client.setEnabled(false);
+        client.setUpdatedAt(java.time.LocalDateTime.now());
         clientRepository.save(client);
     }
 
@@ -158,6 +160,7 @@ public class ClientServiceImpl implements ClientService {
         Client client = clientRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Client non trouvé"));
         client.setEnabled(true);
+        client.setUpdatedAt(java.time.LocalDateTime.now());
         clientRepository.save(client);
     }
 
@@ -187,6 +190,7 @@ public class ClientServiceImpl implements ClientService {
         client.setUsername("anonyme-" + id);
         client.setPassword(passwordEncoder.encode(java.util.UUID.randomUUID().toString()));
         client.setEnabled(false);
+        client.setUpdatedAt(java.time.LocalDateTime.now());
 
         clientRepository.save(client);
     }
@@ -199,8 +203,8 @@ public class ClientServiceImpl implements ClientService {
     @Override
     public Page<Client> searchClients(String keyword, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(
-                Sort.Order.desc("updatedAt"),
-                Sort.Order.desc("createdAt"),
+                Sort.Order.desc("updatedAt").nullsLast(),
+                Sort.Order.desc("createdAt").nullsLast(),
                 Sort.Order.desc("id")
         ));
         return clientRepository.searchClients(keyword, pageable);
@@ -209,8 +213,8 @@ public class ClientServiceImpl implements ClientService {
     @Override
     public Page<Client> getArchivedClients(int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by(
-                Sort.Order.desc("updatedAt"),
-                Sort.Order.desc("createdAt"),
+                Sort.Order.desc("updatedAt").nullsLast(),
+                Sort.Order.desc("createdAt").nullsLast(),
                 Sort.Order.desc("id")
         ));
         return clientRepository.findByEnabled(false, pageable);
@@ -261,6 +265,7 @@ public class ClientServiceImpl implements ClientService {
             client.setRib(request.rib());
         }
 
+        client.setUpdatedAt(java.time.LocalDateTime.now());
         clientRepository.save(client);
     }
 
@@ -275,6 +280,7 @@ public class ClientServiceImpl implements ClientService {
         client.setNinea(null);
         client.setRccm(null);
         client.setRib(null);
+        client.setUpdatedAt(java.time.LocalDateTime.now());
         clientRepository.save(client);
     }
 

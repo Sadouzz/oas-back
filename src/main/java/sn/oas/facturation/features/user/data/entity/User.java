@@ -64,8 +64,9 @@ public class User implements UserDetails {
     private LocalDateTime createdAt = LocalDateTime.now();
 
     @Column(name = "updated_at")
+    @Builder.Default
     @UpdateTimestamp
-    private LocalDateTime updatedAt;
+    private LocalDateTime updatedAt = LocalDateTime.now();
 
     @PrePersist
     protected void onCreate() {

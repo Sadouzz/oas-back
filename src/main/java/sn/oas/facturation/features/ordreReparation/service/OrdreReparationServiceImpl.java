@@ -1348,8 +1348,10 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 new LigneOrdreReparationMainDoeuvreRequest(l.getMainDoeuvreId(), l.getNbreHeure(), (l.getPrix() != null ? l.getPrix().intValue() : 0))
             ).collect(Collectors.toList()));
         }
+        boolean proformaExistedBefore = proformaRepository.findByOrdreReparationId(id).isPresent();
         updateOrdreReparation(id, req);
 
+        if (proformaExistedBefore) {
             Proforma proforma = proformaService.getByOrdreReparationId(id);
             if (proforma != null) {
                 ProformaUpdateRequest proformaReq = new ProformaUpdateRequest();
@@ -1375,6 +1377,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 }
                 proformaService.update(proforma.getId(), proformaReq);
             }
+        }
 
         return dto;
     }
