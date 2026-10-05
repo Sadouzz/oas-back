@@ -27,6 +27,14 @@ public class PdfGeneratorService {
     }
 
     public byte[] genererBonDeCommandePdf(BonDeCommande bonDeCommande) {
+        String fournisseur = bonDeCommande.getFournisseur() != null ? bonDeCommande.getFournisseur().getNomEntreprise() : "";
+        String vehicule = bonDeCommande.getVehicule() != null ? bonDeCommande.getVehicule().getImmatriculation() : "";
+        byte[] configuredTemplate = htmlToPdfService.genererTemplatePdfSiConfigure("BON_COMMANDE", java.util.Map.of(
+                "numero", safe(bonDeCommande.getNumero()), "date", bonDeCommande.getDateCommande() == null ? "" : bonDeCommande.getDateCommande().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+                "statut", bonDeCommande.getStatut() == null ? "" : bonDeCommande.getStatut().name(), "fournisseur", safe(fournisseur),
+                "immatriculation", safe(vehicule), "montantHT", bonDeCommande.getMontantHT() == null ? "0" : bonDeCommande.getMontantHT().toString(),
+                "montantTTC", bonDeCommande.getMontantTTC() == null ? "0" : bonDeCommande.getMontantTTC().toString()));
+        if (configuredTemplate != null) return configuredTemplate;
         Document document = new Document();
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
@@ -120,5 +128,7 @@ public class PdfGeneratorService {
 
         return out.toByteArray();
     }
+
+    private String safe(String value) { return value == null ? "" : value; }
 
 }

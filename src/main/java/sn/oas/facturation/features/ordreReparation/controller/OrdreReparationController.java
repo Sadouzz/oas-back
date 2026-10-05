@@ -58,13 +58,13 @@ public class OrdreReparationController {
     public ResponseEntity<List<OrdreReparation>> getMyInterventions() {
         Client client = clientService.getClientConnecte();
         return ResponseEntity
-                .ok(ordreReparationRepository.findByVehiculeClientIdOrderByDateCreationDesc(client.getId()));
+                .ok(ordreReparationRepository.findClientHistory(client.getId()));
     }
 
     @GetMapping("/client/{clientId}")
     @Operation(summary = "Lister l'historique des réparations d'un client")
     public ResponseEntity<List<OrdreReparation>> getInterventionsByClient(@PathVariable Long clientId) {
-        return ResponseEntity.ok(ordreReparationRepository.findByVehiculeClientIdOrderByDateCreationDesc(clientId));
+        return ResponseEntity.ok(ordreReparationRepository.findClientHistory(clientId));
     }
 
     @GetMapping("/{id}")

@@ -18,6 +18,7 @@ import sn.oas.facturation.features.auth.dto.request.RegisterRequest;
 import sn.oas.facturation.features.auth.dto.response.AuthResponse;
 import sn.oas.facturation.features.user.repository.UserRepository;
 import sn.oas.facturation.features.client.data.entity.Client;
+import sn.oas.facturation.features.client.data.enums.TypeClient;
 import sn.oas.facturation.features.client.repository.ClientRepository;
 import sn.oas.facturation.features.connectionHistory.service.ConnectionHistoryService;
 import sn.oas.facturation.features.garage.data.entity.Garage;
@@ -129,13 +130,27 @@ public class AuthServiceImpl implements AuthService {
         if (request.password() == null || request.confirmPassword() == null || !request.password().equals(request.confirmPassword())) {
             throw new IllegalArgumentException("Le mot de passe et la confirmation ne correspondent pas.");
         }
+        TypeClient clientType = request.type() == TypeUser.CLIENT && request.typeClient() != null
+                ? request.typeClient() : TypeClient.PARTICULIER;
+        String email = clientType == TypeClient.ENTREPRISE && hasText(request.emailEntreprise())
+                ? request.emailEntreprise().trim() : request.email();
+        String phone = clientType == TypeClient.ENTREPRISE && hasText(request.telephoneEntreprise())
+                ? request.telephoneEntreprise().trim() : request.phone();
+        if (request.type() == TypeUser.CLIENT && clientType == TypeClient.ENTREPRISE) {
+            requireText(request.raisonSociale(), "La raison sociale est obligatoire pour une entreprise.");
+            requireText(request.numeroEntreprise(), "Le NINEA est obligatoire pour une entreprise.");
+            requireText(email, "L'email de l'entreprise est obligatoire.");
+            requireText(phone, "Le téléphone de l'entreprise est obligatoire.");
+            requireText(request.adresseEntreprise(), "L'adresse de l'entreprise est obligatoire.");
+            if (!email.contains("@")) throw new IllegalArgumentException("L'email de l'entreprise est invalide.");
+        }
         if (userService.existsByUsername(request.username())) {
             throw new IllegalArgumentException("Username already in use: " + request.username());
         }
-        if (request.email() != null && !request.email().isEmpty() && userService.existsByEmail(request.email())) {
+        if (email != null && !email.isEmpty() && userService.existsByEmail(email)) {
             throw new IllegalArgumentException("Email already in use: " + request.email());
         }
-        if (request.phone() != null && !request.phone().isEmpty() && userService.existsByPhone(request.phone())) {
+        if (phone != null && !phone.isEmpty() && userService.existsByPhone(phone)) {
             throw new IllegalArgumentException("Phone number already in use: " + request.phone());
         }
         User user;
@@ -199,13 +214,18 @@ public class AuthServiceImpl implements AuthService {
         } else if (request.type() == TypeUser.CLIENT) {
             user = Client.builder()
                     .matricule(matricule)
-                    .phone(request.phone())
+                    .phone(phone)
                     .username(request.username())
                     .firstName(request.firstName())
                     .lastName(request.lastName())
-                    .email(request.email())
+                    .email(email)
                     .password(passwordEncoder.encode(request.password()))
                     .type(request.type())
+                    .typeClient(clientType)
+                    .raisonSociale(clientType == TypeClient.ENTREPRISE ? request.raisonSociale().trim() : null)
+                    .numeroEntreprise(clientType == TypeClient.ENTREPRISE ? request.numeroEntreprise().trim() : null)
+                    .emailEntreprise(clientType == TypeClient.ENTREPRISE ? email : null)
+                    .adresseEntreprise(clientType == TypeClient.ENTREPRISE ? request.adresseEntreprise().trim() : null)
                     .build();
         } else if (request.type() == TypeUser.TECHNICIEN) {
             // Garde-fou de sécurité : un compte technicien ne peut être créé que par un membre
@@ -248,10 +268,18 @@ public class AuthServiceImpl implements AuthService {
         }
         userService.saveUser(user);
         
-        if (request.email() != null && !request.email().isEmpty()) {
-            emailService.sendSimpleEmail(request.email(), "Bienvenue chez Orient Auto Service",
+        if (email != null && !email.isEmpty()) {
+            emailService.sendSimpleEmail(email, "Bienvenue chez Orient Auto Service",
                     "Bonjour " + request.firstName() + ",\n\nVotre compte a été créé avec succès.\nVous pouvez dès maintenant vous connecter à votre espace client pour prendre rendez-vous et suivre l'entretien de votre véhicule.\n\nÀ très bientôt !");
         }
+    }
+
+    private static boolean hasText(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    private static void requireText(String value, String message) {
+        if (!hasText(value)) throw new IllegalArgumentException(message);
     }
 
     private static final java.util.Set<Role> ROLES_AUTORISES_CREATION_TECHNICIEN =

@@ -18,6 +18,7 @@ import sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparat
 import sn.oas.facturation.features.proforma.data.entity.Proforma;
 import sn.oas.facturation.features.technicien.data.entity.Technicien;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
+import sn.oas.facturation.features.client.data.entity.Client;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -95,11 +96,17 @@ public class OrdreReparation implements TenantAware  {
     @JoinColumn(name = "vehicule_id", nullable = false)
     private Vehicule vehicule;
 
+    /** Client auquel appartient cette intervention, figé pour préserver l'historique lors d'un transfert. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "client_id")
+    @JsonIgnore
+    private Client client;
+
     // Lien optionnel vers la Fiche Atelier d'origine (voir spec point 8). Nullable :
     // un ordre de réparation peut aussi être créé directement, sans fiche atelier.
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "fiche_atelier_id", unique = true)
-    @JsonIgnoreProperties({ "vehicule", "ordreReparation", "client", "garage" })
+    @JsonIgnoreProperties({ "vehicule", "ordreReparation", "client", "garage", "signatureBase64", "signatureSortieBase64", "signatureReceptionnaireBase64", "rendezVous" })
     private FicheAtelier ficheAtelier;
 
     @ManyToMany(fetch = FetchType.LAZY)
@@ -147,6 +154,9 @@ public class OrdreReparation implements TenantAware  {
 
     @PrePersist
     protected void onCreate() {
+        if (this.client == null && this.vehicule != null) {
+            this.client = this.vehicule.getClient();
+        }
         if (this.dateCreation == null) {
             this.dateCreation = LocalDateTime.now();
         }
@@ -163,4 +173,3 @@ public class OrdreReparation implements TenantAware  {
         this.updatedAt = LocalDateTime.now();
     }
 }
-

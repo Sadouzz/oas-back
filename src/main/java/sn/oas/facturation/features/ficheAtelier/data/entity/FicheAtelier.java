@@ -48,6 +48,7 @@ public class FicheAtelier implements TenantAware {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "rendez_vous_id", nullable = true)
+    @JsonIgnoreProperties({"ficheAtelier", "client", "vehicule", "garage"})
     private RendezVous rendezVous;
 
     @ManyToOne(fetch = FetchType.LAZY)

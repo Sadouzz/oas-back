@@ -50,6 +50,7 @@ public class BonDeReceptionServiceImpl implements BonDeReceptionService {
 
     private final PieceDetacheRepository pieceDetacheRepository;
     private final MainDoeuvreRepository mainDoeuvreRepository;
+    private final sn.oas.facturation.features.pdfGenerator.service.HtmlToPdfService htmlToPdfService;
 
     @Override
     @Transactional
@@ -126,6 +127,11 @@ public class BonDeReceptionServiceImpl implements BonDeReceptionService {
     public byte[] generatePdf(Long id) {
         BonDeReception bl = bonDeReceptionRepository.findById(id)
                 .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Bon de réception non trouvé avec l'id : " + id));
+
+        byte[] configured = htmlToPdfService.genererTemplatePdfSiConfigure("BON_RECEPTION", java.util.Map.of(
+                "numero", templateValue(bl.getNumero()), "date", templateValue(bl.getDateCreation()), "statut", templateValue(bl.getStatut()),
+                "montantHT", templateValue(bl.getMontantHT()), "montantTTC", templateValue(bl.getMontantTTC()), "remarque", templateValue(bl.getRemarque())));
+        if (configured != null) return configured;
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Document document = new Document();
@@ -255,4 +261,6 @@ public class BonDeReceptionServiceImpl implements BonDeReceptionService {
 
         return baos.toByteArray();
     }
+
+    private String templateValue(Object value) { return value == null ? "" : value.toString(); }
 }

@@ -45,8 +45,9 @@ public class AvoirTTCResponse {
     public static AvoirTTCResponse from(sn.oas.facturation.features.avoirTTC.data.entity.AvoirTTC a) {
         if (a == null) return null;
         var client = a.getClient();
-        if (client == null && a.getOrdreReparation() != null && a.getOrdreReparation().getVehicule() != null) {
-            client = a.getOrdreReparation().getVehicule().getClient();
+        if (client == null && a.getOrdreReparation() != null) {
+            client = a.getOrdreReparation().getClient() != null ? a.getOrdreReparation().getClient()
+                    : a.getOrdreReparation().getVehicule() != null ? a.getOrdreReparation().getVehicule().getClient() : null;
         }
 
         var vehicule = a.getVehicule();

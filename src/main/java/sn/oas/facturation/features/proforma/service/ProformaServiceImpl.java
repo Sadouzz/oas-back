@@ -261,8 +261,10 @@ public class ProformaServiceImpl implements ProformaService {
             "Nouveau Proforma", 
             "Le proforma " + saved.getNumero() + " a été généré et est en attente.");
 
-        if (ordreReparation != null && ordreReparation.getVehicule() != null && ordreReparation.getVehicule().getClient() != null) {
-            String clientEmail = ordreReparation.getVehicule().getClient().getEmail();
+        var ownerAtWork = ordreReparation == null ? null : ordreReparation.getClient();
+        if (ownerAtWork == null && ordreReparation != null && ordreReparation.getVehicule() != null) ownerAtWork = ordreReparation.getVehicule().getClient();
+        if (ownerAtWork != null) {
+            String clientEmail = ownerAtWork.getEmail();
             if (clientEmail != null && !clientEmail.isEmpty()) {
                 byte[] pdfBytes = generatePdf(saved.getId());
                 emailService.sendEmailWithAttachment(
@@ -492,8 +494,10 @@ public class ProformaServiceImpl implements ProformaService {
         proforma.setVisibleClient(true);
         Proforma saved = proformaRepository.save(proforma);
 
-        if (saved.getOrdreReparation() != null && saved.getOrdreReparation().getVehicule() != null && saved.getOrdreReparation().getVehicule().getClient() != null) {
-            String email = saved.getOrdreReparation().getVehicule().getClient().getEmail();
+        var ownerAtWork = saved.getOrdreReparation() == null ? null : saved.getOrdreReparation().getClient();
+        if (ownerAtWork == null && saved.getOrdreReparation() != null && saved.getOrdreReparation().getVehicule() != null) ownerAtWork = saved.getOrdreReparation().getVehicule().getClient();
+        if (ownerAtWork != null) {
+            String email = ownerAtWork.getEmail();
             if (email != null && !email.isEmpty()) {
                 byte[] pdfBytes = generatePdf(saved.getId());
                 emailService.sendEmailWithAttachment(

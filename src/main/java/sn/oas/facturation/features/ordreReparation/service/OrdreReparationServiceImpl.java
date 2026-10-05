@@ -152,6 +152,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 .listeDefauts(request.getListeDefauts())
                 .dateSortie(request.getDateSortie())
                 .vehicule(vehicule)
+                .client(vehicule.getClient())
                 .statut(request.getStatut() != null ? request.getStatut() : StatutOrdreReparation.RECEPTION)
                 .build();
 
@@ -229,12 +230,13 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
 
     private OrdreReparationLightDTO mapToLightDTO(OrdreReparation f) {
         ClientLightDTO clientDTO = null;
-        if (f.getVehicule() != null && f.getVehicule().getClient() != null) {
+        var ownerAtWork = f.getClient() != null ? f.getClient() : (f.getVehicule() == null ? null : f.getVehicule().getClient());
+        if (ownerAtWork != null) {
             clientDTO = ClientLightDTO.builder()
-                    .id(f.getVehicule().getClient().getId())
-                    .firstName(f.getVehicule().getClient().getFirstName())
-                    .lastName(f.getVehicule().getClient().getLastName())
-                    .phone(f.getVehicule().getClient().getPhone())
+                    .id(ownerAtWork.getId())
+                    .firstName(ownerAtWork.getFirstName())
+                    .lastName(ownerAtWork.getLastName())
+                    .phone(ownerAtWork.getPhone())
                     .build();
         }
 
@@ -315,12 +317,13 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         OrdreReparationResponseDTO.VehiculeDto vehiculeDto = null;
         if (o.getVehicule() != null) {
             OrdreReparationResponseDTO.ClientDto clientDto = null;
-            if (o.getVehicule().getClient() != null) {
+            var ownerAtWork = o.getClient() != null ? o.getClient() : o.getVehicule().getClient();
+            if (ownerAtWork != null) {
                 clientDto = OrdreReparationResponseDTO.ClientDto.builder()
-                        .id(o.getVehicule().getClient().getId())
-                        .firstName(o.getVehicule().getClient().getFirstName())
-                        .lastName(o.getVehicule().getClient().getLastName())
-                        .phone(o.getVehicule().getClient().getPhone())
+                        .id(ownerAtWork.getId())
+                        .firstName(ownerAtWork.getFirstName())
+                        .lastName(ownerAtWork.getLastName())
+                        .phone(ownerAtWork.getPhone())
                         .build();
             }
             vehiculeDto = OrdreReparationResponseDTO.VehiculeDto.builder()
@@ -923,7 +926,14 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
 
         java.util.Optional<OrdreReparation> existingExact = ordreReparationRepository.findFirstByFicheAtelierId(ficheAtelierId);
         if (existingExact.isPresent()) {
-            return existingExact.get();
+            OrdreReparation existing = existingExact.get();
+            // Les deux entités portent actuellement une référence OneToOne. Maintenir
+            // également le côté FicheAtelier, utilisé par les DTOs pour exposer le statut.
+            if (ficheAtelier.getOrdreReparation() == null) {
+                ficheAtelier.setOrdreReparation(existing);
+                ficheAtelierRepository.save(ficheAtelier);
+            }
+            return existing;
         }
         
         // Le devis prévisionnel sur la fiche atelier n'est plus obligatoire
@@ -938,7 +948,20 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 java.util.List.of(StatutOrdreReparation.LIVRE, StatutOrdreReparation.PRET_A_LIVRER)
         );
         if (activeOr.isPresent()) {
-            return activeOr.get();
+            OrdreReparation existing = activeOr.get();
+            if (existing.getFicheAtelier() != null
+                    && !existing.getFicheAtelier().getId().equals(ficheAtelierId)) {
+                throw new IllegalStateException(
+                        "Un ordre de réparation actif existe déjà pour ce véhicule (" + existing.getNumero()
+                                + ") et est lié à une autre fiche atelier.");
+            }
+            // Réutiliser l'ordre actif non lié (créé par un ancien flux) et réparer
+            // les deux références afin que la fiche reflète correctement l'association.
+            existing.setFicheAtelier(ficheAtelier);
+            ficheAtelier.setOrdreReparation(existing);
+            ordreReparationRepository.save(existing);
+            ficheAtelierRepository.save(ficheAtelier);
+            return existing;
         }
 
         String numero = documentNumberGeneratorService.generateNextNumber(DocumentType.OR);
@@ -950,11 +973,14 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 .lignesTravaux(syntheseTravaux(travauxDemandes))
                 .lignesReception(syntheseReception(ficheAtelier))
                 .vehicule(ficheAtelier.getVehicule())
+                .client(ficheAtelier.getVehicule().getClient())
                 .ficheAtelier(ficheAtelier)
                 .statut(StatutOrdreReparation.RECEPTION)
                 .build();
 
         OrdreReparation savedOrdre = ordreReparationRepository.save(ordreReparation);
+        ficheAtelier.setOrdreReparation(savedOrdre);
+        ficheAtelierRepository.save(ficheAtelier);
         
         if (savedOrdre.getVehicule() != null && savedOrdre.getVehicule().getClient() != null) {
             String clientEmail = savedOrdre.getVehicule().getClient().getEmail();
