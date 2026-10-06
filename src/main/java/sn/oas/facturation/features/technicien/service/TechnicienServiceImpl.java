@@ -105,7 +105,13 @@ public class TechnicienServiceImpl implements TechnicienService {
                 null,
                 request.getGarageId(),
                 request.getAdresse(),
-                request.getSpecialite()
+                request.getSpecialite(),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
         );
         authService.register(registerRequest);
     }

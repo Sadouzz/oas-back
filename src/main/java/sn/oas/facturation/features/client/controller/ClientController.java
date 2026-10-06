@@ -14,8 +14,8 @@ import sn.oas.facturation.features.client.dto.ClientCreateRequest;
 import sn.oas.facturation.features.client.dto.ClientCreateResponse;
 import sn.oas.facturation.features.client.dto.ClientListResponse;
 import sn.oas.facturation.features.client.dto.ClientFideleRequest;
+import sn.oas.facturation.features.client.dto.ClientUpdateRequest;
 import sn.oas.facturation.features.client.service.ClientService;
-import sn.oas.facturation.features.user.dto.request.UserUpdateRequest;
 import sn.oas.facturation.features.auth.service.AuthService;
 
 @RestController
@@ -78,7 +78,7 @@ public class ClientController {
 
     @PutMapping("/{id}")
     @Operation(summary = "Mettre à jour un client")
-    public ResponseEntity<?> updateClient(@PathVariable Long id, @RequestBody UserUpdateRequest request) {
+    public ResponseEntity<?> updateClient(@PathVariable Long id, @RequestBody ClientUpdateRequest request) {
         try {
             Client client = clientService.updateClient(id, request);
             return ResponseEntity.ok(ClientListResponse.from(client));

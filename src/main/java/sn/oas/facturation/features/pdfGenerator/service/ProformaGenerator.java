@@ -21,7 +21,18 @@ public class ProformaGenerator {
 
     public byte[] genererProformaPdf(Proforma p) {
         String html = construireHtmlProforma(p);
-        return htmlToPdfService.genererHtmlEnPdf(html);
+        var ownerAtWork = p.getOrdreReparation() == null ? null : p.getOrdreReparation().getClient();
+        if (ownerAtWork == null && p.getOrdreReparation() != null && p.getOrdreReparation().getVehicule() != null)
+            ownerAtWork = p.getOrdreReparation().getVehicule().getClient();
+        String clientNom = ownerAtWork != null ? ownerAtWork.getFirstName() + " " + ownerAtWork.getLastName() : "";
+        String marque = p.getOrdreReparation() != null && p.getOrdreReparation().getVehicule() != null ? safe(p.getOrdreReparation().getVehicule().getMarque()) : "";
+        String modele = p.getOrdreReparation() != null && p.getOrdreReparation().getVehicule() != null ? safe(p.getOrdreReparation().getVehicule().getModele()) : "";
+        String immat = p.getOrdreReparation() != null && p.getOrdreReparation().getVehicule() != null ? safe(p.getOrdreReparation().getVehicule().getImmatriculation()) : "";
+        return htmlToPdfService.genererHtmlEnPdf(html, "PROFORMA", java.util.Map.of(
+                "numero", safe(p.getNumero()), "clientNom", clientNom, "marque", marque, "modele", modele,
+                "immatriculation", immat, "montantHT", p.getMontantHT() == null ? "0" : p.getMontantHT().toPlainString(),
+                "montantTTC", p.getMontantTTC() == null ? "0" : p.getMontantTTC().toPlainString(),
+                "remarque", p.getRemarque() == null ? "" : p.getRemarque()));
     }
 
     private String construireHtmlProforma(Proforma p) {
@@ -43,12 +54,13 @@ public class ProformaGenerator {
             modele = safe(v.getModele());
             immat  = safe(v.getImmatriculation());
             chassis = safe(v.getNumeroChassis());
-            if (v.getClient() != null) {
-                clientNum    = String.valueOf(v.getClient().getId());
-                clientNom    = v.getClient().getFirstName() + " " + v.getClient().getLastName();
-                clientTel    = safe(v.getClient().getPhone());
-                clientEmail  = safe(v.getClient().getEmail());
-                clientAdresse = safe(v.getClient().getAdresse());
+            var client = p.getOrdreReparation().getClient() != null ? p.getOrdreReparation().getClient() : v.getClient();
+            if (client != null) {
+                clientNum    = String.valueOf(client.getId());
+                clientNom    = client.getFirstName() + " " + client.getLastName();
+                clientTel    = safe(client.getPhone());
+                clientEmail  = safe(client.getEmail());
+                clientAdresse = safe(client.getAdresse());
             }
         }
 

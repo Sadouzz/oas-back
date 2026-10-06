@@ -110,9 +110,7 @@ public class VehiculeServiceImpl implements VehiculeService {
         }
 
         if (request.clientId() != null && !request.clientId().equals(vehicule.getClient().getId())) {
-            Client client = clientRepository.findById(request.clientId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Client non trouvé avec l'id : " + request.clientId()));
-            vehicule.setClient(client);
+            throw new BadRequestException("Le changement de propriétaire doit être validé par une demande de transfert.");
         }
 
         if (request.annee() != null) vehicule.setAnnee(request.annee());

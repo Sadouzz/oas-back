@@ -1,5 +1,13 @@
 spring:
   application:
     name: facturation 
+  http:
+    converters:
+      preferred-json-mapper: jackson2
   profiles:
     active: ${SPRING_ACTIVE_PROFILE:dev}
+app:
+  push:
+    vapid-public-key: ${OAS_PUSH_VAPID_PUBLIC_KEY:}
+    vapid-private-key: ${OAS_PUSH_VAPID_PRIVATE_KEY:}
+    subject: ${OAS_PUSH_VAPID_SUBJECT:mailto:admin@orientautoservice.sn}

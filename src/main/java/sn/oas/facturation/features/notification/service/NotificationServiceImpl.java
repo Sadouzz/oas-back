@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.notification.data.entity.Notification;
 import sn.oas.facturation.features.notification.repository.NotificationRepository;
+import sn.oas.facturation.features.push.service.PushService;
 
 import java.util.List;
 
@@ -16,6 +17,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationRepository notificationRepository;
     private final EmailService emailService;
+    private final PushService pushService;
 
     @Transactional
     @Override
@@ -27,6 +29,7 @@ public class NotificationServiceImpl implements NotificationService {
                 .lu(false)
                 .build();
         notificationRepository.save(notification);
+        pushService.send(client, titre, message);
         
         if (client.getEmail() != null && !client.getEmail().isEmpty()) {
             emailService.sendSimpleEmail(client.getEmail(), titre, message);

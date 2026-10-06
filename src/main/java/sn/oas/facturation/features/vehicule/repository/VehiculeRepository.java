@@ -11,6 +11,9 @@ import java.util.Optional;
 
 @Repository
 public interface VehiculeRepository extends JpaRepository<Vehicule, Long> {
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("select v from Vehicule v join fetch v.client where v.id = :id")
+    Optional<Vehicule> findByIdForOwnershipChange(@Param("id") Long id);
     Optional<Vehicule> findByImmatriculation(String immatriculation);
     boolean existsByImmatriculation(String immatriculation);
     boolean existsByImmatriculationIgnoreCase(String immatriculation);

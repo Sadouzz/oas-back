@@ -64,9 +64,10 @@ public class ProformaResponse {
             marque = vehicule.getMarque();
             modele = vehicule.getModele();
             annee = vehicule.getAnnee();
-            if (vehicule.getClient() != null) {
-                clientId = vehicule.getClient().getId();
-                clientNom = (vehicule.getClient().getFirstName() + " " + vehicule.getClient().getLastName()).trim();
+            var client = p.getOrdreReparation().getClient() != null ? p.getOrdreReparation().getClient() : vehicule.getClient();
+            if (client != null) {
+                clientId = client.getId();
+                clientNom = (client.getFirstName() + " " + client.getLastName()).trim();
             }
         }
 

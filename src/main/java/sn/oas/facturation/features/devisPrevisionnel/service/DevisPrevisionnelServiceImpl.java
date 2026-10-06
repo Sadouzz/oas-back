@@ -80,6 +80,8 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
             client = userService.getClientById(request.clientId());
         } else if (ficheAtelier != null && ficheAtelier.getClient() != null) {
             client = ficheAtelier.getClient();
+        } else if (ordreReparation != null && ordreReparation.getClient() != null) {
+            client = ordreReparation.getClient();
         } else if (ordreReparation != null && ordreReparation.getVehicule() != null && ordreReparation.getVehicule().getClient() != null) {
             client = ordreReparation.getVehicule().getClient();
         }

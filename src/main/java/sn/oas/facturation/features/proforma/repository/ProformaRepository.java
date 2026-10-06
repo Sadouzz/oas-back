@@ -65,11 +65,13 @@ public interface ProformaRepository extends JpaRepository<Proforma, Long> {
 
     Optional<Proforma> findByOrdreReparationId(Long ordreReparationId);
 
-    @Query("SELECT p FROM Proforma p WHERE p.ordreReparation.vehicule.client.id = :clientId " +
+    @Query("SELECT p FROM Proforma p WHERE (p.ordreReparation.client.id = :clientId OR " +
+            "(p.ordreReparation.client IS NULL AND p.ordreReparation.vehicule.client.id = :clientId)) " +
             "AND p.visibleClient = true ORDER BY p.dateCreation DESC")
     List<Proforma> findByClientIdOrderByDateCreationDesc(@Param("clientId") Long clientId);
 
-    @Query("SELECT COUNT(p) FROM Proforma p WHERE p.ordreReparation.vehicule.client.id = :clientId " +
+    @Query("SELECT COUNT(p) FROM Proforma p WHERE (p.ordreReparation.client.id = :clientId OR " +
+            "(p.ordreReparation.client IS NULL AND p.ordreReparation.vehicule.client.id = :clientId)) " +
             "AND p.visibleClient = true AND (p.statut IS NULL OR p.statut = :statut)")
     long countByClientIdAndStatutEnAttente(@Param("clientId") Long clientId, @Param("statut") sn.oas.facturation.features.facturation.data.enums.StatutFacturation statut);
 }
