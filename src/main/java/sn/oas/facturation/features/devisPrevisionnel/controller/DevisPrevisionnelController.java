@@ -17,6 +17,7 @@ import sn.oas.facturation.features.devisPrevisionnel.data.entity.DevisPrevisionn
 import sn.oas.facturation.features.devisPrevisionnel.dto.DevisPrevisionnelListResponse;
 import sn.oas.facturation.features.devisPrevisionnel.dto.DevisPrevisionnelRequest;
 import sn.oas.facturation.features.devisPrevisionnel.service.DevisPrevisionnelService;
+import sn.oas.facturation.shared.exception.ForbiddenException;
 
 import java.util.List;
 
@@ -159,6 +160,35 @@ public class DevisPrevisionnelController {
     public ResponseEntity<List<DevisPrevisionnelListResponse>> getMyDevis() {
         Client client = clientService.getClientConnecte();
         return ResponseEntity.ok(devisPrevisionnelService.getClientDevis(client).stream().map(DevisPrevisionnelListResponse::from).toList());
+    }
+
+    @GetMapping("/me/{id}")
+    @Operation(summary = "Récupérer un devis prévisionnel du client connecté")
+    public ResponseEntity<DevisPrevisionnel> getMyDevisById(@PathVariable Long id) {
+        Client client = clientService.getClientConnecte();
+        DevisPrevisionnel devis = devisPrevisionnelService.getById(id);
+        assertClientOwns(client, devis);
+        return ResponseEntity.ok(devis);
+    }
+
+    @GetMapping("/me/{id}/pdf")
+    @Operation(summary = "Télécharger le PDF d'un devis prévisionnel du client connecté")
+    public ResponseEntity<byte[]> downloadMyDevisPdf(@PathVariable Long id) {
+        Client client = clientService.getClientConnecte();
+        DevisPrevisionnel devis = devisPrevisionnelService.getById(id);
+        assertClientOwns(client, devis);
+        byte[] pdfBytes = devisPrevisionnelService.generatePdf(id);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.set(HttpHeaders.CONTENT_DISPOSITION,
+                "attachment; filename=\"Devis-" + (devis.getNumero() != null ? devis.getNumero() : id) + ".pdf\"");
+        return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+    }
+
+    private void assertClientOwns(Client client, DevisPrevisionnel devis) {
+        if (devis.getClient() == null || !devis.getClient().getId().equals(client.getId())) {
+            throw new ForbiddenException("Accès non autorisé à ce devis");
+        }
     }
 
     @Operation(summary = "Accepter un devis prévisionnel par le client")

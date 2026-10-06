@@ -582,13 +582,7 @@ public class ProformaServiceImpl implements ProformaService {
         Proforma proforma = proformaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Proforma non trouvé avec l'id : " + id));
 
-        if (proforma.getOrdreReparation() == null || proforma.getOrdreReparation().getVehicule() == null ||
-            !proforma.getOrdreReparation().getVehicule().getClient().getId().equals(client.getId())) {
-            throw new sn.oas.facturation.shared.exception.ForbiddenException("Accès non autorisé à ce proforma");
-        }
-        if (proforma.getVisibleClient() == null || !proforma.getVisibleClient()) {
-            throw new sn.oas.facturation.shared.exception.BadRequestException("Ce proforma n'est pas encore disponible.");
-        }
+        assertClientOwnsVisibleProforma(client, proforma);
 
         proforma.setStatut(StatutFacturation.ACCEPTE);
 
@@ -612,16 +606,24 @@ public class ProformaServiceImpl implements ProformaService {
         Proforma proforma = proformaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Proforma non trouvé avec l'id : " + id));
 
-        if (proforma.getOrdreReparation() == null || proforma.getOrdreReparation().getVehicule() == null ||
-            !proforma.getOrdreReparation().getVehicule().getClient().getId().equals(client.getId())) {
-            throw new sn.oas.facturation.shared.exception.ForbiddenException("Accès non autorisé à ce proforma");
-        }
-        if (proforma.getVisibleClient() == null || !proforma.getVisibleClient()) {
-            throw new sn.oas.facturation.shared.exception.BadRequestException("Ce proforma n'est pas encore disponible.");
-        }
+        assertClientOwnsVisibleProforma(client, proforma);
 
         proforma.setStatut(StatutFacturation.REJETE);
 
         return proformaRepository.save(proforma);
+    }
+
+    private void assertClientOwnsVisibleProforma(Client client, Proforma proforma) {
+        var ordre = proforma.getOrdreReparation();
+        var owner = ordre == null ? null : ordre.getClient();
+        if (owner == null && ordre != null && ordre.getVehicule() != null) {
+            owner = ordre.getVehicule().getClient();
+        }
+        if (owner == null || client == null || !owner.getId().equals(client.getId())) {
+            throw new sn.oas.facturation.shared.exception.ForbiddenException("Accès non autorisé à ce proforma");
+        }
+        if (!Boolean.TRUE.equals(proforma.getVisibleClient())) {
+            throw new sn.oas.facturation.shared.exception.BadRequestException("Ce proforma n'est pas encore disponible.");
+        }
     }
 }

@@ -1205,6 +1205,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             ProformaSummaryDto proformaDto = new ProformaSummaryDto();
             proformaDto.setId(ordre.getProforma().getId());
             proformaDto.setNumero(ordre.getProforma().getNumero());
+            proformaDto.setVisibleClient(Boolean.TRUE.equals(ordre.getProforma().getVisibleClient()));
             proformaDto.setDateCreation(ordre.getProforma().getDateCreation());
             proformaDto.setStatut(ordre.getProforma().getStatut() != null ? ordre.getProforma().getStatut().name() : null);
             proformaDto.setMontantHT(ordre.getProforma().getMontantHT() != null ? ordre.getProforma().getMontantHT().doubleValue() : 0.0);
