@@ -6,11 +6,16 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import sn.oas.facturation.features.bonDeCommande.data.entity.BonDeCommande;
+import sn.oas.facturation.features.bonDeCommande.data.entity.LigneBonDeCommandePiece;
+import sn.oas.facturation.features.bonDeCommande.data.enums.StatutBonCommande;
+import sn.oas.facturation.features.bonDeCommande.repository.BonDeCommandeRepository;
 import sn.oas.facturation.features.devisPrevisionnel.data.entity.DevisPrevisionnel;
 import sn.oas.facturation.features.devisPrevisionnel.repository.DevisPrevisionnelRepository;
 import sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece;
 import sn.oas.facturation.features.facturation.data.enums.StatutFacturation;
 import sn.oas.facturation.features.ficheAtelier.data.entity.LigneReception;
+import sn.oas.facturation.features.fournisseur.data.entity.Fournisseur;
 import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation;
 import sn.oas.facturation.features.piecedetache.repository.PieceDetacheRepository;
@@ -120,6 +125,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     private final RemarqueDiagnosticRepository remarqueDiagnosticRepository;
     private final FicheAtelierRepository ficheAtelierRepository;
     private final DevisPrevisionnelRepository devisPrevisionnelRepository;
+    private final BonDeCommandeRepository bonDeCommandeRepository;
 
     @Autowired
     @Lazy
@@ -698,6 +704,9 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             proformaRepository.findByOrdreReparationId(id).ifPresent(proforma -> {
                 for (LigneFacturationPiece lp : proforma
                         .getLignesFacturationPieces()) {
+                    if (lp.getPiece() == null) {
+                        continue;
+                    }
                     PieceDetache piece = pieceDetacheRepository
                             .findById(lp.getPiece().getId()).orElse(null);
                     if (piece != null && piece instanceof PDP pdp) {
@@ -1221,6 +1230,169 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         dto.setNumero(ordre.getNumero());
         dto.setStatut(ordre.getStatut() != null ? ordre.getStatut().name() : null);
         if (ordre.getVehicule() != null) dto.setVehiculeId(ordre.getVehicule().getId());
+
+        Proforma proforma = ordre.getProforma();
+        if (proforma == null) {
+            proforma = proformaRepository.findByOrdreReparationId(id).orElse(null);
+        }
+
+        // Récupération des bons de commande liés
+        Long vehiculeId = ordre.getVehicule() != null ? ordre.getVehicule().getId() : null;
+        List<BonDeCommande> bdcList = bonDeCommandeRepository.findByOrdreReparationOrVehicule(id, vehiculeId);
+
+        if (proforma != null && proforma.getBonDeCommande() != null) {
+            BonDeCommande proformaBdc = proforma.getBonDeCommande();
+            if (bdcList.stream().noneMatch(b -> b.getId().equals(proformaBdc.getId()))) {
+                bdcList.add(proformaBdc);
+            }
+        }
+
+        List<StepApprovisionnementResponseDto.BonCommandeSummaryDto> bdcDtos = new ArrayList<>();
+        if (bdcList != null) {
+            for (BonDeCommande bc : bdcList) {
+                String fournisseurNom = null;
+                if (bc.getFournisseur() != null) {
+                    Fournisseur f = bc.getFournisseur();
+                    if (f.getNomEntreprise() != null && !f.getNomEntreprise().isBlank()) {
+                        fournisseurNom = f.getNomEntreprise();
+                    } else {
+                        String prenom = f.getPrenom() != null ? f.getPrenom() : "";
+                        String nom = f.getNom() != null ? f.getNom() : "";
+                        fournisseurNom = (prenom + " " + nom).trim();
+                    }
+                }
+                double montant = bc.getMontantTTC() != null ? bc.getMontantTTC().doubleValue()
+                        : (bc.getMontantHT() != null ? bc.getMontantHT().doubleValue() : 0.0);
+
+                List<StepApprovisionnementResponseDto.PieceBonCommandeDto> piecesBdc = new ArrayList<>();
+                int totalQuantitePieces = 0;
+                if (bc.getLignes() != null) {
+                    for (LigneBonDeCommandePiece l : bc.getLignes()) {
+                        int qte = l.getQuantite() != null ? l.getQuantite() : 0;
+                        totalQuantitePieces += qte;
+                        String ref = l.getPieceDetachee() != null ? l.getPieceDetachee().getReference() : l.getReferencePds();
+                        String des = l.getPieceDetachee() != null ? l.getPieceDetachee().getDesignation() : l.getDesignationPds();
+                        Long pId = l.getPieceDetachee() != null ? l.getPieceDetachee().getId() : null;
+                        double pu = l.getPrixUnitaire() != null ? l.getPrixUnitaire().doubleValue() : 0.0;
+                        double mt = l.getMontant() != null ? l.getMontant().doubleValue() : (qte * pu);
+
+                        piecesBdc.add(StepApprovisionnementResponseDto.PieceBonCommandeDto.builder()
+                                .ligneId(l.getId())
+                                .pieceId(pId)
+                                .reference(ref)
+                                .designation(des != null ? des : "Pièce")
+                                .quantite(qte)
+                                .quantiteRecue(l.getQuantiteRecue() != null ? l.getQuantiteRecue() : 0)
+                                .prixUnitaire(pu)
+                                .montantTotal(mt)
+                                .build());
+                    }
+                }
+
+                bdcDtos.add(StepApprovisionnementResponseDto.BonCommandeSummaryDto.builder()
+                        .id(bc.getId())
+                        .numero(bc.getNumero())
+                        .reference(bc.getNumero())
+                        .fournisseurNom(fournisseurNom)
+                        .montantTotal(montant)
+                        .statut(bc.getStatut() != null ? bc.getStatut().name() : null)
+                        .dateCommande(bc.getDateCommande())
+                        .nombrePieces(totalQuantitePieces)
+                        .pieces(piecesBdc)
+                        .build());
+            }
+        }
+
+        dto.setBonsDeCommande(bdcDtos);
+        dto.setHasBonDeCommande(!bdcDtos.isEmpty());
+
+        if (proforma != null) {
+            dto.setProformaId(proforma.getId());
+            dto.setProformaNumero(proforma.getNumero());
+
+            List<StepApprovisionnementResponseDto.PieceApprovisionnementDto> piecesDto = new ArrayList<>();
+            if (proforma.getLignesFacturationPieces() != null) {
+                for (LigneFacturationPiece lp : proforma.getLignesFacturationPieces()) {
+                    boolean isCustom = Boolean.TRUE.equals(lp.getIsCustom()) || lp.getPiece() == null;
+                    if (isCustom || lp.getPiece() == null) {
+                        // On ignore les pièces custom (PDS) ou hors catalogue
+                        continue;
+                    }
+
+                    PieceDetache piece = lp.getPiece();
+                    String type = piece.getType() != null ? piece.getType().name() : (piece instanceof PDP ? "PDP" : "");
+                    if (!"PDP".equalsIgnoreCase(type) && !(piece instanceof PDP)) {
+                        // On ne traite que les PDP (Pièces Détachées Principales / Magasin)
+                        continue;
+                    }
+
+                    int qteDemandee = lp.getQuantite() != null ? lp.getQuantite() : 0;
+                    double stockMagasin = piece.getStockMagasin() != null ? piece.getStockMagasin() : 0.0;
+                    double stockAtelier = piece.getStockAtelier() != null ? piece.getStockAtelier() : 0.0;
+
+                    // Uniquement ce qui est manquant en stock magasin
+                    if (stockMagasin >= qteDemandee) {
+                        continue;
+                    }
+
+                    double manque = qteDemandee - stockMagasin;
+                    double diffStock = stockMagasin - qteDemandee;
+                    double prix = lp.getPrix() != null ? lp.getPrix().doubleValue() : 0.0;
+                    if (prix == 0.0 && piece.getPrixUnitaire() != null) {
+                        prix = piece.getPrixUnitaire();
+                    }
+
+                    // Calcul de la quantité commandée et reçue à partir des bons de commande réels
+                    int totalQteCommandee = 0;
+                    int totalQteRecue = 0;
+                    if (bdcList != null) {
+                        for (BonDeCommande bc : bdcList) {
+                            if (bc.getStatut() == StatutBonCommande.ANNULE) {
+                                continue;
+                            }
+                            if (bc.getLignes() != null) {
+                                for (LigneBonDeCommandePiece l : bc.getLignes()) {
+                                    boolean match = false;
+                                    if (l.getPieceDetachee() != null && piece.getId() != null && piece.getId().equals(l.getPieceDetachee().getId())) {
+                                        match = true;
+                                    } else if (piece.getReference() != null && !piece.getReference().isBlank()) {
+                                        String bdcRef = l.getPieceDetachee() != null ? l.getPieceDetachee().getReference() : l.getReferencePds();
+                                        if (piece.getReference().equalsIgnoreCase(bdcRef)) {
+                                            match = true;
+                                        }
+                                    }
+                                    if (match) {
+                                        totalQteCommandee += (l.getQuantite() != null ? l.getQuantite() : 0);
+                                        totalQteRecue += (l.getQuantiteRecue() != null ? l.getQuantiteRecue() : 0);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    piecesDto.add(StepApprovisionnementResponseDto.PieceApprovisionnementDto.builder()
+                            .ligneId(lp.getId())
+                            .pieceId(piece.getId())
+                            .reference(piece.getReference())
+                            .designation(piece.getDesignation() != null ? piece.getDesignation() : "Pièce")
+                            .type("PDP")
+                            .isCustom(false)
+                            .quantiteDemandee(qteDemandee)
+                            .stockMagasin(stockMagasin)
+                            .stockAtelier(stockAtelier)
+                            .quantiteCommande(totalQteCommandee)
+                            .quantiteRecue(totalQteRecue)
+                            .quantiteManquante(manque)
+                            .differenceStock(diffStock)
+                            .isManquant(true)
+                            .prixUnitaire(prix)
+                            .montantTotal(qteDemandee * prix)
+                            .build());
+                }
+            }
+            dto.setPiecesManquantesProforma(piecesDto);
+        }
+
         return dto;
     }
 

@@ -33,4 +33,6 @@ public class Fournisseur extends BaseEntity implements TenantAware {
 
     @Builder.Default
     private boolean archived = false;
+
+    
 }

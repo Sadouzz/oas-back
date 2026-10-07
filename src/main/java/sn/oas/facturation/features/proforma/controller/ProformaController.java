@@ -15,6 +15,7 @@ import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.service.ClientService;
 import sn.oas.facturation.features.facture.dto.FactureResponse;
 import sn.oas.facturation.features.proforma.dto.ProformaCreateRequest;
+import sn.oas.facturation.features.proforma.dto.ProformaDetailsResponseDto;
 import sn.oas.facturation.features.proforma.dto.ProformaListResponse;
 import sn.oas.facturation.features.proforma.dto.ProformaResponse;
 import sn.oas.facturation.features.proforma.dto.ProformaUpdateRequest;
@@ -55,10 +56,18 @@ public class ProformaController {
         return ResponseEntity.ok(ProformaResponse.from(proformaService.validerEnvoi(id)));
     }
 
+    /*
     @GetMapping("/{id}")
     @Operation(summary = "Récupérer un proforma par son ID")
     public ResponseEntity<ProformaResponse> getById(@PathVariable Long id) {
         return ResponseEntity.ok(ProformaResponse.from(proformaService.getById(id)));
+    }
+    */
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Récupérer les détails complets d'un proforma (lignes pièces et MO détaillées)")
+    public ResponseEntity<ProformaDetailsResponseDto> getDetails(@PathVariable Long id) {
+        return ResponseEntity.ok(ProformaDetailsResponseDto.from(proformaService.getById(id)));
     }
 
     @GetMapping("/ordre-reparation/{ordreReparationId}")

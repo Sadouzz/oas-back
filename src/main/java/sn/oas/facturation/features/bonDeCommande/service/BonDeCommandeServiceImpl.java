@@ -417,6 +417,9 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                     List<LignePieceRequest> lignesPieces = new ArrayList<>();
                     for (LigneFacturationPiece lp : proforma
                             .getLignesFacturationPieces()) {
+                        if (lp.getPiece() == null) {
+                            continue;
+                        }
                         PieceDetache piece = pieceDetacheRepository.findById(lp.getPiece().getId()).orElse(null);
                         if (piece != null) {
                             piece = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
@@ -569,6 +572,9 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                     List<LignePieceRequest> lignesPieces = new ArrayList<>();
                     for (LigneFacturationPiece lp : proforma
                             .getLignesFacturationPieces()) {
+                        if (lp.getPiece() == null) {
+                            continue;
+                        }
                         PieceDetache piece = pieceDetacheRepository.findById(lp.getPiece().getId()).orElse(null);
                         if (piece != null) {
                             piece = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);

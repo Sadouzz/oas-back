@@ -32,5 +32,16 @@ public interface BonDeCommandeRepository extends JpaRepository<BonDeCommande, Lo
 
     List<BonDeCommande> findByVehiculeId(Long vehiculeId);
 
+    @Query("""
+            SELECT DISTINCT bc FROM BonDeCommande bc
+            LEFT JOIN bc.facturations f
+            WHERE f.ordreReparation.id = :ordreReparationId
+            OR (bc.vehicule.id = :vehiculeId AND :vehiculeId IS NOT NULL)
+            ORDER BY bc.dateCommande DESC
+            """)
+    List<BonDeCommande> findByOrdreReparationOrVehicule(
+            @Param("ordreReparationId") Long ordreReparationId,
+            @Param("vehiculeId") Long vehiculeId);
+
     List<BonDeCommande> findTop5ByOrderByDateCommandeDesc();
 }
