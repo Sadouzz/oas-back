@@ -93,5 +93,13 @@ public class BonDeCommande implements TenantAware  {
                 if (this.dateCommande == null) {
                         this.dateCommande = LocalDateTime.now();
                 }
+                if (this.dateModification == null) {
+                        this.dateModification = LocalDateTime.now();
+                }
+        }
+
+        @PreUpdate
+        protected void onUpdate() {
+                this.dateModification = LocalDateTime.now();
         }
 }

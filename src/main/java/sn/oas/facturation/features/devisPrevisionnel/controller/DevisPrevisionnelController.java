@@ -16,6 +16,7 @@ import sn.oas.facturation.features.client.service.ClientService;
 import sn.oas.facturation.features.devisPrevisionnel.data.entity.DevisPrevisionnel;
 import sn.oas.facturation.features.devisPrevisionnel.dto.DevisPrevisionnelListResponse;
 import sn.oas.facturation.features.devisPrevisionnel.dto.DevisPrevisionnelRequest;
+import sn.oas.facturation.features.devisPrevisionnel.dto.DevisPrevisionnelResponseDto;
 import sn.oas.facturation.features.devisPrevisionnel.service.DevisPrevisionnelService;
 import sn.oas.facturation.shared.exception.ForbiddenException;
 
@@ -32,12 +33,12 @@ public class DevisPrevisionnelController {
 
     @Operation(summary = "Créer un devis prévisionnel")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Devis créé avec succès"),
+            @ApiResponse(responseCode = "201", description = "Devis créé avec succès"),
             @ApiResponse(responseCode = "400", description = "Client ou véhicule invalide")
     })
     @PostMapping
-    public ResponseEntity<DevisPrevisionnel> creer(@RequestBody DevisPrevisionnelRequest request) {
-        return new ResponseEntity<>(devisPrevisionnelService.creer(request), HttpStatus.CREATED);
+    public ResponseEntity<DevisPrevisionnelResponseDto> creer(@RequestBody DevisPrevisionnelRequest request) {
+        return new ResponseEntity<>(DevisPrevisionnelResponseDto.from(devisPrevisionnelService.creer(request)), HttpStatus.CREATED);
     }
 
     @Operation(summary = "Modifier un devis prévisionnel")
@@ -46,9 +47,9 @@ public class DevisPrevisionnelController {
             @ApiResponse(responseCode = "400", description = "Données invalides ou devis introuvable")
     })
     @PutMapping("/{id}")
-    public ResponseEntity<DevisPrevisionnel> modifier(@PathVariable Long id,
+    public ResponseEntity<DevisPrevisionnelResponseDto> modifier(@PathVariable Long id,
             @RequestBody DevisPrevisionnelRequest request) {
-        return ResponseEntity.ok(devisPrevisionnelService.modifier(id, request));
+        return ResponseEntity.ok(DevisPrevisionnelResponseDto.from(devisPrevisionnelService.modifier(id, request)));
     }
 
     @Operation(summary = "Supprimer un devis prévisionnel")
@@ -68,14 +69,14 @@ public class DevisPrevisionnelController {
             @ApiResponse(responseCode = "404", description = "Devis introuvable")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<DevisPrevisionnel> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(devisPrevisionnelService.getById(id));
+    public ResponseEntity<DevisPrevisionnelResponseDto> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(DevisPrevisionnelResponseDto.from(devisPrevisionnelService.getById(id)));
     }
 
     @Operation(summary = "Récupérer les détails d'un devis prévisionnel")
     @GetMapping("/{id}/details")
-    public ResponseEntity<DevisPrevisionnel> getDetails(@PathVariable Long id) {
-        return ResponseEntity.ok(devisPrevisionnelService.getById(id));
+    public ResponseEntity<DevisPrevisionnelResponseDto> getDetails(@PathVariable Long id) {
+        return ResponseEntity.ok(DevisPrevisionnelResponseDto.from(devisPrevisionnelService.getById(id)));
     }
 
     @Operation(summary = "Obtenir le dernier devis par l'ID de la fiche atelier")
@@ -84,8 +85,9 @@ public class DevisPrevisionnelController {
             @ApiResponse(responseCode = "204", description = "Aucun devis lié à cette fiche atelier")
     })
     @GetMapping("/fiche-atelier/{ficheAtelierId}")
-    public ResponseEntity<DevisPrevisionnel> getByFicheAtelierId(@PathVariable Long ficheAtelierId) {
+    public ResponseEntity<DevisPrevisionnelResponseDto> getByFicheAtelierId(@PathVariable Long ficheAtelierId) {
         return devisPrevisionnelService.getByFicheAtelierId(ficheAtelierId)
+                .map(DevisPrevisionnelResponseDto::from)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.noContent().build());
     }
@@ -144,14 +146,14 @@ public class DevisPrevisionnelController {
 
     @Operation(summary = "Valider un devis prévisionnel")
     @PutMapping("/{id}/valider")
-    public ResponseEntity<DevisPrevisionnel> valider(@PathVariable Long id) {
-        return ResponseEntity.ok(devisPrevisionnelService.valider(id));
+    public ResponseEntity<DevisPrevisionnelResponseDto> valider(@PathVariable Long id) {
+        return ResponseEntity.ok(DevisPrevisionnelResponseDto.from(devisPrevisionnelService.valider(id)));
     }
 
     @Operation(summary = "Annuler un devis prévisionnel")
     @PutMapping("/{id}/annuler")
-    public ResponseEntity<DevisPrevisionnel> annuler(@PathVariable Long id) {
-        return ResponseEntity.ok(devisPrevisionnelService.annuler(id));
+    public ResponseEntity<DevisPrevisionnelResponseDto> annuler(@PathVariable Long id) {
+        return ResponseEntity.ok(DevisPrevisionnelResponseDto.from(devisPrevisionnelService.annuler(id)));
     }
 
     // --- Client endpoints ---
@@ -193,15 +195,15 @@ public class DevisPrevisionnelController {
 
     @Operation(summary = "Accepter un devis prévisionnel par le client")
     @PutMapping("/{id}/client-accepter")
-    public ResponseEntity<DevisPrevisionnel> clientAccepter(@PathVariable Long id) {
+    public ResponseEntity<DevisPrevisionnelResponseDto> clientAccepter(@PathVariable Long id) {
         Client client = clientService.getClientConnecte();
-        return ResponseEntity.ok(devisPrevisionnelService.clientAccepter(client, id));
+        return ResponseEntity.ok(DevisPrevisionnelResponseDto.from(devisPrevisionnelService.clientAccepter(client, id)));
     }
 
     @Operation(summary = "Refuser un devis prévisionnel par le client")
     @PutMapping("/{id}/client-refuser")
-    public ResponseEntity<DevisPrevisionnel> clientRefuser(@PathVariable Long id) {
+    public ResponseEntity<DevisPrevisionnelResponseDto> clientRefuser(@PathVariable Long id) {
         Client client = clientService.getClientConnecte();
-        return ResponseEntity.ok(devisPrevisionnelService.clientRefuser(client, id));
+        return ResponseEntity.ok(DevisPrevisionnelResponseDto.from(devisPrevisionnelService.clientRefuser(client, id)));
     }
 }
