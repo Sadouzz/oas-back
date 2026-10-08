@@ -26,7 +26,9 @@ import sn.oas.facturation.features.depot_pieces.data.entity.Depot;
 
 
 @Entity
-@Table(name = "pieces_detachees")
+@Table(name = "pieces_detachees", uniqueConstraints = {
+    @UniqueConstraint(name = "uk_pieces_garage_reference", columnNames = {"garage_id", "numero_serie"})
+})
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 @DiscriminatorColumn(name = "type_piece", discriminatorType = DiscriminatorType.STRING)
 @Data
@@ -52,11 +54,15 @@ public abstract class PieceDetache implements TenantAware {
     @Column(name = "type_piece", insertable = false, updatable = false)
     private TypePiece type;
 
-    @Column(unique = true)
+    @Column(name = "numero")
     private String numero;
 
-    @Column(name = "numero_serie", nullable = false, unique = true)
+    @Column(name = "numero_serie", nullable = false)
     private String reference;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "depot_id", nullable = true)
+    private Depot depot;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "categorie_id")
@@ -136,10 +142,5 @@ public abstract class PieceDetache implements TenantAware {
 
     public String getNumeroDeSerie() {
         return this.reference;
-    }
-
-    @Transient
-    public Depot getDepot() {
-        return this.categorie != null ? this.categorie.getDepot() : null;
     }
 }

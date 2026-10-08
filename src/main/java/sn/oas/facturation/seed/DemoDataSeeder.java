@@ -34,6 +34,9 @@ import sn.oas.facturation.shared.documentNumber.DocumentType;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.features.vehicule.repository.VehiculeRepository;
 
+import sn.oas.facturation.features.depot_pieces.data.entity.Depot;
+import sn.oas.facturation.features.depot_pieces.repository.DepotRepository;
+
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -53,6 +56,7 @@ public class DemoDataSeeder implements CommandLineRunner {
     private static final String DEMO_PASSWORD = "passer";
 
     private final GarageRepository garageRepository;
+    private final DepotRepository depotRepository;
     private final AgentRepository agentRepository;
     private final ClientRepository clientRepository;
     private final UserRepository userRepository;
@@ -74,6 +78,8 @@ public class DemoDataSeeder implements CommandLineRunner {
         Garage dakar = garages.get(0);
         Garage saly = garages.get(1);
 
+        seedPdgDepots(garages);
+
         List<Agent> agents = seedAgents(dakar, saly);
 
         List<Client> clients = seedClients();
@@ -88,6 +94,24 @@ public class DemoDataSeeder implements CommandLineRunner {
         seedMessages(dakar, clients, agents);
 
         log.info("=== Données de démonstration prêtes (mot de passe commun : {}) ===", DEMO_PASSWORD);
+    }
+
+    private void seedPdgDepots(List<Garage> garages) {
+        for (Garage garage : garages) {
+            boolean exists = depotRepository.findAll().stream()
+                    .anyMatch(d -> d.getGarage() != null
+                            && d.getGarage().getId().equals(garage.getId())
+                            && "PDG".equalsIgnoreCase(d.getNom()));
+            if (!exists) {
+                Depot pdg = Depot.builder()
+                        .nom("PDG")
+                        .description("Dépôt automatique pour pièces déjà générées (PDG) - " + garage.getNom())
+                        .garage(garage)
+                        .build();
+                depotRepository.save(pdg);
+                log.info("Dépôt PDG créé pour le garage {}", garage.getNom());
+            }
+        }
     }
 
     private void dropOutdatedConstraints() {

@@ -15,7 +15,17 @@ import java.util.List;
 @Repository
 public interface PieceDetacheRepository extends JpaRepository<PieceDetache, Long>, JpaSpecificationExecutor<PieceDetache> {
 
-    boolean existsByReference(String reference);
+    boolean existsByGarageIdAndReferenceIgnoreCase(Long garageId, String reference);
+    boolean existsByReferenceIgnoreCase(String reference);
+
+    boolean existsByGarageIdAndDesignationIgnoreCase(Long garageId, String designation);
+    boolean existsByDesignationIgnoreCase(String designation);
+
+    boolean existsByGarageIdAndReferenceIgnoreCaseAndIdNot(Long garageId, String reference, Long id);
+    boolean existsByReferenceIgnoreCaseAndIdNot(String reference, Long id);
+
+    boolean existsByGarageIdAndDesignationIgnoreCaseAndIdNot(Long garageId, String designation, Long id);
+    boolean existsByDesignationIgnoreCaseAndIdNot(String designation, Long id);
 
     List<PieceDetache> findByType(TypePiece type);
     Page<PieceDetache> findByType(TypePiece type, Pageable pageable);

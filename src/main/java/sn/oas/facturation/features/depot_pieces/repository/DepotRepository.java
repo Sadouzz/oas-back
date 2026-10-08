@@ -13,7 +13,13 @@ import java.util.Optional;
 
 @Repository
 public interface DepotRepository extends JpaRepository<Depot, Long> {
-    Optional<Depot> findByNom(String nom);
+    Optional<Depot> findFirstByNom(String nom);
+    Optional<Depot> findFirstByNomIgnoreCase(String nom);
+    Optional<Depot> findFirstByGarageIdAndNomIgnoreCase(Long garageId, String nom);
+
+    default Optional<Depot> findByNom(String nom) {
+        return findFirstByNomIgnoreCase(nom);
+    }
     boolean existsByNom(String nom);
 
     @Query("SELECT d FROM Depot d WHERE LOWER(d.nom) LIKE LOWER(CONCAT('%', :keyword, '%')) OR (d.description IS NOT NULL AND LOWER(d.description) LIKE LOWER(CONCAT('%', :keyword, '%')))")

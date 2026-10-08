@@ -11,7 +11,9 @@ INSERT INTO depots (id, nom, description, garage_id)
 VALUES 
   (1, 'Magasin Central Dakar', 'Magasin principal de stockage des pièces neuves et consommables - OAS Dakar', 1),
   (2, 'Atelier Rapide Dakar', 'Stock tampon de l''atelier mécanique pour entretien courant et pièces de rotation', 1),
-  (3, 'Magasin Thiès', 'Dépôt régional - OAS Thiès pour pièces détachées et pneumatiques', 2)
+  (3, 'Magasin Thiès', 'Dépôt régional - OAS Thiès pour pièces détachées et pneumatiques', 2),
+  (4, 'PDG', 'Dépôt automatique pour pièces déjà générées (PDG) - OAS Dakar', 1),
+  (5, 'PDG', 'Dépôt automatique pour pièces déjà générées (PDG) - OAS Saly', 2)
 ON CONFLICT (id) DO NOTHING;
 SELECT setval(pg_get_serial_sequence('depots', 'id'), GREATEST((SELECT MAX(id) FROM depots), 10));
 

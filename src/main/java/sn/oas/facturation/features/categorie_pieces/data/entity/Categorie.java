@@ -13,6 +13,10 @@ import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
 import org.hibernate.annotations.ParamDef;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "categories")
 @Data
@@ -31,9 +35,15 @@ public class Categorie implements TenantAware {
     @Column(nullable = false)
     private String nom;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "depot_id", nullable = false)
-    private Depot depot;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "depot_categories",
+        joinColumns = @JoinColumn(name = "categorie_id"),
+        inverseJoinColumns = @JoinColumn(name = "depot_id")
+    )
+    @JsonIgnoreProperties("categories")
+    @Builder.Default
+    private List<Depot> depots = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "garage_id")

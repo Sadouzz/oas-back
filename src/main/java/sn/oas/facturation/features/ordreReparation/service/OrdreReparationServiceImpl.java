@@ -693,10 +693,12 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         }
 
         // Un technicien doit être affecté au diagnostic avant de pouvoir démarrer le diagnostic.
+        /*
         if (newStatut == StatutOrdreReparation.DIAGNOSTIC
                 && (fiche.getDiagnostic() == null || fiche.getDiagnostic().getTechnicien() == null)) {
             throw new RuntimeException("Veuillez affecter au moins un technicien au diagnostic avant de démarrer le diagnostic.");
         }
+        */
 
         // Si la réparation commence (REPARATION), on déduit les pièces
         // du proforma du stock de l'atelier
@@ -931,21 +933,21 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         FicheAtelier ficheAtelier = ficheAtelierRepository.findById(ficheAtelierId)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
 
-        java.util.Optional<OrdreReparation> existingExact = ordreReparationRepository.findFirstByFicheAtelierId(ficheAtelierId);
+        Optional<OrdreReparation> existingExact = ordreReparationRepository.findFirstByFicheAtelierId(ficheAtelierId);
         if (existingExact.isPresent()) {
             return existingExact.get();
         }
         
         // Le devis prévisionnel sur la fiche atelier n'est plus obligatoire
-        java.util.List<DevisPrevisionnel> devisList = devisPrevisionnelRepository.findByFicheAtelierIdOrderByDateCreationDesc(ficheAtelierId);
+        List<DevisPrevisionnel> devisList = devisPrevisionnelRepository.findByFicheAtelierIdOrderByDateCreationDesc(ficheAtelierId);
 
         if (ficheAtelier.getVehicule() == null) {
             throw new RuntimeException("La fiche atelier n'a pas de véhicule associé");
         }
         
-        java.util.Optional<OrdreReparation> activeOr = ordreReparationRepository.findFirstByVehiculeIdAndStatutNotIn(
+        Optional<OrdreReparation> activeOr = ordreReparationRepository.findFirstByVehiculeIdAndStatutNotIn(
                 ficheAtelier.getVehicule().getId(), 
-                java.util.List.of(StatutOrdreReparation.LIVRE, StatutOrdreReparation.PRET_A_LIVRER)
+                List.of(StatutOrdreReparation.LIVRE, StatutOrdreReparation.PRET_A_LIVRER)
         );
         if (activeOr.isPresent()) {
             return activeOr.get();
@@ -965,6 +967,9 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 .build();
 
         OrdreReparation savedOrdre = ordreReparationRepository.save(ordreReparation);
+        
+        ficheAtelier.setOrdreReparation(savedOrdre);
+        ficheAtelierRepository.save(ficheAtelier);
         
         if (savedOrdre.getVehicule() != null && savedOrdre.getVehicule().getClient() != null) {
             String clientEmail = savedOrdre.getVehicule().getClient().getEmail();
@@ -1238,15 +1243,16 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
 
         // Récupération des bons de commande liés
         Long vehiculeId = ordre.getVehicule() != null ? ordre.getVehicule().getId() : null;
-        List<BonDeCommande> bdcList = bonDeCommandeRepository.findByOrdreReparationOrVehicule(id, vehiculeId);
+        // 1. Récupérer uniquement les bons de commande liés directement à cet Ordre de Réparation
+        List<BonDeCommande> bdcList = bonDeCommandeRepository.findByOrdreReparationId(id);
 
+        // 2. Ajouter le BDC du proforma s'il existe et n'est pas déjà dans la liste
         if (proforma != null && proforma.getBonDeCommande() != null) {
             BonDeCommande proformaBdc = proforma.getBonDeCommande();
             if (bdcList.stream().noneMatch(b -> b.getId().equals(proformaBdc.getId()))) {
-                bdcList.add(proformaBdc);
-            }
-        }
-
+        bdcList.add(proformaBdc);
+    }
+}
         List<StepApprovisionnementResponseDto.BonCommandeSummaryDto> bdcDtos = new ArrayList<>();
         if (bdcList != null) {
             for (BonDeCommande bc : bdcList) {

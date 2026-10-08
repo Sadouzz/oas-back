@@ -17,10 +17,9 @@ public record PieceDetacheListResponse(
         String designation,
         CategorieSummary categorie,
         DepotSummary depot,
-        Double prix,
         Double prixUnitaire,
-        // Double prixGros,
-        // Double pourcentage,
+        Double prixGros,
+        Double pourcentage,
         Double stockMagasin,
         Double stockAtelier,
         Double qteReelle,
@@ -41,10 +40,15 @@ public record PieceDetacheListResponse(
         if (p == null) return null;
 
         DepotSummary depotSummary = null;
-        if (p.getCategorie() != null && p.getCategorie().getDepot() != null) {
+        if (p.getDepot() != null) {
             depotSummary = new DepotSummary(
-                    p.getCategorie().getDepot().getId(),
-                    p.getCategorie().getDepot().getNom()
+                    p.getDepot().getId(),
+                    p.getDepot().getNom()
+            );
+        } else if (p.getCategorie() != null && p.getCategorie().getDepots() != null && !p.getCategorie().getDepots().isEmpty()) {
+            depotSummary = new DepotSummary(
+                    p.getCategorie().getDepots().get(0).getId(),
+                    p.getCategorie().getDepots().get(0).getNom()
             );
         }
 
@@ -72,10 +76,9 @@ public record PieceDetacheListResponse(
                 .designation(p.getDesignation())
                 .categorie(categorieSummary)
                 .depot(depotSummary)
-                .prix(p.getPrixUnitaire())
                 .prixUnitaire(p.getPrixUnitaire())
-                // .prixGros(p.getPrixGros())
-                // .pourcentage(p.getPourcentage())
+                .prixGros(p.getPrixGros())
+                .pourcentage(p.getPourcentage())
                 .stockMagasin(p.getStockMagasin())
                 .stockAtelier(p.getStockAtelier())
                 .qteReelle(qteReelle)

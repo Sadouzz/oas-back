@@ -5,9 +5,15 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import sn.oas.facturation.features.categorie_pieces.data.entity.Categorie;
 import sn.oas.facturation.features.garage.data.entity.Garage;
 import sn.oas.facturation.shared.tenant.TenantAware;
 import sn.oas.facturation.shared.tenant.TenantListener;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
 import org.hibernate.annotations.ParamDef;
@@ -35,4 +41,9 @@ public class Depot implements TenantAware {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "garage_id")
     private Garage garage;
+
+    @ManyToMany(mappedBy = "depots", fetch = FetchType.LAZY)
+    @JsonIgnoreProperties("depots")
+    @Builder.Default
+    private List<Categorie> categories = new ArrayList<>();
 }

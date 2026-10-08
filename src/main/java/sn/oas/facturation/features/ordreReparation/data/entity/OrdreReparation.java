@@ -8,7 +8,7 @@ import org.hibernate.annotations.ParamDef;
 import sn.oas.facturation.shared.tenant.TenantAware;
 import sn.oas.facturation.shared.tenant.TenantListener;
 import sn.oas.facturation.features.garage.data.entity.Garage;
-
+import sn.oas.facturation.features.bonDeCommande.data.entity.BonDeCommande;
 import sn.oas.facturation.features.bonDeSortie.data.entity.BonDeSortie;
 import sn.oas.facturation.features.devisPrevisionnel.data.entity.DevisPrevisionnel;
 import sn.oas.facturation.features.facturation.data.entity.Facturation;
@@ -119,6 +119,11 @@ public class OrdreReparation implements TenantAware  {
     @OneToOne(mappedBy = "ordreReparation", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnoreProperties("ordreReparation")
     private Diagnostic diagnostic;
+
+    @OneToMany(mappedBy = "ordreReparation", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnoreProperties("ordreReparation")
+    @Builder.Default
+    private List<BonDeCommande> bonDeCommandes = new ArrayList<>();
 
     @OneToOne(mappedBy = "ordreReparation", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnoreProperties("ordreReparation")

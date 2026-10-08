@@ -12,7 +12,7 @@ import java.util.List;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class StepApprovisionnementResponseDto extends BaseStepResponseDto {
+public class    StepApprovisionnementResponseDto extends BaseStepResponseDto {
 
     private Boolean hasBonDeCommande = false;
     private List<BonCommandeSummaryDto> bonsDeCommande = new ArrayList<>();

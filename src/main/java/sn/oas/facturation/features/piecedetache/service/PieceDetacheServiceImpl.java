@@ -29,9 +29,13 @@ import org.springframework.data.jpa.domain.Specification;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
+
+import java.time.Year;
 import java.util.ArrayList;
 import sn.oas.facturation.features.categorie_pieces.data.entity.Categorie;
 import sn.oas.facturation.features.depot_pieces.data.entity.Depot;
+import sn.oas.facturation.features.depot_pieces.repository.DepotRepository;
+import sn.oas.facturation.features.garage.data.entity.Garage;
 import sn.oas.facturation.features.piecedetache.dto.PieceStatsResponse;
 
 @Service
@@ -41,6 +45,7 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
 
     private final PieceDetacheRepository pieceDetacheRepository;
     private final CategorieRepository categorieRepository;
+    private final DepotRepository depotRepository;
     private final AlerteService alerteService;
     private final DocumentNumberGeneratorService documentNumberGeneratorService;
 
@@ -152,22 +157,21 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
             boolean hasDepotNom = (depotNom != null && !depotNom.isBlank());
             boolean hasKeyword = (keyword != null && !keyword.trim().isEmpty());
 
+            Join<PieceDetache, Depot> depotJoin = null;
+            if (hasDepotId || hasDepotNom) {
+                depotJoin = root.join("depot", JoinType.LEFT);
+            }
+
+            if (hasDepotId && depotJoin != null) {
+                predicates.add(cb.equal(depotJoin.get("id"), depotId));
+            }
+            if (hasDepotNom && depotJoin != null) {
+                predicates.add(cb.like(cb.lower(depotJoin.get("nom")), "%" + depotNom.trim().toLowerCase() + "%"));
+            }
+
             Join<PieceDetache, Categorie> catJoin = null;
-            if (hasDepotId || hasDepotNom || hasKeyword) {
-                catJoin = root.join("categorie", (hasDepotId || hasDepotNom) ? JoinType.INNER : JoinType.LEFT);
-            }
-
-            if ((hasDepotId || hasDepotNom) && catJoin != null) {
-                Join<Categorie, Depot> depotJoin = catJoin.join("depot", JoinType.INNER);
-                if (hasDepotId) {
-                    predicates.add(cb.equal(depotJoin.get("id"), depotId));
-                }
-                if (hasDepotNom) {
-                    predicates.add(cb.like(cb.lower(depotJoin.get("nom")), "%" + depotNom.trim().toLowerCase() + "%"));
-                }
-            }
-
             if (hasKeyword) {
+                catJoin = root.join("categorie", JoinType.LEFT);
                 String pattern = "%" + keyword.trim().toLowerCase() + "%";
                 Predicate refPred = cb.like(cb.lower(root.get("reference")), pattern);
                 Predicate desPred = cb.like(cb.lower(root.get("designation")), pattern);
@@ -229,13 +233,28 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
     public PieceDetache create(PieceDetacheRequest request) {
         validateCreateRequest(request);
 
-        if (pieceDetacheRepository.existsByReference(request.reference())) {
-            throw new IllegalArgumentException("Référence déjà existante : " + request.reference());
+        Garage currentGarage = documentNumberGeneratorService.getCurrentGarage();
+        Long garageId = currentGarage != null ? currentGarage.getId() : null;
+
+        String ref = request.reference() != null ? request.reference().trim() : "";
+        String des = request.designation() != null ? request.designation().trim() : "";
+
+        boolean refExists = (garageId != null)
+                ? pieceDetacheRepository.existsByGarageIdAndReferenceIgnoreCase(garageId, ref)
+                : pieceDetacheRepository.existsByReferenceIgnoreCase(ref);
+        if (refExists) {
+            throw new IllegalArgumentException("Une pièce avec la référence '" + ref + "' existe déjà dans ce garage.");
+        }
+
+        boolean desExists = (garageId != null)
+                ? pieceDetacheRepository.existsByGarageIdAndDesignationIgnoreCase(garageId, des)
+                : pieceDetacheRepository.existsByDesignationIgnoreCase(des);
+        if (desExists) {
+            throw new IllegalArgumentException("Une pièce avec la désignation '" + des + "' existe déjà dans ce garage.");
         }
 
         PieceDetache piece = buildPieceFromRequest(request);
         piece.setType(request.type());
-        
         
         return pieceDetacheRepository.save(piece);
     }
@@ -251,22 +270,50 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
         PieceDetache piece = getById(id);
         piece = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
 
+        Garage currentGarage = documentNumberGeneratorService.getCurrentGarage();
+        Long garageId = currentGarage != null ? currentGarage.getId() : null;
+
         if (request.reference() != null
-                && !request.reference().equalsIgnoreCase(piece.getReference())) {
-            if (pieceDetacheRepository.existsByReference(request.reference())) {
-                throw new IllegalArgumentException("Référence déjà existante : " + request.reference());
+                && !request.reference().trim().equalsIgnoreCase(piece.getReference())) {
+            String newRef = request.reference().trim();
+            boolean refExists = (garageId != null)
+                    ? pieceDetacheRepository.existsByGarageIdAndReferenceIgnoreCaseAndIdNot(garageId, newRef, id)
+                    : pieceDetacheRepository.existsByReferenceIgnoreCaseAndIdNot(newRef, id);
+            if (refExists) {
+                throw new IllegalArgumentException("Une pièce avec la référence '" + newRef + "' existe déjà dans ce garage.");
             }
-            piece.setReference(request.reference());
+            piece.setReference(newRef);
+            piece.setNumero(generatePieceNumero(piece.getType(), newRef));
         }
 
-        if (request.designation() != null) piece.setDesignation(request.designation());
-        if (request.categorie() != null) piece.setCategorie(categorieRepository.findByNom(request.categorie()).orElse(null));
+        if (request.designation() != null
+                && !request.designation().trim().equalsIgnoreCase(piece.getDesignation())) {
+            String newDes = request.designation().trim();
+            boolean desExists = (garageId != null)
+                    ? pieceDetacheRepository.existsByGarageIdAndDesignationIgnoreCaseAndIdNot(garageId, newDes, id)
+                    : pieceDetacheRepository.existsByDesignationIgnoreCaseAndIdNot(newDes, id);
+            if (desExists) {
+                throw new IllegalArgumentException("Une pièce avec la désignation '" + newDes + "' existe déjà dans ce garage.");
+            }
+            piece.setDesignation(newDes);
+        }
+
+        if (request.categorie() != null) piece.setCategorie(resolveCategorie(request.categorie()));
+        
+        Depot depot = resolveDepot(request);
+        if (depot != null) {
+            piece.setDepot(depot);
+        }
+
         if (piece instanceof PDP pdp) {
-            if (request.prix() != null) pdp.setPrixUnitaire(request.prix());
+            if (request.prixUnitaire() != null) pdp.setPrixUnitaire(request.prixUnitaire());
+            if (request.prixGros() != null) pdp.setPrixGros(request.prixGros());
+            if (request.pourcentage() != null) pdp.setPourcentage(request.pourcentage());
             if (request.seuilMinimum() != null) pdp.setSeuilMinimum(request.seuilMinimum());
             if (request.stockMagasin() != null) pdp.setStockMagasin(request.stockMagasin().doubleValue());
+        } else if (piece instanceof PDG pdg) {
+            if (request.prixUnitaire() != null) pdg.setPrixUnitaire(request.prixUnitaire());
         }
-
 
         return pieceDetacheRepository.save(piece);
     }
@@ -308,6 +355,69 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
         return pieceDetacheRepository.save(piece);
     }
 
+    private Categorie resolveCategorie(String categorieNom) {
+        if (categorieNom == null || categorieNom.isBlank()) return null;
+        Garage currentGarage = documentNumberGeneratorService.getCurrentGarage();
+        Long garageId = currentGarage != null ? currentGarage.getId() : null;
+        if (garageId != null) {
+            return categorieRepository.findFirstByGarageIdAndNomIgnoreCase(garageId, categorieNom.trim())
+                    .or(() -> categorieRepository.findFirstByNomIgnoreCase(categorieNom.trim()))
+                    .orElse(null);
+        }
+        return categorieRepository.findFirstByNomIgnoreCase(categorieNom.trim()).orElse(null);
+    }
+
+    private Depot resolveDepot(PieceDetacheRequest request) {
+        Garage currentGarage = documentNumberGeneratorService.getCurrentGarage();
+        Long garageId = currentGarage != null ? currentGarage.getId() : null;
+
+        if (request.type() == TypePiece.PDG) {
+            if (garageId != null) {
+                return depotRepository.findFirstByGarageIdAndNomIgnoreCase(garageId, "PDG")
+                        .or(() -> depotRepository.findFirstByNomIgnoreCase("PDG"))
+                        .orElseGet(() -> {
+                            Depot newDepot = Depot.builder()
+                                    .nom("PDG")
+                                    .description("Dépôt automatique pour pièces générées (PDG)")
+                                    .garage(currentGarage)
+                                    .build();
+                            return depotRepository.save(newDepot);
+                        });
+            }
+            return depotRepository.findFirstByNomIgnoreCase("PDG")
+                    .orElseGet(() -> {
+                        Depot newDepot = Depot.builder()
+                                .nom("PDG")
+                                .description("Dépôt automatique pour pièces générées (PDG)")
+                                .garage(currentGarage)
+                                .build();
+                        return depotRepository.save(newDepot);
+                    });
+        }
+        if (request.depotId() != null) {
+            return depotRepository.findById(request.depotId()).orElse(null);
+        }
+        if (request.depot() != null && !request.depot().isBlank()) {
+            if (garageId != null) {
+                return depotRepository.findFirstByGarageIdAndNomIgnoreCase(garageId, request.depot().trim())
+                        .or(() -> depotRepository.findFirstByNomIgnoreCase(request.depot().trim()))
+                        .orElse(null);
+            }
+            return depotRepository.findFirstByNomIgnoreCase(request.depot().trim()).orElse(null);
+        }
+        return null;
+    }
+
+    private String generatePieceNumero(TypePiece type, String reference) {
+        Garage garage = documentNumberGeneratorService.getCurrentGarage();
+        String prefixe = (garage != null && garage.getPrefixe() != null && !garage.getPrefixe().isBlank())
+                ? garage.getPrefixe()
+                : "GAR";
+        String typeCode = type != null ? type.name() : "PDP";
+        String ref = reference != null ? reference.trim() : "";
+        return String.format("%s-%s-%s", prefixe, typeCode, ref);
+    }
+
     private void validateCreateRequest(PieceDetacheRequest request) {
         if (request.type() == null) {
             throw new IllegalArgumentException("Le type de pièce est obligatoire");
@@ -325,15 +435,17 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
         //     throw new IllegalArgumentException("Le pourcentage est obligatoire");
         // }
         if (request.type() == TypePiece.PDP) {
-            if (request.stockMagasin() == null || request.prix() == null) {
-                throw new IllegalArgumentException("Le stock magasin et le prix sont obligatoires pour une PDP");
+            if (request.stockMagasin() == null || request.prixUnitaire() == null) {
+                throw new IllegalArgumentException("Le stock magasin et le prix unitaire sont obligatoires pour une PDP");
             }
         }
     }
 
     private PieceDetache buildPieceFromRequest(PieceDetacheRequest request) {
         StatutPiece statut = StatutPiece.ACTIF;
-        String numero = documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.PC);
+        String numero = generatePieceNumero(request.type(), request.reference());
+        Depot depot = resolveDepot(request);
+        Categorie categorie = resolveCategorie(request.categorie());
 
         return switch (request.type()) {
             case PDP -> {
@@ -342,11 +454,14 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
                         .numero(numero)
                         .reference(request.reference())
                         .designation(request.designation())
-                        .categorie(request.categorie() != null ? categorieRepository.findByNom(request.categorie()).orElse(null) : null)
+                        .depot(depot)
+                        .categorie(categorie)
                         .stockAtelier(0.0)
                         .stockMagasin(stockMagasin)
                         .qteReelle(stockMagasin)
-                        .prixUnitaire(request.prix())
+                        .prixUnitaire(request.prixUnitaire())
+                        .prixGros(request.prixGros())
+                        .pourcentage(request.pourcentage() != null ? request.pourcentage() : 0.0)
                         .seuilMinimum(request.seuilMinimum())
                         .build();
             }
@@ -354,13 +469,16 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
                     .numero(numero)
                     .reference(request.reference())
                     .designation(request.designation())
-                    .categorie(request.categorie() != null ? categorieRepository.findByNom(request.categorie()).orElse(null) : null)
+                    .depot(depot)
+                    .categorie(categorie)
+                    .prixUnitaire(request.prixUnitaire())
                     .build();
             case PDS -> PDS.builder()
                     .numero(numero)
                     .reference(request.reference())
                     .designation(request.designation())
-                    .categorie(request.categorie() != null ? categorieRepository.findByNom(request.categorie()).orElse(null) : null)
+                    .depot(depot)
+                    .categorie(categorie)
                     .build();
         };
     }

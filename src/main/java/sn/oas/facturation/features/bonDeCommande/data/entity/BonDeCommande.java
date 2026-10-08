@@ -6,6 +6,7 @@ import org.hibernate.annotations.ParamDef;
 import sn.oas.facturation.shared.tenant.TenantAware;
 import sn.oas.facturation.shared.tenant.TenantListener;
 import sn.oas.facturation.features.garage.data.entity.Garage;
+import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.features.user.data.entity.Agent;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -87,6 +88,10 @@ public class BonDeCommande implements TenantAware  {
         @OneToMany(mappedBy = "bonDeCommande", cascade = CascadeType.ALL, orphanRemoval = true)
         @Builder.Default
         private List<Facturation> facturations = new ArrayList<>();
+
+        @ManyToOne(fetch = FetchType.LAZY)
+        @JoinColumn(name = "ordre_reparation_id", nullable = true)
+        private OrdreReparation ordreReparation;
 
         @PrePersist
         protected void onCreate() {

@@ -18,6 +18,8 @@ public interface OrdreReparationRepository extends JpaRepository<OrdreReparation
     @Query("SELECT f FROM OrdreReparation f JOIN FETCH f.vehicule v LEFT JOIN FETCH v.client ORDER BY COALESCE(f.updatedAt, f.dateCreation) DESC, f.id DESC")
     List<OrdreReparation> findAllWithVehiculeAndClient();
 
+    
+
     @Query("SELECT f FROM OrdreReparation f WHERE " +
             "LOWER(f.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(f.descriptionTravaux) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +

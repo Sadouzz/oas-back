@@ -19,6 +19,8 @@ public interface BonDeCommandeRepository extends JpaRepository<BonDeCommande, Lo
             """)
     List<BonDeCommande> searchBonsDeCommande(@Param("keyword") String keyword);
 
+    List<BonDeCommande> findByOrdreReparationId(Long id);
+
     @Query("""
             SELECT bc FROM BonDeCommande bc
             WHERE LOWER(bc.numero) LIKE LOWER(CONCAT('%', :keyword, '%'))

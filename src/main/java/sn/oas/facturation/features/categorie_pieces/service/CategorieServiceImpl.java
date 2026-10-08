@@ -13,6 +13,11 @@ import sn.oas.facturation.features.categorie_pieces.repository.CategorieReposito
 import sn.oas.facturation.features.depot_pieces.data.entity.Depot;
 import sn.oas.facturation.features.depot_pieces.service.DepotService;
 
+import sn.oas.facturation.features.depot_pieces.repository.DepotRepository;
+import sn.oas.facturation.features.garage.data.entity.Garage;
+import sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService;
+
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -22,18 +27,57 @@ public class CategorieServiceImpl implements CategorieService {
 
     private final CategorieRepository categorieRepository;
     private final DepotService depotService;
+    private final DepotRepository depotRepository;
+    private final DocumentNumberGeneratorService documentNumberGeneratorService;
+
+    private Depot getOrCreatePdgDepot() {
+        Garage currentGarage = documentNumberGeneratorService.getCurrentGarage();
+        Long garageId = currentGarage != null ? currentGarage.getId() : null;
+        if (garageId != null) {
+            return depotRepository.findFirstByGarageIdAndNomIgnoreCase(garageId, "PDG")
+                    .or(() -> depotRepository.findFirstByNomIgnoreCase("PDG"))
+                    .orElseGet(() -> {
+                        Depot newDepot = Depot.builder()
+                                .nom("PDG")
+                                .description("Dépôt automatique pour pièces générées (PDG)")
+                                .garage(currentGarage)
+                                .build();
+                        return depotRepository.save(newDepot);
+                    });
+        }
+        return depotRepository.findFirstByNomIgnoreCase("PDG")
+                .orElseGet(() -> {
+                    Depot newDepot = Depot.builder()
+                            .nom("PDG")
+                            .description("Dépôt automatique pour pièces générées (PDG)")
+                            .garage(currentGarage)
+                            .build();
+                    return depotRepository.save(newDepot);
+                });
+    }
 
     @Override
     public Categorie createCategorie(CategorieRequest request) {
-        Long depotId = request.getEffectiveDepotId();
-        Depot depot = null;
-        if (depotId != null) {
-            depot = depotService.getDepotById(depotId);
+        List<Long> depotIds = request.getEffectiveDepotIds();
+        List<Depot> depots = new ArrayList<>();
+        if (depotIds != null && !depotIds.isEmpty()) {
+            for (Long dId : depotIds) {
+                try {
+                    Depot d = depotService.getDepotById(dId);
+                    if (d != null && !depots.contains(d)) depots.add(d);
+                } catch (Exception ignored) {}
+            }
+        }
+
+        // Attachement automatique du dépôt PDG à toute catégorie créée
+        Depot pdg = getOrCreatePdgDepot();
+        if (pdg != null && depots.stream().noneMatch(d -> d.getId().equals(pdg.getId()))) {
+            depots.add(pdg);
         }
 
         Categorie categorie = Categorie.builder()
                 .nom(request.nom())
-                .depot(depot)
+                .depots(depots)
                 .build();
 
         return categorieRepository.save(categorie);
@@ -77,10 +121,21 @@ public class CategorieServiceImpl implements CategorieService {
         Categorie categorie = getCategorieById(id);
         categorie.setNom(request.nom());
 
-        Long depotId = request.getEffectiveDepotId();
-        if (depotId != null) {
-            Depot depot = depotService.getDepotById(depotId);
-            categorie.setDepot(depot);
+        List<Long> depotIds = request.getEffectiveDepotIds();
+        if (depotIds != null) {
+            List<Depot> depots = new ArrayList<>();
+            for (Long dId : depotIds) {
+                try {
+                    Depot d = depotService.getDepotById(dId);
+                    if (d != null && !depots.contains(d)) depots.add(d);
+                } catch (Exception ignored) {}
+            }
+            // Maintien automatique du dépôt PDG
+            Depot pdg = getOrCreatePdgDepot();
+            if (pdg != null && depots.stream().noneMatch(d -> d.getId().equals(pdg.getId()))) {
+                depots.add(pdg);
+            }
+            categorie.setDepots(depots);
         }
 
         return categorieRepository.save(categorie);

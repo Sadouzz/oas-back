@@ -13,9 +13,20 @@ import java.util.Optional;
 
 @Repository
 public interface CategorieRepository extends JpaRepository<Categorie, Long> {
-    Optional<Categorie> findByNom(String nom);
-    List<Categorie> findByDepotId(Long depotId);
-    Page<Categorie> findByDepotId(Long depotId, Pageable pageable);
+    Optional<Categorie> findFirstByNom(String nom);
+    Optional<Categorie> findFirstByNomIgnoreCase(String nom);
+    Optional<Categorie> findFirstByGarageIdAndNomIgnoreCase(Long garageId, String nom);
+
+    default Optional<Categorie> findByNom(String nom) {
+        return findFirstByNomIgnoreCase(nom);
+    }
+
+    @Query("SELECT DISTINCT c FROM Categorie c JOIN c.depots d WHERE d.id = :depotId")
+    List<Categorie> findByDepotId(@Param("depotId") Long depotId);
+
+    @Query("SELECT DISTINCT c FROM Categorie c JOIN c.depots d WHERE d.id = :depotId")
+    Page<Categorie> findByDepotId(@Param("depotId") Long depotId, Pageable pageable);
+
     boolean existsByNom(String nom);
 
     @Query("SELECT c FROM Categorie c WHERE LOWER(c.nom) LIKE LOWER(CONCAT('%', :keyword, '%'))")
