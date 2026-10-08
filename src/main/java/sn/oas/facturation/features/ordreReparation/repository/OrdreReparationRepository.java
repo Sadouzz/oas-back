@@ -15,6 +15,10 @@ import java.util.Optional;
 @Repository
 public interface OrdreReparationRepository extends JpaRepository<OrdreReparation, Long> {
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT f FROM OrdreReparation f WHERE f.id = :id")
+    Optional<OrdreReparation> findByIdForRestitution(@Param("id") Long id);
+
     @Query("SELECT f FROM OrdreReparation f JOIN FETCH f.vehicule v LEFT JOIN FETCH v.client LEFT JOIN FETCH f.client ORDER BY COALESCE(f.updatedAt, f.dateCreation) DESC, f.id DESC")
     List<OrdreReparation> findAllWithVehiculeAndClient();
 

@@ -2,6 +2,7 @@ package sn.oas.facturation.features.ficheAtelier.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
 
 import sn.oas.facturation.features.client.data.entity.Client;
@@ -42,12 +43,18 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     private final ClientRepository clientRepository;
     private final VehiculeRepository vehiculeRepository;
     private final OrdreReparationRepository ordreReparationRepository;
+    private final sn.oas.facturation.features.ordreReparation.service.OrdreReparationService ordreReparationService;
     private final DocumentNumberGeneratorService documentNumberGeneratorService;
+    private final ApplicationEventPublisher eventPublisher;
+    private final FicheAtelierPdfService ficheAtelierPdfService;
+    private final sn.oas.facturation.features.ficheAtelier.repository.FicheAtelierPdfRepository pdfRepository;
     private final sn.oas.facturation.features.notification.service.AgentNotificationService agentNotificationService;
 
     @Transactional
     @Override
     public FicheAtelier create(FicheAtelierRequest request) {
+        verifierSignature(request.getSignatureReceptionnaireBase64());
+        verifierSignature(request.getSignatureBase64());
         Client client = clientRepository.findById(request.getClientId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Client non trouvé avec l'id : " + request.getClientId()));
@@ -55,6 +62,9 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
         Vehicule vehicule = vehiculeRepository.findById(request.getVehiculeId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Véhicule non trouvé avec l'id : " + request.getVehiculeId()));
+        if (vehicule.getClient() == null || !client.getId().equals(vehicule.getClient().getId())) {
+            throw new BadRequestException("Le véhicule n'est pas attribué au client indiqué.");
+        }
 
         // BLOCAGE : Si le véhicule a un ordre de réparation qui n'est pas encore livré
         Optional<OrdreReparation> ordreEnCours =
@@ -79,6 +89,10 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
             rendezVous = rendezVousRepository.findById(request.getRendezVousId())
                     .orElseThrow(() -> new ResourceNotFoundException(
                             "Rendez-vous non trouvé avec l'id : " + request.getRendezVousId()));
+            if (rendezVous.getClient() == null || !client.getId().equals(rendezVous.getClient().getId())
+                    || rendezVous.getVehicule() == null || !vehicule.getId().equals(rendezVous.getVehicule().getId())) {
+                throw new BadRequestException("Le rendez-vous ne correspond pas au client et au véhicule indiqués.");
+            }
 
             // Check if already exists
             if (ficheAtelierRepository.findByRendezVousId(rendezVous.getId()).isPresent()) {
@@ -107,13 +121,14 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
                 .lignesReception(request.getLignesReception())
                 .lignesDefauts(request.getLignesDefauts())
                 .nb(request.getNb())
-                .dateSortiePrevue(request.getDateSortiePrevue())
-                .garantie(request.getGarantie())
                 .signatureReceptionnaireBase64(request.getSignatureReceptionnaireBase64())
                 .signatureBase64(request.getSignatureBase64())
                 .build();
 
         FicheAtelier saved = ficheAtelierRepository.save(fiche);
+        ficheAtelierRepository.flush();
+        pdfRepository.save(new sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelierPdf(
+                saved.getId(), ficheAtelierPdfService.generer(saved.getId())));
         if (rendezVous != null) {
             rendezVous.setFicheAtelier(saved);
             rendezVous.setStatut(RendezVousStatus.TERMINE);
@@ -123,8 +138,16 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
         agentNotificationService.notifyRole(sn.oas.facturation.features.user.data.enums.Role.CHEF_ATELIER,
                 "Nouvelle Fiche Atelier",
                 "Une nouvelle fiche atelier (" + saved.getNumero() + ") a été créée.");
+        eventPublisher.publishEvent(new FicheAtelierCreee(saved.getId()));
                 
         return saved;
+    }
+
+    private static void verifierSignature(String signature) {
+        if (signature == null || signature.length() > 1_500_000
+                || !signature.matches("^data:image/png;base64,[A-Za-z0-9+/=]+$")) {
+            throw new BadRequestException("Les deux signatures PNG sont obligatoires sur la fiche atelier.");
+        }
     }
 
     @Transactional
@@ -142,8 +165,6 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
         fiche.setLignesReception(request.getLignesReception());
         fiche.setLignesDefauts(request.getLignesDefauts());
         fiche.setNb(request.getNb());
-        fiche.setDateSortiePrevue(request.getDateSortiePrevue());
-        fiche.setGarantie(request.getGarantie());
         fiche.setSignatureReceptionnaireBase64(request.getSignatureReceptionnaireBase64());
         fiche.setSignatureBase64(request.getSignatureBase64());
 
@@ -196,16 +217,21 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
             rv.setStatut(RendezVousStatus.CONFIRME);
             rendezVousRepository.save(rv);
         }
+        if (pdfRepository.existsById(id)) pdfRepository.deleteById(id);
         ficheAtelierRepository.delete(fiche);
     }
 
     @Override
+    @Transactional
     public FicheAtelier signForExit(Long id, String signature) {
         FicheAtelier fiche = ficheAtelierRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Fiche atelier non trouvée avec l'id : " + id));
-        fiche.setSignatureSortieBase64(signature);
-        return ficheAtelierRepository.save(fiche);
+        if (fiche.getOrdreReparation() == null) {
+            throw new BadRequestException("Aucun ordre de réparation associé à cette fiche.");
+        }
+        ordreReparationService.restituerVehicule(fiche.getOrdreReparation().getId(), signature, 1);
+        return ficheAtelierRepository.findById(id).orElseThrow();
     }
 
     @Override 

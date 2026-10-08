@@ -39,5 +39,14 @@ public interface FactureRepository extends JpaRepository<Facture, Long> {
     @Query("SELECT COALESCE(SUM(f.resteAPayer), 0) FROM Facture f WHERE f.client.id = :clientId")
     java.math.BigDecimal sumResteAPayerByClientId(@Param("clientId") Long clientId);
 
+    @Query("SELECT COALESCE(SUM(f.montantTotal), 0) FROM Facture f WHERE f.client.id = :clientId AND f.dateCreation >= :debut")
+    java.math.BigDecimal sumMontantFacturesDepuis(@Param("clientId") Long clientId, @Param("debut") java.time.LocalDateTime debut);
+
+    @Query("SELECT CASE WHEN COUNT(f) > 0 THEN true ELSE false END FROM Facture f WHERE f.client.id = :clientId AND f.resteAPayer > 0 AND f.dateEcheance IS NOT NULL AND f.dateEcheance < :maintenant")
+    boolean existsFactureImpayeeEnRetard(@Param("clientId") Long clientId, @Param("maintenant") java.time.LocalDateTime maintenant);
+
+    @Query("SELECT CASE WHEN COUNT(f) > 0 THEN true ELSE false END FROM Facture f WHERE f.client.id = :clientId AND f.resteAPayer > 0 AND f.dateEcheance IS NULL AND f.dateCreation < :limite")
+    boolean existsFactureLegacyImpayeeEnRetard(@Param("clientId") Long clientId, @Param("limite") java.time.LocalDateTime limite);
+
     java.util.Optional<Facture> findFirstByOrdreReparationId(Long ordreReparationId);
 }

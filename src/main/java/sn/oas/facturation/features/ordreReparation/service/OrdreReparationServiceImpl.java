@@ -138,6 +138,9 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         @CacheEvict(value = "dashboard_agent", allEntries = true)
     })*/
     public OrdreReparation createOrdreReparation(OrdreReparationRequest request) {
+        if (request.getStatut() == StatutOrdreReparation.LIVRE) {
+            throw new IllegalArgumentException("La livraison doit passer par la restitution du véhicule.");
+        }
         Vehicule vehicule = null;
         if (request.getVehiculeId() != null) {
             vehicule = vehiculeRepository.findById(request.getVehiculeId())
@@ -157,7 +160,6 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 .lignesTravaux(request.getLignesTravaux())
                 .lignesReception(request.getLignesReception())
                 .listeDefauts(request.getListeDefauts())
-                .dateSortie(request.getDateSortie())
                 .vehicule(vehicule)
                 .client(vehicule.getClient())
                 .statut(request.getStatut() != null ? request.getStatut() : StatutOrdreReparation.RECEPTION)
@@ -449,6 +451,9 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 .dateCreation(o.getDateCreation())
                 .updatedAt(o.getUpdatedAt())
                 .dateSortie(o.getDateSortie())
+                .dateRestitution(o.getDateRestitution())
+                .garantieMois(o.getGarantieMois())
+                .ficheAtelierId(o.getFicheAtelier() == null ? null : o.getFicheAtelier().getId())
                 .statut(o.getStatut())
                 .vehicule(vehiculeDto)
                 .diagnostic(diagnosticDto)
@@ -480,8 +485,11 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             ordreReparation.setLignesReception(request.getLignesReception());
         if (request.getListeDefauts() != null)
             ordreReparation.setListeDefauts(request.getListeDefauts());
-        if (request.getDateSortie() != null)
-            ordreReparation.setDateSortie(request.getDateSortie());
+        if (request.getStatut() == StatutOrdreReparation.LIVRE)
+            throw new IllegalArgumentException("La livraison doit passer par la restitution du véhicule.");
+        if (ordreReparation.getStatut() == StatutOrdreReparation.LIVRE
+                && request.getStatut() != null && request.getStatut() != StatutOrdreReparation.LIVRE)
+            throw new IllegalArgumentException("Un ordre livré ne peut pas revenir à une étape précédente.");
         if (request.getStatut() != null)
             ordreReparation.setStatut(request.getStatut());
 
@@ -695,6 +703,13 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             throw new RuntimeException("Statut invalide : " + statut);
         }
 
+        if (newStatut == StatutOrdreReparation.LIVRE) {
+            throw new IllegalArgumentException("La restitution avec signature et garantie doit être validée avant la livraison.");
+        }
+        if (fiche.getStatut() == StatutOrdreReparation.LIVRE) {
+            throw new IllegalArgumentException("Un ordre livré ne peut pas revenir à une étape précédente.");
+        }
+
         // Un technicien doit être affecté au diagnostic avant de pouvoir démarrer le diagnostic.
         if (newStatut == StatutOrdreReparation.DIAGNOSTIC
                 && (fiche.getDiagnostic() == null || fiche.getDiagnostic().getTechnicien() == null)) {
@@ -748,6 +763,43 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         }
 
         return savedFiche;
+    }
+
+    @Override
+    @Transactional
+    public OrdreReparation restituerVehicule(Long id, String signature, Integer garantieMois) {
+        OrdreReparation ordre = ordreReparationRepository.findByIdForRestitution(id)
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Ordre de réparation introuvable"));
+        if (ordre.getStatut() != StatutOrdreReparation.PRET_A_LIVRER) {
+            throw new IllegalArgumentException("Le véhicule doit être prêt à livrer avant sa restitution.");
+        }
+        FicheAtelier fiche = ordre.getFicheAtelier();
+        if (ordre.getDateRestitution() != null || fiche != null && fiche.getDateRestitution() != null) {
+            throw new IllegalArgumentException("La restitution a déjà été enregistrée.");
+        }
+        if (signature == null || signature.length() > 1_500_000
+                || !signature.matches("^data:image/png;base64,[A-Za-z0-9+/=]+$")) {
+            throw new IllegalArgumentException("Une signature PNG valide est obligatoire.");
+        }
+        int duree = garantieMois == null ? 1 : garantieMois;
+        if (duree < 1 || duree > 120) {
+            throw new IllegalArgumentException("La garantie doit durer entre 1 et 120 mois.");
+        }
+        LocalDateTime maintenant = LocalDateTime.now();
+        if (fiche != null) {
+            fiche.setSignatureSortieBase64(signature);
+            fiche.setDateRestitution(maintenant);
+            fiche.setGarantieMois(duree);
+            fiche.setGarantie(duree + " mois après restitution");
+            ficheAtelierRepository.save(fiche);
+        }
+        ordre.setSignatureRestitutionBase64(signature);
+        ordre.setDateRestitution(maintenant);
+        ordre.setGarantieMois(duree);
+        ordre.setDateSortie(maintenant);
+        ordre.setStatut(StatutOrdreReparation.LIVRE);
+        ordre.setUpdatedAt(maintenant);
+        return ordreReparationRepository.save(ordre);
     }
 
     @Override
@@ -1070,6 +1122,12 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     }
 
     private void updateBaseStepFields(OrdreReparation ordre, BaseStepDto dto) {
+        if (dto.getStatut() == StatutOrdreReparation.LIVRE) {
+            throw new IllegalArgumentException("La livraison doit passer par la restitution du véhicule.");
+        }
+        if (ordre.getStatut() == StatutOrdreReparation.LIVRE && dto.getStatut() != null) {
+            throw new IllegalArgumentException("Un ordre livré ne peut pas revenir à une étape précédente.");
+        }
         if (dto.getNumero() != null) ordre.setNumero(dto.getNumero());
         if (dto.getDescriptionTravaux() != null) ordre.setDescriptionTravaux(dto.getDescriptionTravaux());
         if (dto.getStatut() != null) ordre.setStatut(dto.getStatut());
@@ -1656,11 +1714,6 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     public StepLivraisonDto updateStepLivraison(Long id, StepLivraisonDto dto) {
         OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
         updateBaseStepFields(ordre, dto);
-        if (dto.getDateSortie() != null) {
-            try {
-                ordre.setDateSortie(LocalDateTime.parse(dto.getDateSortie()));
-            } catch (Exception e) {}
-        }
         ordreReparationRepository.save(ordre);
         return dto;
     }

@@ -21,16 +21,20 @@ public class ProformaGenerator {
 
     public byte[] genererProformaPdf(Proforma p) {
         String html = construireHtmlProforma(p);
-        var ownerAtWork = p.getOrdreReparation() == null ? null : p.getOrdreReparation().getClient();
+        var ownerAtWork = p.getClient();
+        if (ownerAtWork == null) ownerAtWork = p.getOrdreReparation() == null ? null : p.getOrdreReparation().getClient();
         if (ownerAtWork == null && p.getOrdreReparation() != null && p.getOrdreReparation().getVehicule() != null)
             ownerAtWork = p.getOrdreReparation().getVehicule().getClient();
         String clientNom = ownerAtWork != null ? ownerAtWork.getFirstName() + " " + ownerAtWork.getLastName() : "";
-        String marque = p.getOrdreReparation() != null && p.getOrdreReparation().getVehicule() != null ? safe(p.getOrdreReparation().getVehicule().getMarque()) : "";
-        String modele = p.getOrdreReparation() != null && p.getOrdreReparation().getVehicule() != null ? safe(p.getOrdreReparation().getVehicule().getModele()) : "";
-        String immat = p.getOrdreReparation() != null && p.getOrdreReparation().getVehicule() != null ? safe(p.getOrdreReparation().getVehicule().getImmatriculation()) : "";
+        var pdfVehicle = p.getVehicule() != null ? p.getVehicule() : p.getOrdreReparation() == null ? null : p.getOrdreReparation().getVehicule();
+        String marque = pdfVehicle == null ? "" : safe(pdfVehicle.getMarque());
+        String modele = pdfVehicle == null ? "" : safe(pdfVehicle.getModele());
+        String immat = pdfVehicle == null ? "" : safe(pdfVehicle.getImmatriculation());
         return htmlToPdfService.genererHtmlEnPdf(html, "PROFORMA", java.util.Map.of(
                 "numero", safe(p.getNumero()), "clientNom", clientNom, "marque", marque, "modele", modele,
                 "immatriculation", immat, "montantHT", p.getMontantHT() == null ? "0" : p.getMontantHT().toPlainString(),
+                "tauxRemiseClient", p.getTauxRemiseClient() == null ? "0" : p.getTauxRemiseClient().toPlainString(),
+                "montantRemiseClient", p.getMontantRemiseClient() == null ? "0" : p.getMontantRemiseClient().toPlainString(),
                 "montantTTC", p.getMontantTTC() == null ? "0" : p.getMontantTTC().toPlainString(),
                 "remarque", p.getRemarque() == null ? "" : p.getRemarque()));
     }
@@ -47,14 +51,16 @@ public class ProformaGenerator {
         String annee = "", marque = "", modele = "", immat = "", chassis = "";
         String km = p.getKilometrage() != null ? String.valueOf(p.getKilometrage().longValue()) : "";
 
-        if (p.getOrdreReparation() != null && p.getOrdreReparation().getVehicule() != null) {
-            var v = p.getOrdreReparation().getVehicule();
+        var v = p.getVehicule() != null ? p.getVehicule() : p.getOrdreReparation() == null ? null : p.getOrdreReparation().getVehicule();
+        if (v != null) {
             annee  = v.getAnnee() != null ? String.valueOf(v.getAnnee()) : "";
             marque = safe(v.getMarque());
             modele = safe(v.getModele());
             immat  = safe(v.getImmatriculation());
             chassis = safe(v.getNumeroChassis());
-            var client = p.getOrdreReparation().getClient() != null ? p.getOrdreReparation().getClient() : v.getClient();
+            var client = p.getClient();
+            if (client == null && p.getOrdreReparation() != null) client = p.getOrdreReparation().getClient();
+            if (client == null) client = v.getClient();
             if (client != null) {
                 clientNum    = String.valueOf(client.getId());
                 clientNom    = client.getFirstName() + " " + client.getLastName();
@@ -69,6 +75,9 @@ public class ProformaGenerator {
         DecimalFormat df = new DecimalFormat("#,##0", sym);
 
         String totalHT     = p.getMontantHT()     != null ? df.format(p.getMontantHT())     : "0";
+        String remiseClient = p.getMontantRemiseClient() != null && p.getMontantRemiseClient().signum() > 0
+                ? "Remise entreprise (" + safe(p.getTauxRemiseClient() == null ? "0" : p.getTauxRemiseClient().toPlainString()) + " %) : " + df.format(p.getMontantRemiseClient()) + " F CFA"
+                : "";
         String totalTVA    = p.getMontantTVA()    != null ? df.format(p.getMontantTVA())    : "0";
         String totalTimbre = p.getMontantTimbre() != null ? df.format(p.getMontantTimbre()) : "0";
         String totalTTC    = p.getMontantTTC()    != null ? df.format(p.getMontantTTC())    : "0";
@@ -191,6 +200,8 @@ public class ProformaGenerator {
             + "<table class=\"dt\"><thead><tr><th>Remarques</th></tr></thead>\n"
             + "<tbody><tr><td style=\"text-align:left;\">" + remarques + "</td></tr></tbody></table>\n"
             + "<br/><br/>\n"
+
+            + (remiseClient.isEmpty() ? "" : "<p style=\"text-align:right;font-weight:bold;\">" + remiseClient + "</p>\n")
 
             // Totaux
             + "<table class=\"tt\"><thead><tr>\n"

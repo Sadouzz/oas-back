@@ -43,6 +43,10 @@ public class Facture extends FactureTTC {
     @Column(name = "montant_autre", precision = 15, scale = 2)
     private BigDecimal montantAutre;
 
+    /** Date d'échéance calculée à l'émission pour préserver les conditions historiques. */
+    @Column(name = "date_echeance")
+    private java.time.LocalDateTime dateEcheance;
+
     @Column(name = "montant_paye", precision = 15, scale = 2)
     @lombok.Builder.Default
     private BigDecimal montantPaye = BigDecimal.ZERO;

@@ -22,6 +22,7 @@ public record ClientListResponse(
         Integer montantRemise,
         Integer montantPlafond,
         Integer echeance,
+        java.math.BigDecimal montantPlafondEcheance,
         String ninea,
         String rccm,
         String rib,
@@ -48,6 +49,7 @@ public record ClientListResponse(
                 .montantRemise(client.getMontantRemise())
                 .montantPlafond(client.getMontantPlafond())
                 .echeance(client.getEcheance())
+                .montantPlafondEcheance(client.getMontantPlafondEcheance())
                 .ninea(client.getNinea())
                 .rccm(client.getRccm())
                 .rib(client.getRib())

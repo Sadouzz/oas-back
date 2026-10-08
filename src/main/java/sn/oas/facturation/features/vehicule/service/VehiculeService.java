@@ -16,6 +16,7 @@ public interface VehiculeService {
     List<Vehicule> searchVehicules(String keyword);
     Page<Vehicule> searchVehicules(String keyword, int page, int size);
     List<Vehicule> getVehiculesByClient(Long clientId);
+    Page<Vehicule> getVehiculesByClient(Long clientId, int page, int size);
     List<Vehicule> getRecentVehicules();
     List<Vehicule> getVehiculesActifsByClient(Long clientId);
     void archiveVehiculeByClient(Long vehiculeId, Long clientId);

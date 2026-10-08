@@ -44,6 +44,9 @@ public class ProformaResponse {
 
     private List<LigneFacturationPieceResponse> lignesPieces;
     private List<LigneFacturationMainDoeuvreResponse> lignesMainDoeuvres;
+    private BigDecimal tauxRemiseClient;
+    private BigDecimal montantRemiseClient;
+    private List<String> avertissementsFinanciers;
 
     public static ProformaResponse from(sn.oas.facturation.features.proforma.data.entity.Proforma p) {
         if (p == null) return null;
@@ -56,15 +59,18 @@ public class ProformaResponse {
         String modele = null;
         Integer annee = null;
 
-        if (p.getOrdreReparation() != null && p.getOrdreReparation().getVehicule() != null) {
-            var vehicule = p.getOrdreReparation().getVehicule();
+        var vehicule = p.getVehicule();
+        if (vehicule == null && p.getOrdreReparation() != null) vehicule = p.getOrdreReparation().getVehicule();
+        if (vehicule != null) {
             vehiculeId = vehicule.getId();
             immatriculation = vehicule.getImmatriculation();
             numeroChassis = vehicule.getNumeroChassis();
             marque = vehicule.getMarque();
             modele = vehicule.getModele();
             annee = vehicule.getAnnee();
-            var client = p.getOrdreReparation().getClient() != null ? p.getOrdreReparation().getClient() : vehicule.getClient();
+            var client = p.getClient();
+            if (client == null && p.getOrdreReparation() != null) client = p.getOrdreReparation().getClient();
+            if (client == null) client = vehicule.getClient();
             if (client != null) {
                 clientId = client.getId();
                 clientNom = (client.getFirstName() + " " + client.getLastName()).trim();
@@ -82,6 +88,9 @@ public class ProformaResponse {
                 .montantTimbre(p.getMontantTimbre())
                 .montantAutre(BigDecimal.ZERO)
                 .montantTotal(p.getMontantTotal())
+                .tauxRemiseClient(p.getTauxRemiseClient())
+                .montantRemiseClient(p.getMontantRemiseClient())
+                .avertissementsFinanciers(p.getAvertissementsFinanciers() == null ? List.of() : p.getAvertissementsFinanciers())
                 .statut(p.getStatut() != null ? p.getStatut().name() : null)
                 .visibleClient(p.getVisibleClient() != null ? p.getVisibleClient() : Boolean.FALSE)
                 .agentId(p.getAgent() != null ? p.getAgent().getId() : null)

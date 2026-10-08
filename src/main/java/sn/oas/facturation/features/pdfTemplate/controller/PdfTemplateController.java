@@ -55,7 +55,9 @@ public class PdfTemplateController {
                 Map.entry("numero", "FC-2026-0001"), Map.entry("date", "04/10/2026"), Map.entry("agentNom", "FAYE"), Map.entry("clientNom", "Client Exemple"),
                 Map.entry("immatriculation", "DK-1234-AA"), Map.entry("marque", "Mercedes-Benz"), Map.entry("modele", "Classe C"),
                 Map.entry("annee", "2018"), Map.entry("chassis", "WDD00000000000000"), Map.entry("numeroBonDeCommande", "BC-2026-1001"),
-                Map.entry("kilometrage", "95 000 km"), Map.entry("montantHT", "118 064 F CFA"), Map.entry("montantTVA", "21 251 F CFA"),
+                Map.entry("kilometrage", "95 000 km"), Map.entry("dateEcheance", "03/11/2026"),
+                Map.entry("tauxRemiseClient", "10"), Map.entry("montantRemiseClient", "10 000 F CFA"),
+                Map.entry("montantHT", "118 064 F CFA"), Map.entry("montantTVA", "21 251 F CFA"),
                 Map.entry("montantTimbre", "0 F CFA"), Map.entry("montantAutre", "0 F CFA"), Map.entry("montantTotal", "139 315 F CFA"),
                 Map.entry("montantTTC", "139 315 F CFA"), Map.entry("montantPaye", "0 F CFA"), Map.entry("resteAPayer", "139 315 F CFA"), Map.entry("remarque", "Exemple d'aperçu")), Map.of(
                 "LIGNES_PIECES", List.of(Map.of("reference", "IG012025", "designation", "Huile moteur 10W40", "quantite", "1", "prixUnitaire", "4 133", "montant", "4 133")),

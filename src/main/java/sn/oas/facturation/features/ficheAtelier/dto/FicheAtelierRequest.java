@@ -11,7 +11,6 @@ import lombok.NoArgsConstructor;
 import sn.oas.facturation.features.ficheAtelier.data.entity.LigneDefaut;
 import sn.oas.facturation.features.ficheAtelier.data.entity.LigneReception;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -42,8 +41,6 @@ public class FicheAtelierRequest {
     private List<LigneDefaut> lignesDefauts;
 
     private String nb;
-    private LocalDateTime dateSortiePrevue;
-    private String garantie;
     private String signatureReceptionnaireBase64;
     private String signatureBase64;
 

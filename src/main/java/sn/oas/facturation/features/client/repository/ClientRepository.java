@@ -11,6 +11,7 @@ import java.util.List;
 
 @Repository
 public interface ClientRepository extends JpaRepository<Client, Long> {
+    boolean existsByNumeroEntrepriseIgnoreCaseAndIdNot(String numeroEntreprise, Long id);
     @Query("SELECT c FROM Client c WHERE " +
             "LOWER(c.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(c.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +

@@ -87,6 +87,16 @@ public class OrdreReparation implements TenantAware  {
 
     private LocalDateTime dateSortie;
 
+    @Column(name = "date_restitution")
+    private LocalDateTime dateRestitution;
+
+    @Column(name = "garantie_mois")
+    private Integer garantieMois;
+
+    @Column(name = "signature_restitution_base64", columnDefinition = "TEXT")
+    @JsonIgnore
+    private String signatureRestitutionBase64;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "statut")
     @Builder.Default

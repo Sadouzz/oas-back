@@ -34,6 +34,7 @@ import sn.oas.facturation.features.user.data.enums.Role;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.features.user.repository.UserRepository;
 import sn.oas.facturation.features.client.data.entity.Client;
+import sn.oas.facturation.features.client.repository.CompteClientRepository;
 import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.features.ordreReparation.data.entity.LigneOrdreReparationMainDoeuvre;
 import sn.oas.facturation.features.ordreReparation.data.entity.LigneOrdreReparationPiece;
@@ -70,6 +71,7 @@ public class FactureServiceImpl implements FactureService {
     private final sn.oas.facturation.features.notification.service.EmailService emailService;
     private final sn.oas.facturation.features.pdfGenerator.service.HtmlToPdfService htmlToPdfService;
     private final sn.oas.facturation.features.pdfTemplate.repository.PdfTemplateRepository pdfTemplateRepository;
+    private final CompteClientRepository compteClientRepository;
 
     @Override
     @Transactional
@@ -79,6 +81,10 @@ public class FactureServiceImpl implements FactureService {
         
         Vehicule vehicule = vehiculeRepository.findById(request.getVehiculeId())
                 .orElseThrow(() -> new ResourceNotFoundException("Véhicule introuvable avec l'id : " + request.getVehiculeId()));
+
+        if (vehicule.getClient() == null || !vehicule.getClient().getId().equals(client.getId())) {
+            throw new sn.oas.facturation.shared.exception.ForbiddenException("Le véhicule sélectionné n'appartient pas au client de la facture.");
+        }
 
         OrdreReparation ordreReparation = ordreReparationRepository.findById(request.getOrdreReparationId())
                 .orElseThrow(() -> new ResourceNotFoundException("Fiche Atelier / Ordre de réparation introuvable avec l'id : " + request.getOrdreReparationId()));
@@ -130,9 +136,16 @@ public class FactureServiceImpl implements FactureService {
             ht = ht.add(BigDecimal.valueOf((long) ligneFiche.getNbreHeure() * ligneFiche.getPrix()));
         }
 
+        int tauxRemise = tauxRemiseApplicable(client);
+        BigDecimal montantRemise = ht.multiply(BigDecimal.valueOf(tauxRemise)).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+        ht = ht.subtract(montantRemise);
+        facture.setTauxRemiseClient(BigDecimal.valueOf(tauxRemise));
+        facture.setMontantRemiseClient(montantRemise);
+        if (client.getEcheance() != null && client.getEcheance() > 0) facture.setDateEcheance(java.time.LocalDateTime.now().plusDays(client.getEcheance()));
+
         BigDecimal tva = BigDecimal.ZERO;
         if (Boolean.TRUE.equals(request.getAppliquerTVA())) {
-            tva = ht.multiply(BigDecimal.valueOf(0.18));
+            tva = ht.multiply(BigDecimal.valueOf(0.18)).setScale(2, java.math.RoundingMode.HALF_UP);
         }
 
         BigDecimal timbre = BigDecimal.ZERO;
@@ -270,7 +283,13 @@ public class FactureServiceImpl implements FactureService {
             }
         }
 
-        BigDecimal tva = montantHT.multiply(BigDecimal.valueOf(0.18));
+        int tauxRemise = tauxRemiseApplicable(client);
+        BigDecimal montantRemise = montantHT.multiply(BigDecimal.valueOf(tauxRemise)).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+        montantHT = montantHT.subtract(montantRemise);
+        facture.setTauxRemiseClient(BigDecimal.valueOf(tauxRemise));
+        facture.setMontantRemiseClient(montantRemise);
+        if (client != null && client.getEcheance() != null && client.getEcheance() > 0) facture.setDateEcheance(java.time.LocalDateTime.now().plusDays(client.getEcheance()));
+        BigDecimal tva = montantHT.multiply(BigDecimal.valueOf(0.18)).setScale(2, java.math.RoundingMode.HALF_UP);
         BigDecimal timbre = BigDecimal.valueOf(100);
         BigDecimal ttc = montantHT.add(tva).add(timbre);
 
@@ -400,6 +419,9 @@ public class FactureServiceImpl implements FactureService {
                 java.util.Map.entry("marque", vehicle == null ? "" : templateValue(vehicle.getMarque())), java.util.Map.entry("modele", vehicle == null ? "" : templateValue(vehicle.getModele())),
                 java.util.Map.entry("annee", vehicle == null ? "" : templateValue(vehicle.getAnnee())), java.util.Map.entry("chassis", vehicle == null ? "" : templateValue(vehicle.getNumeroChassis())),
                 java.util.Map.entry("numeroBonDeCommande", templateValue(f.getNumeroBonDeCommande())),
+                java.util.Map.entry("tauxRemiseClient", templateValue(f.getTauxRemiseClient())),
+                java.util.Map.entry("montantRemiseClient", templateValue(f.getMontantRemiseClient())),
+                java.util.Map.entry("dateEcheance", templateValue(f.getDateEcheance())),
                 java.util.Map.entry("kilometrage", templateValue(f.getKilometrage())), java.util.Map.entry("montantHT", templateValue(f.getMontantHT())),
                 java.util.Map.entry("montantTVA", templateValue(f.getMontantTVA())), java.util.Map.entry("montantTimbre", templateValue(f.getMontantTimbre())),
                 java.util.Map.entry("montantAutre", templateValue(f.getMontantAutre())), java.util.Map.entry("montantTotal", templateValue(f.getMontantTotal())),
@@ -508,6 +530,9 @@ public class FactureServiceImpl implements FactureService {
                 document.add(new Paragraph(" "));
             }
 
+            if (f.getMontantRemiseClient() != null && f.getMontantRemiseClient().signum() > 0) {
+                document.add(new Paragraph("Remise client (" + f.getTauxRemiseClient() + " %) : " + f.getMontantRemiseClient(), fontTexte));
+            }
             document.add(new Paragraph("Montant HT : " + f.getMontantHT(), fontSousTitre));
             document.add(new Paragraph("TVA : " + f.getMontantTVA(), fontTexte));
             document.add(new Paragraph("Timbre : " + f.getMontantTimbre(), fontTexte));
@@ -529,6 +554,13 @@ public class FactureServiceImpl implements FactureService {
         }
 
         return baos.toByteArray();
+    }
+
+    private int tauxRemiseApplicable(Client client) {
+        if (client == null || client.getTypeClient() != sn.oas.facturation.features.client.data.enums.TypeClient.ENTREPRISE
+                || !client.isClientFidele() || client.getMontantRemise() == null) return 0;
+        var compte = compteClientRepository.findByClientId(client.getId()).orElse(null);
+        return compte != null && compte.isActif() ? client.getMontantRemise() : 0;
     }
 
     private String templateValue(Object value) { return value == null ? "" : value.toString(); }

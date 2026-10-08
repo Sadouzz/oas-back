@@ -17,6 +17,9 @@ import sn.oas.facturation.features.diagnostic.dto.PieceJointeDiagnosticRequest;
 import sn.oas.facturation.features.diagnostic.dto.PieceJointeDiagnosticResponse;
 import sn.oas.facturation.features.diagnostic.dto.RemarqueDiagnosticResponse;
 import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationRequest;
+import sn.oas.facturation.features.ordreReparation.dto.RestitutionRequest;
+import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
 import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationListDTO;
 import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationResponseDTO;
 import sn.oas.facturation.features.ordreReparation.repository.OrdreReparationRepository;
@@ -398,6 +401,18 @@ public class OrdreReparationController {
             return ResponseEntity.ok(fiche);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
+    @PostMapping("/{id}/restitution")
+    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER')")
+    @Operation(summary = "Enregistrer la signature, la garantie et la restitution du véhicule")
+    public ResponseEntity<?> restituerVehicule(@PathVariable Long id, @Valid @RequestBody RestitutionRequest request) {
+        try {
+            ordreReparationService.restituerVehicule(id, request.signature(), request.garantieMois());
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
 

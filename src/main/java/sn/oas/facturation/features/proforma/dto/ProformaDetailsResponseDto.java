@@ -39,6 +39,8 @@ public record ProformaDetailsResponseDto(
         Double montantTVA,
         Double montantTTC,
         Double montantTotal,
+        Double tauxRemiseClient,
+        Double montantRemiseClient,
 
         // Lignes d'articles modifiables
         List<LignePieceResponseDto> lignesPieces,
@@ -84,8 +86,9 @@ public record ProformaDetailsResponseDto(
         Integer annee = null;
         Integer kilometrage = p.getKilometrage() != null ? p.getKilometrage().intValue() : null;
 
-        if (p.getOrdreReparation() != null && p.getOrdreReparation().getVehicule() != null) {
-            var vehicule = p.getOrdreReparation().getVehicule();
+        var vehicule = p.getVehicule();
+        if (vehicule == null && p.getOrdreReparation() != null) vehicule = p.getOrdreReparation().getVehicule();
+        if (vehicule != null) {
             vehiculeId = vehicule.getId();
             immatriculation = vehicule.getImmatriculation();
             numeroChassis = vehicule.getNumeroChassis();
@@ -95,8 +98,8 @@ public record ProformaDetailsResponseDto(
             if (kilometrage == null && vehicule.getKilometrage() != null) {
                 kilometrage = vehicule.getKilometrage().intValue();
             }
-            if (vehicule.getClient() != null) {
-                var client = vehicule.getClient();
+            var client = p.getClient() != null ? p.getClient() : vehicule.getClient();
+            if (client != null) {
                 clientId = client.getId();
                 clientNom = ((client.getFirstName() != null ? client.getFirstName() : "") + " " +
                         (client.getLastName() != null ? client.getLastName() : "")).trim();
@@ -187,6 +190,8 @@ public record ProformaDetailsResponseDto(
                 .montantTVA(tva)
                 .montantTTC(ttc)
                 .montantTotal(total)
+                .tauxRemiseClient(p.getTauxRemiseClient() == null ? 0.0 : p.getTauxRemiseClient().doubleValue())
+                .montantRemiseClient(p.getMontantRemiseClient() == null ? 0.0 : p.getMontantRemiseClient().doubleValue())
                 .lignesPieces(pieces)
                 .lignesMainDoeuvres(mainDoeuvres)
                 .build();

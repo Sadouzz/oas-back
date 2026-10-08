@@ -19,6 +19,7 @@ public interface VehiculeRepository extends JpaRepository<Vehicule, Long> {
     boolean existsByImmatriculationIgnoreCase(String immatriculation);
     boolean existsByNumeroChassis(String numeroChassis);
     List<Vehicule> findByClientId(Long clientId);
+    org.springframework.data.domain.Page<Vehicule> findAllByClientId(Long clientId, org.springframework.data.domain.Pageable pageable);
     List<Vehicule> findByClientIdAndArchiveParClientFalse(Long clientId);
 
     @Query("SELECT v FROM Vehicule v WHERE " +

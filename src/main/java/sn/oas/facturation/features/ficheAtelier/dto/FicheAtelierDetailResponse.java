@@ -51,6 +51,8 @@ public class FicheAtelierDetailResponse {
     private String nb;
     private LocalDateTime dateSortiePrevue;
     private String garantie;
+    private LocalDateTime dateRestitution;
+    private Integer garantieMois;
     private String signatureReceptionnaireBase64;
     private String signatureBase64;
     private String signatureSortieBase64;
@@ -102,6 +104,8 @@ public class FicheAtelierDetailResponse {
                 .nb(fiche.getNb())
                 .dateSortiePrevue(fiche.getDateSortiePrevue())
                 .garantie(fiche.getGarantie())
+                .dateRestitution(fiche.getDateRestitution())
+                .garantieMois(fiche.getGarantieMois())
                 .signatureReceptionnaireBase64(fiche.getSignatureReceptionnaireBase64())
                 .signatureBase64(fiche.getSignatureBase64())
                 .signatureSortieBase64(fiche.getSignatureSortieBase64())

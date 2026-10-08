@@ -29,6 +29,8 @@ public interface ClientService {
 
     void removeClientFidele(Long id);
 
+    Client updateConditionsFinancieres(Long id, sn.oas.facturation.features.client.dto.ConditionsFinancieresRequest request);
+
 
     // void toggleClientFidele(Long id);
     // void updateClientFidele(Long id, ClientFideleRequest request);

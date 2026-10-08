@@ -16,6 +16,7 @@ import sn.oas.facturation.features.client.dto.ClientCreateResponse;
 import sn.oas.facturation.features.client.dto.ClientFideleRequest;
 import sn.oas.facturation.features.client.dto.ClientUpdateRequest;
 import sn.oas.facturation.features.client.repository.ClientRepository;
+import sn.oas.facturation.features.client.repository.CompteClientRepository;
 import sn.oas.facturation.features.user.data.entity.User;
 import sn.oas.facturation.features.user.data.enums.TypeUser;
 import sn.oas.facturation.features.vehicule.service.VehiculeService;
@@ -38,6 +39,7 @@ public class ClientServiceImpl implements ClientService {
     private final VehiculeService vehiculeService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final CompteClientRepository compteClientRepository;
 
     @Override
     public Page<Client> getAllClients(int page, int size) {
@@ -156,6 +158,9 @@ public class ClientServiceImpl implements ClientService {
 
         TypeClient resultingType = request.typeClient() != null ? request.typeClient()
                 : client.getTypeClient() == null ? TypeClient.PARTICULIER : client.getTypeClient();
+        if (resultingType == TypeClient.PARTICULIER && compteClientRepository.findByClientId(id).isPresent()) {
+            throw new IllegalArgumentException("Un client ayant eu un compte financier reste une entreprise.");
+        }
         String contactPhone = resultingType == TypeClient.ENTREPRISE && hasText(request.telephoneEntreprise())
                 ? request.telephoneEntreprise().trim() : request.phone();
         String contactEmail = resultingType == TypeClient.ENTREPRISE && hasText(request.emailEntreprise())
@@ -292,6 +297,7 @@ public class ClientServiceImpl implements ClientService {
         return client;
     }
 
+    @Transactional
     public void updateClientFideleConfig(Long id, ClientFideleRequest request) {
         Client client = clientRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Client non trouvé"));
@@ -308,6 +314,10 @@ public class ClientServiceImpl implements ClientService {
         if (request.echeance() != null) {
             client.setEcheance(request.echeance());
         }
+        if (request.montantPlafondEcheance() != null) {
+            if (request.montantPlafondEcheance().signum() < 0) throw new IllegalArgumentException("Le plafond de période ne peut pas être négatif.");
+            client.setMontantPlafondEcheance(request.montantPlafondEcheance());
+        }
         if (request.ninea() != null) {
             client.setNinea(request.ninea());
         }
@@ -323,18 +333,34 @@ public class ClientServiceImpl implements ClientService {
     }
 
     @Override
+    @Transactional
     public void removeClientFidele(Long id) {
         Client client = clientRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Client non trouvé"));
         client.setClientFidele(false);
-        client.setMontantRemise(null);
-        client.setMontantPlafond(null);
-        client.setEcheance(null);
-        client.setNinea(null);
-        client.setRccm(null);
-        client.setRib(null);
+        compteClientRepository.findByClientId(id).ifPresent(compte -> compte.setActif(false));
         client.setUpdatedAt(java.time.LocalDateTime.now());
         clientRepository.save(client);
+    }
+
+    @Override
+    @Transactional
+    public Client updateConditionsFinancieres(Long id, sn.oas.facturation.features.client.dto.ConditionsFinancieresRequest request) {
+        if (request == null) throw new IllegalArgumentException("Les conditions financières sont obligatoires.");
+        if (request.plafondEncours() != null && request.plafondEncours() < 0)
+            throw new IllegalArgumentException("Le plafond d'encours ne peut pas être négatif.");
+        if (request.echeanceJours() != null && (request.echeanceJours() < 1 || request.echeanceJours() > 3650))
+            throw new IllegalArgumentException("L'échéance doit être comprise entre 1 et 3650 jours.");
+        if (request.plafondPeriode() != null && request.plafondPeriode().signum() < 0)
+            throw new IllegalArgumentException("Le plafond de période ne peut pas être négatif.");
+        if (request.plafondPeriode() != null && (request.echeanceJours() == null || request.echeanceJours() <= 0))
+            throw new IllegalArgumentException("Un délai de paiement est obligatoire pour définir un plafond de période.");
+        Client client = clientRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Client non trouvé"));
+        client.setMontantPlafond(request.plafondEncours());
+        client.setEcheance(request.echeanceJours());
+        client.setMontantPlafondEcheance(request.plafondPeriode());
+        client.setUpdatedAt(java.time.LocalDateTime.now());
+        return clientRepository.save(client);
     }
 
     /*

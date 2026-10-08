@@ -18,6 +18,8 @@ public record ProformaListResponse(
         BigDecimal montantTimbre,
         BigDecimal montantAutre,
         BigDecimal montantTotal,
+        BigDecimal tauxRemiseClient,
+        BigDecimal montantRemiseClient,
         String statut,
         Boolean visibleClient,
         // Long agentId,
@@ -45,15 +47,18 @@ public record ProformaListResponse(
         String modele = null;
         Integer annee = null;
 
-        if (p.getOrdreReparation() != null && p.getOrdreReparation().getVehicule() != null) {
-            var vehicule = p.getOrdreReparation().getVehicule();
+        var vehicule = p.getVehicule();
+        if (vehicule == null && p.getOrdreReparation() != null) vehicule = p.getOrdreReparation().getVehicule();
+        if (vehicule != null) {
             vehiculeId = vehicule.getId();
             immatriculation = vehicule.getImmatriculation();
             numeroChassis = vehicule.getNumeroChassis();
             marque = vehicule.getMarque();
             modele = vehicule.getModele();
             annee = vehicule.getAnnee();
-            var client = p.getOrdreReparation().getClient() != null ? p.getOrdreReparation().getClient() : vehicule.getClient();
+            var client = p.getClient();
+            if (client == null && p.getOrdreReparation() != null) client = p.getOrdreReparation().getClient();
+            if (client == null) client = vehicule.getClient();
             if (client != null) {
                 clientId = client.getId();
                 clientNom = (client.getFirstName() + " " + client.getLastName()).trim();
@@ -71,6 +76,8 @@ public record ProformaListResponse(
                 .montantTimbre(p.getMontantTimbre())
                 .montantAutre(BigDecimal.ZERO)
                 .montantTotal(p.getMontantTotal())
+                .tauxRemiseClient(p.getTauxRemiseClient())
+                .montantRemiseClient(p.getMontantRemiseClient())
                 .statut(p.getStatut() != null ? p.getStatut().name() : null)
                 .visibleClient(p.getVisibleClient() != null ? p.getVisibleClient() : Boolean.FALSE)
                 // .agentId(p.getAgent() != null ? p.getAgent().getId() : null)
