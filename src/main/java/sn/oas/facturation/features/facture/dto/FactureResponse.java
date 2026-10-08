@@ -24,6 +24,9 @@ public class FactureResponse {
     private BigDecimal montantTimbre;
     private BigDecimal montantAutre;
     private BigDecimal montantTotal;
+    private BigDecimal tauxRemiseClient;
+    private BigDecimal montantRemiseClient;
+    private LocalDateTime dateEcheance;
     private BigDecimal montantPaye;
     private BigDecimal resteAPayer;
     private StatutPaiement statutPaiement;
@@ -65,6 +68,9 @@ public class FactureResponse {
                 .montantTimbre(f.getMontantTimbre())
                 .montantAutre(f.getMontantAutre())
                 .montantTotal(f.getMontantTotal())
+                .tauxRemiseClient(f.getTauxRemiseClient())
+                .montantRemiseClient(f.getMontantRemiseClient())
+                .dateEcheance(f.getDateEcheance())
                 .montantPaye(f.getMontantPaye())
                 .resteAPayer(f.getResteAPayer())
                 .statutPaiement(f.getStatutPaiement())

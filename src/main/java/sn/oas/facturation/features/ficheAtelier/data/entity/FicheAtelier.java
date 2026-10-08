@@ -48,6 +48,7 @@ public class FicheAtelier implements TenantAware {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "rendez_vous_id", nullable = true)
+    @JsonIgnoreProperties({"ficheAtelier", "client", "vehicule", "garage"})
     private RendezVous rendezVous;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -105,6 +106,12 @@ public class FicheAtelier implements TenantAware {
 
     private String garantie; // ex: "1 mois après livraison"
 
+    @Column(name = "date_restitution")
+    private LocalDateTime dateRestitution;
+
+    @Column(name = "garantie_mois")
+    private Integer garantieMois;
+
     @Column(name = "signature_receptionnaire_base64", columnDefinition = "TEXT")
     private String signatureReceptionnaireBase64;
 
@@ -113,6 +120,7 @@ public class FicheAtelier implements TenantAware {
 
     @Column(name = "signature_sortie_base64", columnDefinition = "TEXT")
     private String signatureSortieBase64;
+
 
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp

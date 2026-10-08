@@ -24,6 +24,9 @@ public class OrdreReparationResponseDTO {
     private LocalDateTime dateCreation;
     private LocalDateTime updatedAt;
     private LocalDateTime dateSortie;
+    private LocalDateTime dateRestitution;
+    private Integer garantieMois;
+    private Long ficheAtelierId;
     private StatutOrdreReparation statut;
     
     private VehiculeDto vehicule;
@@ -146,4 +149,3 @@ public class OrdreReparationResponseDTO {
     }
 
 }
-

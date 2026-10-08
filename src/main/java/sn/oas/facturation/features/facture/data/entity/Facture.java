@@ -11,6 +11,7 @@ import sn.oas.facturation.features.facturation.data.entity.FactureTTC;
 import sn.oas.facturation.features.facture.data.enums.StatutPaiement;
 import sn.oas.facturation.features.recu.data.entity.Recu;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
+import sn.oas.facturation.features.pdfTemplate.data.entity.PdfTemplate;
 
 import java.math.BigDecimal;
 
@@ -22,6 +23,11 @@ import java.math.BigDecimal;
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 public class Facture extends FactureTTC {
+
+    /** Template version captured when the invoice was issued; null denotes legacy rendering. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pdf_template_id")
+    private PdfTemplate pdfTemplate;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id", nullable = false)
@@ -36,6 +42,10 @@ public class Facture extends FactureTTC {
 
     @Column(name = "montant_autre", precision = 15, scale = 2)
     private BigDecimal montantAutre;
+
+    /** Date d'échéance calculée à l'émission pour préserver les conditions historiques. */
+    @Column(name = "date_echeance")
+    private java.time.LocalDateTime dateEcheance;
 
     @Column(name = "montant_paye", precision = 15, scale = 2)
     @lombok.Builder.Default

@@ -110,9 +110,7 @@ public class VehiculeServiceImpl implements VehiculeService {
         }
 
         if (request.clientId() != null && !request.clientId().equals(vehicule.getClient().getId())) {
-            Client client = clientRepository.findById(request.clientId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Client non trouvé avec l'id : " + request.clientId()));
-            vehicule.setClient(client);
+            throw new BadRequestException("Le changement de propriétaire doit être validé par une demande de transfert.");
         }
 
         if (request.annee() != null) vehicule.setAnnee(request.annee());
@@ -146,6 +144,14 @@ public class VehiculeServiceImpl implements VehiculeService {
     @Override
     public List<Vehicule> getVehiculesByClient(Long clientId) {
         return vehiculeRepository.findByClientId(clientId);
+    }
+
+    @Override
+    public Page<Vehicule> getVehiculesByClient(Long clientId, int page, int size) {
+        if (page < 0) throw new BadRequestException("Le numéro de page doit être positif ou nul.");
+        if (size < 1 || size > 100) throw new BadRequestException("La taille de page doit être comprise entre 1 et 100.");
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        return vehiculeRepository.findAllByClientId(clientId, pageable);
     }
 
     @Override

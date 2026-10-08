@@ -1,0 +1,11 @@
+Auteur : Codex | Date : 2026-10-08 | Action : documenter la fiche signée et la restitution
+
+# Fiche Atelier et restitution
+
+La fiche Atelier est créée après la signature du réceptionnaire et du client. La date de sortie prévue et la garantie ne sont plus demandées à la réception. Le PDF signé inclut les conditions générales affichées à l'écran, les informations de réception et les deux signatures. Une copie PDF est figée en base au moment de la création afin que les modifications ultérieures de la fiche ne changent pas le document remis au client.
+
+Après validation de la transaction, le serveur prépare l'envoi du PDF à l'adresse email du client. L'envoi utilise le service de messagerie existant, asynchrone ; un échec SMTP est journalisé mais ne fait pas échouer la création. Si le client n'a pas d'email, l'agent doit lui transmettre le document manuellement. L'endpoint `GET /api/fiches-atelier/{id}/pdf` est réservé au personnel et sert au téléchargement et au partage WhatsApp depuis l'interface. Sur les navigateurs qui partagent les fichiers, l'agent choisit WhatsApp et le destinataire ; ailleurs, l'interface télécharge le PDF et demande à l'agent de le joindre à la conversation. Aucun envoi WhatsApp automatique n'est configuré dans le projet.
+
+Un ordre ne peut passer à `LIVRE` par le simple changement de statut. L'endpoint `POST /api/ordres-reparation/{id}/restitution` reçoit une signature PNG et une durée de garantie en mois, comprise entre 1 et 120 (1 par défaut). Il n'accepte que les ordres `PRET_A_LIVRER`, enregistre la signature, la date serveur de restitution, la garantie et le statut `LIVRE` dans la même transaction. La garantie court à compter de cette date. Ce flux s'applique aussi aux ordres sans fiche Atelier ; les ordres déjà livrés restent lisibles.
+
+Les anciennes fiches gardent leurs valeurs `date_sortie_prevue` et `garantie` en base pour préserver l'historique. Les nouvelles colonnes `date_restitution` et `garantie_mois` de la fiche, les colonnes de restitution de l'ordre et la table séparée `fiches_atelier_pdf` sont ajoutées sans suppression de données. Séparer le PDF évite de charger son contenu dans chaque liste de fiches ; les configurations de déploiement actuelles utilisent `ddl-auto: update`. Les anciennes livraisons restent consultables sans rétroactivité sur leur signature ou leur garantie.

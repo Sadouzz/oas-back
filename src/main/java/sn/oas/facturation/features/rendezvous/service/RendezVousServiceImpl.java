@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.repository.ClientRepository;
+import sn.oas.facturation.features.client.service.PolitiqueFinanciereClientService;
 import sn.oas.facturation.features.garage.data.entity.Garage;
 import sn.oas.facturation.features.garage.repository.GarageRepository;
 import sn.oas.facturation.features.notification.service.NotificationService;
@@ -43,6 +44,7 @@ public class RendezVousServiceImpl implements RendezVousService {
     private final OrdreReparationService ordreReparationService;
     private final DocumentNumberGeneratorService documentNumberGeneratorService;
     private final EmailService emailService;
+    private final PolitiqueFinanciereClientService politiqueFinanciereClientService;
 
     @Transactional
     @Override
@@ -126,6 +128,8 @@ public class RendezVousServiceImpl implements RendezVousService {
     @Transactional
     @Override
     public RendezVous bookRendezVous(Client client, RendezVousRequest request) {
+        String motifBlocageFinancier = politiqueFinanciereClientService.motifBlocageReservation(client.getId());
+        if (motifBlocageFinancier != null) throw new BadRequestException(motifBlocageFinancier);
         if (request.vehiculeId() == null) {
             throw new BadRequestException("Veuillez sélectionner un véhicule");
         }

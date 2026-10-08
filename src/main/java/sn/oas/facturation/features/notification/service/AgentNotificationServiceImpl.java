@@ -11,6 +11,7 @@ import sn.oas.facturation.features.notification.repository.AgentNotificationRepo
 import sn.oas.facturation.features.user.data.entity.Agent;
 import sn.oas.facturation.features.user.data.enums.Role;
 import sn.oas.facturation.features.user.repository.AgentRepository;
+import sn.oas.facturation.features.push.service.PushService;
 
 import java.util.List;
 
@@ -22,6 +23,7 @@ public class AgentNotificationServiceImpl implements AgentNotificationService {
     private final AgentNotificationRepository notificationRepository;
     private final AgentRepository agentRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final PushService pushService;
 
     @Override
     public void notifyRole(Role role, String titre, String message) {
@@ -33,6 +35,7 @@ public class AgentNotificationServiceImpl implements AgentNotificationService {
                     .message(message)
                     .build();
             notification = notificationRepository.save(notification);
+            pushService.send(agent, titre, message);
 
             NotificationResponse responseDto = NotificationResponse.of(notification);
 

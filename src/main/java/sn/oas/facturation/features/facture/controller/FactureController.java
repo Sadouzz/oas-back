@@ -16,6 +16,7 @@ import sn.oas.facturation.features.facture.dto.FactureCreateRequest;
 import sn.oas.facturation.features.facture.dto.FactureListResponse;
 import sn.oas.facturation.features.facture.dto.FactureResponse;
 import sn.oas.facturation.features.facture.service.FactureService;
+import sn.oas.facturation.shared.exception.ForbiddenException;
 
 import java.util.List;
 
@@ -86,5 +87,34 @@ public class FactureController {
         headers.setContentType(MediaType.APPLICATION_PDF);
         headers.setContentDispositionFormData("attachment", "Facture_" + id + ".pdf");
         return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+    }
+
+    @GetMapping("/me/{id}")
+    @Operation(summary = "Récupérer une facture du client connecté")
+    public ResponseEntity<FactureResponse> getMyFacture(@PathVariable Long id) {
+        Client client = clientService.getClientConnecte();
+        var facture = factureService.getById(id);
+        if (facture.getClient() == null || !facture.getClient().getId().equals(client.getId())) {
+            throw new ForbiddenException("Accès non autorisé à cette facture");
+        }
+        return ResponseEntity.ok(FactureResponse.from(facture));
+    }
+
+    @GetMapping("/me/{id}/pdf")
+    @Operation(summary = "Télécharger le PDF d'une facture du client connecté")
+    public ResponseEntity<byte[]> downloadMyFacturePdf(@PathVariable Long id) {
+        Client client = clientService.getClientConnecte();
+        var facture = factureService.getById(id);
+        if (facture.getClient() == null || !facture.getClient().getId().equals(client.getId())) {
+            throw new ForbiddenException("Accès non autorisé à cette facture");
+        }
+        return pdfResponse(id);
+    }
+
+    private ResponseEntity<byte[]> pdfResponse(Long id) {
+        byte[] pdfBytes = factureService.generatePdf(id);
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"Facture_" + id + ".pdf\"")
+                .body(pdfBytes);
     }
 }

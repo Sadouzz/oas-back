@@ -19,6 +19,9 @@ public record FactureListResponse(
         BigDecimal montantTimbre,
         BigDecimal montantAutre,
         BigDecimal montantTotal,
+        BigDecimal tauxRemiseClient,
+        BigDecimal montantRemiseClient,
+        java.time.LocalDateTime dateEcheance,
         BigDecimal montantPaye,
         BigDecimal resteAPayer,
         StatutPaiement statutPaiement,
@@ -51,6 +54,9 @@ public record FactureListResponse(
                 .montantTimbre(f.getMontantTimbre())
                 .montantAutre(f.getMontantAutre())
                 .montantTotal(f.getMontantTotal())
+                .tauxRemiseClient(f.getTauxRemiseClient())
+                .montantRemiseClient(f.getMontantRemiseClient())
+                .dateEcheance(f.getDateEcheance())
                 .montantPaye(f.getMontantPaye())
                 .resteAPayer(f.getResteAPayer())
                 .statutPaiement(f.getStatutPaiement())

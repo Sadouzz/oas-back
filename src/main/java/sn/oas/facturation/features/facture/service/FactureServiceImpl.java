@@ -34,6 +34,7 @@ import sn.oas.facturation.features.user.data.enums.Role;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.features.user.repository.UserRepository;
 import sn.oas.facturation.features.client.data.entity.Client;
+import sn.oas.facturation.features.client.repository.CompteClientRepository;
 import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.features.ordreReparation.data.entity.LigneOrdreReparationMainDoeuvre;
 import sn.oas.facturation.features.ordreReparation.data.entity.LigneOrdreReparationPiece;
@@ -68,6 +69,9 @@ public class FactureServiceImpl implements FactureService {
     private final PieceDetacheRepository pieceDetacheRepository;
     private final PieceMouvementRepository pieceMouvementRepository;
     private final sn.oas.facturation.features.notification.service.EmailService emailService;
+    private final sn.oas.facturation.features.pdfGenerator.service.HtmlToPdfService htmlToPdfService;
+    private final sn.oas.facturation.features.pdfTemplate.repository.PdfTemplateRepository pdfTemplateRepository;
+    private final CompteClientRepository compteClientRepository;
 
     @Override
     @Transactional
@@ -77,6 +81,10 @@ public class FactureServiceImpl implements FactureService {
         
         Vehicule vehicule = vehiculeRepository.findById(request.getVehiculeId())
                 .orElseThrow(() -> new ResourceNotFoundException("Véhicule introuvable avec l'id : " + request.getVehiculeId()));
+
+        if (vehicule.getClient() == null || !vehicule.getClient().getId().equals(client.getId())) {
+            throw new sn.oas.facturation.shared.exception.ForbiddenException("Le véhicule sélectionné n'appartient pas au client de la facture.");
+        }
 
         OrdreReparation ordreReparation = ordreReparationRepository.findById(request.getOrdreReparationId())
                 .orElseThrow(() -> new ResourceNotFoundException("Fiche Atelier / Ordre de réparation introuvable avec l'id : " + request.getOrdreReparationId()));
@@ -91,6 +99,7 @@ public class FactureServiceImpl implements FactureService {
         }
 
         String numero = documentNumberGeneratorService.generateNextNumber(DocumentType.FC);
+        var invoiceTemplate = request.getPdfTemplateId() == null ? loadDefaultInvoiceTemplate(request.getPdfLayoutKey()) : loadInvoiceTemplate(request.getPdfTemplateId(), request.getPdfLayoutKey());
 
         Facture facture = Facture.builder()
                 .numero(numero)
@@ -100,6 +109,7 @@ public class FactureServiceImpl implements FactureService {
                 .agent(agent)
                 .kilometrage(request.getKilometrage() != null ? request.getKilometrage() : 0.0)
                 .remarque(request.getRemarque())
+                .pdfTemplate(invoiceTemplate)
                 .build();
 
         BigDecimal ht = BigDecimal.ZERO;
@@ -126,9 +136,16 @@ public class FactureServiceImpl implements FactureService {
             ht = ht.add(BigDecimal.valueOf((long) ligneFiche.getNbreHeure() * ligneFiche.getPrix()));
         }
 
+        int tauxRemise = tauxRemiseApplicable(client);
+        BigDecimal montantRemise = ht.multiply(BigDecimal.valueOf(tauxRemise)).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+        ht = ht.subtract(montantRemise);
+        facture.setTauxRemiseClient(BigDecimal.valueOf(tauxRemise));
+        facture.setMontantRemiseClient(montantRemise);
+        if (client.getEcheance() != null && client.getEcheance() > 0) facture.setDateEcheance(java.time.LocalDateTime.now().plusDays(client.getEcheance()));
+
         BigDecimal tva = BigDecimal.ZERO;
         if (Boolean.TRUE.equals(request.getAppliquerTVA())) {
-            tva = ht.multiply(BigDecimal.valueOf(0.18));
+            tva = ht.multiply(BigDecimal.valueOf(0.18)).setScale(2, java.math.RoundingMode.HALF_UP);
         }
 
         BigDecimal timbre = BigDecimal.ZERO;
@@ -209,11 +226,10 @@ public class FactureServiceImpl implements FactureService {
     public Facture createFactureAuto(OrdreReparation ordreReparation) {
         Client client = null;
         Vehicule vehicule = ordreReparation.getVehicule();
-        if (vehicule != null) {
-            client = vehicule.getClient();
-        }
+        client = ordreReparation.getClient() != null ? ordreReparation.getClient() : (vehicule == null ? null : vehicule.getClient());
 
         String numero = documentNumberGeneratorService.generateNextNumber(DocumentType.FC);
+        var invoiceTemplate = loadDefaultInvoiceTemplate("AVEC_ENTETE");
 
         Facture facture = Facture.builder()
                 .numero(numero)
@@ -224,6 +240,7 @@ public class FactureServiceImpl implements FactureService {
                 .garage(ordreReparation.getGarage())
                 .kilometrage(vehicule != null && vehicule.getKilometrage() != null ? vehicule.getKilometrage() : 0.0)
                 .remarque("Facture générée automatiquement depuis la Fiche Atelier " + ordreReparation.getNumero())
+                .pdfTemplate(invoiceTemplate)
                 .build();
 
         facture = factureRepository.save(facture);
@@ -266,7 +283,13 @@ public class FactureServiceImpl implements FactureService {
             }
         }
 
-        BigDecimal tva = montantHT.multiply(BigDecimal.valueOf(0.18));
+        int tauxRemise = tauxRemiseApplicable(client);
+        BigDecimal montantRemise = montantHT.multiply(BigDecimal.valueOf(tauxRemise)).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+        montantHT = montantHT.subtract(montantRemise);
+        facture.setTauxRemiseClient(BigDecimal.valueOf(tauxRemise));
+        facture.setMontantRemiseClient(montantRemise);
+        if (client != null && client.getEcheance() != null && client.getEcheance() > 0) facture.setDateEcheance(java.time.LocalDateTime.now().plusDays(client.getEcheance()));
+        BigDecimal tva = montantHT.multiply(BigDecimal.valueOf(0.18)).setScale(2, java.math.RoundingMode.HALF_UP);
         BigDecimal timbre = BigDecimal.valueOf(100);
         BigDecimal ttc = montantHT.add(tva).add(timbre);
 
@@ -387,6 +410,35 @@ public class FactureServiceImpl implements FactureService {
         Facture f = factureRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Facture non trouvée avec l'id : " + id));
 
+        var vehicle = f.getVehicule();
+        var tokens = java.util.Map.<String, String>ofEntries(
+                java.util.Map.entry("numero", templateValue(f.getNumero())), java.util.Map.entry("date", templateValue(f.getDateCreation())),
+                java.util.Map.entry("agentNom", f.getAgent() == null ? "" : templateValue(f.getAgent().getFirstName() + " " + f.getAgent().getLastName())),
+                java.util.Map.entry("clientNom", f.getClient() == null ? "" : templateValue(f.getClient().getFirstName() + " " + f.getClient().getLastName())),
+                java.util.Map.entry("immatriculation", vehicle == null ? "" : templateValue(vehicle.getImmatriculation())),
+                java.util.Map.entry("marque", vehicle == null ? "" : templateValue(vehicle.getMarque())), java.util.Map.entry("modele", vehicle == null ? "" : templateValue(vehicle.getModele())),
+                java.util.Map.entry("annee", vehicle == null ? "" : templateValue(vehicle.getAnnee())), java.util.Map.entry("chassis", vehicle == null ? "" : templateValue(vehicle.getNumeroChassis())),
+                java.util.Map.entry("numeroBonDeCommande", templateValue(f.getNumeroBonDeCommande())),
+                java.util.Map.entry("tauxRemiseClient", templateValue(f.getTauxRemiseClient())),
+                java.util.Map.entry("montantRemiseClient", templateValue(f.getMontantRemiseClient())),
+                java.util.Map.entry("dateEcheance", templateValue(f.getDateEcheance())),
+                java.util.Map.entry("kilometrage", templateValue(f.getKilometrage())), java.util.Map.entry("montantHT", templateValue(f.getMontantHT())),
+                java.util.Map.entry("montantTVA", templateValue(f.getMontantTVA())), java.util.Map.entry("montantTimbre", templateValue(f.getMontantTimbre())),
+                java.util.Map.entry("montantAutre", templateValue(f.getMontantAutre())), java.util.Map.entry("montantTotal", templateValue(f.getMontantTotal())),
+                java.util.Map.entry("montantTTC", templateValue(f.getMontantTTC())), java.util.Map.entry("montantPaye", templateValue(f.getMontantPaye())),
+                java.util.Map.entry("resteAPayer", templateValue(f.getResteAPayer())), java.util.Map.entry("remarque", templateValue(f.getRemarque())));
+        var tableData = java.util.Map.of("LIGNES_PIECES", f.getLignesFacturationPieces().stream().map(ligne -> java.util.Map.of(
+                        "reference", ligne.getPiece() == null ? "" : templateValue(ligne.getPiece().getReference()),
+                        "designation", ligne.getPiece() == null ? templateValue(ligne.getDesignationPds()) : templateValue(ligne.getPiece().getDesignation()),
+                        "quantite", templateValue(ligne.getQuantite()), "prixUnitaire", templateValue(ligne.getPrix()),
+                        "montant", templateValue((long) ligne.getQuantite() * ligne.getPrix()))).toList(),
+                "LIGNES_MAIN_DOEUVRE", f.getLignesFacturationMainDoeuvres().stream().map(ligne -> java.util.Map.of(
+                        "designation", ligne.getMainDoeuvre() == null ? "" : templateValue(ligne.getMainDoeuvre().getDescription()),
+                        "heures", templateValue(ligne.getNbreHeure()), "quantite", templateValue(ligne.getNbreHeure()),
+                        "prixUnitaire", templateValue(ligne.getTarifHoraire()), "montant", templateValue((long) ligne.getNbreHeure() * ligne.getTarifHoraire()))).toList());
+        byte[] configured = f.getPdfTemplate() == null ? null : htmlToPdfService.genererTemplatePdf(f.getPdfTemplate().getId(), tokens, tableData);
+        if (configured != null) return configured;
+
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Document document = new Document();
 
@@ -478,6 +530,9 @@ public class FactureServiceImpl implements FactureService {
                 document.add(new Paragraph(" "));
             }
 
+            if (f.getMontantRemiseClient() != null && f.getMontantRemiseClient().signum() > 0) {
+                document.add(new Paragraph("Remise client (" + f.getTauxRemiseClient() + " %) : " + f.getMontantRemiseClient(), fontTexte));
+            }
             document.add(new Paragraph("Montant HT : " + f.getMontantHT(), fontSousTitre));
             document.add(new Paragraph("TVA : " + f.getMontantTVA(), fontTexte));
             document.add(new Paragraph("Timbre : " + f.getMontantTimbre(), fontTexte));
@@ -499,6 +554,36 @@ public class FactureServiceImpl implements FactureService {
         }
 
         return baos.toByteArray();
+    }
+
+    private int tauxRemiseApplicable(Client client) {
+        if (client == null || client.getTypeClient() != sn.oas.facturation.features.client.data.enums.TypeClient.ENTREPRISE
+                || !client.isClientFidele() || client.getMontantRemise() == null) return 0;
+        var compte = compteClientRepository.findByClientId(client.getId()).orElse(null);
+        return compte != null && compte.isActif() ? client.getMontantRemise() : 0;
+    }
+
+    private String templateValue(Object value) { return value == null ? "" : value.toString(); }
+
+    private sn.oas.facturation.features.pdfTemplate.data.entity.PdfTemplate loadInvoiceTemplate(Long id, String layoutKey) {
+        var template = pdfTemplateRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Modèle PDF introuvable."));
+        String expectedLayout = normalizeInvoiceLayout(layoutKey);
+        boolean assignedToInvoice = template.getAssignedDocumentTypes() == null || template.getAssignedDocumentTypes().isEmpty()
+                ? "FACTURE".equals(template.getDocumentType()) : template.getAssignedDocumentTypes().contains("FACTURE");
+        if (!assignedToInvoice || !template.isActive() || !expectedLayout.equals(normalizeInvoiceLayout(template.getLayoutKey()))) {
+            throw new sn.oas.facturation.shared.exception.BadRequestException("Le modèle sélectionné n'est pas actif pour les factures.");
+        }
+        return template;
+    }
+
+    private sn.oas.facturation.features.pdfTemplate.data.entity.PdfTemplate loadDefaultInvoiceTemplate(String layoutKey) {
+        return pdfTemplateRepository.findActiveForLayoutByVersion("FACTURE", normalizeInvoiceLayout(layoutKey)).stream().findFirst().orElse(null);
+    }
+
+    private String normalizeInvoiceLayout(String layoutKey) {
+        if (layoutKey == null || layoutKey.isBlank() || "AVEC_ENTETE".equalsIgnoreCase(layoutKey)) return "AVEC_ENTETE";
+        if ("SANS_ENTETE".equalsIgnoreCase(layoutKey)) return "SANS_ENTETE";
+        throw new sn.oas.facturation.shared.exception.BadRequestException("Présentation de facture invalide.");
     }
 
     @Override

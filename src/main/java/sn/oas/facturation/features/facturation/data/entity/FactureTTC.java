@@ -29,5 +29,11 @@ public abstract class FactureTTC extends Facturation {
 
     @Column(name = "montant_timbre", nullable = false, precision = 15, scale = 2)
     private BigDecimal montantTimbre;
-}
 
+    /** Remise entreprise capturée à l'émission; les modifications ultérieures du compte ne la changent pas. */
+    @Column(name = "taux_remise_client", precision = 5, scale = 2)
+    private BigDecimal tauxRemiseClient;
+
+    @Column(name = "montant_remise_client", precision = 15, scale = 2)
+    private BigDecimal montantRemiseClient;
+}

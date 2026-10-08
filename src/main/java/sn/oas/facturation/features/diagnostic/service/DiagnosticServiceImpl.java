@@ -53,6 +53,7 @@ public class DiagnosticServiceImpl implements DiagnosticService {
     private final TechnicienRepository technicienRepository;
     private final PieceJointeDiagnosticRepository pieceJointeDiagnosticRepository;
     private final RemarqueDiagnosticRepository remarqueDiagnosticRepository;
+    private final sn.oas.facturation.features.pdfGenerator.service.HtmlToPdfService htmlToPdfService;
     private final EmailService emailService;
 
     @Override
@@ -408,6 +409,16 @@ public class DiagnosticServiceImpl implements DiagnosticService {
         Diagnostic diagnostic = diagnosticRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Diagnostic non trouvé avec l'id : " + id));
 
+        var vehicle = diagnostic.getOrdreReparation() == null ? null : diagnostic.getOrdreReparation().getVehicule();
+        byte[] configured = htmlToPdfService.genererTemplatePdfSiConfigure("DIAGNOSTIC", java.util.Map.of(
+                "numero", templateValue(diagnostic.getOrdreReparation() == null ? null : diagnostic.getOrdreReparation().getNumero()),
+                "date", templateValue(diagnostic.getDateDebut()), "statut", templateValue(diagnostic.getStatut()),
+                "immatriculation", vehicle == null ? "" : templateValue(vehicle.getImmatriculation()),
+                "marque", vehicle == null ? "" : templateValue(vehicle.getMarque()), "modele", vehicle == null ? "" : templateValue(vehicle.getModele()),
+                "observations", templateValue(diagnostic.getObservations()), "pannes", templateValue(diagnostic.getPannesDetectees()),
+                "recommandations", templateValue(diagnostic.getRecommandations())));
+        if (configured != null) return configured;
+
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Document document = new Document();
 
@@ -459,6 +470,8 @@ public class DiagnosticServiceImpl implements DiagnosticService {
 
         return baos.toByteArray();
     }
+
+    private String templateValue(Object value) { return value == null ? "" : value.toString(); }
 
     public DiagnosticListResponse toDiagnosticListResponse(Diagnostic d) {
         OrdreReparation or = d.getOrdreReparation();

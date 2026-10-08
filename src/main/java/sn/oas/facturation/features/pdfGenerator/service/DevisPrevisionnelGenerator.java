@@ -21,7 +21,17 @@ public class DevisPrevisionnelGenerator {
 
     public byte[] genererDevisPrevisionnelPdf(DevisPrevisionnel devis) {
         String html = construireHtmlDevis(devis);
-        return htmlToPdfService.genererHtmlEnPdf(html);
+        String numero = devis.getNumero() != null ? devis.getNumero() : String.valueOf(devis.getId());
+        String date = devis.getDateCreation() != null ? devis.getDateCreation().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss")) : "";
+        String clientNom = devis.getClient() != null ? devis.getClient().getFirstName() + " " + devis.getClient().getLastName() : "";
+        String marque = devis.getVehicule() != null ? safe(devis.getVehicule().getMarque()) : "";
+        String modele = devis.getVehicule() != null ? safe(devis.getVehicule().getModele()) : "";
+        String immat = devis.getVehicule() != null ? safe(devis.getVehicule().getImmatriculation()) : "";
+        String total = devis.getMontantTotal() != null ? devis.getMontantTotal().toPlainString() : "0";
+        return htmlToPdfService.genererHtmlEnPdf(html, "DEVIS_PREVISIONNEL", java.util.Map.of(
+                "numero", numero, "date", date, "clientNom", clientNom, "marque", marque, "modele", modele,
+                "immatriculation", immat, "montantTotal", total,
+                "reparations", devis.getNotesReparation() == null ? "" : devis.getNotesReparation()));
     }
 
     private String construireHtmlDevis(DevisPrevisionnel devis) {

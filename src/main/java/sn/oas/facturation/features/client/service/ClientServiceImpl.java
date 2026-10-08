@@ -10,13 +10,15 @@ import org.springframework.transaction.annotation.Transactional;
 import sn.oas.facturation.features.user.repository.UserRepository;
 import sn.oas.facturation.features.user.service.UserService;
 import sn.oas.facturation.features.client.data.entity.Client;
+import sn.oas.facturation.features.client.data.enums.TypeClient;
 import sn.oas.facturation.features.client.dto.ClientCreateRequest;
 import sn.oas.facturation.features.client.dto.ClientCreateResponse;
 import sn.oas.facturation.features.client.dto.ClientFideleRequest;
+import sn.oas.facturation.features.client.dto.ClientUpdateRequest;
 import sn.oas.facturation.features.client.repository.ClientRepository;
+import sn.oas.facturation.features.client.repository.CompteClientRepository;
 import sn.oas.facturation.features.user.data.entity.User;
 import sn.oas.facturation.features.user.data.enums.TypeUser;
-import sn.oas.facturation.features.user.dto.request.UserUpdateRequest;
 import sn.oas.facturation.features.vehicule.service.VehiculeService;
 import sn.oas.facturation.shared.exception.ResourceNotFoundException;
 
@@ -37,6 +39,7 @@ public class ClientServiceImpl implements ClientService {
     private final VehiculeService vehiculeService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final CompteClientRepository compteClientRepository;
 
     @Override
     public Page<Client> getAllClients(int page, int size) {
@@ -70,6 +73,19 @@ public class ClientServiceImpl implements ClientService {
         @CacheEvict(value = "dashboard_agent", allEntries = true)
     })*/
     public ClientCreateResponse createClient(ClientCreateRequest request) {
+        TypeClient clientType = request.typeClient() == null ? TypeClient.PARTICULIER : request.typeClient();
+        String contactPhone = clientType == TypeClient.ENTREPRISE && hasText(request.telephoneEntreprise())
+                ? request.telephoneEntreprise().trim() : request.phone();
+        String contactEmail = clientType == TypeClient.ENTREPRISE && hasText(request.emailEntreprise())
+                ? request.emailEntreprise().trim() : request.email();
+        if (clientType == TypeClient.ENTREPRISE) {
+            requireText(request.raisonSociale(), "La raison sociale est obligatoire pour une entreprise.");
+            requireText(request.numeroEntreprise(), "Le NINEA est obligatoire pour une entreprise.");
+            requireText(contactEmail, "L'email de l'entreprise est obligatoire.");
+            requireText(contactPhone, "Le téléphone de l'entreprise est obligatoire.");
+            requireText(request.adresseEntreprise(), "L'adresse de l'entreprise est obligatoire.");
+            if (!contactEmail.contains("@")) throw new IllegalArgumentException("L'email de l'entreprise est invalide.");
+        }
         // 1. Générer le matricule CLT-XXXXX
         String matricule = generateMatricule();
 
@@ -82,14 +98,19 @@ public class ClientServiceImpl implements ClientService {
         Client client = Client.builder()
                 .firstName(request.firstName())
                 .lastName(request.lastName())
-                .phone(request.phone())
-                .email(request.email())
-                .adresse(request.adresse())
+                .phone(contactPhone)
+                .email(contactEmail)
+                .adresse(clientType == TypeClient.ENTREPRISE ? request.adresseEntreprise().trim() : request.adresse())
                 .matricule(matricule)
                 .type(TypeUser.CLIENT)
                 .username(request.email() != null && !request.email().isBlank() ? request.email() : request.phone())
                 .password(passwordEncoder.encode(rawPassword))
                 .enabled(true)
+                .typeClient(clientType)
+                .raisonSociale(clientType == TypeClient.ENTREPRISE ? request.raisonSociale().trim() : null)
+                .numeroEntreprise(clientType == TypeClient.ENTREPRISE ? request.numeroEntreprise().trim() : null)
+                .emailEntreprise(clientType == TypeClient.ENTREPRISE ? contactEmail : null)
+                .adresseEntreprise(clientType == TypeClient.ENTREPRISE ? request.adresseEntreprise().trim() : null)
                 .build();
 
         Client saved = clientRepository.save(client);
@@ -116,6 +137,14 @@ public class ClientServiceImpl implements ClientService {
         return matricule;
     }
 
+    private static boolean hasText(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    private static void requireText(String value, String message) {
+        if (!hasText(value)) throw new IllegalArgumentException(message);
+    }
+
 
     @Transactional
     @Override
@@ -123,14 +152,43 @@ public class ClientServiceImpl implements ClientService {
             @CacheEvict(value = "dashboard_super_agent", allEntries = true),
             @CacheEvict(value = "dashboard_agent", allEntries = true)
     })*/
-    public Client updateClient(Long id, UserUpdateRequest request) {
+    public Client updateClient(Long id, ClientUpdateRequest request) {
         Client client = clientRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Client non trouvé"));
 
-        if (request.phone() != null) client.setPhone(request.phone());
+        TypeClient resultingType = request.typeClient() != null ? request.typeClient()
+                : client.getTypeClient() == null ? TypeClient.PARTICULIER : client.getTypeClient();
+        if (resultingType == TypeClient.PARTICULIER && compteClientRepository.findByClientId(id).isPresent()) {
+            throw new IllegalArgumentException("Un client ayant eu un compte financier reste une entreprise.");
+        }
+        String contactPhone = resultingType == TypeClient.ENTREPRISE && hasText(request.telephoneEntreprise())
+                ? request.telephoneEntreprise().trim() : request.phone();
+        String contactEmail = resultingType == TypeClient.ENTREPRISE && hasText(request.emailEntreprise())
+                ? request.emailEntreprise().trim() : request.email();
+        if (resultingType == TypeClient.ENTREPRISE) {
+            String raisonSociale = hasText(request.raisonSociale()) ? request.raisonSociale() : client.getRaisonSociale();
+            String numeroEntreprise = hasText(request.numeroEntreprise()) ? request.numeroEntreprise() : client.getNumeroEntreprise();
+            String adresseEntreprise = hasText(request.adresseEntreprise()) ? request.adresseEntreprise() : client.getAdresseEntreprise();
+            requireText(raisonSociale, "La raison sociale est obligatoire pour une entreprise.");
+            requireText(numeroEntreprise, "Le NINEA est obligatoire pour une entreprise.");
+            requireText(contactEmail != null ? contactEmail : client.getEmail(), "L'email de l'entreprise est obligatoire.");
+            requireText(contactPhone != null ? contactPhone : client.getPhone(), "Le téléphone de l'entreprise est obligatoire.");
+            requireText(adresseEntreprise, "L'adresse de l'entreprise est obligatoire.");
+            client.setRaisonSociale(raisonSociale.trim());
+            client.setNumeroEntreprise(numeroEntreprise.trim());
+            client.setAdresseEntreprise(adresseEntreprise.trim());
+            client.setEmailEntreprise(contactEmail != null ? contactEmail : client.getEmail());
+        } else {
+            client.setRaisonSociale(null);
+            client.setNumeroEntreprise(null);
+            client.setAdresseEntreprise(null);
+            client.setEmailEntreprise(null);
+        }
+        client.setTypeClient(resultingType);
+        if (contactPhone != null) client.setPhone(contactPhone);
         if (request.firstName() != null) client.setFirstName(request.firstName());
         if (request.lastName() != null) client.setLastName(request.lastName());
-        if (request.email() != null) client.setEmail(request.email());
+        if (contactEmail != null) client.setEmail(contactEmail);
         client.setUpdatedAt(java.time.LocalDateTime.now());
 
         return clientRepository.save(client);
@@ -239,6 +297,7 @@ public class ClientServiceImpl implements ClientService {
         return client;
     }
 
+    @Transactional
     public void updateClientFideleConfig(Long id, ClientFideleRequest request) {
         Client client = clientRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Client non trouvé"));
@@ -255,6 +314,10 @@ public class ClientServiceImpl implements ClientService {
         if (request.echeance() != null) {
             client.setEcheance(request.echeance());
         }
+        if (request.montantPlafondEcheance() != null) {
+            if (request.montantPlafondEcheance().signum() < 0) throw new IllegalArgumentException("Le plafond de période ne peut pas être négatif.");
+            client.setMontantPlafondEcheance(request.montantPlafondEcheance());
+        }
         if (request.ninea() != null) {
             client.setNinea(request.ninea());
         }
@@ -270,18 +333,34 @@ public class ClientServiceImpl implements ClientService {
     }
 
     @Override
+    @Transactional
     public void removeClientFidele(Long id) {
         Client client = clientRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Client non trouvé"));
         client.setClientFidele(false);
-        client.setMontantRemise(null);
-        client.setMontantPlafond(null);
-        client.setEcheance(null);
-        client.setNinea(null);
-        client.setRccm(null);
-        client.setRib(null);
+        compteClientRepository.findByClientId(id).ifPresent(compte -> compte.setActif(false));
         client.setUpdatedAt(java.time.LocalDateTime.now());
         clientRepository.save(client);
+    }
+
+    @Override
+    @Transactional
+    public Client updateConditionsFinancieres(Long id, sn.oas.facturation.features.client.dto.ConditionsFinancieresRequest request) {
+        if (request == null) throw new IllegalArgumentException("Les conditions financières sont obligatoires.");
+        if (request.plafondEncours() != null && request.plafondEncours() < 0)
+            throw new IllegalArgumentException("Le plafond d'encours ne peut pas être négatif.");
+        if (request.echeanceJours() != null && (request.echeanceJours() < 1 || request.echeanceJours() > 3650))
+            throw new IllegalArgumentException("L'échéance doit être comprise entre 1 et 3650 jours.");
+        if (request.plafondPeriode() != null && request.plafondPeriode().signum() < 0)
+            throw new IllegalArgumentException("Le plafond de période ne peut pas être négatif.");
+        if (request.plafondPeriode() != null && (request.echeanceJours() == null || request.echeanceJours() <= 0))
+            throw new IllegalArgumentException("Un délai de paiement est obligatoire pour définir un plafond de période.");
+        Client client = clientRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Client non trouvé"));
+        client.setMontantPlafond(request.plafondEncours());
+        client.setEcheance(request.echeanceJours());
+        client.setMontantPlafondEcheance(request.plafondPeriode());
+        client.setUpdatedAt(java.time.LocalDateTime.now());
+        return clientRepository.save(client);
     }
 
     /*

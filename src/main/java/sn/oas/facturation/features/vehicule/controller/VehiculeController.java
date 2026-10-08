@@ -104,10 +104,18 @@ public class VehiculeController {
     }
 
     @GetMapping("/client/{clientId}")
-    @Operation(summary = "Récupérer les véhicules d'un client")
-    public ResponseEntity<List<VehiculeListResponse>> getVehiculesByClient(@PathVariable Long clientId) {
-        return ResponseEntity
-                .ok(vehiculeService.getVehiculesByClient(clientId).stream().map(VehiculeListResponse::from).toList());
+    @Operation(summary = "Récupérer les véhicules d'un client, avec pagination optionnelle")
+    public ResponseEntity<?> getVehiculesByClient(@PathVariable Long clientId,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        if (page != null || size != null) {
+            int pageIndex = page == null ? 0 : page;
+            int pageSize = size == null ? 10 : size;
+            return ResponseEntity.ok(vehiculeService.getVehiculesByClient(clientId, pageIndex, pageSize)
+                    .map(VehiculeListResponse::from));
+        }
+        return ResponseEntity.ok(vehiculeService.getVehiculesByClient(clientId).stream()
+                .map(VehiculeListResponse::from).toList());
     }
 
     @GetMapping("/me")

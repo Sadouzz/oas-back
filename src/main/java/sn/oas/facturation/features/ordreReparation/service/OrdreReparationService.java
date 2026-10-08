@@ -78,6 +78,7 @@ public interface OrdreReparationService {
     void assignTechnicienReparation(Long ficheId, Long technicienId);
     void removeTechnicienReparation(Long ficheId, Long technicienId);
     OrdreReparation updateStatut(Long id, String statut);
+    OrdreReparation restituerVehicule(Long id, String signature, Integer garantieMois);
     boolean existsByVehiculeIdAndStatutNotIn(Long vehiculeId, List<StatutOrdreReparation> statuts);
 
     // Pièces jointes de diagnostic

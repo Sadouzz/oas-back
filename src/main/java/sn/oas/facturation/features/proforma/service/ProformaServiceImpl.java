@@ -12,6 +12,8 @@ import sn.oas.facturation.features.pdfGenerator.service.ProformaGenerator;
 import sn.oas.facturation.features.auth.service.AuthService;
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.repository.ClientRepository;
+import sn.oas.facturation.features.client.repository.CompteClientRepository;
+import sn.oas.facturation.features.client.service.PolitiqueFinanciereClientService;
 import sn.oas.facturation.features.facturation.data.entity.LigneFacturationMainDoeuvre;
 import sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece;
 import sn.oas.facturation.features.facturation.dto.LigneFacturationMainDoeuvreRequest;
@@ -59,6 +61,8 @@ public class ProformaServiceImpl implements ProformaService {
     private final ProformaRepository proformaRepository;
     private final FactureRepository factureRepository;
     private final ClientRepository clientRepository;
+    private final CompteClientRepository compteClientRepository;
+    private final PolitiqueFinanciereClientService politiqueFinanciereClientService;
     private final VehiculeRepository vehiculeRepository;
     private final PieceDetacheRepository pieceDetacheRepository;
     private final MainDoeuvreRepository mainDoeuvreRepository;
@@ -171,6 +175,13 @@ public class ProformaServiceImpl implements ProformaService {
         if (request.getOrdreReparationId() != null) {
             ordreReparation = ordreReparationRepository.findById(request.getOrdreReparationId())
                     .orElseThrow(() -> new IllegalArgumentException("Fiche Atelier non trouvée avec l'id : " + request.getOrdreReparationId()));
+            Client proprietaireOrdre = ordreReparation.getClient() != null ? ordreReparation.getClient()
+                    : ordreReparation.getVehicule() == null ? null : ordreReparation.getVehicule().getClient();
+            if (proprietaireOrdre != null && !proprietaireOrdre.getId().equals(client.getId()))
+                throw new IllegalArgumentException("La fiche atelier sélectionnée n'appartient pas au client sélectionné.");
+            if (vehicule == null) vehicule = ordreReparation.getVehicule();
+            if (vehicule != null && vehicule.getClient() != null && !vehicule.getClient().getId().equals(client.getId()))
+                throw new IllegalArgumentException("Le véhicule de la fiche atelier n'appartient pas au client sélectionné.");
         }
 
         Proforma proforma = Proforma.builder()
@@ -178,8 +189,8 @@ public class ProformaServiceImpl implements ProformaService {
                 .dateCreation(LocalDateTime.now())
                 .dateModification(LocalDateTime.now())
                 .agent(authService.getAgentConnecte())
-                // .client(client)
-                // .vehicule(vehicule)
+                .client(client)
+                .vehicule(vehicule)
                 .ordreReparation(ordreReparation)
                 .kilometrage(request.getKilometrage())
                 .remarque(request.getRemarque())
@@ -237,10 +248,17 @@ public class ProformaServiceImpl implements ProformaService {
             }
         }
 
+        BigDecimal montantBrutHT = montantHT;
+        int tauxRemise = tauxRemiseApplicable(client);
+        BigDecimal montantRemise = montantBrutHT.multiply(BigDecimal.valueOf(tauxRemise))
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        montantHT = montantBrutHT.subtract(montantRemise);
+        proforma.setTauxRemiseClient(BigDecimal.valueOf(tauxRemise));
+        proforma.setMontantRemiseClient(montantRemise);
         proforma.setMontantHT(montantHT);
         Double tvaRate = request.getTvaRate() != null ? request.getTvaRate() : 18.0;
         BigDecimal rateBD = BigDecimal.valueOf(tvaRate).divide(BigDecimal.valueOf(100));
-        BigDecimal tva = montantHT.multiply(rateBD);
+        BigDecimal tva = montantHT.multiply(rateBD).setScale(2, RoundingMode.HALF_UP);
         proforma.setMontantTVA(tva);
         proforma.setMontantTTC(montantHT.add(tva));
         
@@ -249,6 +267,8 @@ public class ProformaServiceImpl implements ProformaService {
         proforma.setMontantTimbre(timbre);
         // proforma.setMontantAutre(autre);
         proforma.setMontantTotal(proforma.getMontantTTC().add(timbre).add(autre));
+
+        proforma.setAvertissementsFinanciers(politiqueFinanciereClientService.avertissementsProforma(client, proforma.getMontantTotal()));
 
         Proforma saved = proformaRepository.save(proforma);
 
@@ -261,8 +281,11 @@ public class ProformaServiceImpl implements ProformaService {
             "Nouveau Proforma", 
             "Le proforma " + saved.getNumero() + " a été généré et est en attente.");
 
-        if (ordreReparation != null && ordreReparation.getVehicule() != null && ordreReparation.getVehicule().getClient() != null) {
-            String clientEmail = ordreReparation.getVehicule().getClient().getEmail();
+        var ownerAtWork = client;
+        if (ordreReparation != null && ordreReparation.getClient() != null) ownerAtWork = ordreReparation.getClient();
+        if (ownerAtWork == null && ordreReparation != null && ordreReparation.getVehicule() != null) ownerAtWork = ordreReparation.getVehicule().getClient();
+        if (ownerAtWork != null) {
+            String clientEmail = ownerAtWork.getEmail();
             if (clientEmail != null && !clientEmail.isEmpty()) {
                 byte[] pdfBytes = generatePdf(saved.getId());
                 emailService.sendEmailWithAttachment(
@@ -287,9 +310,8 @@ public class ProformaServiceImpl implements ProformaService {
                 .orElseThrow(() -> new IllegalArgumentException("Proforma non trouvé avec l'id : " + id));
 
         Vehicule vehicule = null;
-        if (proforma.getOrdreReparation() != null) {
-            vehicule = proforma.getOrdreReparation().getVehicule();
-        }
+        if (proforma.getVehicule() != null) vehicule = proforma.getVehicule();
+        else if (proforma.getOrdreReparation() != null) vehicule = proforma.getOrdreReparation().getVehicule();
         
         if (vehicule != null) {
             if (request.getImmatriculation() != null) vehicule.setImmatriculation(request.getImmatriculation());
@@ -391,11 +413,21 @@ public class ProformaServiceImpl implements ProformaService {
         for (LigneFacturationMainDoeuvre lm : proforma.getLignesFacturationMainDoeuvres()) {
             montantHT = montantHT.add(BigDecimal.valueOf((long) lm.getNbreHeure() * lm.getTarifHoraire()));
         }
+        Client clientPourTarif = proforma.getClient();
+        if (clientPourTarif == null && proforma.getOrdreReparation() != null) {
+            clientPourTarif = proforma.getOrdreReparation().getClient() != null ? proforma.getOrdreReparation().getClient()
+                    : proforma.getOrdreReparation().getVehicule() == null ? null : proforma.getOrdreReparation().getVehicule().getClient();
+        }
+        int tauxRemise = tauxRemiseApplicable(clientPourTarif);
+        BigDecimal montantRemise = montantHT.multiply(BigDecimal.valueOf(tauxRemise)).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        montantHT = montantHT.subtract(montantRemise);
+        proforma.setTauxRemiseClient(BigDecimal.valueOf(tauxRemise));
+        proforma.setMontantRemiseClient(montantRemise);
         proforma.setMontantHT(montantHT);
 
         Double tvaRate = request.getTvaRate() != null ? request.getTvaRate() : 18.0;
         BigDecimal rateBD = BigDecimal.valueOf(tvaRate).divide(BigDecimal.valueOf(100));
-        BigDecimal tva = montantHT.multiply(rateBD);
+        BigDecimal tva = montantHT.multiply(rateBD).setScale(2, RoundingMode.HALF_UP);
         proforma.setMontantTVA(tva);
         proforma.setMontantTTC(montantHT.add(tva));
 
@@ -404,6 +436,8 @@ public class ProformaServiceImpl implements ProformaService {
 
         BigDecimal autre = request.getMontantAutre() != null ? request.getMontantAutre() : BigDecimal.ZERO;
         proforma.setMontantTotal(proforma.getMontantTTC().add(proforma.getMontantTimbre()).add(autre));
+        proforma.setAvertissementsFinanciers(politiqueFinanciereClientService.avertissementsProforma(
+                clientPourTarif, proforma.getMontantTotal()));
         proforma.setDateModification(LocalDateTime.now());
 
         return proformaRepository.save(proforma);
@@ -492,8 +526,11 @@ public class ProformaServiceImpl implements ProformaService {
         proforma.setVisibleClient(true);
         Proforma saved = proformaRepository.save(proforma);
 
-        if (saved.getOrdreReparation() != null && saved.getOrdreReparation().getVehicule() != null && saved.getOrdreReparation().getVehicule().getClient() != null) {
-            String email = saved.getOrdreReparation().getVehicule().getClient().getEmail();
+        var ownerAtWork = saved.getClient();
+        if (ownerAtWork == null) ownerAtWork = saved.getOrdreReparation() == null ? null : saved.getOrdreReparation().getClient();
+        if (ownerAtWork == null && saved.getOrdreReparation() != null && saved.getOrdreReparation().getVehicule() != null) ownerAtWork = saved.getOrdreReparation().getVehicule().getClient();
+        if (ownerAtWork != null) {
+            String email = ownerAtWork.getEmail();
             if (email != null && !email.isEmpty()) {
                 byte[] pdfBytes = generatePdf(saved.getId());
                 emailService.sendEmailWithAttachment(
@@ -525,13 +562,21 @@ public class ProformaServiceImpl implements ProformaService {
         Proforma proforma = proformaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Proforma non trouvé avec l'id : " + id));
 
+        Client clientFacture = proforma.getClient();
+        if (clientFacture == null && proforma.getOrdreReparation() != null) {
+            clientFacture = proforma.getOrdreReparation().getClient() != null ? proforma.getOrdreReparation().getClient()
+                    : proforma.getOrdreReparation().getVehicule() == null ? null : proforma.getOrdreReparation().getVehicule().getClient();
+        }
+        LocalDateTime dateEcheance = clientFacture != null && clientFacture.getEcheance() != null && clientFacture.getEcheance() > 0
+                ? LocalDateTime.now().plusDays(clientFacture.getEcheance()) : null;
+
         Facture facture = Facture.builder()
                 .numero("FA-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
                 .dateCreation(LocalDateTime.now())
                 .dateModification(LocalDateTime.now())
                 .agent(authService.getAgentConnecte())
-                .client(proforma.getOrdreReparation() != null ? proforma.getOrdreReparation().getVehicule().getClient() : null)
-                .vehicule(proforma.getOrdreReparation() != null ? proforma.getOrdreReparation().getVehicule() : null)
+                .client(clientFacture)
+                .vehicule(proforma.getVehicule() != null ? proforma.getVehicule() : proforma.getOrdreReparation() != null ? proforma.getOrdreReparation().getVehicule() : null)
                 .kilometrage(proforma.getKilometrage())
                 .remarque(proforma.getRemarque())
                 .numeroBonDeCommande(proforma.getBonDeCommande() != null ? proforma.getBonDeCommande().getNumero() : null)
@@ -539,7 +584,10 @@ public class ProformaServiceImpl implements ProformaService {
                 .montantTVA(proforma.getMontantTVA())
                 .montantTTC(proforma.getMontantTTC())
                 .montantTimbre(proforma.getMontantTimbre())
+                .tauxRemiseClient(proforma.getTauxRemiseClient())
+                .montantRemiseClient(proforma.getMontantRemiseClient())
                 .montantTotal(proforma.getMontantTotal())
+                .dateEcheance(dateEcheance)
                 .lignesFacturationPieces(new ArrayList<>())
                 .lignesFacturationMainDoeuvres(new ArrayList<>())
                 .build();
@@ -578,13 +626,7 @@ public class ProformaServiceImpl implements ProformaService {
         Proforma proforma = proformaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Proforma non trouvé avec l'id : " + id));
 
-        if (proforma.getOrdreReparation() == null || proforma.getOrdreReparation().getVehicule() == null ||
-            !proforma.getOrdreReparation().getVehicule().getClient().getId().equals(client.getId())) {
-            throw new sn.oas.facturation.shared.exception.ForbiddenException("Accès non autorisé à ce proforma");
-        }
-        if (proforma.getVisibleClient() == null || !proforma.getVisibleClient()) {
-            throw new sn.oas.facturation.shared.exception.BadRequestException("Ce proforma n'est pas encore disponible.");
-        }
+        assertClientOwnsVisibleProforma(client, proforma);
 
         proforma.setStatut(StatutFacturation.ACCEPTE);
 
@@ -608,16 +650,32 @@ public class ProformaServiceImpl implements ProformaService {
         Proforma proforma = proformaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Proforma non trouvé avec l'id : " + id));
 
-        if (proforma.getOrdreReparation() == null || proforma.getOrdreReparation().getVehicule() == null ||
-            !proforma.getOrdreReparation().getVehicule().getClient().getId().equals(client.getId())) {
-            throw new sn.oas.facturation.shared.exception.ForbiddenException("Accès non autorisé à ce proforma");
-        }
-        if (proforma.getVisibleClient() == null || !proforma.getVisibleClient()) {
-            throw new sn.oas.facturation.shared.exception.BadRequestException("Ce proforma n'est pas encore disponible.");
-        }
+        assertClientOwnsVisibleProforma(client, proforma);
 
         proforma.setStatut(StatutFacturation.REJETE);
 
         return proformaRepository.save(proforma);
+    }
+
+    private void assertClientOwnsVisibleProforma(Client client, Proforma proforma) {
+        var ordre = proforma.getOrdreReparation();
+        var owner = proforma.getClient();
+        if (owner == null) owner = ordre == null ? null : ordre.getClient();
+        if (owner == null && ordre != null && ordre.getVehicule() != null) {
+            owner = ordre.getVehicule().getClient();
+        }
+        if (owner == null || client == null || !owner.getId().equals(client.getId())) {
+            throw new sn.oas.facturation.shared.exception.ForbiddenException("Accès non autorisé à ce proforma");
+        }
+        if (!Boolean.TRUE.equals(proforma.getVisibleClient())) {
+            throw new sn.oas.facturation.shared.exception.BadRequestException("Ce proforma n'est pas encore disponible.");
+        }
+    }
+
+    private int tauxRemiseApplicable(Client client) {
+        if (client == null || client.getTypeClient() != sn.oas.facturation.features.client.data.enums.TypeClient.ENTREPRISE
+                || !client.isClientFidele() || client.getMontantRemise() == null) return 0;
+        var compte = compteClientRepository.findByClientId(client.getId()).orElse(null);
+        return compte != null && compte.isActif() ? client.getMontantRemise() : 0;
     }
 }

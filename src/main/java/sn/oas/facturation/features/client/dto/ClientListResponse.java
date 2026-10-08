@@ -2,6 +2,7 @@ package sn.oas.facturation.features.client.dto;
 
 import lombok.Builder;
 import sn.oas.facturation.features.client.data.entity.Client;
+import sn.oas.facturation.features.client.data.enums.TypeClient;
 
 import java.time.LocalDateTime;
 
@@ -21,9 +22,15 @@ public record ClientListResponse(
         Integer montantRemise,
         Integer montantPlafond,
         Integer echeance,
+        java.math.BigDecimal montantPlafondEcheance,
         String ninea,
         String rccm,
-        String rib
+        String rib,
+        TypeClient typeClient,
+        String raisonSociale,
+        String numeroEntreprise,
+        String emailEntreprise,
+        String adresseEntreprise
 ) {
     public static ClientListResponse from(Client client) {
         if (client == null) return null;
@@ -42,9 +49,15 @@ public record ClientListResponse(
                 .montantRemise(client.getMontantRemise())
                 .montantPlafond(client.getMontantPlafond())
                 .echeance(client.getEcheance())
+                .montantPlafondEcheance(client.getMontantPlafondEcheance())
                 .ninea(client.getNinea())
                 .rccm(client.getRccm())
                 .rib(client.getRib())
+                .typeClient(client.getTypeClient() == null ? TypeClient.PARTICULIER : client.getTypeClient())
+                .raisonSociale(client.getRaisonSociale())
+                .numeroEntreprise(client.getNumeroEntreprise())
+                .emailEntreprise(client.getEmailEntreprise())
+                .adresseEntreprise(client.getAdresseEntreprise())
                 .build();
     }
 }

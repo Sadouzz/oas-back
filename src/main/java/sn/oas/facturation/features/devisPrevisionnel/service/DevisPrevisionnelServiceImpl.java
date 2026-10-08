@@ -80,6 +80,8 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
             client = userService.getClientById(request.clientId());
         } else if (ficheAtelier != null && ficheAtelier.getClient() != null) {
             client = ficheAtelier.getClient();
+        } else if (ordreReparation != null && ordreReparation.getClient() != null) {
+            client = ordreReparation.getClient();
         } else if (ordreReparation != null && ordreReparation.getVehicule() != null && ordreReparation.getVehicule().getClient() != null) {
             client = ordreReparation.getVehicule().getClient();
         }
@@ -334,9 +336,7 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
     @Transactional
     public DevisPrevisionnel clientAccepter(Client client, Long id) {
         DevisPrevisionnel devis = getById(id);
-        if (!devis.getClient().getId().equals(client.getId())) {
-            throw new IllegalArgumentException("Accès non autorisé à ce devis");
-        }
+        assertClientOwns(client, devis);
         devis.setStatut(StatutFacturation.ACCEPTE);
         return devisPrevisionnelRepository.save(devis);
     }
@@ -345,11 +345,15 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
     @Transactional
     public DevisPrevisionnel clientRefuser(Client client, Long id) {
         DevisPrevisionnel devis = getById(id);
-        if (!devis.getClient().getId().equals(client.getId())) {
-            throw new IllegalArgumentException("Accès non autorisé à ce devis");
-        }
+        assertClientOwns(client, devis);
         devis.setStatut(StatutFacturation.REJETE);
         return devisPrevisionnelRepository.save(devis);
+    }
+
+    private void assertClientOwns(Client client, DevisPrevisionnel devis) {
+        if (devis.getClient() == null || client == null || !devis.getClient().getId().equals(client.getId())) {
+            throw new sn.oas.facturation.shared.exception.ForbiddenException("Accès non autorisé à ce devis");
+        }
     }
 
     private Vehicule getVehicule(Long vehiculeId) {

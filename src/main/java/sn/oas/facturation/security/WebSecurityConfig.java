@@ -102,6 +102,18 @@ public class WebSecurityConfig {
                         .hasAnyAuthority("CLIENT", "ROLE_CLIENT")
                         .requestMatchers("/api/ordres-reparation/me")
                         .hasAnyAuthority("CLIENT", "ROLE_CLIENT")
+                        .requestMatchers("/api/factures/me", "/api/factures/me/**",
+                                "/api/proformas/me", "/api/proformas/me/**",
+                                "/api/proformas/*/client-valider", "/api/proformas/*/client-refuser",
+                                "/api/devis-previsionnels/me", "/api/devis-previsionnels/me/**",
+                                "/api/devis-previsionnels/*/client-accepter", "/api/devis-previsionnels/*/client-refuser")
+                        .hasAnyAuthority("CLIENT", "ROLE_CLIENT")
+                        .requestMatchers("/api/factures", "/api/factures/**",
+                                "/api/proformas", "/api/proformas/**",
+                                "/api/devis-previsionnels", "/api/devis-previsionnels/**")
+                        .hasAnyAuthority("ROLE_AGENT", "AGENT", "ROLE_SUPER_AGENT", "SUPER_AGENT",
+                                "ROLE_MASTER", "MASTER", "ROLE_CHEF_ATELIER", "CHEF_ATELIER",
+                                "ROLE_AGENT_MAGASIN", "AGENT_MAGASIN")
                         .requestMatchers("/api/ordres-reparation", "/api/ordres-reparation/**")
                         .hasAnyAuthority("ROLE_AGENT", "AGENT", "ROLE_SUPER_AGENT", "SUPER_AGENT", "ROLE_MASTER", "MASTER",
                                 "ROLE_CHEF_ATELIER", "CHEF_ATELIER")

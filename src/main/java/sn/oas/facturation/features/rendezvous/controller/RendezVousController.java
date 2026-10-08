@@ -89,12 +89,12 @@ public class RendezVousController {
     }
 
     @PostMapping
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAnyAuthority('ROLE_CLIENT','CLIENT','ROLE_AGENT','AGENT','ROLE_SUPER_AGENT','SUPER_AGENT','ROLE_MASTER','MASTER','ROLE_CHEF_ATELIER','CHEF_ATELIER','ROLE_AGENT_MAGASIN','AGENT_MAGASIN')")
     @Operation(summary = "Prendre ou créer un rendez-vous (Client ou Agents/Admin)")
     public ResponseEntity<RendezVousResponse> bookRendezVous(@RequestBody RendezVousRequest request) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         boolean isClient = auth != null && auth.getAuthorities().stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_CLIENT"));
+                .anyMatch(a -> a.getAuthority().equals("ROLE_CLIENT") || a.getAuthority().equals("CLIENT"));
 
         RendezVous rv;
         if (isClient) {

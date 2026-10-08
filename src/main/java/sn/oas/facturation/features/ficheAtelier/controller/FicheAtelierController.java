@@ -6,21 +6,37 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
+import org.springframework.http.HttpHeaders;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import sn.oas.facturation.features.ficheAtelier.dto.FicheAtelierDetailsResponse;
 import sn.oas.facturation.features.ficheAtelier.dto.FicheAtelierListResponse;
 import sn.oas.facturation.features.ficheAtelier.dto.FicheAtelierRequest;
 import sn.oas.facturation.features.ficheAtelier.service.FicheAtelierService;
+import sn.oas.facturation.features.ficheAtelier.service.FicheAtelierPdfService;
 
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/fiches-atelier")
 @RequiredArgsConstructor
+@PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
 public class FicheAtelierController {
 
     private final FicheAtelierService ficheAtelierService;
+    private final FicheAtelierPdfService ficheAtelierPdfService;
+
+    @GetMapping(value = "/{id}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
+    public ResponseEntity<byte[]> pdf(@PathVariable Long id) {
+        byte[] pdf = ficheAtelierPdfService.generer(id);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=fiche-atelier-" + id + ".pdf")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdf);
+    }
 
     @PostMapping
     public ResponseEntity<FicheAtelierDetailsResponse> create(@Valid @RequestBody FicheAtelierRequest request) {
@@ -71,12 +87,17 @@ public class FicheAtelierController {
     }
 
     @PatchMapping("/{id}/signature-sortie")
+    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER')")
     public ResponseEntity<FicheAtelierDetailsResponse> signForExit(@PathVariable Long id,
             @RequestBody Map<String, String> request) {
         String signature = request.get("signature");
         if (signature == null || signature.trim().isEmpty()) {
             return ResponseEntity.badRequest().build();
         }
-        return ResponseEntity.ok(FicheAtelierDetailsResponse.from(ficheAtelierService.signForExit(id, signature)));
+        try {
+            return ResponseEntity.ok(FicheAtelierDetailsResponse.from(ficheAtelierService.signForExit(id, signature)));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 }

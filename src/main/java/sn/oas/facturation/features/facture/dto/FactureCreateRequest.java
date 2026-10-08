@@ -12,4 +12,6 @@ public class FactureCreateRequest {
     private Boolean appliquerTVA;
     private Boolean appliquerTimbre;
     private String modePaiement;
+    private Long pdfTemplateId;
+    private String pdfLayoutKey = "AVEC_ENTETE";
 }

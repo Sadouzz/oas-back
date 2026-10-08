@@ -20,6 +20,8 @@ import sn.oas.facturation.features.proforma.dto.ProformaListResponse;
 import sn.oas.facturation.features.proforma.dto.ProformaResponse;
 import sn.oas.facturation.features.proforma.dto.ProformaUpdateRequest;
 import sn.oas.facturation.features.proforma.service.ProformaService;
+import sn.oas.facturation.shared.exception.ForbiddenException;
+import sn.oas.facturation.shared.exception.BadRequestException;
 
 import java.util.List;
 
@@ -139,6 +141,39 @@ public class ProformaController {
     public ResponseEntity<List<ProformaListResponse>> getMyProformas() {
         Client client = clientService.getClientConnecte();
         return ResponseEntity.ok(proformaService.getClientProformas(client).stream().map(ProformaListResponse::from).toList());
+    }
+
+    @GetMapping("/me/{id}")
+    @Operation(summary = "Récupérer un proforma visible du client connecté")
+    public ResponseEntity<ProformaResponse> getMyProforma(@PathVariable Long id) {
+        Client client = clientService.getClientConnecte();
+        var proforma = proformaService.getById(id);
+        assertClientCanAccess(client, proforma);
+        return ResponseEntity.ok(ProformaResponse.from(proforma));
+    }
+
+    @GetMapping("/me/{id}/pdf")
+    @Operation(summary = "Télécharger le PDF d'un proforma visible du client connecté")
+    public ResponseEntity<byte[]> downloadMyProformaPdf(@PathVariable Long id) {
+        Client client = clientService.getClientConnecte();
+        var proforma = proformaService.getById(id);
+        assertClientCanAccess(client, proforma);
+        byte[] pdfBytes = proformaService.generatePdf(id);
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"Proforma-" + proforma.getNumero() + ".pdf\"")
+                .body(pdfBytes);
+    }
+
+    private void assertClientCanAccess(Client client, sn.oas.facturation.features.proforma.data.entity.Proforma proforma) {
+        var ordre = proforma.getOrdreReparation();
+        var owner = ordre == null ? null : ordre.getClient();
+        if (owner == null && ordre != null && ordre.getVehicule() != null) owner = ordre.getVehicule().getClient();
+        if (owner == null || !owner.getId().equals(client.getId())) {
+            throw new ForbiddenException("Accès non autorisé à ce proforma");
+        }
+        if (!Boolean.TRUE.equals(proforma.getVisibleClient())) {
+            throw new BadRequestException("Ce proforma n'est pas encore disponible.");
+        }
     }
 
     @PutMapping("/{id}/client-valider")

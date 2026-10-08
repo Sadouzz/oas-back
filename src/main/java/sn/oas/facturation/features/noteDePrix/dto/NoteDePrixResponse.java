@@ -62,11 +62,12 @@ public class NoteDePrixResponse {
             String fn = note.getClient().getFirstName() != null ? note.getClient().getFirstName() : "";
             String ln = note.getClient().getLastName() != null ? note.getClient().getLastName() : "";
             clientNom = (fn + " " + ln).trim();
-        } else if (note.getOrdreReparation() != null && note.getOrdreReparation().getVehicule() != null
-                && note.getOrdreReparation().getVehicule().getClient() != null) {
-            clientId = note.getOrdreReparation().getVehicule().getClient().getId();
-            String fn = note.getOrdreReparation().getVehicule().getClient().getFirstName() != null ? note.getOrdreReparation().getVehicule().getClient().getFirstName() : "";
-            String ln = note.getOrdreReparation().getVehicule().getClient().getLastName() != null ? note.getOrdreReparation().getVehicule().getClient().getLastName() : "";
+        } else if (note.getOrdreReparation() != null && (note.getOrdreReparation().getClient() != null
+                || note.getOrdreReparation().getVehicule() != null && note.getOrdreReparation().getVehicule().getClient() != null)) {
+            var client = note.getOrdreReparation().getClient() != null ? note.getOrdreReparation().getClient() : note.getOrdreReparation().getVehicule().getClient();
+            clientId = client.getId();
+            String fn = client.getFirstName() != null ? client.getFirstName() : "";
+            String ln = client.getLastName() != null ? client.getLastName() : "";
             clientNom = (fn + " " + ln).trim();
         }
 

@@ -4,7 +4,7 @@ import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.dto.ClientCreateRequest;
 import sn.oas.facturation.features.client.dto.ClientCreateResponse;
 import sn.oas.facturation.features.client.dto.ClientFideleRequest;
-import sn.oas.facturation.features.user.dto.request.UserUpdateRequest;
+import sn.oas.facturation.features.client.dto.ClientUpdateRequest;
 
 import org.springframework.data.domain.Page;
 import java.util.List;
@@ -14,7 +14,7 @@ public interface ClientService {
     List<Client> getAllClients();
     Client getClientById(Long id);
     ClientCreateResponse createClient(ClientCreateRequest request);
-    Client updateClient(Long id, UserUpdateRequest request);
+    Client updateClient(Long id, ClientUpdateRequest request);
     void archiveClient(Long id);
     void unarchiveClient(Long id);
     void deleteClient(Long id);
@@ -28,6 +28,8 @@ public interface ClientService {
     void updateClientFideleConfig(Long id, ClientFideleRequest request);
 
     void removeClientFidele(Long id);
+
+    Client updateConditionsFinancieres(Long id, sn.oas.facturation.features.client.dto.ConditionsFinancieresRequest request);
 
 
     // void toggleClientFidele(Long id);

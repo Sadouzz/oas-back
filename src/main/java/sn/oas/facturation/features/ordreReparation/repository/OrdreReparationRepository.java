@@ -15,7 +15,11 @@ import java.util.Optional;
 @Repository
 public interface OrdreReparationRepository extends JpaRepository<OrdreReparation, Long> {
 
-    @Query("SELECT f FROM OrdreReparation f JOIN FETCH f.vehicule v LEFT JOIN FETCH v.client ORDER BY COALESCE(f.updatedAt, f.dateCreation) DESC, f.id DESC")
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT f FROM OrdreReparation f WHERE f.id = :id")
+    Optional<OrdreReparation> findByIdForRestitution(@Param("id") Long id);
+
+    @Query("SELECT f FROM OrdreReparation f JOIN FETCH f.vehicule v LEFT JOIN FETCH v.client LEFT JOIN FETCH f.client ORDER BY COALESCE(f.updatedAt, f.dateCreation) DESC, f.id DESC")
     List<OrdreReparation> findAllWithVehiculeAndClient();
 
     
@@ -33,6 +37,13 @@ public interface OrdreReparationRepository extends JpaRepository<OrdreReparation
     List<OrdreReparation> searchOrdresReparation(@Param("keyword") String keyword);
     List<OrdreReparation> findByVehiculeClientIdOrderByDateCreationDesc(Long clientId);
     List<OrdreReparation> findByVehiculeIdOrderByDateCreationDesc(Long vehiculeId);
+    List<OrdreReparation> findByClientIdOrderByDateCreationDesc(Long clientId);
+    List<OrdreReparation> findByVehiculeIdAndClientIdOrderByDateCreationDesc(Long vehiculeId, Long clientId);
+    List<OrdreReparation> findByVehiculeIdAndClientIsNull(Long vehiculeId);
+    @Query("select o from OrdreReparation o where o.vehicule.id = :vehicleId and (o.client.id = :clientId or (o.client is null and o.vehicule.client.id = :clientId)) order by o.dateCreation desc")
+    List<OrdreReparation> findClientHistoryForVehicle(@Param("vehicleId") Long vehicleId, @Param("clientId") Long clientId);
+    @Query("select o from OrdreReparation o where o.client.id = :clientId or (o.client is null and o.vehicule.client.id = :clientId) order by o.dateCreation desc")
+    List<OrdreReparation> findClientHistory(@Param("clientId") Long clientId);
     List<OrdreReparation> findByVehiculeIdAndStatut(Long vehiculeId, StatutOrdreReparation statut);
     OrdreReparation findTopByOrderByIdDesc();
     OrdreReparation findTopByNumeroStartingWithOrderByNumeroDesc(String prefix);

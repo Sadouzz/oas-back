@@ -57,6 +57,7 @@ public class AvoirTTCServiceImpl implements AvoirTTCService {
     private final MainDoeuvreRepository mainDoeuvreRepository;
     private final GarageRepository garageRepository;
     private final DocumentNumberGeneratorService documentNumberGeneratorService;
+    private final sn.oas.facturation.features.pdfGenerator.service.HtmlToPdfService htmlToPdfService;
 
     private Agent getAgentConnecte() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -289,6 +290,20 @@ public class AvoirTTCServiceImpl implements AvoirTTCService {
         AvoirTTC a = avoirTTCRepository.findById(id)
                 .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Avoir TTC non trouvé avec l'id : " + id));
 
+        Vehicule templateVehicle = a.getVehicule() != null ? a.getVehicule()
+                : a.getOrdreReparation() != null ? a.getOrdreReparation().getVehicule() : null;
+        Client templateClient = a.getClient() != null ? a.getClient()
+                : a.getOrdreReparation() != null ? (a.getOrdreReparation().getClient() != null ? a.getOrdreReparation().getClient()
+                : a.getOrdreReparation().getVehicule() != null ? a.getOrdreReparation().getVehicule().getClient() : null) : null;
+        byte[] configured = htmlToPdfService.genererTemplatePdfSiConfigure("AVOIR_TTC", java.util.Map.of(
+                "numero", templateValue(a.getNumero()), "date", templateValue(a.getDateCreation()),
+                "clientNom", templateClient == null ? "" : templateValue(templateClient.getFirstName() + " " + templateClient.getLastName()),
+                "immatriculation", templateVehicle == null ? "" : templateValue(templateVehicle.getImmatriculation()),
+                "marque", templateVehicle == null ? "" : templateValue(templateVehicle.getMarque()), "modele", templateVehicle == null ? "" : templateValue(templateVehicle.getModele()),
+                "montantHT", templateValue(a.getMontantHT()), "montantTTC", templateValue(a.getMontantTTC()), "montantTotal", templateValue(a.getMontantTotal()),
+                "remarque", templateValue(a.getRemarque())));
+        if (configured != null) return configured;
+
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Document document = new Document();
 
@@ -314,8 +329,9 @@ public class AvoirTTCServiceImpl implements AvoirTTCService {
             }
 
             Client client = a.getClient();
-            if (client == null && a.getOrdreReparation() != null && a.getOrdreReparation().getVehicule() != null) {
-                client = a.getOrdreReparation().getVehicule().getClient();
+            if (client == null && a.getOrdreReparation() != null) {
+                client = a.getOrdreReparation().getClient() != null ? a.getOrdreReparation().getClient()
+                        : a.getOrdreReparation().getVehicule() != null ? a.getOrdreReparation().getVehicule().getClient() : null;
             }
 
             Vehicule v = a.getVehicule();
@@ -417,4 +433,6 @@ public class AvoirTTCServiceImpl implements AvoirTTCService {
 
         return baos.toByteArray();
     }
+
+    private String templateValue(Object value) { return value == null ? "" : value.toString(); }
 }

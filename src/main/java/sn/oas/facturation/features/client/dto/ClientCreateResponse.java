@@ -9,7 +9,12 @@ public record ClientCreateResponse(
         String lastName,
         String phone,
         String email,
-        String adresse) {
+        String adresse,
+        String typeClient,
+        String raisonSociale,
+        String numeroEntreprise,
+        String emailEntreprise,
+        String adresseEntreprise) {
 
     public static ClientCreateResponse from(Client client) {
         return new ClientCreateResponse(
@@ -19,6 +24,11 @@ public record ClientCreateResponse(
                 client.getLastName(),
                 client.getPhone(),
                 client.getEmail(),
-                client.getAdresse());
+                client.getAdresse(),
+                client.getTypeClient() == null ? "PARTICULIER" : client.getTypeClient().name(),
+                client.getRaisonSociale(),
+                client.getNumeroEntreprise(),
+                client.getEmailEntreprise(),
+                client.getAdresseEntreprise());
     }
 }

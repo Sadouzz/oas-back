@@ -14,18 +14,24 @@ import sn.oas.facturation.features.client.dto.ClientCreateRequest;
 import sn.oas.facturation.features.client.dto.ClientCreateResponse;
 import sn.oas.facturation.features.client.dto.ClientListResponse;
 import sn.oas.facturation.features.client.dto.ClientFideleRequest;
+import sn.oas.facturation.features.client.dto.ClientUpdateRequest;
 import sn.oas.facturation.features.client.service.ClientService;
-import sn.oas.facturation.features.user.dto.request.UserUpdateRequest;
+import sn.oas.facturation.features.client.service.CompteClientService;
+import sn.oas.facturation.features.client.dto.CompteClientRequest;
+import sn.oas.facturation.features.client.dto.CompteClientResponse;
+import sn.oas.facturation.features.client.dto.AjoutCreditRequest;
 import sn.oas.facturation.features.auth.service.AuthService;
 
 @RestController
 @RequestMapping("/api/clients")
 @RequiredArgsConstructor
+@org.springframework.security.access.prepost.PreAuthorize("hasAnyAuthority('ROLE_MASTER','MASTER','ROLE_SUPER_AGENT','SUPER_AGENT','ROLE_AGENT','AGENT','ROLE_CHEF_ATELIER','CHEF_ATELIER','ROLE_AGENT_MAGASIN','AGENT_MAGASIN')")
 @Tag(name = "Clients", description = "API pour la gestion des clients")
 public class ClientController {
 
     private final ClientService clientService;
     private final AuthService authService;
+    private final CompteClientService compteClientService;
 
     @GetMapping
     @Operation(summary = "Lister tous les clients ou rechercher par mot-clé")
@@ -48,6 +54,7 @@ public class ClientController {
     }
 
     @GetMapping("/me")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyAuthority('ROLE_CLIENT','CLIENT')")
     @Operation(summary = "Récupérer le profil du client connecté")
     public ResponseEntity<ClientListResponse> getProfile() {
         return ResponseEntity.ok(ClientListResponse.from(clientService.getClientConnecte()));
@@ -77,10 +84,21 @@ public class ClientController {
     }
 
     @PutMapping("/{id}")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyAuthority('ROLE_MASTER','MASTER','ROLE_SUPER_AGENT','SUPER_AGENT','ROLE_AGENT','AGENT','ROLE_CHEF_ATELIER','CHEF_ATELIER','ROLE_AGENT_MAGASIN','AGENT_MAGASIN','ROLE_CLIENT','CLIENT')")
     @Operation(summary = "Mettre à jour un client")
-    public ResponseEntity<?> updateClient(@PathVariable Long id, @RequestBody UserUpdateRequest request) {
+    public ResponseEntity<?> updateClient(@PathVariable Long id, @RequestBody ClientUpdateRequest request) {
+        boolean clientConnecte = org.springframework.security.core.context.SecurityContextHolder.getContext()
+                .getAuthentication().getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_CLIENT") || a.getAuthority().equals("CLIENT"));
+        if (clientConnecte && !id.equals(clientService.getClientConnecte().getId())) {
+            throw new org.springframework.security.access.AccessDeniedException("Un client ne peut modifier que son propre profil.");
+        }
         try {
-            Client client = clientService.updateClient(id, request);
+            ClientUpdateRequest update = clientConnecte
+                    ? new ClientUpdateRequest(request.phone(), request.firstName(), request.lastName(), request.email(),
+                            null, null, null, null, null, null)
+                    : request;
+            Client client = clientService.updateClient(id, update);
             return ResponseEntity.ok(ClientListResponse.from(client));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -143,5 +161,49 @@ public class ClientController {
     public ResponseEntity<?> removeClientFidele(@PathVariable Long id) {
         clientService.removeClientFidele(id);
         return ResponseEntity.ok("Statut client fidèle retiré avec succès !");
+    }
+
+    @GetMapping("/{id}/compte-financier")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyAuthority('ROLE_MASTER','MASTER','ROLE_SUPER_AGENT','SUPER_AGENT')")
+    @Operation(summary = "Consulter les conditions financières d'un client")
+    public ResponseEntity<CompteClientResponse> getCompteFinancier(@PathVariable Long id) {
+        return ResponseEntity.ok(compteClientService.lire(id));
+    }
+
+    @PutMapping("/{id}/compte-financier")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyAuthority('ROLE_MASTER','MASTER','ROLE_SUPER_AGENT','SUPER_AGENT')")
+    @Operation(summary = "Ouvrir ou mettre à jour le compte financier d'une entreprise")
+    public ResponseEntity<CompteClientResponse> configurerCompteFinancier(@PathVariable Long id, @RequestBody @Valid CompteClientRequest request) {
+        return ResponseEntity.ok(compteClientService.configurer(id, request));
+    }
+
+    @PostMapping("/{id}/compte-financier/credits")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyAuthority('ROLE_MASTER','MASTER','ROLE_SUPER_AGENT','SUPER_AGENT')")
+    @Operation(summary = "Ajouter un crédit au compte financier")
+    public ResponseEntity<CompteClientResponse> ajouterCredit(@PathVariable Long id, @RequestBody @Valid AjoutCreditRequest request) {
+        return ResponseEntity.ok(compteClientService.ajouterCredit(id, request));
+    }
+
+    @GetMapping("/{id}/compte-financier/mouvements")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyAuthority('ROLE_MASTER','MASTER','ROLE_SUPER_AGENT','SUPER_AGENT')")
+    @Operation(summary = "Lister les derniers mouvements de crédit")
+    public ResponseEntity<?> mouvementsCredit(@PathVariable Long id) {
+        return ResponseEntity.ok(compteClientService.mouvements(id));
+    }
+
+    @DeleteMapping("/{id}/compte-financier")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyAuthority('ROLE_MASTER','MASTER','ROLE_SUPER_AGENT','SUPER_AGENT')")
+    @Operation(summary = "Désactiver le compte sans effacer l'historique financier")
+    public ResponseEntity<Void> desactiverCompteFinancier(@PathVariable Long id) {
+        compteClientService.desactiver(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/{id}/conditions-financieres")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyAuthority('ROLE_MASTER','MASTER','ROLE_SUPER_AGENT','SUPER_AGENT')")
+    @Operation(summary = "Définir le plafond et l'échéance applicables à tout type de client")
+    public ResponseEntity<ClientListResponse> updateConditionsFinancieres(@PathVariable Long id,
+            @RequestBody @Valid sn.oas.facturation.features.client.dto.ConditionsFinancieresRequest request) {
+        return ResponseEntity.ok(ClientListResponse.from(clientService.updateConditionsFinancieres(id, request)));
     }
 }

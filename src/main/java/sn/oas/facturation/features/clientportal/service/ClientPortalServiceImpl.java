@@ -161,7 +161,7 @@ public class ClientPortalServiceImpl implements ClientPortalService {
         List<ClientDashboardVehiculeDTO> dashboardVehicules = new ArrayList<>();
 
         for (Vehicule v : vehicules) {
-            List<OrdreReparation> ordres = ordreReparationRepository.findByVehiculeIdOrderByDateCreationDesc(v.getId());
+            List<OrdreReparation> ordres = ordreReparationRepository.findClientHistoryForVehicle(v.getId(), clientId);
             OrdreReparation derniere = ordres.isEmpty() ? null : ordres.get(0);
             StageInfo stage = derniere != null ? resolveStage(derniere.getStatut()) : resolveStage(null);
 
@@ -195,7 +195,7 @@ public class ClientPortalServiceImpl implements ClientPortalService {
         List<ClientVehiculeCardDTO> result = new ArrayList<>();
 
         for (Vehicule v : vehicules) {
-            List<OrdreReparation> ordres = ordreReparationRepository.findByVehiculeIdOrderByDateCreationDesc(v.getId());
+            List<OrdreReparation> ordres = ordreReparationRepository.findClientHistoryForVehicle(v.getId(), clientId);
             OrdreReparation derniere = ordres.isEmpty() ? null : ordres.get(0);
             StageInfo stage = derniere != null ? resolveStage(derniere.getStatut()) : resolveStage(null);
             FicheEnCoursSummaryDTO ficheEnCours = computeFicheEnCours(derniere);
@@ -243,7 +243,7 @@ public class ClientPortalServiceImpl implements ClientPortalService {
     @Override
     public List<ClientInterventionDTO> getMyInterventions() {
         Client client = clientService.getClientConnecte();
-        List<OrdreReparation> ordres = ordreReparationRepository.findByVehiculeClientIdOrderByDateCreationDesc(client.getId());
+        List<OrdreReparation> ordres = ordreReparationRepository.findClientHistory(client.getId());
 
         return ordres.stream()
                 .map(o -> {
@@ -284,7 +284,7 @@ public class ClientPortalServiceImpl implements ClientPortalService {
             throw new org.springframework.security.access.AccessDeniedException("Accès non autorisé à ce véhicule");
         }
 
-        List<OrdreReparation> ordres = ordreReparationRepository.findByVehiculeIdOrderByDateCreationDesc(vehiculeId);
+        List<OrdreReparation> ordres = ordreReparationRepository.findClientHistoryForVehicle(vehiculeId, client.getId());
         return ordres.stream()
                 .map(o -> {
                     StageInfo stage = resolveStage(o.getStatut());
