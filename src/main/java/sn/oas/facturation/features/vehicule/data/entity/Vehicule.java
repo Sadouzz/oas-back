@@ -41,6 +41,10 @@ public class Vehicule extends BaseEntity {
     @Builder.Default
     private boolean archiveParClient = false;
 
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    @Builder.Default
+    private boolean actif = true;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id", nullable = false)
     @JsonIgnoreProperties("vehicules")

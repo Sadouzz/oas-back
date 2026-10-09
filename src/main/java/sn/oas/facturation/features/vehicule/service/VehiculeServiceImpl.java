@@ -44,6 +44,12 @@ public class VehiculeServiceImpl implements VehiculeService {
     @Transactional
     @Override
     public Vehicule createVehicule(VehiculeRequest request) {
+        return createVehicule(request, true);
+    }
+
+    @Transactional
+    @Override
+    public Vehicule createVehicule(VehiculeRequest request, boolean actif) {
         String immat = (request.immatriculation() != null && !request.immatriculation().trim().isEmpty())
                 ? request.immatriculation().trim().toUpperCase()
                 : null;
@@ -76,6 +82,7 @@ public class VehiculeServiceImpl implements VehiculeService {
                 .kilometrage(request.kilometrage() != null ? request.kilometrage() : 0.0)
                 .numeroChassis(chassis)
                 .client(client)
+                .actif(actif)
                 .build();
 
         return vehiculeRepository.save(vehicule);
@@ -86,6 +93,7 @@ public class VehiculeServiceImpl implements VehiculeService {
     public Vehicule updateVehicule(Long id, VehiculeRequest request) {
         Vehicule vehicule = vehiculeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Véhicule non trouvé avec l'id : " + id));
+        VehiculeActivationPolicy.requireActive(vehicule);
 
         String immat = (request.immatriculation() != null && !request.immatriculation().trim().isEmpty())
                 ? request.immatriculation().trim().toUpperCase()
@@ -124,10 +132,10 @@ public class VehiculeServiceImpl implements VehiculeService {
     @Transactional
     @Override
     public void deleteVehicule(Long id) {
-        if (!vehiculeRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Véhicule non trouvé avec l'id : " + id);
-        }
-        vehiculeRepository.deleteById(id);
+        Vehicule vehicule = vehiculeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Véhicule non trouvé avec l'id : " + id));
+        VehiculeActivationPolicy.requireActive(vehicule);
+        vehiculeRepository.delete(vehicule);
     }
 
     @Override
@@ -166,12 +174,24 @@ public class VehiculeServiceImpl implements VehiculeService {
 
     @Transactional
     @Override
+    public Vehicule activerVehicule(Long vehiculeId) {
+        Vehicule vehicule = vehiculeRepository.findById(vehiculeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Véhicule non trouvé avec l'id : " + vehiculeId));
+        vehicule.setActif(true);
+        return vehiculeRepository.save(vehicule);
+    }
+
+    @Transactional
+    @Override
     public void archiveVehiculeByClient(Long vehiculeId, Long clientId) {
         Vehicule vehicule = vehiculeRepository.findById(vehiculeId)
                 .orElseThrow(() -> new ResourceNotFoundException("Véhicule non trouvé avec l'id : " + vehiculeId));
         
         if (!vehicule.getClient().getId().equals(clientId)) {
             throw new sn.oas.facturation.shared.exception.BadRequestException("Ce véhicule n'appartient pas à ce client");
+        }
+        if (!vehicule.isActif()) {
+            throw new BadRequestException("Un véhicule en attente d'activation ne peut pas encore être archivé.");
         }
 
         boolean hasActiveRepairs = vehicule.getOrdresReparation() != null && 

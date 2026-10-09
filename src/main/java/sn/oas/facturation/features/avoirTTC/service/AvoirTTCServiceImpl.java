@@ -105,6 +105,7 @@ public class AvoirTTCServiceImpl implements AvoirTTCService {
             vehicule = vehiculeRepository.findById(request.getVehiculeId())
                     .orElseThrow(() -> new IllegalArgumentException(
                             "Véhicule introuvable avec l'id : " + request.getVehiculeId()));
+            sn.oas.facturation.features.vehicule.service.VehiculeActivationPolicy.requireActive(vehicule);
         }
 
         Agent agent = getAgentConnecte();

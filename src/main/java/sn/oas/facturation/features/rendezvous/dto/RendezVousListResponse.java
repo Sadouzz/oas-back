@@ -13,7 +13,9 @@ public record RendezVousListResponse(
         String numero,
         LocalDateTime dateRendezVous,
         String clientName,
+        Long vehiculeId,
         String vehiculeImmatriculation,
+        boolean vehiculeActif,
         String motif,
         String motifAnnulation,
         RendezVousStatus statut,
@@ -40,7 +42,9 @@ public record RendezVousListResponse(
                 .numero(rv.getNumero())
                 .dateRendezVous(rv.getDateRendezVous())
                 .clientName(clientName)
+                .vehiculeId(rv.getVehicule() != null ? rv.getVehicule().getId() : null)
                 .vehiculeImmatriculation(rv.getVehicule() != null ? rv.getVehicule().getImmatriculation() : null)
+                .vehiculeActif(rv.getVehicule() == null || rv.getVehicule().isActif())
                 .motif(rv.getMotif())
                 .motifAnnulation(motifAnnulation)
                 .statut(statut)

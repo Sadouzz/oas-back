@@ -102,6 +102,7 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
         if (vehicule == null) {
             throw new BadRequestException("Le véhicule est obligatoire pour créer un devis prévisionnel");
         }
+        sn.oas.facturation.features.vehicule.service.VehiculeActivationPolicy.requireActive(vehicule);
 
         if (vehicule.getClient() != null && !vehicule.getClient().getId().equals(client.getId())) {
             throw new BadRequestException("Le véhicule ne correspond pas au client");
@@ -204,6 +205,7 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
         if (vehicule == null) {
             throw new BadRequestException("Le véhicule est obligatoire");
         }
+        sn.oas.facturation.features.vehicule.service.VehiculeActivationPolicy.requireActive(vehicule);
 
         if (vehicule.getClient() != null && !vehicule.getClient().getId().equals(client.getId())) {
             throw new BadRequestException("Le véhicule ne correspond pas au client");

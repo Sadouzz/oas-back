@@ -55,8 +55,8 @@ public class VehicleTransferService {
         if (requester.getId().equals(vehicle.getClient().getId())) {
             throw new BadRequestException("Ce véhicule est déjà associé à votre compte.");
         }
-        if (requestRepository.existsByVehiculeIdAndRequesterIdAndStatus(vehicle.getId(), requester.getId(), VehicleTransferStatus.PENDING)) {
-            throw new BadRequestException("Une demande de transfert est déjà en attente pour ce véhicule.");
+        if (requestRepository.existsByVehiculeIdAndStatus(vehicle.getId(), VehicleTransferStatus.PENDING)) {
+            throw new BadRequestException("Une demande est déjà en cours pour ce véhicule.");
         }
         VehicleTransferRequest request = requestRepository.save(VehicleTransferRequest.builder()
                 .vehicule(vehicle).requester(requester).currentOwner(vehicle.getClient()).requestNote(payload.requestNote()).status(VehicleTransferStatus.PENDING).build());

@@ -13,6 +13,7 @@ public record VehiculeListResponse(
         String marque,
         Double kilometrage,
         String numeroChassis,
+        boolean actif,
         ClientSummary client
 // LocalDateTime createdAt
 ) {
@@ -45,6 +46,7 @@ public record VehiculeListResponse(
                 .marque(v.getMarque())
                 .kilometrage(v.getKilometrage())
                 .numeroChassis(v.getNumeroChassis())
+                .actif(v.isActif())
                 .client(clientSummary)
                 // .createdAt(v.getCreatedAt())
                 .build();

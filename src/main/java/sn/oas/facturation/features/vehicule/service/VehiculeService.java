@@ -11,6 +11,7 @@ public interface VehiculeService {
     Page<Vehicule> getAllVehicules(int page, int size);
     Vehicule getVehiculeById(Long id);
     Vehicule createVehicule(VehiculeRequest request);
+    Vehicule createVehicule(VehiculeRequest request, boolean actif);
     Vehicule updateVehicule(Long id, VehiculeRequest request);
     void deleteVehicule(Long id);
     List<Vehicule> searchVehicules(String keyword);
@@ -20,4 +21,5 @@ public interface VehiculeService {
     List<Vehicule> getRecentVehicules();
     List<Vehicule> getVehiculesActifsByClient(Long clientId);
     void archiveVehiculeByClient(Long vehiculeId, Long clientId);
+    Vehicule activerVehicule(Long vehiculeId);
 }

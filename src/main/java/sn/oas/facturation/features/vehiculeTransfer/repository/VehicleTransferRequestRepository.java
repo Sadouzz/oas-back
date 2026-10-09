@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 public interface VehicleTransferRequestRepository extends JpaRepository<VehicleTransferRequest, Long> {
-    boolean existsByVehiculeIdAndRequesterIdAndStatus(Long vehicleId, Long requesterId, VehicleTransferStatus status);
+    boolean existsByVehiculeIdAndStatus(Long vehicleId, VehicleTransferStatus status);
     List<VehicleTransferRequest> findByStatusOrderByRequestedAtAsc(VehicleTransferStatus status);
     List<VehicleTransferRequest> findByRequesterIdOrderByRequestedAtDesc(Long requesterId);
     @Lock(LockModeType.PESSIMISTIC_WRITE)

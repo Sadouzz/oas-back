@@ -145,6 +145,9 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         if (request.getVehiculeId() != null) {
             vehicule = vehiculeRepository.findById(request.getVehiculeId())
                     .orElseThrow(() -> new RuntimeException("Véhicule non trouvé"));
+            if (!vehicule.isActif()) {
+                throw new IllegalArgumentException("Ce véhicule est en attente d'activation par un agent.");
+            }
         } else {
             throw new RuntimeException("L'ID du véhicule est obligatoire");
         }
@@ -474,6 +477,9 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     public OrdreReparation updateOrdreReparation(Long id, OrdreReparationRequest request) {
         OrdreReparation ordreReparation = ordreReparationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        if (ordreReparation.getVehicule() != null && !ordreReparation.getVehicule().isActif()) {
+            throw new IllegalArgumentException("Ce véhicule est en attente d'activation par un agent.");
+        }
 
         if (request.getNumero() != null)
             ordreReparation.setNumero(request.getNumero());
@@ -496,6 +502,9 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         if (request.getVehiculeId() != null) {
             Vehicule vehicule = vehiculeRepository.findById(request.getVehiculeId())
                     .orElseThrow(() -> new RuntimeException("Véhicule non trouvé"));
+            if (!vehicule.isActif()) {
+                throw new IllegalArgumentException("Ce véhicule est en attente d'activation par un agent.");
+            }
             ordreReparation.setVehicule(vehicule);
         }
 
@@ -1126,6 +1135,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     }
 
     private void updateBaseStepFields(OrdreReparation ordre, BaseStepDto dto) {
+        sn.oas.facturation.features.vehicule.service.VehiculeActivationPolicy.requireActive(ordre.getVehicule());
         if (dto.getStatut() == StatutOrdreReparation.LIVRE) {
             throw new IllegalArgumentException("La livraison doit passer par la restitution du véhicule.");
         }
@@ -1137,6 +1147,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         if (dto.getStatut() != null) ordre.setStatut(dto.getStatut());
         if (dto.getVehiculeId() != null) {
             Vehicule vehicule = vehiculeRepository.findById(dto.getVehiculeId()).orElseThrow(() -> new RuntimeException("Véhicule non trouvé"));
+            sn.oas.facturation.features.vehicule.service.VehiculeActivationPolicy.requireActive(vehicule);
             ordre.setVehicule(vehicule);
         }
     }

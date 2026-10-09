@@ -231,6 +231,7 @@ public class ClientPortalServiceImpl implements ClientPortalService {
                     stage.stageIndex(),
                     stage.stageLabel(),
                     stage.stageTone(),
+                    v.isActif(),
                     stage.isActive(),
                     ficheEnCours,
                     historique
@@ -322,7 +323,8 @@ public class ClientPortalServiceImpl implements ClientPortalService {
                             v.getAnnee(),
                             v.getKilometrage(),
                             v.getNumeroChassis(),
-                            !hasActiveRepair
+                            !hasActiveRepair,
+                            v.isActif()
                     );
                 })
                 .toList();

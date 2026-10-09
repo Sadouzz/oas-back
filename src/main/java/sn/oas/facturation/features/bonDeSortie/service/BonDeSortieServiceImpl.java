@@ -65,6 +65,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
 
         Client client = getClient(request.clientId());
         Vehicule vehicule = getVehicule(request.vehiculeId());
+        sn.oas.facturation.features.vehicule.service.VehiculeActivationPolicy.requireActive(vehicule);
 
         if (!vehicule.getClient().getId().equals(client.getId())) {
             throw new IllegalArgumentException("Le véhicule ne correspond pas au client");

@@ -88,6 +88,9 @@ public class ProformaServiceImpl implements ProformaService {
             if (!vehicule.getClient().getId().equals(client.getId())) {
                 throw new IllegalArgumentException("Le véhicule sélectionné n'appartient pas au client sélectionné.");
             }
+            if (!vehicule.isActif()) {
+                throw new IllegalArgumentException("Ce véhicule est en attente d'activation par un agent.");
+            }
 
             // Contrôle kilométrage
             Double currentMileage = vehicule.getKilometrage();
@@ -314,6 +317,9 @@ public class ProformaServiceImpl implements ProformaService {
         else if (proforma.getOrdreReparation() != null) vehicule = proforma.getOrdreReparation().getVehicule();
         
         if (vehicule != null) {
+            if (!vehicule.isActif()) {
+                throw new IllegalArgumentException("Ce véhicule est en attente d'activation par un agent.");
+            }
             if (request.getImmatriculation() != null) vehicule.setImmatriculation(request.getImmatriculation());
             if (request.getMarque() != null) vehicule.setMarque(request.getMarque());
             if (request.getModele() != null) vehicule.setModele(request.getModele());

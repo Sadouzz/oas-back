@@ -1,4 +1,4 @@
-Auteur : Codex | Date : 2026-10-04 | Action : documenter les workflows push, transfert véhicule et modèles PDF globaux
+Auteur : Codex | Date : 2026-10-09 | Action : préciser les règles actuelles du transfert de véhicule
 
 # Notifications push, transfert véhicule et modèles PDF
 
@@ -18,11 +18,11 @@ Routes d'abonnement : `GET /api/push/public-key`, `PUT /api/push/subscription` e
 
 ## Transfert de véhicule
 
-Le véhicule conserve son identifiant et ses données. Un client qui soumet une immatriculation déjà enregistrée peut envoyer une demande ; le châssis fourni, lorsqu'il existe, doit correspondre au véhicule. Une demande en attente est visible pour les rôles `AGENT`, `SUPER_AGENT` et `MASTER`. Seuls ces rôles peuvent l'approuver ou la refuser.
+Le véhicule conserve son identifiant et ses données. Un client qui soumet une immatriculation déjà enregistrée peut envoyer une demande ; le châssis fourni, lorsqu'il existe, doit correspondre au véhicule. Une seule demande `PENDING` est autorisée à la fois par véhicule, quel que soit le client demandeur. Une demande en attente est visible pour les rôles `AGENT`, `SUPER_AGENT` et `MASTER`. Seuls ces rôles peuvent l'approuver ou la refuser.
 
-L'approbation verrouille le véhicule et enregistre les périodes de propriété. Les demandes retiennent le propriétaire en place au moment de leur création ; une demande devenue obsolète est refusée. Le changement direct du client associé via la mise à jour générique d'un véhicule est interdit.
+L'approbation verrouille le véhicule et enregistre les périodes de propriété. Les demandes retiennent le propriétaire en place au moment de leur création ; une demande devenue obsolète est refusée. Le propriétaire actuel n'a pas d'action de validation dans le flux actuel : son identité est affichée aux agents comme contexte et sert à refuser une demande si la propriété a changé depuis la soumission. Le changement direct du client associé via la mise à jour générique d'un véhicule est interdit.
 
-Chaque ordre de réparation contient le client auquel il appartenait. Les ordres déjà présents sans ce client restent visibles au propriétaire actuel avant le premier transfert ; lors du transfert, les ordres historiques encore sans client sont attribués à l'ancien propriétaire dans la même transaction que le changement de propriétaire. Les factures, devis et autres documents gardent leur propre client ou héritent du client figé de l'ordre de réparation. Le portail client filtre les interventions et proformas par ce client historique.
+Chaque ordre de réparation contient le client auquel il appartenait. Les ordres déjà présents sans ce client restent visibles au propriétaire actuel avant le premier transfert ; lors du transfert, les ordres historiques encore sans client sont attribués à l'ancien propriétaire dans la même transaction que le changement de propriétaire. Les factures gardent leur propre client ou héritent du client figé de l'ordre de réparation. L'historique d'interventions est filtré par ce client historique. Limitation connue : la liste des proformas inclut encore un fallback vers le propriétaire actuel du véhicule et peut donc afficher au nouveau propriétaire des éléments de l'ancien historique ; le détail reste protégé, mais la liste doit être corrigée.
 
 Routes : `POST /api/vehicle-transfers`, `GET /api/vehicle-transfers/me`, `GET /api/vehicle-transfers/pending` et `POST /api/vehicle-transfers/{id}/decision`.
 

@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.service.ClientService;
@@ -57,6 +58,7 @@ public class VehiculeController {
     }
 
     @PostMapping({"", "/create"})
+    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
     @Operation(summary = "Créer un nouveau véhicule")
     /*@Caching(evict = {
         @CacheEvict(value = "dashboard_super_agent", allEntries = true),
@@ -64,34 +66,18 @@ public class VehiculeController {
         @CacheEvict(value = "dashboard_agent", allEntries = true)
     })*/
     public ResponseEntity<Vehicule> createVehicule(@RequestBody VehiculeRequest request) {
-        VehiculeRequest effectiveRequest = request;
-        if (effectiveRequest.clientId() == null) {
-            try {
-                Client client = clientService.getClientConnecte();
-                if (client != null && client.getId() != null) {
-                    effectiveRequest = new VehiculeRequest(
-                            request.immatriculation(),
-                            request.annee(),
-                            request.modele(),
-                            request.marque(),
-                            request.kilometrage(),
-                            request.numeroChassis(),
-                            client.getId());
-                }
-            } catch (Exception ignored) {
-                // L'utilisateur n'est pas un client connecté (ex: agent), la validation du service s'appliquera
-            }
-        }
-        return new ResponseEntity<>(vehiculeService.createVehicule(effectiveRequest), HttpStatus.CREATED);
+        return new ResponseEntity<>(vehiculeService.createVehicule(request), HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER')")
     @Operation(summary = "Mettre à jour un véhicule")
     public ResponseEntity<Vehicule> updateVehicule(@PathVariable Long id, @RequestBody VehiculeRequest request) {
         return ResponseEntity.ok(vehiculeService.updateVehicule(id, request));
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER')")
     @Operation(summary = "Supprimer un véhicule")
 /*@Caching(evict = {
             @CacheEvict(value = "dashboard_super_agent", allEntries = true),
@@ -119,6 +105,7 @@ public class VehiculeController {
     }
 
     @GetMapping("/me")
+    @PreAuthorize("hasAnyAuthority('CLIENT', 'ROLE_CLIENT')")
     @Operation(summary = "Lister les véhicules du client connecté")
     public ResponseEntity<List<VehiculeListResponse>> getMyVehicules() {
         Client client = clientService.getClientConnecte();
@@ -127,6 +114,7 @@ public class VehiculeController {
     }
 
     @PostMapping("/me")
+    @PreAuthorize("hasAnyAuthority('CLIENT', 'ROLE_CLIENT')")
     @Operation(summary = "Enregistrer un véhicule pour le client connecté")
     public ResponseEntity<Vehicule> addMyVehicule(@RequestBody VehiculeRequest request) {
         Client client = clientService.getClientConnecte();
@@ -138,10 +126,18 @@ public class VehiculeController {
                 request.kilometrage(),
                 request.numeroChassis(),
                 client.getId());
-        return new ResponseEntity<>(vehiculeService.createVehicule(securedRequest), HttpStatus.CREATED);
+        return new ResponseEntity<>(vehiculeService.createVehicule(securedRequest, false), HttpStatus.CREATED);
+    }
+
+    @PutMapping("/{id}/activer")
+    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER')")
+    @Operation(summary = "Activer un véhicule créé par un client")
+    public ResponseEntity<VehiculeListResponse> activerVehicule(@PathVariable Long id) {
+        return ResponseEntity.ok(VehiculeListResponse.from(vehiculeService.activerVehicule(id)));
     }
 
     @DeleteMapping("/me/{id}")
+    @PreAuthorize("hasAnyAuthority('CLIENT', 'ROLE_CLIENT')")
     @Operation(summary = "Archiver un véhicule du client connecté")
     public ResponseEntity<Void> archiveMyVehicule(@PathVariable Long id) {
         Client client = clientService.getClientConnecte();
