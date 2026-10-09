@@ -31,15 +31,26 @@ public class FicheAtelierPdfService {
         }
         StringBuilder html = new StringBuilder("""
                 <html><head><meta charset="UTF-8"/><style>
-                body{font-family:Arial,sans-serif;font-size:10pt;color:#1c2b39}
-                h1{font-size:18pt}h2{font-size:12pt;margin-top:16px}
-                table{width:100%;border-collapse:collapse;margin:8px 0}
-                td,th{border:1px solid #aab4bc;padding:5px;text-align:left}
-                .signatures td{width:50%;height:95px;vertical-align:top}
-                img{max-width:220px;max-height:75px}
-                </style></head><body><h1>Fiche Atelier</h1>
+                @page{size:A4 portrait;margin:10mm 12mm}
+                body{font-family:Arial,sans-serif;font-size:8.5pt;line-height:1.18;color:#1c2b39;margin:0}
+                h1{font-size:16pt;margin:0 0 5pt;color:#12304a}
+                h2{font-size:10pt;margin:8pt 0 4pt;color:#12304a}
+                h3{font-size:8.5pt;margin:5pt 0 2pt;color:#12304a}
+                p{margin:3pt 0}
+                table{width:100%;table-layout:fixed;border-collapse:collapse;margin:4pt 0}
+                td,th{border:1px solid #aab4bc;padding:3pt 4pt;text-align:left;vertical-align:top}
+                th{background:#f0f3f6}
+                .meta{margin-bottom:5pt;color:#44576a}
+                .fiche-page{page-break-after:always}
+                .conditions-page h1{font-size:14pt;margin-bottom:7pt}
+                .conditions-page p{font-size:9pt;line-height:1.16;margin:3pt 0}
+                .conditions-page h3{font-size:9.5pt;margin:6pt 0 2.5pt}
+                .signatures{page-break-inside:avoid;margin-top:8pt}
+                .signatures td{width:50%;height:90pt;vertical-align:top;padding:7pt}
+                .signature-image{display:block;width:150px;height:50px;margin:8pt auto 0}
+                </style></head><body><div class='fiche-page'><h1>Fiche Atelier</h1>
                 """);
-        html.append("<p><b>N° </b>").append(escape(fiche.getNumero())).append(" — ")
+        html.append("<p class='meta'><b>N° </b>").append(escape(fiche.getNumero())).append(" - ")
                 .append(fiche.getCreatedAt() == null ? "" : fiche.getCreatedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")))
                 .append("</p><table>");
         row(html, "Client", fiche.getClient() == null ? "" : fiche.getClient().getFirstName() + " " + fiche.getClient().getLastName());
@@ -61,11 +72,12 @@ public class FicheAtelierPdfService {
             html.append("<tr><td>").append(escape(ligne.getNom())).append("</td><td>")
                     .append(escape(ligne.getDesignation())).append("</td></tr>");
         }
-        html.append("</table>").append(CONDITIONS);
-        html.append("<h2>Signatures à la réception</h2><table class='signatures'><tr><td>Réceptionnaire<br/>")
+        html.append("</table></div><div class='conditions-page'><h1>Conditions générales de réparation</h1>")
+                .append(CONDITIONS)
+                .append("<h2>Signatures à la réception</h2><table class='signatures'><colgroup><col width='50%'/><col width='50%'/></colgroup><tr><td>Réceptionnaire")
                 .append(image(fiche.getSignatureReceptionnaireBase64()))
-                .append("</td><td>Client<br/>").append(image(fiche.getSignatureBase64()))
-                .append("</td></tr></table></body></html>");
+                .append("</td><td>Client").append(image(fiche.getSignatureBase64()))
+                .append("</td></tr></table></div></body></html>");
         return pdfService.genererHtmlEnPdf(html.toString());
     }
 
@@ -80,12 +92,13 @@ public class FicheAtelierPdfService {
     }
 
     private static String image(String value) {
-        if (value == null || !value.matches("^data:image/png;base64,[A-Za-z0-9+/=]+$")) return "Signature indisponible";
-        return "<img src='" + value + "' alt='Signature'/><br/>";
+        if (value == null || !value.matches("^data:image/(png|jpeg);base64,[A-Za-z0-9+/=]+$")) {
+            return "<p>Signature indisponible</p>";
+        }
+        return "<img class='signature-image' width='150' height='50' src='" + value + "' alt='Signature'/>";
     }
 
     private static final String CONDITIONS = """
-            <h2>Conditions générales de réparation</h2>
             <h3>Article 1er : Engagement juridique des parties</h3>
             <p>Le présent contrat constitue dès sa signature un engagement, tant pour le réparateur que pour le client.</p>
             <p>Pour sa part, la Société OAS s'engage à respecter l'ordre donné.</p>
