@@ -40,10 +40,10 @@ class PieceDetacheServiceTest {
                 "REF-001",
                 "Moteur",
                 "Moteur",
-                null, null, null
+                null, null, null, null, null, null, null
         );
 
-        when(pieceDetacheRepository.existsByReference("REF-001")).thenReturn(false);
+        when(pieceDetacheRepository.existsByReferenceIgnoreCase("REF-001")).thenReturn(false);
         when(pieceDetacheRepository.save(any(PDG.class))).thenAnswer(invocation -> {
             PDG saved = invocation.getArgument(0);
             saved.setId(1L);
@@ -64,10 +64,10 @@ class PieceDetacheServiceTest {
                 "REF-002",
                 "Carrosserie",
                 "Carrosserie",
-                null, null, null
+                null, null, null, null, null, null, null
         );
 
-        when(pieceDetacheRepository.existsByReference("REF-002")).thenReturn(true);
+        when(pieceDetacheRepository.existsByReferenceIgnoreCase("REF-002")).thenReturn(true);
 
         assertThrows(IllegalArgumentException.class, () -> pieceDetacheService.create(request));
         verify(pieceDetacheRepository, never()).save(any());

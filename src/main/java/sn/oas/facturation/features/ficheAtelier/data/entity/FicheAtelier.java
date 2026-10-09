@@ -106,8 +106,8 @@ public class FicheAtelier implements TenantAware {
 
     private String garantie; // ex: "1 mois après livraison"
 
-    @Column(name = "date_restitution")
-    private LocalDateTime dateRestitution;
+    // @Column(name = "date_restitution")
+    // private LocalDateTime dateRestitution;
 
     @Column(name = "garantie_mois")
     private Integer garantieMois;

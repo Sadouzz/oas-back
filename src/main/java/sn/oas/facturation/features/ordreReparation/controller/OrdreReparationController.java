@@ -398,9 +398,13 @@ public class OrdreReparationController {
     public ResponseEntity<?> updateStatut(@PathVariable Long id, @RequestParam String statut) {
         try {
             OrdreReparation fiche = ordreReparationService.updateStatut(id, statut);
-            return ResponseEntity.ok(fiche);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Statut mis à jour avec succès",
+                    "id", fiche.getId(),
+                    "statut", fiche.getStatut() != null ? fiche.getStatut().name() : statut
+            ));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
 

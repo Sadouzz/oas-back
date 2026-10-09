@@ -776,7 +776,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             throw new IllegalArgumentException("Le véhicule doit être prêt à livrer avant sa restitution.");
         }
         FicheAtelier fiche = ordre.getFicheAtelier();
-        if (ordre.getDateRestitution() != null || fiche != null && fiche.getDateRestitution() != null) {
+        if (ordre.getDateRestitution() != null) {
             throw new IllegalArgumentException("La restitution a déjà été enregistrée.");
         }
         if (signature == null || signature.length() > 1_500_000
@@ -790,7 +790,6 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         LocalDateTime maintenant = LocalDateTime.now();
         if (fiche != null) {
             fiche.setSignatureSortieBase64(signature);
-            fiche.setDateRestitution(maintenant);
             fiche.setGarantieMois(duree);
             fiche.setGarantie(duree + " mois après restitution");
             ficheAtelierRepository.save(fiche);

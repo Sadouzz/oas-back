@@ -39,9 +39,8 @@ class RestitutionVehiculeTest {
         assertEquals(StatutOrdreReparation.LIVRE, resultat.getStatut());
         assertEquals(SIGNATURE, fiche.getSignatureSortieBase64());
         assertEquals(1, fiche.getGarantieMois());
-        assertNotNull(fiche.getDateRestitution());
-        assertEquals(fiche.getDateRestitution(), resultat.getDateSortie());
-        assertEquals(fiche.getDateRestitution(), resultat.getDateRestitution());
+        assertNotNull(resultat.getDateRestitution());
+        assertEquals(resultat.getDateRestitution(), resultat.getDateSortie());
         assertEquals(SIGNATURE, resultat.getSignatureRestitutionBase64());
         verify(ficheRepository).save(fiche);
     }
