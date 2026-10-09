@@ -103,7 +103,7 @@ public class PieceDetacheController {
     @GetMapping("/{id}")
     public ResponseEntity<?> getById(@PathVariable Long id) {
         try {
-            return ResponseEntity.ok(pieceDetacheService.getById(id));
+            return ResponseEntity.ok(PieceDetacheListResponse.from(pieceDetacheService.getById(id)));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -117,7 +117,7 @@ public class PieceDetacheController {
     @PostMapping({"", "/create"})
     public ResponseEntity<?> create(@RequestBody PieceDetacheRequest request) {
         try {
-            return ResponseEntity.ok(pieceDetacheService.create(request));
+            return ResponseEntity.ok(PieceDetacheListResponse.from(pieceDetacheService.create(request)));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -131,7 +131,7 @@ public class PieceDetacheController {
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable Long id, @RequestBody PieceDetacheRequest request) {
         try {
-            return ResponseEntity.ok(pieceDetacheService.update(id, request));
+            return ResponseEntity.ok(PieceDetacheListResponse.from(pieceDetacheService.update(id, request)));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -162,7 +162,7 @@ public class PieceDetacheController {
     @PutMapping("/{id}/restore")
     public ResponseEntity<?> restore(@PathVariable Long id) {
         try {
-            return ResponseEntity.ok(pieceDetacheService.restore(id));
+            return ResponseEntity.ok(PieceDetacheListResponse.from(pieceDetacheService.restore(id)));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(java.util.Map.of("message", e.getMessage()));
         }

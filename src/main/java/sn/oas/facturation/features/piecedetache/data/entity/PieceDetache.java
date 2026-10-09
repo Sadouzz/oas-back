@@ -25,12 +25,15 @@ import sn.oas.facturation.features.categorie_pieces.data.entity.Categorie;
 import sn.oas.facturation.features.depot_pieces.data.entity.Depot;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Entity
 @Table(name = "pieces_detachees", uniqueConstraints = {
     @UniqueConstraint(name = "uk_pieces_garage_reference", columnNames = {"garage_id", "numero_serie"})
 })
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
 @DiscriminatorColumn(name = "type_piece", discriminatorType = DiscriminatorType.STRING)
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Data
 @SuperBuilder
 @NoArgsConstructor

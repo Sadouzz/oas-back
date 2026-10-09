@@ -58,16 +58,18 @@ public class OrdreReparationController {
 
     @GetMapping("/me")
     @Operation(summary = "Lister l'historique des interventions/réparations du client connecté")
-    public ResponseEntity<List<OrdreReparation>> getMyInterventions() {
+    public ResponseEntity<List<OrdreReparationListDTO>> getMyInterventions() {
         Client client = clientService.getClientConnecte();
         return ResponseEntity
-                .ok(ordreReparationRepository.findClientHistory(client.getId()));
+                .ok(ordreReparationRepository.findClientHistory(client.getId())
+                        .stream().map(OrdreReparationListDTO::from).toList());
     }
 
     @GetMapping("/client/{clientId}")
     @Operation(summary = "Lister l'historique des réparations d'un client")
-    public ResponseEntity<List<OrdreReparation>> getInterventionsByClient(@PathVariable Long clientId) {
-        return ResponseEntity.ok(ordreReparationRepository.findClientHistory(clientId));
+    public ResponseEntity<List<OrdreReparationListDTO>> getInterventionsByClient(@PathVariable Long clientId) {
+        return ResponseEntity.ok(ordreReparationRepository.findClientHistory(clientId)
+                .stream().map(OrdreReparationListDTO::from).toList());
     }
 
     @GetMapping("/{id}")
@@ -97,7 +99,7 @@ public class OrdreReparationController {
     public ResponseEntity<?> createOrdreReparation(@RequestBody OrdreReparationRequest request) {
         try {
             OrdreReparation ordreReparation = ordreReparationService.createOrdreReparation(request);
-            return ResponseEntity.ok(ordreReparation);
+            return ResponseEntity.ok(ordreReparationService.getOrdreReparationResponseById(ordreReparation.getId()));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
         }
@@ -108,7 +110,7 @@ public class OrdreReparationController {
     public ResponseEntity<?> updateOrdreReparation(@PathVariable Long id, @RequestBody OrdreReparationRequest request) {
         try {
             OrdreReparation ordreReparation = ordreReparationService.updateOrdreReparation(id, request);
-            return ResponseEntity.ok(ordreReparation);
+            return ResponseEntity.ok(ordreReparationService.getOrdreReparationResponseById(ordreReparation.getId()));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
         }
@@ -464,7 +466,7 @@ public class OrdreReparationController {
     public ResponseEntity<?> createFromFicheAtelier(@PathVariable Long ficheAtelierId) {
         try {
             OrdreReparation ordreReparation = ordreReparationService.createFromFicheAtelier(ficheAtelierId);
-            return ResponseEntity.ok(ordreReparation);
+            return ResponseEntity.ok(ordreReparationService.getOrdreReparationResponseById(ordreReparation.getId()));
         } catch (IllegalStateException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", e.getMessage()));
         } catch (RuntimeException e) {
