@@ -11,10 +11,15 @@ public record RendezVousRequest(
         Long garageId,
         Long clientId,
         RendezVousStatus statut,
-        String commentaire
+        String commentaire,
+        String motifAnnulation
 ) {
+    public RendezVousRequest(LocalDateTime dateRendezVous, String motif, Long vehiculeId, Long garageId,
+            Long clientId, RendezVousStatus statut, String commentaire) {
+        this(dateRendezVous, motif, vehiculeId, garageId, clientId, statut, commentaire, null);
+    }
+
     public RendezVousRequest(LocalDateTime dateRendezVous, String motif, Long vehiculeId, Long garageId) {
-        this(dateRendezVous, motif, vehiculeId, garageId, null, null, null);
+        this(dateRendezVous, motif, vehiculeId, garageId, null, null, null, null);
     }
 }
-

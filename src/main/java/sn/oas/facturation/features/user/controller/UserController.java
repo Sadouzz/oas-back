@@ -41,7 +41,7 @@ public class UserController {
 
     @PutMapping("/me")
     @Operation(summary = "Mettre à jour le profil de l'utilisateur connecté")
-    public ResponseEntity<UserListResponse> updateCurrentUser(@RequestBody UserUpdateRequest request) {
+    public ResponseEntity<UserListResponse> updateCurrentUser(@RequestBody @jakarta.validation.Valid UserUpdateRequest request) {
         return ResponseEntity.ok(UserListResponse.from(userService.updateCurrentUser(request)));
     }
 
@@ -85,7 +85,7 @@ public class UserController {
 
     @PostMapping("/create")
     @Operation(summary = "Créer un nouvel utilisateur")
-    public ResponseEntity<?> createUser(@RequestBody RegisterRequest request) {
+    public ResponseEntity<?> createUser(@RequestBody @jakarta.validation.Valid RegisterRequest request) {
         try {
             authService.register(request);
             return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("message", "Compte utilisateur créé avec succès !"));
@@ -96,7 +96,7 @@ public class UserController {
 
     @PutMapping("/{id}")
     @Operation(summary = "Mettre à jour un utilisateur")
-    public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody UserUpdateRequest request) {
+    public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody @jakarta.validation.Valid UserUpdateRequest request) {
         try {
             User updated = userService.updateUser(id, request);
             return ResponseEntity.ok(UserListResponse.from(updated));

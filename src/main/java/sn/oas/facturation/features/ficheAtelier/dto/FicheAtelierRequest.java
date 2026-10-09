@@ -10,6 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import sn.oas.facturation.features.ficheAtelier.data.entity.LigneDefaut;
 import sn.oas.facturation.features.ficheAtelier.data.entity.LigneReception;
+import sn.oas.facturation.shared.validation.ValidPhone;
 
 import java.util.List;
 
@@ -29,6 +30,7 @@ public class FicheAtelierRequest {
     private Long vehiculeId;
 
     private String nomChauffeur;
+    @ValidPhone
     private String telephoneChauffeur;
     private String niveauEssence;
     private Integer kilometrage;

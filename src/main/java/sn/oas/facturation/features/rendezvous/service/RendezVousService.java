@@ -14,6 +14,7 @@ public interface RendezVousService {
     RendezVous bookRendezVous(Client client, RendezVousRequest request);
     RendezVous createRendezVousByAdmin(RendezVousRequest request);
     RendezVous cancelRendezVous(Client client, Long id);
+    RendezVous cancelRendezVous(Client client, Long id, String motifAnnulation);
     List<RendezVous> getClientRendezVous(Client client);
     Page<RendezVous> getClientRendezVous(Client client, int page, int size);
     List<RendezVous> getRendezVousByClientId(Long clientId);
@@ -24,6 +25,7 @@ public interface RendezVousService {
     Page<RendezVous> searchRendezVous(String keyword, int page, int size);
     Page<RendezVous> getByStatut(RendezVousStatus status, int page, int size);
     RendezVous updateRendezVousStatus(Long id, RendezVousStatus status, String commentaire);
+    RendezVous updateRendezVousStatus(Long id, RendezVousStatus status, String commentaire, String motifAnnulation);
     RendezVous validerRendezVous(Long id, List<Long> mecanicienIds);
     RendezVous updateRendezVous(Long id, RendezVousRequest request);
     RendezVous getById(Long id);

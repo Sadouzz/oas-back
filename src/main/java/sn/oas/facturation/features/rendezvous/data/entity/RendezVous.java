@@ -67,6 +67,9 @@ public class RendezVous {
     @Column(columnDefinition = "TEXT")
     private String commentaire;
 
+    @Column(name = "motif_annulation", columnDefinition = "TEXT")
+    private String motifAnnulation;
+
     @Column(name = "date_creation", nullable = false, updatable = false)
     @Builder.Default
     @CreationTimestamp

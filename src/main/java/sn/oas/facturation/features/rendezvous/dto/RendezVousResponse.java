@@ -14,6 +14,7 @@ public record RendezVousResponse(
         String vehiculeImmatriculation,
         LocalDateTime dateRendezVous,
         String motif,
+        String motifAnnulation,
         RendezVousStatus statut,
         String commentaire,
         LocalDateTime dateCreation,
@@ -21,7 +22,10 @@ public record RendezVousResponse(
 
     public static RendezVousResponse of(RendezVous rv) {
         boolean hasFiche = rv.getFicheAtelier() != null || rv.getStatut() == RendezVousStatus.TERMINE;
-        RendezVousStatus statut = hasFiche ? RendezVousStatus.TERMINE : rv.getStatut();
+        RendezVousStatus statut = hasFiche ? RendezVousStatus.TERMINE
+                : rv.getStatut() == RendezVousStatus.REFUSE ? RendezVousStatus.ANNULE : rv.getStatut();
+        String motifAnnulation = rv.getMotifAnnulation() != null ? rv.getMotifAnnulation()
+                : rv.getStatut() == RendezVousStatus.REFUSE ? rv.getCommentaire() : null;
 
         return new RendezVousResponse(
                 rv.getId(),
@@ -32,6 +36,7 @@ public record RendezVousResponse(
                 rv.getVehicule() != null ? rv.getVehicule().getImmatriculation() : null,
                 rv.getDateRendezVous(),
                 rv.getMotif(),
+                motifAnnulation,
                 statut,
                 rv.getCommentaire(),
                 rv.getDateCreation(),

@@ -2,11 +2,12 @@ package sn.oas.facturation.features.client.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import sn.oas.facturation.features.client.data.enums.TypeClient;
+import sn.oas.facturation.shared.validation.ValidPhone;
 
 public record ClientCreateRequest(
         @NotBlank String firstName,
         @NotBlank String lastName,
-        @NotBlank String phone,
+        @NotBlank @ValidPhone String phone,
         String email,
         String password,
         String adresse,
@@ -14,6 +15,6 @@ public record ClientCreateRequest(
         String raisonSociale,
         String numeroEntreprise,
         String emailEntreprise,
-        String telephoneEntreprise,
+        @ValidPhone String telephoneEntreprise,
         String adresseEntreprise) {
 }

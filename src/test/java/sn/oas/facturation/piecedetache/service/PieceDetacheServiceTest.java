@@ -6,6 +6,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import sn.oas.facturation.features.categorie_pieces.repository.CategorieRepository;
+import sn.oas.facturation.features.depot_pieces.data.entity.Depot;
+import sn.oas.facturation.features.depot_pieces.repository.DepotRepository;
 import sn.oas.facturation.features.piecedetache.data.entity.PDG;
 import sn.oas.facturation.features.piecedetache.data.enums.TypePiece;
 import sn.oas.facturation.features.piecedetache.dto.PieceDetacheRequest;
@@ -30,6 +32,9 @@ class PieceDetacheServiceTest {
     @Mock
     private CategorieRepository categorieRepository;
 
+    @Mock
+    private DepotRepository depotRepository;
+
     @InjectMocks
     private PieceDetacheServiceImpl pieceDetacheService;
 
@@ -44,6 +49,8 @@ class PieceDetacheServiceTest {
         );
 
         when(pieceDetacheRepository.existsByReferenceIgnoreCase("REF-001")).thenReturn(false);
+        when(depotRepository.findFirstByNomIgnoreCase("PDG")).thenReturn(Optional.empty());
+        when(depotRepository.save(any(Depot.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(pieceDetacheRepository.save(any(PDG.class))).thenAnswer(invocation -> {
             PDG saved = invocation.getArgument(0);
             saved.setId(1L);

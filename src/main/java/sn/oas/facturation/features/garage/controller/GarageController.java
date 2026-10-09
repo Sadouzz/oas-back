@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 import sn.oas.facturation.features.garage.dto.GarageRequest;
 import sn.oas.facturation.features.garage.dto.GarageResponse;
 import sn.oas.facturation.features.garage.service.GarageService;
@@ -21,13 +22,13 @@ public class GarageController {
 
     @PostMapping
     @Operation(summary = "Créer un nouveau garage")
-    public ResponseEntity<GarageResponse> createGarage(@RequestBody GarageRequest request) {
+    public ResponseEntity<GarageResponse> createGarage(@RequestBody @Valid GarageRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(GarageResponse.from(garageService.createGarage(request)));
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Mettre à jour un garage existant")
-    public ResponseEntity<GarageResponse> updateGarage(@PathVariable Long id, @RequestBody GarageRequest request) {
+    public ResponseEntity<GarageResponse> updateGarage(@PathVariable Long id, @RequestBody @Valid GarageRequest request) {
         return ResponseEntity.ok(GarageResponse.from(garageService.updateGarage(id, request)));
     }
 

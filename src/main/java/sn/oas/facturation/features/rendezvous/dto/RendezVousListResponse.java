@@ -9,11 +9,13 @@ import java.time.LocalDateTime;
 @Builder
 public record RendezVousListResponse(
         Long id,
+        Long clientId,
         String numero,
         LocalDateTime dateRendezVous,
         String clientName,
         String vehiculeImmatriculation,
         String motif,
+        String motifAnnulation,
         RendezVousStatus statut,
         Boolean hasFicheAtelier) {
     public static RendezVousListResponse from(RendezVous rv) {
@@ -27,15 +29,20 @@ public record RendezVousListResponse(
         }
 
         boolean hasFiche = rv.getFicheAtelier() != null || rv.getStatut() == RendezVousStatus.TERMINE;
-        RendezVousStatus statut = hasFiche ? RendezVousStatus.TERMINE : rv.getStatut();
+        RendezVousStatus statut = hasFiche ? RendezVousStatus.TERMINE
+                : rv.getStatut() == RendezVousStatus.REFUSE ? RendezVousStatus.ANNULE : rv.getStatut();
+        String motifAnnulation = rv.getMotifAnnulation() != null ? rv.getMotifAnnulation()
+                : rv.getStatut() == RendezVousStatus.REFUSE ? rv.getCommentaire() : null;
 
         return RendezVousListResponse.builder()
                 .id(rv.getId())
+                .clientId(rv.getClient() != null ? rv.getClient().getId() : null)
                 .numero(rv.getNumero())
                 .dateRendezVous(rv.getDateRendezVous())
                 .clientName(clientName)
                 .vehiculeImmatriculation(rv.getVehicule() != null ? rv.getVehicule().getImmatriculation() : null)
                 .motif(rv.getMotif())
+                .motifAnnulation(motifAnnulation)
                 .statut(statut)
                 .hasFicheAtelier(hasFiche)
                 .build();

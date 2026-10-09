@@ -109,9 +109,10 @@ public class RendezVousController {
     @PutMapping("/{id}/annuler")
     @PreAuthorize("hasRole('CLIENT')")
     @Operation(summary = "Annuler un rendez-vous (Client uniquement)")
-    public ResponseEntity<RendezVousResponse> cancelRendezVous(@PathVariable Long id) {
+    public ResponseEntity<RendezVousResponse> cancelRendezVous(@PathVariable Long id,
+            @RequestParam(required = false) String motifAnnulation) {
         Client client = clientService.getClientConnecte();
-        RendezVous rv = rendezvousService.cancelRendezVous(client, id);
+        RendezVous rv = rendezvousService.cancelRendezVous(client, id, motifAnnulation);
         return ResponseEntity.ok(RendezVousResponse.of(rv));
     }
 
@@ -122,8 +123,9 @@ public class RendezVousController {
     public ResponseEntity<RendezVousResponse> updateRendezVousStatus(
             @PathVariable Long id,
             @RequestParam RendezVousStatus statut,
-            @RequestParam(required = false) String commentaire) {
-        RendezVous rv = rendezvousService.updateRendezVousStatus(id, statut, commentaire);
+            @RequestParam(required = false) String commentaire,
+            @RequestParam(required = false) String motifAnnulation) {
+        RendezVous rv = rendezvousService.updateRendezVousStatus(id, statut, commentaire, motifAnnulation);
         return ResponseEntity.ok(RendezVousResponse.of(rv));
     }
 

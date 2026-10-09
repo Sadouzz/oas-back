@@ -161,7 +161,7 @@ public class AuthController {
 
     @PostMapping("/signup")
     @Operation(summary = "Inscription d'un nouvel utilisateur")
-    public ResponseEntity<?> signup(@RequestBody RegisterRequest request) {
+    public ResponseEntity<?> signup(@RequestBody @jakarta.validation.Valid RegisterRequest request) {
         // Un compte technicien n'est jamais créé par auto-inscription publique : uniquement
         // via le endpoint staff protégé (TechnicienController / écran gestion/techniciens),
         // qui passe par AuthServiceImpl.register() avec un appelant Agent authentifié.
@@ -198,7 +198,7 @@ public class AuthController {
 
     @PutMapping("/me")
     @Operation(summary = "Mettre à jour le profil de l'utilisateur connecté")
-    public ResponseEntity<UserListResponse> updateCurrentUser(@RequestBody UserUpdateRequest request) {
+    public ResponseEntity<UserListResponse> updateCurrentUser(@RequestBody @jakarta.validation.Valid UserUpdateRequest request) {
         return ResponseEntity.ok(UserListResponse.from(userService.updateCurrentUser(request)));
     }
 

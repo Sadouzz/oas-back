@@ -4,10 +4,11 @@ import sn.oas.facturation.features.technicien.data.enums.SpecialiteTechnicien;
 import sn.oas.facturation.features.user.data.enums.Role;
 import sn.oas.facturation.features.user.data.enums.TypeUser;
 import sn.oas.facturation.features.client.data.enums.TypeClient;
+import sn.oas.facturation.shared.validation.ValidPhone;
 
 public record RegisterRequest(
         String matricule,
-        String phone,
+        @ValidPhone String phone,
         String username,
         String firstName,
         String lastName,
@@ -25,6 +26,6 @@ public record RegisterRequest(
         String raisonSociale,
         String numeroEntreprise,
         String emailEntreprise,
-        String telephoneEntreprise,
+        @ValidPhone String telephoneEntreprise,
         String adresseEntreprise
 ) {}

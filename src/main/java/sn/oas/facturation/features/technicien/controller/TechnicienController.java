@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.validation.Valid;
 
 import sn.oas.facturation.features.technicien.data.entity.Technicien;
 import sn.oas.facturation.features.technicien.data.enums.SpecialiteTechnicien;
@@ -64,7 +65,7 @@ public class TechnicienController {
 
     @PostMapping({"", "/create"})
     @Operation(summary = "Créer un nouveau compte technicien")
-    public ResponseEntity<?> createTechnicien(@RequestBody TechnicienRequest request) {
+    public ResponseEntity<?> createTechnicien(@RequestBody @Valid TechnicienRequest request) {
         try {
             technicienService.createTechnicien(request);
             return ResponseEntity.ok(Map.of("message", "Compte technicien créé avec succès !"));
@@ -75,7 +76,7 @@ public class TechnicienController {
 
     @PutMapping("/{id}")
     @Operation(summary = "Mettre à jour un technicien")
-    public ResponseEntity<?> updateTechnicien(@PathVariable Long id, @RequestBody TechnicienRequest request) {
+    public ResponseEntity<?> updateTechnicien(@PathVariable Long id, @RequestBody @Valid TechnicienRequest request) {
         try {
             Technicien technicien = technicienService.updateTechnicien(id, request);
             return ResponseEntity.ok(technicien);

@@ -86,7 +86,7 @@ public class ClientController {
     @PutMapping("/{id}")
     @org.springframework.security.access.prepost.PreAuthorize("hasAnyAuthority('ROLE_MASTER','MASTER','ROLE_SUPER_AGENT','SUPER_AGENT','ROLE_AGENT','AGENT','ROLE_CHEF_ATELIER','CHEF_ATELIER','ROLE_AGENT_MAGASIN','AGENT_MAGASIN','ROLE_CLIENT','CLIENT')")
     @Operation(summary = "Mettre à jour un client")
-    public ResponseEntity<?> updateClient(@PathVariable Long id, @RequestBody ClientUpdateRequest request) {
+    public ResponseEntity<?> updateClient(@PathVariable Long id, @RequestBody @Valid ClientUpdateRequest request) {
         boolean clientConnecte = org.springframework.security.core.context.SecurityContextHolder.getContext()
                 .getAuthentication().getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_CLIENT") || a.getAuthority().equals("CLIENT"));

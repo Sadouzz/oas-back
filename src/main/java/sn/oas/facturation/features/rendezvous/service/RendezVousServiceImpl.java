@@ -30,6 +30,7 @@ import sn.oas.facturation.shared.exception.ForbiddenException;
 import sn.oas.facturation.shared.exception.ResourceNotFoundException;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Service
@@ -101,6 +102,9 @@ public class RendezVousServiceImpl implements RendezVousService {
         }
 
         RendezVousStatus statut = request.statut() != null ? request.statut() : RendezVousStatus.CONFIRME;
+        if (statut == RendezVousStatus.REFUSE || statut == RendezVousStatus.ANNULE || statut == RendezVousStatus.TERMINE) {
+            throw new BadRequestException("Un rendez-vous ne peut pas être créé directement avec un statut terminé ou annulé.");
+        }
 
         RendezVous rv = RendezVous.builder()
                 .numero(documentNumberGeneratorService.generateNextNumber(garage, DocumentType.RDV))
@@ -117,9 +121,13 @@ public class RendezVousServiceImpl implements RendezVousService {
 
         // Notify client
         if (client != null) {
-            notificationService.sendNotification(client, "Rendez-vous programmé",
-                    "Un rendez-vous a été programmé pour vous le " + request.dateRendezVous() +
-                            (request.motif() != null && !request.motif().isBlank() ? " (" + request.motif() + ")" : "") + ".");
+            String message = statut == RendezVousStatus.EN_ATTENTE
+                    ? "Votre demande de rendez-vous pour le " + request.dateRendezVous() + " a bien été enregistrée et est en attente de confirmation."
+                    : "Un rendez-vous a été programmé pour vous le " + request.dateRendezVous() +
+                            (request.motif() != null && !request.motif().isBlank() ? " (" + request.motif() + ")" : "") + ".";
+            String titre = statut == RendezVousStatus.EN_ATTENTE ? "Demande de rendez-vous enregistrée" : "Rendez-vous programmé";
+            notificationService.sendNotification(client, titre, message);
+            sendEmailToClient(rv, titre, message);
         }
 
         return rv;
@@ -190,19 +198,33 @@ public class RendezVousServiceImpl implements RendezVousService {
     @Transactional
     @Override
     public RendezVous cancelRendezVous(Client client, Long id) {
+        return cancelRendezVous(client, id, null);
+    }
+
+    @Transactional
+    @Override
+    public RendezVous cancelRendezVous(Client client, Long id, String motifAnnulation) {
+        if (motifAnnulation == null || motifAnnulation.isBlank()) {
+            throw new BadRequestException("Veuillez indiquer le motif de l'annulation.");
+        }
         RendezVous rv = rendezvousRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Rendez-vous non trouvé avec l'identifiant " + id));
         if (!rv.getClient().getId().equals(client.getId())) {
             throw new ForbiddenException("Accès non autorisé à ce rendez-vous");
         }
+        if (rv.getStatut() != RendezVousStatus.EN_ATTENTE) {
+            throw new BadRequestException("Seul un rendez-vous en attente peut être annulé par le client.");
+        }
         if (rv.getFicheAtelier() != null) {
             throw new BadRequestException("Impossible d'annuler le rendez-vous : une fiche d'atelier a déjà été créée.");
         }
         rv.setStatut(RendezVousStatus.ANNULE);
+        rv.setMotifAnnulation(normalizeMotif(motifAnnulation));
         rendezvousRepository.save(rv);
 
-        notificationService.sendNotification(client, "Rendez-vous annulé", 
-                "Vous avez annulé votre rendez-vous du " + rv.getDateRendezVous());
+        String message = cancellationMessage(rv);
+        notificationService.sendNotification(client, "Rendez-vous annulé", message);
+        sendEmailToClient(rv, "Rendez-vous annulé", message);
 
         return rv;
     }
@@ -276,31 +298,86 @@ public class RendezVousServiceImpl implements RendezVousService {
     @Transactional
     @Override
     public RendezVous updateRendezVousStatus(Long id, RendezVousStatus status, String commentaire) {
+        return updateRendezVousStatus(id, status, commentaire, null);
+    }
+
+    @Transactional
+    @Override
+    public RendezVous updateRendezVousStatus(Long id, RendezVousStatus status, String commentaire, String motifAnnulation) {
+        if (status == RendezVousStatus.REFUSE) {
+            status = RendezVousStatus.ANNULE;
+        }
         RendezVous rv = rendezvousRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Rendez-vous non trouvé avec l'identifiant " + id));
+
+        if (status == RendezVousStatus.ANNULE && (motifAnnulation == null || motifAnnulation.isBlank())) {
+            throw new BadRequestException("Le motif est obligatoire pour annuler le rendez-vous.");
+        }
         
         if (status == RendezVousStatus.ANNULE && rv.getFicheAtelier() != null) {
             throw new BadRequestException("Impossible d'annuler le rendez-vous : une fiche d'atelier a déjà été créée.");
         }
         
         rv.setStatut(status);
+        if (status == RendezVousStatus.ANNULE) {
+            rv.setMotifAnnulation(normalizeMotif(motifAnnulation));
+        } else {
+            rv.setMotifAnnulation(null);
+        }
         if (commentaire != null) {
             rv.setCommentaire(commentaire);
         }
         rendezvousRepository.save(rv);
 
         // Notify client
-        String titre = "Mise à jour du rendez-vous";
-        String message = "Votre rendez-vous du " + rv.getDateRendezVous() + " est maintenant " + status.name() + ".";
+        String titre = status == RendezVousStatus.ANNULE ? "Rendez-vous annulé" : "Mise à jour du rendez-vous";
+        String message = status == RendezVousStatus.ANNULE
+                ? cancellationMessage(rv)
+                : "Votre rendez-vous du " + rv.getDateRendezVous() + " est maintenant " + statusLabel(status) + ".";
         if (commentaire != null && !commentaire.trim().isEmpty()) {
             message += " Commentaire : " + commentaire;
         }
         notificationService.sendNotification(rv.getClient(), titre, message);
-        if (rv.getClient() != null && rv.getClient().getEmail() != null) {
-            emailService.sendSimpleEmail(rv.getClient().getEmail(), titre, "Bonjour " + rv.getClient().getFirstName() + ",\n\n" + message);
-        }
+        sendEmailToClient(rv, titre, message);
 
         return rv;
+    }
+
+    private String normalizeMotif(String motif) {
+        if (motif == null || motif.isBlank()) return null;
+        String normalized = motif.trim();
+        if (normalized.length() > 1000) {
+            throw new BadRequestException("Le motif d'annulation ne peut pas dépasser 1 000 caractères.");
+        }
+        return normalized;
+    }
+
+    private String cancellationMessage(RendezVous rv) {
+        String date = rv.getDateRendezVous() == null ? "date non précisée"
+                : rv.getDateRendezVous().format(DateTimeFormatter.ofPattern("dd/MM/yyyy 'à' HH:mm"));
+        String message = "Votre rendez-vous prévu à la date du " + date
+                + " a été annulé";
+        if (rv.getMotifAnnulation() != null && !rv.getMotifAnnulation().isBlank()) {
+            message += " pour motif de « " + rv.getMotifAnnulation() + " »";
+        }
+        return message + ".";
+    }
+
+    private String statusLabel(RendezVousStatus status) {
+        return switch (status) {
+            case CONFIRME -> "confirmé";
+            case EN_ATTENTE -> "en attente";
+            case TERMINE -> "terminé";
+            case REFUSE -> "annulé";
+            case ANNULE -> "annulé";
+        };
+    }
+
+    private void sendEmailToClient(RendezVous rv, String subject, String message) {
+        if (rv.getClient() != null && rv.getClient().getEmail() != null && !rv.getClient().getEmail().isBlank()) {
+            emailService.sendSimpleEmail(rv.getClient().getEmail(), subject,
+                    "Bonjour " + rv.getClient().getFirstName() + ",\n\n" + message);
+        }
     }
 
     @Transactional
@@ -315,12 +392,9 @@ public class RendezVousServiceImpl implements RendezVousService {
         rv.setStatut(RendezVousStatus.CONFIRME);
         rendezvousRepository.save(rv);
 
-        notificationService.sendNotification(rv.getClient(), "Rendez-vous validé", 
-                "Votre rendez-vous du " + rv.getDateRendezVous() + " a été validé et confirmé.");
-        if (rv.getClient() != null && rv.getClient().getEmail() != null) {
-            emailService.sendSimpleEmail(rv.getClient().getEmail(), "Rendez-vous validé", 
-                    "Bonjour " + rv.getClient().getFirstName() + ",\n\nVotre rendez-vous du " + rv.getDateRendezVous() + " a été validé et confirmé.");
-        }
+        String message = "Votre rendez-vous prévu à la date du " + rv.getDateRendezVous() + " a été validé et confirmé.";
+        notificationService.sendNotification(rv.getClient(), "Rendez-vous validé", message);
+        sendEmailToClient(rv, "Rendez-vous validé", message);
 
         return rv;
     }
@@ -333,15 +407,17 @@ public class RendezVousServiceImpl implements RendezVousService {
         if (nouvelleDate == null) {
             throw new BadRequestException("La date du rendez-vous est obligatoire");
         }
-        if (nouvelleDate.toLocalDate().isBefore(java.time.LocalDate.now())) {
+        if (nouvelleDate.isBefore(LocalDateTime.now())) {
             throw new BadRequestException("La nouvelle date ne peut pas être dans le passé");
         }
         rv.setDateRendezVous(nouvelleDate);
         rendezvousRepository.save(rv);
 
+        String message = "La date de votre rendez-vous a été modifiée au " + nouvelleDate + ".";
         if (rv.getClient() != null) {
             notificationService.sendNotification(rv.getClient(), "Date de rendez-vous modifiée",
-                    "La date de votre rendez-vous a été modifiée au " + nouvelleDate + ".");
+                    message);
+            sendEmailToClient(rv, "Date de rendez-vous modifiée", message);
         }
 
         return rv;
@@ -352,9 +428,10 @@ public class RendezVousServiceImpl implements RendezVousService {
     public RendezVous updateRendezVous(Long id, RendezVousRequest request) {
         RendezVous rv = rendezvousRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Rendez-vous non trouvé avec l'identifiant " + id));
+        RendezVousStatus ancienStatut = rv.getStatut();
 
         if (request.dateRendezVous() != null) {
-            if (request.dateRendezVous().toLocalDate().isBefore(java.time.LocalDate.now())) {
+            if (request.dateRendezVous().isBefore(LocalDateTime.now())) {
                 throw new BadRequestException("La date du rendez-vous ne peut pas être dans le passé");
             }
             rv.setDateRendezVous(request.dateRendezVous());
@@ -368,8 +445,22 @@ public class RendezVousServiceImpl implements RendezVousService {
             rv.setCommentaire(request.commentaire());
         }
 
-        if (request.statut() != null) {
-            rv.setStatut(request.statut());
+        RendezVousStatus nouveauStatut = request.statut() == RendezVousStatus.REFUSE
+                ? RendezVousStatus.ANNULE : request.statut();
+        if (nouveauStatut != null) {
+            if (nouveauStatut == RendezVousStatus.ANNULE
+                    && (request.motifAnnulation() == null || request.motifAnnulation().isBlank())) {
+                throw new BadRequestException("Le motif est obligatoire pour annuler le rendez-vous.");
+            }
+            if (nouveauStatut == RendezVousStatus.ANNULE && rv.getFicheAtelier() != null) {
+                throw new BadRequestException("Impossible d'annuler le rendez-vous : une fiche d'atelier a déjà été créée.");
+            }
+            rv.setStatut(nouveauStatut);
+            if (nouveauStatut == RendezVousStatus.ANNULE) {
+                rv.setMotifAnnulation(normalizeMotif(request.motifAnnulation()));
+            } else {
+                rv.setMotifAnnulation(null);
+            }
         }
 
         if (request.vehiculeId() != null && (rv.getVehicule() == null || !request.vehiculeId().equals(rv.getVehicule().getId()))) {
@@ -392,7 +483,14 @@ public class RendezVousServiceImpl implements RendezVousService {
 
         rendezvousRepository.save(rv);
 
-        if (rv.getClient() != null && request.dateRendezVous() != null) {
+        if (nouveauStatut != null && nouveauStatut != ancienStatut) {
+            String titre = nouveauStatut == RendezVousStatus.ANNULE ? "Rendez-vous annulé" : "Mise à jour du rendez-vous";
+            String message = nouveauStatut == RendezVousStatus.ANNULE
+                    ? cancellationMessage(rv)
+                    : "Votre rendez-vous du " + rv.getDateRendezVous() + " est maintenant " + statusLabel(nouveauStatut) + ".";
+            notificationService.sendNotification(rv.getClient(), titre, message);
+            sendEmailToClient(rv, titre, message);
+        } else if (rv.getClient() != null && request.dateRendezVous() != null) {
             notificationService.sendNotification(rv.getClient(), "Rendez-vous modifié",
                     "Les informations de votre rendez-vous ont été mises à jour (Date : " + rv.getDateRendezVous() + ").");
         }
