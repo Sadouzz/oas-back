@@ -9,10 +9,12 @@ import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.hibernate.annotations.ColumnDefault;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.OneToMany;
 
@@ -30,9 +32,10 @@ import java.util.List;
 @NoArgsConstructor
 public class Client extends User {
 
-    @Builder.Default
-    @Enumerated(jakarta.persistence.EnumType.STRING)
-    @Column(name = "type_client", nullable = false, columnDefinition = "varchar(20) default 'PARTICULIER'")
+    // Au lieu de columnDefinition = "varchar(20) default 'PARTICULIER'"
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type_client", nullable = false, length = 20)
+    @ColumnDefault("'PARTICULIER'")
     private TypeClient typeClient = TypeClient.PARTICULIER;
 
     @Column(name = "raison_sociale")
