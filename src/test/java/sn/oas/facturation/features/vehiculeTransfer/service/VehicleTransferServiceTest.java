@@ -50,7 +50,7 @@ class VehicleTransferServiceTest {
         when(clientService.getClientConnecte()).thenReturn(requester);
         when(vehiculeRepository.findByImmatriculation("DK-123-AA")).thenReturn(Optional.of(vehicle));
         when(vehiculeRepository.findByIdForOwnershipChange(7L)).thenReturn(Optional.of(vehicle));
-        when(requestRepository.existsByVehiculeIdAndRequesterIdAndStatus(7L, 2L, VehicleTransferStatus.PENDING)).thenReturn(false);
+        when(requestRepository.existsByVehiculeIdAndStatus(7L, VehicleTransferStatus.PENDING)).thenReturn(false);
         when(requestRepository.save(any())).thenAnswer(invocation -> {
             var saved = invocation.<sn.oas.facturation.features.vehiculeTransfer.data.entity.VehicleTransferRequest>getArgument(0);
             saved.setId(11L);
@@ -83,13 +83,13 @@ class VehicleTransferServiceTest {
     }
 
     @Test
-    void requestRejectsSecondPendingRequest() {
+    void requestRejectsPendingRequestForVehicleRegardlessOfRequester() {
         Client requester = client(2L, "Awa", "Ndiaye");
         Vehicule vehicle = vehicle(7L, "DK-123-AA", "CH-123", client(1L, "Amadou", "Diallo"));
         when(clientService.getClientConnecte()).thenReturn(requester);
         when(vehiculeRepository.findByImmatriculation("DK-123-AA")).thenReturn(Optional.of(vehicle));
         when(vehiculeRepository.findByIdForOwnershipChange(7L)).thenReturn(Optional.of(vehicle));
-        when(requestRepository.existsByVehiculeIdAndRequesterIdAndStatus(7L, 2L, VehicleTransferStatus.PENDING)).thenReturn(true);
+        when(requestRepository.existsByVehiculeIdAndStatus(7L, VehicleTransferStatus.PENDING)).thenReturn(true);
 
         assertThrows(BadRequestException.class, () -> service.request(
                 new VehicleTransferRequestCreate("DK-123-AA", null, null)));

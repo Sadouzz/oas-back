@@ -65,6 +65,9 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
         if (vehicule.getClient() == null || !client.getId().equals(vehicule.getClient().getId())) {
             throw new BadRequestException("Le véhicule n'est pas attribué au client indiqué.");
         }
+        if (!vehicule.isActif()) {
+            throw new BadRequestException("Ce véhicule est en attente d'activation par un agent.");
+        }
 
         // BLOCAGE : Si le véhicule a un ordre de réparation qui n'est pas encore livré
         Optional<OrdreReparation> ordreEnCours =

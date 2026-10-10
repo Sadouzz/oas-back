@@ -193,6 +193,7 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
         } else if (fiche != null) {
             vehicule = fiche.getVehicule();
         }
+        sn.oas.facturation.features.vehicule.service.VehiculeActivationPolicy.requireActive(vehicule);
 
         if (client == null && vehicule != null) {
             client = vehicule.getClient();
@@ -263,7 +264,12 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
             clientRepository.findById(request.getClientId()).ifPresent(note::setClient);
         }
         if (request.getVehiculeId() != null) {
-            vehiculeRepository.findById(request.getVehiculeId()).ifPresent(note::setVehicule);
+            vehiculeRepository.findById(request.getVehiculeId()).ifPresent(vehicule -> {
+                sn.oas.facturation.features.vehicule.service.VehiculeActivationPolicy.requireActive(vehicule);
+                note.setVehicule(vehicule);
+            });
+        } else if (note.getVehicule() != null) {
+            sn.oas.facturation.features.vehicule.service.VehiculeActivationPolicy.requireActive(note.getVehicule());
         }
         if (request.getModePaiement() != null) {
             note.setModePaiement(request.getModePaiement());

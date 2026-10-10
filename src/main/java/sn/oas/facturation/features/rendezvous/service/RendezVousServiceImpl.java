@@ -212,6 +212,7 @@ public class RendezVousServiceImpl implements RendezVousService {
         if (!rv.getClient().getId().equals(client.getId())) {
             throw new ForbiddenException("Accès non autorisé à ce rendez-vous");
         }
+        requireActiveVehicleForAppointmentAction(rv);
         if (rv.getStatut() != RendezVousStatus.EN_ATTENTE) {
             throw new BadRequestException("Seul un rendez-vous en attente peut être annulé par le client.");
         }
@@ -309,6 +310,7 @@ public class RendezVousServiceImpl implements RendezVousService {
         }
         RendezVous rv = rendezvousRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Rendez-vous non trouvé avec l'identifiant " + id));
+        requireActiveVehicleForAppointmentAction(rv);
 
         if (status == RendezVousStatus.ANNULE && (motifAnnulation == null || motifAnnulation.isBlank())) {
             throw new BadRequestException("Le motif est obligatoire pour annuler le rendez-vous.");
@@ -352,6 +354,12 @@ public class RendezVousServiceImpl implements RendezVousService {
         return normalized;
     }
 
+    private void requireActiveVehicleForAppointmentAction(RendezVous rendezVous) {
+        if (rendezVous != null && rendezVous.getVehicule() != null) {
+            sn.oas.facturation.features.vehicule.service.VehiculeActivationPolicy.requireActive(rendezVous.getVehicule());
+        }
+    }
+
     private String cancellationMessage(RendezVous rv) {
         String date = rv.getDateRendezVous() == null ? "date non précisée"
                 : rv.getDateRendezVous().format(DateTimeFormatter.ofPattern("dd/MM/yyyy 'à' HH:mm"));
@@ -385,6 +393,7 @@ public class RendezVousServiceImpl implements RendezVousService {
     public RendezVous validerRendezVous(Long id, List<Long> mecanicienIds) {
         RendezVous rv = rendezvousRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Rendez-vous non trouvé avec l'identifiant " + id));
+        requireActiveVehicleForAppointmentAction(rv);
         if (rv.getVehicule() == null) {
             throw new BadRequestException("Impossible de valider un rendez-vous sans véhicule associé.");
         }
@@ -404,6 +413,7 @@ public class RendezVousServiceImpl implements RendezVousService {
     public RendezVous updateDate(Long id, LocalDateTime nouvelleDate) {
         RendezVous rv = rendezvousRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Rendez-vous non trouvé avec l'identifiant " + id));
+        requireActiveVehicleForAppointmentAction(rv);
         if (nouvelleDate == null) {
             throw new BadRequestException("La date du rendez-vous est obligatoire");
         }
@@ -428,6 +438,7 @@ public class RendezVousServiceImpl implements RendezVousService {
     public RendezVous updateRendezVous(Long id, RendezVousRequest request) {
         RendezVous rv = rendezvousRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Rendez-vous non trouvé avec l'identifiant " + id));
+        requireActiveVehicleForAppointmentAction(rv);
         RendezVousStatus ancienStatut = rv.getStatut();
 
         if (request.dateRendezVous() != null) {

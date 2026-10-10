@@ -81,6 +81,7 @@ public class FactureServiceImpl implements FactureService {
         
         Vehicule vehicule = vehiculeRepository.findById(request.getVehiculeId())
                 .orElseThrow(() -> new ResourceNotFoundException("Véhicule introuvable avec l'id : " + request.getVehiculeId()));
+        sn.oas.facturation.features.vehicule.service.VehiculeActivationPolicy.requireActive(vehicule);
 
         if (vehicule.getClient() == null || !vehicule.getClient().getId().equals(client.getId())) {
             throw new sn.oas.facturation.shared.exception.ForbiddenException("Le véhicule sélectionné n'appartient pas au client de la facture.");

@@ -101,6 +101,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
             vehicule = vehiculeRepository.findById(request.getVehiculeId())
                     .orElseThrow(
                             () -> new RuntimeException("Véhicule non trouvé avec l'id " + request.getVehiculeId()));
+            sn.oas.facturation.features.vehicule.service.VehiculeActivationPolicy.requireActive(vehicule);
         }
 
         BonDeCommande bonDeCommande = BonDeCommande.builder()
@@ -211,6 +212,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
         if (bonDeCommande.getStatut() == StatutBonCommande.ANNULE) {
             throw new sn.oas.facturation.shared.exception.BadRequestException("Un bon de commande annulé ne peut pas être modifié.");
         }
+        sn.oas.facturation.features.vehicule.service.VehiculeActivationPolicy.requireActive(bonDeCommande.getVehicule());
 
         if (request.getFournisseurId() != null) {
             Fournisseur fournisseur = fournisseurRepository.findById(request.getFournisseurId())
@@ -223,6 +225,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
         if (request.getVehiculeId() != null) {
             Vehicule vehicule = vehiculeRepository.findById(request.getVehiculeId())
                     .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Véhicule non trouvé avec l'id : " + request.getVehiculeId()));
+            sn.oas.facturation.features.vehicule.service.VehiculeActivationPolicy.requireActive(vehicule);
             bonDeCommande.setVehicule(vehicule);
         } else {
             bonDeCommande.setVehicule(null);

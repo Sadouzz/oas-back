@@ -14,7 +14,8 @@ public record ClientBookingContextDTO(
             Integer annee,
             Double kilometrage,
             String numeroChassis,
-            boolean disponiblePourRdv
+            boolean disponiblePourRdv,
+            boolean actif
     ) {}
 
     public record GarageBookingDTO(

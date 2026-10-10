@@ -9,12 +9,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.repository.ClientRepository;
 import sn.oas.facturation.features.client.service.PolitiqueFinanciereClientService;
+import sn.oas.facturation.features.garage.data.entity.Garage;
 import sn.oas.facturation.features.garage.repository.GarageRepository;
 import sn.oas.facturation.features.notification.service.EmailService;
 import sn.oas.facturation.features.notification.service.NotificationService;
 import sn.oas.facturation.features.ordreReparation.service.OrdreReparationService;
 import sn.oas.facturation.features.rendezvous.data.entity.RendezVous;
 import sn.oas.facturation.features.rendezvous.data.enums.RendezVousStatus;
+import sn.oas.facturation.features.rendezvous.dto.RendezVousRequest;
+import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.features.rendezvous.repository.RendezVousRepository;
 import sn.oas.facturation.features.vehicule.repository.VehiculeRepository;
 import sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService;
@@ -61,7 +64,7 @@ class RendezVousServiceImplTest {
                 .motif("Vidange")
                 .statut(RendezVousStatus.EN_ATTENTE)
                 .build();
-        when(rendezvousRepository.findById(12L)).thenReturn(Optional.of(rendezVous));
+        lenient().when(rendezvousRepository.findById(12L)).thenReturn(Optional.of(rendezVous));
     }
 
     @Test
@@ -83,6 +86,48 @@ class RendezVousServiceImplTest {
                 contains("Votre rendez-vous prévu à la date du 12/10/2026 à 09:30 a été annulé pour motif de « Client indisponible »"));
         verify(emailService).sendSimpleEmail(eq("awa@example.com"), eq("Rendez-vous annulé"),
                 contains("motif de « Client indisponible »"));
+    }
+
+    @Test
+    void clientMayBookAppointmentForVehicleAwaitingActivation() {
+        Vehicule vehicule = Vehicule.builder().client(client).immatriculation("DK-7788-AA")
+                .marque("Opel").modele("Corsa").kilometrage(1000.0).actif(false).build();
+        vehicule.setId(77L);
+        Garage garage = Garage.builder().nom("Dakar").localite("Dakar").prefixe("DK").build();
+        garage.setId(3L);
+        when(politiqueFinanciereClientService.motifBlocageReservation(client.getId())).thenReturn(null);
+        when(vehiculeRepository.findById(77L)).thenReturn(Optional.of(vehicule));
+        when(garageRepository.findById(3L)).thenReturn(Optional.of(garage));
+        when(documentNumberGeneratorService.generateNextNumber(garage, sn.oas.facturation.shared.documentNumber.DocumentType.RDV))
+                .thenReturn("RDV-DK-001");
+        when(rendezvousRepository.save(any(RendezVous.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        RendezVous created = service.bookRendezVous(client,
+                new RendezVousRequest(LocalDateTime.now().plusDays(1), "Diagnostic", 77L, 3L));
+
+        assertSame(vehicule, created.getVehicule());
+        assertFalse(created.getVehicule().isActif());
+        assertEquals(RendezVousStatus.EN_ATTENTE, created.getStatut());
+    }
+
+    @Test
+    void appointmentCannotBeChangedValidatedOrCancelledBeforeVehicleActivation() {
+        Vehicule vehicule = Vehicule.builder().client(client).immatriculation("DK-7788-AA")
+                .marque("Opel").modele("Corsa").kilometrage(1000.0).actif(false).build();
+        rendezVous.setVehicule(vehicule);
+        LocalDateTime futureDate = LocalDateTime.now().plusDays(2);
+
+        assertThrows(BadRequestException.class, () -> service.validerRendezVous(12L, java.util.List.of()));
+        assertThrows(BadRequestException.class,
+                () -> service.updateRendezVousStatus(12L, RendezVousStatus.CONFIRME, null));
+        assertThrows(BadRequestException.class, () -> service.updateDate(12L, futureDate));
+        assertThrows(BadRequestException.class,
+                () -> service.updateRendezVous(12L, new RendezVousRequest(futureDate, "Diagnostic", null, null)));
+        assertThrows(BadRequestException.class,
+                () -> service.cancelRendezVous(client, 12L, "Demande de changement"));
+
+        verify(rendezvousRepository, never()).save(any());
+        verifyNoInteractions(notificationService, emailService);
     }
 
     @Test

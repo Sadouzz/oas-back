@@ -16,6 +16,7 @@ public record ClientVehiculeCardDTO(
         int stageIndex,
         String stageLabel,
         String stageTone,
+        boolean actif,
         boolean hasActiveRepair,
         FicheEnCoursSummaryDTO ficheEnCours,
         List<ClientInterventionSummaryDTO> historique
