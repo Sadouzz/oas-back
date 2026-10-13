@@ -444,6 +444,7 @@ public class ProformaServiceImpl implements ProformaService {
         proforma.setMontantTotal(proforma.getMontantTTC().add(proforma.getMontantTimbre()).add(autre));
         proforma.setAvertissementsFinanciers(politiqueFinanciereClientService.avertissementsProforma(
                 clientPourTarif, proforma.getMontantTotal()));
+        proforma.setStatut(StatutFacturation.EN_ATTENTE);
         proforma.setDateModification(LocalDateTime.now());
 
         return proformaRepository.save(proforma);

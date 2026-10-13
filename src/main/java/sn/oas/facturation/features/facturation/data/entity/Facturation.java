@@ -1,8 +1,11 @@
 package sn.oas.facturation.features.facturation.data.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.hibernate.annotations.Filter;
 import org.hibernate.annotations.FilterDef;
 import org.hibernate.annotations.ParamDef;
+import sn.oas.facturation.features.client.data.entity.Client;
+import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.shared.tenant.TenantAware;
 import sn.oas.facturation.shared.tenant.TenantListener;
 import sn.oas.facturation.features.garage.data.entity.Garage;
@@ -56,8 +59,8 @@ import java.util.List;
 @Filter(name = "garageFilter", condition = "garage_id = :garageId")
 public abstract class Facturation implements TenantAware  {
 
-    @ManyToOne(fetch = jakarta.persistence.FetchType.LAZY)
-    @jakarta.persistence.JoinColumn(name = "garage_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "garage_id")
     private Garage garage;
 
     @Override
@@ -90,6 +93,14 @@ public abstract class Facturation implements TenantAware  {
     private BigDecimal montantTotal;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "client_id")
+    private Client client;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "vehicule_id")
+    private Vehicule vehicule;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "agent_id")
     private Agent agent; // Agent qui a crÃ©Ã© la facture
 
@@ -99,7 +110,7 @@ public abstract class Facturation implements TenantAware  {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ordre_reparation_id")
-    @com.fasterxml.jackson.annotation.JsonIgnoreProperties("facturations")
+    @JsonIgnoreProperties("facturations")
     private OrdreReparation ordreReparation;
 
     @Enumerated(EnumType.STRING)
@@ -115,12 +126,12 @@ public abstract class Facturation implements TenantAware  {
     
     @OneToMany(mappedBy = "facturation", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    @com.fasterxml.jackson.annotation.JsonIgnoreProperties("facturation")
+    @JsonIgnoreProperties("facturation")
     private List<LigneFacturationPiece> lignesFacturationPieces = new ArrayList<>();
     
     @OneToMany(mappedBy = "facturation", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    @com.fasterxml.jackson.annotation.JsonIgnoreProperties("facturation")
+    @JsonIgnoreProperties("facturation")
     private List<LigneFacturationMainDoeuvre> lignesFacturationMainDoeuvres = new ArrayList<>();
 
 

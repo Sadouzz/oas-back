@@ -16,6 +16,8 @@ public class BonDeCommandeCreateRequest {
 
     private Long vehiculeId;
 
+    private Long ordreReparationId;
+
     private Boolean tvaApplicable;
 
     private String observation;

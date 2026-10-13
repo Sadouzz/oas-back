@@ -44,7 +44,6 @@ public interface OrdreReparationRepository extends JpaRepository<OrdreReparation
     List<OrdreReparation> findClientHistoryForVehicle(@Param("vehicleId") Long vehicleId, @Param("clientId") Long clientId);
     @Query("select o from OrdreReparation o where o.client.id = :clientId or (o.client is null and o.vehicule.client.id = :clientId) order by o.dateCreation desc")
     List<OrdreReparation> findClientHistory(@Param("clientId") Long clientId);
-    List<OrdreReparation> findByVehiculeIdAndStatut(Long vehiculeId, StatutOrdreReparation statut);
     OrdreReparation findTopByOrderByIdDesc();
     OrdreReparation findTopByNumeroStartingWithOrderByNumeroDesc(String prefix);
     boolean existsByVehiculeIdAndStatutNotIn(Long vehiculeId, List<StatutOrdreReparation> statuts);

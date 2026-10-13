@@ -550,6 +550,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             }
         }
 
+        ordreReparation.setUpdatedAt(LocalDateTime.now());
         ordreReparation = ordreReparationRepository.save(ordreReparation);
 
         // Auto-create proforma if pieces or MO are added and it doesn't exist yet
@@ -1150,6 +1151,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             sn.oas.facturation.features.vehicule.service.VehiculeActivationPolicy.requireActive(vehicule);
             ordre.setVehicule(vehicule);
         }
+        ordre.setUpdatedAt(LocalDateTime.now());
     }
 
     @Override
@@ -1580,6 +1582,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         if (dto.getLignesDefauts() != null && ordre.getFicheAtelier() != null) {
             ordre.getFicheAtelier().setLignesDefauts(dto.getLignesDefauts());
         }
+        ordre.setUpdatedAt(LocalDateTime.now());
         ordreReparationRepository.save(ordre);
         return dto;
     }

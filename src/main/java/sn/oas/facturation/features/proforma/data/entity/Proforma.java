@@ -23,14 +23,7 @@ import jakarta.persistence.ManyToOne;
 @EqualsAndHashCode(callSuper = true)
 public class Proforma extends FactureTTC {
 
-    /** Relations directes requises également pour les proformas hors fiche atelier. */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "client_id")
-    private Client client;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "vehicule_id")
-    private Vehicule vehicule;
 
     /** Alertes calculées lors de la création, non persistées et destinées à l'agent. */
     @jakarta.persistence.Transient

@@ -20,21 +20,13 @@ import sn.oas.facturation.features.facturation.data.entity.FactureHT;
 @Table(name = "avoirs_ht")
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
+//@AllArgsConstructor
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 @EntityListeners(TenantListener.class)
 @FilterDef(name = "garageFilter", parameters = @ParamDef(name = "garageId", type = Long.class))
 @Filter(name = "garageFilter", condition = "garage_id = :garageId")
 public class AvoirHT extends FactureHT implements TenantAware {
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "client_id")
-    private Client client;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "vehicule_id")
-    private Vehicule vehicule;
 
     // Herite de tous les champs de Facturation et FactureHT
 }

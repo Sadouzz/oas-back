@@ -29,13 +29,6 @@ public class Facture extends FactureTTC {
     @JoinColumn(name = "pdf_template_id")
     private PdfTemplate pdfTemplate;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "client_id", nullable = false)
-    private Client client;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "vehicule_id", nullable = false)
-    private Vehicule vehicule;
 
     @Column(name = "numero_bon_de_commande")
     private String numeroBonDeCommande;

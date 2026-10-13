@@ -104,6 +104,11 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
             sn.oas.facturation.features.vehicule.service.VehiculeActivationPolicy.requireActive(vehicule);
         }
 
+        OrdreReparation ordreReparation = null;
+        if (request.getOrdreReparationId() != null) {
+            ordreReparation = ordreReparationRepository.findById(request.getOrdreReparationId()).orElse(null);
+        }
+
         BonDeCommande bonDeCommande = BonDeCommande.builder()
                 .numero(documentNumberGeneratorService
                         .generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.BC))
@@ -114,6 +119,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                 .observation(request.getObservation())
                 .fournisseur(fournisseur)
                 .vehicule(vehicule)
+                .ordreReparation(ordreReparation)
                 .agent(agent)
                 .garage(agent != null ? agent.getGarage() : null)
                 .lignes(new ArrayList<>())
@@ -137,6 +143,11 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
         bonDeCommande.setMontantTTC(montantHT.add(tva));
 
         BonDeCommande saved = bonDeCommandeRepository.save(bonDeCommande);
+
+        if (ordreReparation != null) {
+            ordreReparation.setUpdatedAt(LocalDateTime.now());
+            ordreReparationRepository.save(ordreReparation);
+        }
 
         agentNotificationService.notifyRole(Role.AGENT_MAGASIN,
                 "Nouveau Bon de Commande",
@@ -407,16 +418,17 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
         }
 
         // Auto-générer le Bon de Sortie pour la fiche atelier en attente
-        if (bonDeCommande.getVehicule() != null) {
-            List<OrdreReparation> fiches = ordreReparationRepository
-                    .findByVehiculeIdAndStatut(
-                            bonDeCommande.getVehicule().getId(),
-                            StatutOrdreReparation.BON_DE_COMMANDE);
+        OrdreReparation fiche = bonDeCommande.getOrdreReparation();
+        if (fiche == null && bonDeCommande.getVehicule() != null) {
+            fiche = ordreReparationRepository.findFirstByVehiculeIdAndStatutNotIn(
+                    bonDeCommande.getVehicule().getId(),
+                    List.of(StatutOrdreReparation.LIVRE)).orElse(null);
+        }
 
-            for (OrdreReparation fiche : fiches) {
-                Proforma proforma = proformaRepository
-                        .findByOrdreReparationId(fiche.getId()).orElse(null);
-                if (proforma != null && fiche.getVehicule().getClient() != null) {
+        if (fiche != null) {
+            Proforma proforma = proformaRepository
+                    .findByOrdreReparationId(fiche.getId()).orElse(null);
+            if (proforma != null && fiche.getVehicule() != null && fiche.getVehicule().getClient() != null) {
                     List<LignePieceRequest> lignesPieces = new ArrayList<>();
                     for (LigneFacturationPiece lp : proforma
                             .getLignesFacturationPieces()) {
@@ -456,13 +468,13 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                         fiche.setBonDeSortie(bds);
                         fiche.setStatut(
                                 StatutOrdreReparation.BON_DE_SORTIE);
+                        fiche.setUpdatedAt(LocalDateTime.now());
                         ordreReparationRepository.save(fiche);
                     } catch (Exception e) {
                         log.error("Erreur auto bon de sortie FA-" + fiche.getId(), e);
                     }
                 }
             }
-        }
 
         agentNotificationService.notifyRole(Role.AGENT_MAGASIN,
                 "Bon de Commande Réceptionné",
@@ -562,16 +574,18 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                 .allMatch(l -> l.getQuantiteRecue() != null && l.getQuantiteRecue() >= l.getQuantite());
         bonDeCommande.setStatut(toutRecu ? StatutBonCommande.RECU : StatutBonCommande.INCOMPLET);
 
-        if (toutRecu && bonDeCommande.getVehicule() != null) {
-            List<OrdreReparation> fiches = ordreReparationRepository
-                    .findByVehiculeIdAndStatut(
-                            bonDeCommande.getVehicule().getId(),
-                            StatutOrdreReparation.BON_DE_COMMANDE);
+        if (toutRecu) {
+            OrdreReparation fiche = bonDeCommande.getOrdreReparation();
+            if (fiche == null && bonDeCommande.getVehicule() != null) {
+                fiche = ordreReparationRepository.findFirstByVehiculeIdAndStatutNotIn(
+                        bonDeCommande.getVehicule().getId(),
+                        List.of(StatutOrdreReparation.LIVRE)).orElse(null);
+            }
 
-            for (OrdreReparation fiche : fiches) {
+            if (fiche != null) {
                 Proforma proforma = proformaRepository
                         .findByOrdreReparationId(fiche.getId()).orElse(null);
-                if (proforma != null && fiche.getVehicule().getClient() != null) {
+                if (proforma != null && fiche.getVehicule() != null && fiche.getVehicule().getClient() != null) {
                     List<LignePieceRequest> lignesPieces = new ArrayList<>();
                     for (LigneFacturationPiece lp : proforma
                             .getLignesFacturationPieces()) {
@@ -609,6 +623,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                             fiche.setBonDeSortie(bds);
                             fiche.setStatut(
                                     StatutOrdreReparation.BON_DE_SORTIE);
+                            fiche.setUpdatedAt(LocalDateTime.now());
                             ordreReparationRepository.save(fiche);
                         } catch (Exception e) {
                             log.error("Erreur auto bon de sortie FA-" + fiche.getId(), e);

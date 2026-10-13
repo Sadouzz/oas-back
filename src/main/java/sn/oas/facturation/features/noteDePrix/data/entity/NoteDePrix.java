@@ -31,13 +31,6 @@ import java.math.BigDecimal;
 @Filter(name = "garageFilter", condition = "garage_id = :garageId")
 public class NoteDePrix extends FactureHT implements TenantAware {
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "client_id", nullable = true)
-    private Client client;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "vehicule_id", nullable = true)
-    private Vehicule vehicule;
 
     @Column(name = "numero_bon_de_commande")
     private String numeroBonDeCommande;
