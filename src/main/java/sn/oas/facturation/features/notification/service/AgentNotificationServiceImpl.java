@@ -46,7 +46,8 @@ public class AgentNotificationServiceImpl implements AgentNotificationService {
         if (garage == null || garage.getId() == null) {
             throw new IllegalArgumentException("Une notification ciblée doit préciser un garage enregistré.");
         }
-        notifyRoleForAgents(agentRepository.findNotificationRecipientsByRoleAndGarage(role.name(), garage.getId()), titre, message);
+        notifyRoleForAgents(agentRepository.findNotificationRecipientsByRoleAndGarage(role.name(), garage.getId()),
+                titre, message);
     }
 
     private void notifyRoleForAgents(List<Agent> agents, String titre, String message) {
@@ -88,7 +89,9 @@ public class AgentNotificationServiceImpl implements AgentNotificationService {
         }
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
-            public void afterCommit() { action.run(); }
+            public void afterCommit() {
+                action.run();
+            }
         });
     }
 
@@ -107,7 +110,8 @@ public class AgentNotificationServiceImpl implements AgentNotificationService {
     @Transactional
     public void markAsRead(Agent agent, Long notificationId) {
         AgentNotification notification = notificationRepository.findById(notificationId)
-                .orElseThrow(() -> new ResourceNotFoundException("Notification non trouvée avec l'identifiant " + notificationId));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Notification non trouvée avec l'identifiant " + notificationId));
 
         if (!notification.getAgent().getId().equals(agent.getId())) {
             throw new ForbiddenException("Accès non autorisé à cette notification");

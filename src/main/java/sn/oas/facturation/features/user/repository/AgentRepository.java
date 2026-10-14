@@ -11,10 +11,10 @@ import org.springframework.data.repository.query.Param;
 
 @Repository
 public interface AgentRepository extends JpaRepository<Agent, Long> {
-    @Query(value = "SELECT a.* FROM agents a JOIN users u ON u.id = a.id WHERE a.role = :role AND u.enabled = true", nativeQuery = true)
+    @Query("SELECT a FROM Agent a WHERE CAST(a.role AS String) = :role AND a.enabled = true")
     List<Agent> findNotificationRecipientsByRole(@Param("role") String role);
 
-    @Query(value = "SELECT a.* FROM agents a JOIN users u ON u.id = a.id WHERE a.role = :role AND a.garage_id = :garageId AND u.enabled = true", nativeQuery = true)
+    @Query("SELECT a FROM Agent a WHERE CAST(a.role AS String) = :role AND a.garage.id = :garageId AND a.enabled = true")
     List<Agent> findNotificationRecipientsByRoleAndGarage(
             @Param("role") String role, @Param("garageId") Long garageId);
 }
