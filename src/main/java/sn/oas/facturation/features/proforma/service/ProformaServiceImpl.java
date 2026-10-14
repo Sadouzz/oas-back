@@ -20,6 +20,7 @@ import sn.oas.facturation.features.facturation.dto.LigneFacturationMainDoeuvreRe
 import sn.oas.facturation.features.facturation.dto.LigneFacturationPieceRequest;
 import sn.oas.facturation.features.facture.data.entity.Facture;
 import sn.oas.facturation.features.facture.repository.FactureRepository;
+import sn.oas.facturation.features.facture.service.FactureService;
 import sn.oas.facturation.features.facturation.data.enums.StatutFacturation;
 import sn.oas.facturation.features.main_doeuvre.data.entity.MainDoeuvre;
 import sn.oas.facturation.features.main_doeuvre.repository.MainDoeuvreRepository;
@@ -60,6 +61,7 @@ public class ProformaServiceImpl implements ProformaService {
 
     private final ProformaRepository proformaRepository;
     private final FactureRepository factureRepository;
+    private final FactureService factureService;
     private final ClientRepository clientRepository;
     private final CompteClientRepository compteClientRepository;
     private final PolitiqueFinanciereClientService politiqueFinanciereClientService;
@@ -71,6 +73,7 @@ public class ProformaServiceImpl implements ProformaService {
     private final AgentNotificationService agentNotificationService;
     private final DocumentNumberGeneratorService documentNumberGeneratorService;
     private final EmailService emailService;
+    private final sn.oas.facturation.features.notification.service.NotificationService notificationService;
     private final ProformaGenerator proformaGenerator;
     @Override
     @Transactional
@@ -280,27 +283,9 @@ public class ProformaServiceImpl implements ProformaService {
             ordreReparationRepository.save(ordreReparation);
         }
 
-        agentNotificationService.notifyRole(Role.AGENT, 
+        agentNotificationService.notifyRoleInGarage(Role.AGENT, saved.getGarage(),
             "Nouveau Proforma", 
             "Le proforma " + saved.getNumero() + " a été généré et est en attente.");
-
-        var ownerAtWork = client;
-        if (ordreReparation != null && ordreReparation.getClient() != null) ownerAtWork = ordreReparation.getClient();
-        if (ownerAtWork == null && ordreReparation != null && ordreReparation.getVehicule() != null) ownerAtWork = ordreReparation.getVehicule().getClient();
-        if (ownerAtWork != null) {
-            String clientEmail = ownerAtWork.getEmail();
-            if (clientEmail != null && !clientEmail.isEmpty()) {
-                byte[] pdfBytes = generatePdf(saved.getId());
-                emailService.sendEmailWithAttachment(
-                        clientEmail,
-                        "Validation requise pour votre Proforma",
-                        "Bonjour,\n\nVotre proforma numéro " + saved.getNumero() + " vient d'être créé.\nMerci d'en prendre connaissance et de nous faire un retour pour validation.\n\nCordialement.",
-                        "Proforma_" + saved.getNumero() + ".pdf",
-                        pdfBytes,
-                        "application/pdf"
-                );
-            }
-        }
 
         return saved;
     }
@@ -529,13 +514,16 @@ public class ProformaServiceImpl implements ProformaService {
         Proforma proforma = proformaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Proforma non trouvé avec l'id : " + id));
 
+        boolean firstClientPublication = !Boolean.TRUE.equals(proforma.getVisibleClient());
         proforma.setVisibleClient(true);
         Proforma saved = proformaRepository.save(proforma);
 
-        var ownerAtWork = saved.getClient();
-        if (ownerAtWork == null) ownerAtWork = saved.getOrdreReparation() == null ? null : saved.getOrdreReparation().getClient();
-        if (ownerAtWork == null && saved.getOrdreReparation() != null && saved.getOrdreReparation().getVehicule() != null) ownerAtWork = saved.getOrdreReparation().getVehicule().getClient();
-        if (ownerAtWork != null) {
+        if (firstClientPublication) {
+            var ownerAtWork = resolveProformaClient(saved);
+            if (ownerAtWork == null) return saved;
+
+            notificationService.sendInAppNotification(ownerAtWork, "Proforma disponible",
+                    "Le proforma " + saved.getNumero() + " est disponible dans votre espace client pour consultation et validation.");
             String email = ownerAtWork.getEmail();
             if (email != null && !email.isEmpty()) {
                 byte[] pdfBytes = generatePdf(saved.getId());
@@ -569,10 +557,7 @@ public class ProformaServiceImpl implements ProformaService {
                 .orElseThrow(() -> new ResourceNotFoundException("Proforma non trouvé avec l'id : " + id));
 
         Client clientFacture = proforma.getClient();
-        if (clientFacture == null && proforma.getOrdreReparation() != null) {
-            clientFacture = proforma.getOrdreReparation().getClient() != null ? proforma.getOrdreReparation().getClient()
-                    : proforma.getOrdreReparation().getVehicule() == null ? null : proforma.getOrdreReparation().getVehicule().getClient();
-        }
+        if (clientFacture == null) clientFacture = resolveProformaClient(proforma);
         LocalDateTime dateEcheance = clientFacture != null && clientFacture.getEcheance() != null && clientFacture.getEcheance() > 0
                 ? LocalDateTime.now().plusDays(clientFacture.getEcheance()) : null;
 
@@ -581,8 +566,11 @@ public class ProformaServiceImpl implements ProformaService {
                 .dateCreation(LocalDateTime.now())
                 .dateModification(LocalDateTime.now())
                 .agent(authService.getAgentConnecte())
+                .garage(proforma.getGarage())
                 .client(clientFacture)
                 .vehicule(proforma.getVehicule() != null ? proforma.getVehicule() : proforma.getOrdreReparation() != null ? proforma.getOrdreReparation().getVehicule() : null)
+                .ordreReparation(proforma.getOrdreReparation())
+                .bonDeCommande(proforma.getBonDeCommande())
                 .kilometrage(proforma.getKilometrage())
                 .remarque(proforma.getRemarque())
                 .numeroBonDeCommande(proforma.getBonDeCommande() != null ? proforma.getBonDeCommande().getNumero() : null)
@@ -616,7 +604,33 @@ public class ProformaServiceImpl implements ProformaService {
                     .build());
         }
 
-        return factureRepository.save(facture);
+        Facture savedFacture = factureRepository.save(facture);
+        String message = "Le proforma " + proforma.getNumero() + " a été converti en facture " + savedFacture.getNumero() + ".";
+        if (clientFacture != null) {
+            notificationService.sendInAppNotification(clientFacture, "Votre facture est disponible", message);
+            String email = clientFacture.getEmail();
+            if (email != null && !email.isBlank()) {
+                byte[] pdfBytes = factureService.generatePdf(savedFacture.getId());
+                emailService.sendEmailWithAttachment(email, "Votre facture " + savedFacture.getNumero(),
+                        "<p>Bonjour,</p><p>Le proforma <b>" + proforma.getNumero()
+                                + "</b> a été converti en facture <b>" + savedFacture.getNumero()
+                                + "</b>. Vous trouverez la facture en pièce jointe.</p><p>Cordialement.</p>",
+                        "Facture_" + savedFacture.getNumero() + ".pdf", pdfBytes, "application/pdf");
+            }
+        }
+        if (savedFacture.getGarage() != null) {
+            agentNotificationService.notifyRoleInGarage(Role.AGENT, savedFacture.getGarage(),
+                    "Proforma converti en facture", message);
+        }
+        return savedFacture;
+    }
+
+    private Client resolveProformaClient(Proforma proforma) {
+        if (proforma.getClient() != null) return proforma.getClient();
+        OrdreReparation ordre = proforma.getOrdreReparation();
+        if (ordre == null) return null;
+        if (ordre.getClient() != null) return ordre.getClient();
+        return ordre.getVehicule() == null ? null : ordre.getVehicule().getClient();
     }
 
     @Override
@@ -634,6 +648,7 @@ public class ProformaServiceImpl implements ProformaService {
 
         assertClientOwnsVisibleProforma(client, proforma);
 
+        boolean statusChanged = proforma.getStatut() != StatutFacturation.ACCEPTE;
         proforma.setStatut(StatutFacturation.ACCEPTE);
 
         OrdreReparation ordreReparation = proforma.getOrdreReparation();
@@ -642,9 +657,10 @@ public class ProformaServiceImpl implements ProformaService {
             ordreReparationRepository.save(ordreReparation);
         }
 
-        agentNotificationService.notifyRole(Role.CHEF_ATELIER,
-            "Proforma Validé", 
-            "Le proforma " + proforma.getNumero() + " a été validé par le client.");
+        if (statusChanged) {
+            agentNotificationService.notifyRoleInGarage(Role.CHEF_ATELIER, proforma.getGarage(),
+                "Proforma Validé", "Le proforma " + proforma.getNumero() + " a été validé par le client.");
+        }
 
         return proformaRepository.save(proforma);
     }
@@ -658,9 +674,15 @@ public class ProformaServiceImpl implements ProformaService {
 
         assertClientOwnsVisibleProforma(client, proforma);
 
+        boolean statusChanged = proforma.getStatut() != StatutFacturation.REJETE;
         proforma.setStatut(StatutFacturation.REJETE);
-
-        return proformaRepository.save(proforma);
+        Proforma saved = proformaRepository.save(proforma);
+        if (statusChanged) {
+            String message = "Le proforma " + saved.getNumero() + " a été refusé par le client.";
+            agentNotificationService.notifyRoleInGarage(Role.CHEF_ATELIER, saved.getGarage(), "Proforma refusé", message);
+            agentNotificationService.notifyRoleInGarage(Role.AGENT, saved.getGarage(), "Proforma refusé par le client", message);
+        }
+        return saved;
     }
 
     private void assertClientOwnsVisibleProforma(Client client, Proforma proforma) {

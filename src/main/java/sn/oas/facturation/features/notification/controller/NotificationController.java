@@ -8,6 +8,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.notification.dto.NotificationResponse;
+import sn.oas.facturation.features.notification.dto.NotificationPageResponse;
 import sn.oas.facturation.features.notification.service.AgentNotificationService;
 import sn.oas.facturation.features.notification.service.NotificationService;
 import sn.oas.facturation.features.user.data.entity.Agent;
@@ -42,18 +43,32 @@ public class NotificationController {
         }
 
         if (user instanceof Agent agent) {
-            return ResponseEntity.ok(agentNotificationService.getAgentNotifications(agent)
-                    .stream()
-                    .map(a -> new NotificationResponse(a.id(), a.titre(), a.message(), a.lu(), a.dateCreation()))
-                    .toList());
+            return ResponseEntity.ok(agentNotificationService.getAgentNotificationPage(agent, 0, 100).content());
         } else if (user instanceof Client client) {
-            return ResponseEntity.ok(notificationService.getClientNotifications(client)
-                    .stream()
-                    .map(NotificationResponse::from)
-                    .toList());
+            return ResponseEntity.ok(notificationService.getClientNotificationPage(client, 0, 100).content());
         }
 
         return ResponseEntity.ok(List.of());
+    }
+
+    @GetMapping("/page")
+    @Operation(summary = "Lister une page de notifications avec le nombre total de non lues")
+    public ResponseEntity<NotificationPageResponse> getNotificationPage(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        if (page < 0 || size < 1 || size > 100) {
+            throw new sn.oas.facturation.shared.exception.BadRequestException("La page ou la taille demandée est invalide.");
+        }
+        User user = getAuthenticatedUser(authentication);
+        if (user == null) return ResponseEntity.status(401).build();
+        if (user instanceof Agent agent) {
+            return ResponseEntity.ok(agentNotificationService.getAgentNotificationPage(agent, page, size));
+        }
+        if (user instanceof Client client) {
+            return ResponseEntity.ok(notificationService.getClientNotificationPage(client, page, size));
+        }
+        return ResponseEntity.ok(new NotificationPageResponse(List.of(), page, size, 0, 0, false));
     }
 
     @RequestMapping(value = {"/{id}/read", "/{id}/lu"}, method = {RequestMethod.POST, RequestMethod.PUT})

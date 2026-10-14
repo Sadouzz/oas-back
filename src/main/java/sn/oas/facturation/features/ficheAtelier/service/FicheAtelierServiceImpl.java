@@ -49,6 +49,7 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     private final FicheAtelierPdfService ficheAtelierPdfService;
     private final sn.oas.facturation.features.ficheAtelier.repository.FicheAtelierPdfRepository pdfRepository;
     private final sn.oas.facturation.features.notification.service.AgentNotificationService agentNotificationService;
+    private final sn.oas.facturation.features.notification.service.NotificationService notificationService;
 
     @Transactional
     @Override
@@ -138,9 +139,12 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
             rendezVousRepository.save(rendezVous);
         }
         
-        agentNotificationService.notifyRole(sn.oas.facturation.features.user.data.enums.Role.CHEF_ATELIER,
+        agentNotificationService.notifyRoleInGarage(sn.oas.facturation.features.user.data.enums.Role.CHEF_ATELIER, saved.getGarage(),
                 "Nouvelle Fiche Atelier",
                 "Une nouvelle fiche atelier (" + saved.getNumero() + ") a été créée.");
+        notificationService.sendInAppNotification(client, "Fiche atelier créée",
+                "Votre fiche atelier " + saved.getNumero()
+                        + " a été enregistrée. Le récapitulatif signé et les conditions de réparation vous sont transmis par e-mail à l'adresse enregistrée.");
         eventPublisher.publishEvent(new FicheAtelierCreee(saved.getId()));
                 
         return saved;

@@ -41,6 +41,7 @@ public class StockServiceImpl implements StockService {
     private final PieceMouvementRepository pieceMouvementRepository;
     private final PieceDetacheRepository pieceDetacheRepository;
     private final UserRepository userRepository;
+    private final StockThresholdNotificationService stockThresholdNotificationService;
 
     @Transactional
     @Override
@@ -63,6 +64,7 @@ public class StockServiceImpl implements StockService {
         pdp.setStockMagasin(magasinAvant + request.quantite());
         pdp.setQteReelle(pdp.getStockMagasin() + pdp.getStockAtelier());
         pieceDetacheRepository.save(pdp);
+        stockThresholdNotificationService.notifyIfThresholdCrossed(pdp, magasinAvant);
 
         return pieceMouvementRepository.save(PieceMouvement.builder()
                 .type(TypeMouvement.ENTREE)
@@ -157,6 +159,7 @@ public class StockServiceImpl implements StockService {
         pdp.setStockAtelier(request.stockAtelier() != null ? request.stockAtelier().doubleValue() : 0.0);
         pdp.setQteReelle((request.stockMagasin() != null ? request.stockMagasin().doubleValue() : 0.0) + (request.stockAtelier() != null ? request.stockAtelier().doubleValue() : 0.0));
         pieceDetacheRepository.save(pdp);
+        stockThresholdNotificationService.notifyIfThresholdCrossed(pdp, magasinAvant);
 
         return pieceMouvementRepository.save(PieceMouvement.builder()
                 .type(TypeMouvement.AJUSTEMENT)

@@ -40,6 +40,7 @@ import com.lowagie.text.Paragraph;
 
 import com.lowagie.text.pdf.PdfWriter;
 import sn.oas.facturation.features.notification.service.EmailService;
+import sn.oas.facturation.features.notification.service.NotificationService;
 import lombok.extern.slf4j.Slf4j;
 
 
@@ -55,6 +56,7 @@ public class DiagnosticServiceImpl implements DiagnosticService {
     private final RemarqueDiagnosticRepository remarqueDiagnosticRepository;
     private final sn.oas.facturation.features.pdfGenerator.service.HtmlToPdfService htmlToPdfService;
     private final EmailService emailService;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -230,11 +232,21 @@ public class DiagnosticServiceImpl implements DiagnosticService {
     public DiagnosticResponse updateStatut(Long id, StatutDiagnostic statut) {
         Diagnostic diagnostic = diagnosticRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Diagnostic non trouvé avec l'id : " + id));
+        StatutDiagnostic ancienStatut = diagnostic.getStatut();
         diagnostic.setStatut(statut);
         if (statut == StatutDiagnostic.TERMINE && diagnostic.getDateFin() == null) {
             diagnostic.setDateFin(LocalDateTime.now());
         }
-        return toDiagnosticResponse(diagnosticRepository.save(diagnostic));
+        Diagnostic saved = diagnosticRepository.save(diagnostic);
+        if (statut == StatutDiagnostic.TERMINE && ancienStatut != StatutDiagnostic.TERMINE
+                && saved.getOrdreReparation() != null && saved.getOrdreReparation().getVehicule() != null
+                && saved.getOrdreReparation().getVehicule().getClient() != null) {
+            var vehicle = saved.getOrdreReparation().getVehicule();
+            notificationService.sendInAppNotification(vehicle.getClient(), "Diagnostic terminé",
+                    "Le diagnostic de votre véhicule " + vehicle.getImmatriculation()
+                            + " est terminé. Consultez votre espace client pour le compte rendu.");
+        }
+        return toDiagnosticResponse(saved);
     }
 
     @Override

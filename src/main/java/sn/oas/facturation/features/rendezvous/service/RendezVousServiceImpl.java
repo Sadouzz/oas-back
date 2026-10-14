@@ -14,7 +14,7 @@ import sn.oas.facturation.features.client.service.PolitiqueFinanciereClientServi
 import sn.oas.facturation.features.garage.data.entity.Garage;
 import sn.oas.facturation.features.garage.repository.GarageRepository;
 import sn.oas.facturation.features.notification.service.NotificationService;
-import sn.oas.facturation.features.notification.service.EmailService;
+import sn.oas.facturation.features.notification.service.AgentNotificationService;
 import sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation;
 import sn.oas.facturation.features.ordreReparation.service.OrdreReparationService;
 import sn.oas.facturation.features.rendezvous.data.entity.RendezVous;
@@ -42,9 +42,9 @@ public class RendezVousServiceImpl implements RendezVousService {
     private final ClientRepository clientRepository;
     private final GarageRepository garageRepository;
     private final NotificationService notificationService;
+    private final AgentNotificationService agentNotificationService;
     private final OrdreReparationService ordreReparationService;
     private final DocumentNumberGeneratorService documentNumberGeneratorService;
-    private final EmailService emailService;
     private final PolitiqueFinanciereClientService politiqueFinanciereClientService;
 
     @Transactional
@@ -118,6 +118,11 @@ public class RendezVousServiceImpl implements RendezVousService {
                 .build();
 
         rendezvousRepository.save(rv);
+        agentNotificationService.notifyRoleInGarage(
+                sn.oas.facturation.features.user.data.enums.Role.CHEF_ATELIER,
+                garage,
+                "Nouveau rendez-vous",
+                "Un rendez-vous a été enregistré pour le " + request.dateRendezVous() + ".");
 
         // Notify client
         if (client != null) {
@@ -127,7 +132,6 @@ public class RendezVousServiceImpl implements RendezVousService {
                             (request.motif() != null && !request.motif().isBlank() ? " (" + request.motif() + ")" : "") + ".";
             String titre = statut == RendezVousStatus.EN_ATTENTE ? "Demande de rendez-vous enregistrée" : "Rendez-vous programmé";
             notificationService.sendNotification(client, titre, message);
-            sendEmailToClient(rv, titre, message);
         }
 
         return rv;
@@ -184,14 +188,15 @@ public class RendezVousServiceImpl implements RendezVousService {
 
         rendezvousRepository.save(rv);
 
+        agentNotificationService.notifyRoleInGarage(
+                sn.oas.facturation.features.user.data.enums.Role.CHEF_ATELIER,
+                garage,
+                "Nouvelle demande de rendez-vous",
+                "Une demande de rendez-vous pour le " + request.dateRendezVous() + " est en attente de confirmation.");
+
         // Notify client
         notificationService.sendNotification(client, "Rendez-vous enregistré", 
                 "Votre demande de rendez-vous pour le " + request.dateRendezVous() + " a bien été enregistrée et est en attente de confirmation.");
-        if (client != null && client.getEmail() != null) {
-            emailService.sendSimpleEmail(client.getEmail(), "Rendez-vous enregistré", 
-                    "Bonjour " + client.getFirstName() + ",\n\nVotre demande de rendez-vous pour le " + request.dateRendezVous() + " a bien été enregistrée et est en attente de confirmation.");
-        }
-
         return rv;
     }
 
@@ -225,7 +230,6 @@ public class RendezVousServiceImpl implements RendezVousService {
 
         String message = cancellationMessage(rv);
         notificationService.sendNotification(client, "Rendez-vous annulé", message);
-        sendEmailToClient(rv, "Rendez-vous annulé", message);
 
         return rv;
     }
@@ -340,7 +344,6 @@ public class RendezVousServiceImpl implements RendezVousService {
             message += " Commentaire : " + commentaire;
         }
         notificationService.sendNotification(rv.getClient(), titre, message);
-        sendEmailToClient(rv, titre, message);
 
         return rv;
     }
@@ -381,13 +384,6 @@ public class RendezVousServiceImpl implements RendezVousService {
         };
     }
 
-    private void sendEmailToClient(RendezVous rv, String subject, String message) {
-        if (rv.getClient() != null && rv.getClient().getEmail() != null && !rv.getClient().getEmail().isBlank()) {
-            emailService.sendSimpleEmail(rv.getClient().getEmail(), subject,
-                    "Bonjour " + rv.getClient().getFirstName() + ",\n\n" + message);
-        }
-    }
-
     @Transactional
     @Override
     public RendezVous validerRendezVous(Long id, List<Long> mecanicienIds) {
@@ -403,7 +399,6 @@ public class RendezVousServiceImpl implements RendezVousService {
 
         String message = "Votre rendez-vous prévu à la date du " + rv.getDateRendezVous() + " a été validé et confirmé.";
         notificationService.sendNotification(rv.getClient(), "Rendez-vous validé", message);
-        sendEmailToClient(rv, "Rendez-vous validé", message);
 
         return rv;
     }
@@ -427,7 +422,6 @@ public class RendezVousServiceImpl implements RendezVousService {
         if (rv.getClient() != null) {
             notificationService.sendNotification(rv.getClient(), "Date de rendez-vous modifiée",
                     message);
-            sendEmailToClient(rv, "Date de rendez-vous modifiée", message);
         }
 
         return rv;
@@ -500,7 +494,6 @@ public class RendezVousServiceImpl implements RendezVousService {
                     ? cancellationMessage(rv)
                     : "Votre rendez-vous du " + rv.getDateRendezVous() + " est maintenant " + statusLabel(nouveauStatut) + ".";
             notificationService.sendNotification(rv.getClient(), titre, message);
-            sendEmailToClient(rv, titre, message);
         } else if (rv.getClient() != null && request.dateRendezVous() != null) {
             notificationService.sendNotification(rv.getClient(), "Rendez-vous modifié",
                     "Les informations de votre rendez-vous ont été mises à jour (Date : " + rv.getDateRendezVous() + ").");

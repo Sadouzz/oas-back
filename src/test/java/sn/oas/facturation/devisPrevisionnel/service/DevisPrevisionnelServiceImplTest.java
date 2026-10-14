@@ -14,12 +14,16 @@ import sn.oas.facturation.features.devisPrevisionnel.repository.DevisPrevisionne
 import sn.oas.facturation.features.devisPrevisionnel.service.DevisPrevisionnelServiceImpl;
 import sn.oas.facturation.features.facturation.data.enums.StatutFacturation;
 import sn.oas.facturation.features.vehicule.service.VehiculeService;
+import sn.oas.facturation.features.notification.service.AgentNotificationService;
+import sn.oas.facturation.features.garage.data.entity.Garage;
+import sn.oas.facturation.features.user.data.enums.Role;
 
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -37,6 +41,9 @@ class DevisPrevisionnelServiceImplTest {
 
     @Mock
     private UserService userService;
+
+    @Mock
+    private AgentNotificationService agentNotificationService;
 
     @InjectMocks
     private DevisPrevisionnelServiceImpl devisPrevisionnelService;
@@ -57,9 +64,12 @@ class DevisPrevisionnelServiceImplTest {
     @Test
     void clientAccepter_shouldSetAcceptedStatus() {
         Client client = Client.builder().id(55L).build();
+        Garage garage = new Garage();
+        garage.setId(12L);
         DevisPrevisionnel devis = DevisPrevisionnel.builder()
                 .id(7L)
                 .client(client)
+                .garage(garage)
                 .statut(StatutFacturation.EN_ATTENTE)
                 .build();
         when(devisPrevisionnelRepository.findById(7L)).thenReturn(Optional.of(devis));
@@ -70,14 +80,19 @@ class DevisPrevisionnelServiceImplTest {
 
         assertThat(result.getStatut()).isEqualTo(StatutFacturation.ACCEPTE);
         verify(devisPrevisionnelRepository).save(devis);
+        verify(agentNotificationService).notifyRoleInGarage(eq(Role.AGENT), eq(garage), eq("Devis prévisionnel accepté"), any());
+        verify(agentNotificationService).notifyRoleInGarage(eq(Role.CHEF_ATELIER), eq(garage), eq("Devis prévisionnel accepté"), any());
     }
 
     @Test
     void clientRefuser_shouldSetRejectedStatus() {
         Client client = Client.builder().id(66L).build();
+        Garage garage = new Garage();
+        garage.setId(13L);
         DevisPrevisionnel devis = DevisPrevisionnel.builder()
                 .id(8L)
                 .client(client)
+                .garage(garage)
                 .statut(StatutFacturation.EN_ATTENTE)
                 .build();
         when(devisPrevisionnelRepository.findById(8L)).thenReturn(Optional.of(devis));
@@ -88,5 +103,7 @@ class DevisPrevisionnelServiceImplTest {
 
         assertThat(result.getStatut()).isEqualTo(StatutFacturation.REJETE);
         verify(devisPrevisionnelRepository).save(devis);
+        verify(agentNotificationService).notifyRoleInGarage(eq(Role.AGENT), eq(garage), eq("Devis prévisionnel refusé"), any());
+        verify(agentNotificationService).notifyRoleInGarage(eq(Role.CHEF_ATELIER), eq(garage), eq("Devis prévisionnel refusé"), any());
     }
 }

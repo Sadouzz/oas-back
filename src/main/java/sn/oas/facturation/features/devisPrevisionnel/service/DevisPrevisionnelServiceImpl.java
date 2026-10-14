@@ -28,12 +28,15 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import sn.oas.facturation.features.ficheAtelier.repository.FicheAtelierRepository;
 import sn.oas.facturation.features.user.data.entity.Agent;
+import sn.oas.facturation.features.user.data.enums.Role;
 import sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier;
 import sn.oas.facturation.features.garage.data.entity.Garage;
 import sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService;
 import sn.oas.facturation.shared.exception.BadRequestException;
 import sn.oas.facturation.shared.exception.ResourceNotFoundException;
 import sn.oas.facturation.features.notification.service.EmailService;
+import sn.oas.facturation.features.notification.service.AgentNotificationService;
+import sn.oas.facturation.features.user.data.enums.Role;
 import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.features.ordreReparation.repository.OrdreReparationRepository;
 
@@ -49,6 +52,7 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
     private final UserService userService;
     private final DocumentNumberGeneratorService documentNumberGeneratorService;
     private final EmailService emailService;
+    private final AgentNotificationService agentNotificationService;
     private final DevisPrevisionnelGenerator devisPrevisionnelGenerator;
 
     @Transactional
@@ -339,8 +343,11 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
     public DevisPrevisionnel clientAccepter(Client client, Long id) {
         DevisPrevisionnel devis = getById(id);
         assertClientOwns(client, devis);
+        boolean statusChanged = devis.getStatut() != StatutFacturation.ACCEPTE;
         devis.setStatut(StatutFacturation.ACCEPTE);
-        return devisPrevisionnelRepository.save(devis);
+        DevisPrevisionnel saved = devisPrevisionnelRepository.save(devis);
+        if (statusChanged) notifierDecisionClient(saved, true);
+        return saved;
     }
 
     @Override
@@ -348,8 +355,19 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
     public DevisPrevisionnel clientRefuser(Client client, Long id) {
         DevisPrevisionnel devis = getById(id);
         assertClientOwns(client, devis);
+        boolean statusChanged = devis.getStatut() != StatutFacturation.REJETE;
         devis.setStatut(StatutFacturation.REJETE);
-        return devisPrevisionnelRepository.save(devis);
+        DevisPrevisionnel saved = devisPrevisionnelRepository.save(devis);
+        if (statusChanged) notifierDecisionClient(saved, false);
+        return saved;
+    }
+
+    private void notifierDecisionClient(DevisPrevisionnel devis, boolean accepte) {
+        String titre = accepte ? "Devis prévisionnel accepté" : "Devis prévisionnel refusé";
+        String message = "Le devis prévisionnel " + devis.getNumero() + " a été "
+                + (accepte ? "accepté" : "refusé") + " par le client.";
+        agentNotificationService.notifyRoleInGarage(Role.AGENT, devis.getGarage(), titre, message);
+        agentNotificationService.notifyRoleInGarage(Role.CHEF_ATELIER, devis.getGarage(), titre, message);
     }
 
     private void assertClientOwns(Client client, DevisPrevisionnel devis) {

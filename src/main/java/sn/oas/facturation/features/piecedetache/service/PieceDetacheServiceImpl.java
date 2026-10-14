@@ -44,6 +44,7 @@ import sn.oas.facturation.features.piecedetache.dto.PieceStatsResponse;
 public class PieceDetacheServiceImpl implements PieceDetacheService {
 
     private final PieceDetacheRepository pieceDetacheRepository;
+    private final StockThresholdNotificationService stockThresholdNotificationService;
     private final CategorieRepository categorieRepository;
     private final DepotRepository depotRepository;
     private final AlerteService alerteService;
@@ -306,11 +307,13 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
         }
 
         if (piece instanceof PDP pdp) {
+            double stockMagasinAvant = pdp.getStockMagasin() == null ? 0.0 : pdp.getStockMagasin();
             if (request.prixUnitaire() != null) pdp.setPrixUnitaire(request.prixUnitaire());
             if (request.prixGros() != null) pdp.setPrixGros(request.prixGros());
             if (request.pourcentage() != null) pdp.setPourcentage(request.pourcentage());
             if (request.seuilMinimum() != null) pdp.setSeuilMinimum(request.seuilMinimum());
             if (request.stockMagasin() != null) pdp.setStockMagasin(request.stockMagasin().doubleValue());
+            stockThresholdNotificationService.notifyIfThresholdCrossed(pdp, stockMagasinAvant);
         } else if (piece instanceof PDG pdg) {
             if (request.prixUnitaire() != null) pdg.setPrixUnitaire(request.prixUnitaire());
         }

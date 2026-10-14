@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.service.ClientService;
 import sn.oas.facturation.features.notification.service.AgentNotificationService;
+import sn.oas.facturation.features.notification.service.NotificationService;
 import sn.oas.facturation.features.ordreReparation.repository.OrdreReparationRepository;
 import sn.oas.facturation.features.user.data.entity.User;
 import sn.oas.facturation.features.user.data.enums.Role;
@@ -39,6 +40,7 @@ public class VehicleTransferService {
     private final ClientService clientService;
     private final UserRepository userRepository;
     private final AgentNotificationService agentNotificationService;
+    private final NotificationService notificationService;
 
     @Transactional
     public VehicleTransferRequestResponse request(VehicleTransferRequestCreate payload) {
@@ -95,7 +97,10 @@ public class VehicleTransferService {
         request.setDecisionNote(decision.decisionNote());
         if (!decision.approved()) {
             request.setStatus(VehicleTransferStatus.REJECTED);
-            return VehicleTransferRequestResponse.forAgent(requestRepository.save(request));
+            VehicleTransferRequestResponse response = VehicleTransferRequestResponse.forAgent(requestRepository.save(request));
+            notificationService.sendNotification(request.getRequester(), "Demande de transfert refusée",
+                    transferDecisionMessage(request, decision.decisionNote(), false));
+            return response;
         }
 
         Vehicule vehicle = vehiculeRepository.findByIdForOwnershipChange(request.getVehicule().getId())
@@ -104,7 +109,10 @@ public class VehicleTransferService {
         if (!formerOwner.getId().equals(request.getCurrentOwner().getId())) {
             request.setStatus(VehicleTransferStatus.REJECTED);
             request.setDecisionNote("Le propriétaire du véhicule a changé pendant l'examen de la demande.");
-            return VehicleTransferRequestResponse.forAgent(requestRepository.save(request));
+            VehicleTransferRequestResponse response = VehicleTransferRequestResponse.forAgent(requestRepository.save(request));
+            notificationService.sendNotification(request.getRequester(), "Demande de transfert refusée",
+                    transferDecisionMessage(request, request.getDecisionNote(), false));
+            return response;
         }
         VehicleOwnershipPeriod current = ownershipRepository.findFirstByVehiculeIdAndEndedAtIsNullOrderByStartedAtDesc(vehicle.getId()).orElse(null);
         if (current == null) {
@@ -122,6 +130,18 @@ public class VehicleTransferService {
         vehicle.setArchiveParClient(false);
         vehiculeRepository.save(vehicle);
         request.setStatus(VehicleTransferStatus.APPROVED);
-        return VehicleTransferRequestResponse.forAgent(requestRepository.save(request));
+        VehicleTransferRequestResponse response = VehicleTransferRequestResponse.forAgent(requestRepository.save(request));
+        notificationService.sendNotification(request.getRequester(), "Demande de transfert acceptée",
+                transferDecisionMessage(request, decision.decisionNote(), true));
+        notificationService.sendNotification(formerOwner, "Transfert de véhicule effectué",
+                "Le véhicule " + vehicle.getImmatriculation() + " a été transféré vers un autre compte client.");
+        return response;
+    }
+
+    private String transferDecisionMessage(VehicleTransferRequest request, String note, boolean approved) {
+        String message = approved
+                ? "Votre demande de transfert du véhicule " + request.getVehicule().getImmatriculation() + " a été acceptée."
+                : "Votre demande de transfert du véhicule " + request.getVehicule().getImmatriculation() + " a été refusée.";
+        return note == null || note.isBlank() ? message : message + " Motif : " + note;
     }
 }
