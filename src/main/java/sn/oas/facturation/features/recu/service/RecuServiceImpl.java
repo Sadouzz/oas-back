@@ -15,6 +15,9 @@ import sn.oas.facturation.features.ordreReparation.repository.OrdreReparationRep
 import sn.oas.facturation.features.recu.data.entity.Recu;
 import sn.oas.facturation.features.recu.dto.RecuRequest;
 import sn.oas.facturation.features.recu.repository.RecuRepository;
+import sn.oas.facturation.features.notification.service.AgentNotificationService;
+import sn.oas.facturation.features.notification.service.NotificationService;
+import sn.oas.facturation.features.user.data.enums.Role;
 import sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService;
 import sn.oas.facturation.shared.documentNumber.DocumentType;
 import sn.oas.facturation.shared.exception.BadRequestException;
@@ -32,6 +35,8 @@ public class RecuServiceImpl implements RecuService {
     private final FactureRepository factureRepository;
     private final OrdreReparationRepository ordreReparationRepository;
     private final DocumentNumberGeneratorService documentNumberGeneratorService;
+    private final NotificationService notificationService;
+    private final AgentNotificationService agentNotificationService;
 
     @Override
     @Transactional
@@ -66,6 +71,7 @@ public class RecuServiceImpl implements RecuService {
         // Update Facture
         facture.setMontantPaye(facture.getMontantPaye().add(request.getMontant()));
         facture.setResteAPayer(facture.getMontantTotal().subtract(facture.getMontantPaye()));
+        boolean vehicleReadyForDelivery = false;
 
         if (facture.getResteAPayer().compareTo(BigDecimal.ZERO) <= 0) {
             facture.setStatutPaiement(StatutPaiement.PAYE);
@@ -76,6 +82,11 @@ public class RecuServiceImpl implements RecuService {
                 if (fiche.getStatut() == StatutOrdreReparation.PAIEMENT) {
                     fiche.setStatut(StatutOrdreReparation.PRET_A_LIVRER);
                     ordreReparationRepository.save(fiche);
+                    vehicleReadyForDelivery = true;
+                    if (facture.getClient() != null) {
+                        notificationService.sendInAppNotification(facture.getClient(), "Véhicule prêt à récupérer",
+                                "Le paiement de votre facture est complet. Votre véhicule est prêt à être récupéré.");
+                    }
                 }
             }
         } else {
@@ -83,6 +94,19 @@ public class RecuServiceImpl implements RecuService {
         }
 
         factureRepository.save(facture);
+
+        String statutLibelle = facture.getStatutPaiement() == StatutPaiement.PAYE ? "payée intégralement" : "partiellement payée";
+        notificationService.sendNotification(facture.getClient(), "Paiement enregistré",
+                "Le reçu " + recu.getNumero() + " de " + request.getMontant()
+                        + " a été enregistré. La facture " + facture.getNumero() + " est " + statutLibelle + ".");
+        agentNotificationService.notifyRoleInGarage(Role.AGENT, facture.getGarage(),
+                facture.getStatutPaiement() == StatutPaiement.PAYE ? "Facture payée" : "Paiement partiel reçu",
+                "Le reçu " + recu.getNumero() + " a été enregistré pour la facture " + facture.getNumero() + ".");
+        if (vehicleReadyForDelivery) {
+            agentNotificationService.notifyRoleInGarage(Role.CHEF_ATELIER, facture.getGarage(),
+                    "Véhicule prêt à livrer", "La facture " + facture.getNumero()
+                            + " est soldée. Le véhicule associé peut être remis au client.");
+        }
 
         return recu;
     }

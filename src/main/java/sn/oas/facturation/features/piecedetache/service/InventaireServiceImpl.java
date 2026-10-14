@@ -25,6 +25,7 @@ import sn.oas.facturation.features.user.data.entity.User;
 public class InventaireServiceImpl implements InventaireService {
 
     private final PieceDetacheRepository pieceDetacheRepository;
+    private final StockThresholdNotificationService stockThresholdNotificationService;
     private final PieceMouvementRepository pieceMouvementRepository;
     private final UserRepository userRepository;
 
@@ -62,6 +63,7 @@ public class InventaireServiceImpl implements InventaireService {
         pdp.setStockAtelier(request.stockAtelierPhysique());
         pdp.setQteReelle(request.stockMagasinPhysique() + request.stockAtelierPhysique());
         pieceDetacheRepository.save(pdp);
+        stockThresholdNotificationService.notifyIfThresholdCrossed(pdp, stockMagasin);
 
         PieceMouvement mouvement = pieceMouvementRepository.save(PieceMouvement.builder()
                 .type(TypeMouvement.INVENTAIRE)

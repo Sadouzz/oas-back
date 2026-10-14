@@ -69,6 +69,7 @@ public class FactureServiceImpl implements FactureService {
     private final PieceDetacheRepository pieceDetacheRepository;
     private final PieceMouvementRepository pieceMouvementRepository;
     private final sn.oas.facturation.features.notification.service.EmailService emailService;
+    private final sn.oas.facturation.features.notification.service.NotificationService notificationService;
     private final sn.oas.facturation.features.pdfGenerator.service.HtmlToPdfService htmlToPdfService;
     private final sn.oas.facturation.features.pdfTemplate.repository.PdfTemplateRepository pdfTemplateRepository;
     private final CompteClientRepository compteClientRepository;
@@ -203,9 +204,11 @@ public class FactureServiceImpl implements FactureService {
         if (ordreReparation != null && ordreReparation.getStatut() != StatutOrdreReparation.PAIEMENT) {
             ordreReparation.setStatut(StatutOrdreReparation.PAIEMENT);
             ordreReparationRepository.save(ordreReparation);
-        }        agentNotificationService.notifyRole(Role.AGENT, 
+        }        agentNotificationService.notifyRoleInGarage(Role.AGENT, facture.getGarage(),
             "Nouvelle Facture", 
             "La facture " + facture.getNumero() + " a été générée et est en attente de paiement.");
+        notificationService.sendInAppNotification(client, "Nouvelle facture",
+                "La facture " + facture.getNumero() + " est disponible dans votre espace client.");
 
         if (client.getEmail() != null && !client.getEmail().isEmpty()) {
             byte[] pdfBytes = generatePdf(facture.getId());
@@ -338,10 +341,14 @@ public class FactureServiceImpl implements FactureService {
             }
         }
 
-        agentNotificationService.notifyRole(Role.AGENT, 
+        agentNotificationService.notifyRoleInGarage(Role.AGENT, facture.getGarage(),
             "Nouvelle Facture Auto", 
             "La facture " + facture.getNumero() + " a été générée automatiquement et est en attente de paiement.");
 
+        if (client != null) {
+            notificationService.sendInAppNotification(client, "Nouvelle facture",
+                    "La facture " + facture.getNumero() + " est disponible dans votre espace client.");
+        }
         if (client != null && client.getEmail() != null && !client.getEmail().isEmpty()) {
             byte[] pdfBytes = generatePdf(facture.getId());
             emailService.sendEmailWithAttachment(

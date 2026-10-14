@@ -7,6 +7,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.service.ClientService;
 import sn.oas.facturation.features.notification.service.AgentNotificationService;
+import sn.oas.facturation.features.notification.service.NotificationService;
 import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.features.ordreReparation.repository.OrdreReparationRepository;
 import sn.oas.facturation.features.user.data.entity.User;
@@ -36,8 +37,9 @@ class VehicleTransferServiceTest {
     private final ClientService clientService = mock(ClientService.class);
     private final UserRepository userRepository = mock(UserRepository.class);
     private final AgentNotificationService notifications = mock(AgentNotificationService.class);
+    private final NotificationService clientNotifications = mock(NotificationService.class);
     private final VehicleTransferService service = new VehicleTransferService(requestRepository, ownershipRepository,
-            vehiculeRepository, ordreRepository, clientService, userRepository, notifications);
+            vehiculeRepository, ordreRepository, clientService, userRepository, notifications, clientNotifications);
 
     @AfterEach
     void clearSecurityContext() { SecurityContextHolder.clearContext(); }
@@ -125,6 +127,8 @@ class VehicleTransferServiceTest {
         verify(ownershipRepository).save(argThat(period -> period.getClient() == formerOwner && period.getEndedAt() != null));
         verify(ownershipRepository).save(argThat(period -> period.getClient() == requester && period.getEndedAt() == null));
         verify(vehiculeRepository).save(vehicle);
+        verify(clientNotifications).sendNotification(eq(requester), eq("Demande de transfert acceptée"), contains("acceptée"));
+        verify(clientNotifications).sendNotification(eq(formerOwner), eq("Transfert de véhicule effectué"), contains("DK-123-AA"));
     }
 
     private static Client client(Long id, String firstName, String lastName) {

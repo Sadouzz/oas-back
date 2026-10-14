@@ -11,7 +11,7 @@ import sn.oas.facturation.features.client.repository.ClientRepository;
 import sn.oas.facturation.features.client.service.PolitiqueFinanciereClientService;
 import sn.oas.facturation.features.garage.data.entity.Garage;
 import sn.oas.facturation.features.garage.repository.GarageRepository;
-import sn.oas.facturation.features.notification.service.EmailService;
+import sn.oas.facturation.features.notification.service.AgentNotificationService;
 import sn.oas.facturation.features.notification.service.NotificationService;
 import sn.oas.facturation.features.ordreReparation.service.OrdreReparationService;
 import sn.oas.facturation.features.rendezvous.data.entity.RendezVous;
@@ -38,9 +38,9 @@ class RendezVousServiceImplTest {
     @Mock ClientRepository clientRepository;
     @Mock GarageRepository garageRepository;
     @Mock NotificationService notificationService;
+    @Mock AgentNotificationService agentNotificationService;
     @Mock OrdreReparationService ordreReparationService;
     @Mock DocumentNumberGeneratorService documentNumberGeneratorService;
-    @Mock EmailService emailService;
     @Mock PolitiqueFinanciereClientService politiqueFinanciereClientService;
 
     @InjectMocks RendezVousServiceImpl service;
@@ -73,19 +73,17 @@ class RendezVousServiceImplTest {
                 () -> service.updateRendezVousStatus(12L, RendezVousStatus.ANNULE, null, " "));
 
         verify(rendezvousRepository, never()).save(any());
-        verifyNoInteractions(notificationService, emailService);
+        verifyNoInteractions(notificationService);
     }
 
     @Test
-    void cancellationPersistsReasonAndNotifiesClientInAppAndByEmail() {
+    void cancellationPersistsReasonAndDelegatesNotificationDelivery() {
         when(rendezvousRepository.save(any(RendezVous.class))).thenAnswer(invocation -> invocation.getArgument(0));
         service.updateRendezVousStatus(12L, RendezVousStatus.ANNULE, null, "Client indisponible");
 
         assertEquals("Client indisponible", rendezVous.getMotifAnnulation());
         verify(notificationService).sendNotification(eq(client), eq("Rendez-vous annulé"),
                 contains("Votre rendez-vous prévu à la date du 12/10/2026 à 09:30 a été annulé pour motif de « Client indisponible »"));
-        verify(emailService).sendSimpleEmail(eq("awa@example.com"), eq("Rendez-vous annulé"),
-                contains("motif de « Client indisponible »"));
     }
 
     @Test
@@ -108,6 +106,11 @@ class RendezVousServiceImplTest {
         assertSame(vehicule, created.getVehicule());
         assertFalse(created.getVehicule().isActif());
         assertEquals(RendezVousStatus.EN_ATTENTE, created.getStatut());
+        verify(agentNotificationService).notifyRoleInGarage(
+                sn.oas.facturation.features.user.data.enums.Role.CHEF_ATELIER,
+                garage,
+                "Nouvelle demande de rendez-vous",
+                "Une demande de rendez-vous pour le " + created.getDateRendezVous() + " est en attente de confirmation.");
     }
 
     @Test
@@ -127,7 +130,7 @@ class RendezVousServiceImplTest {
                 () -> service.cancelRendezVous(client, 12L, "Demande de changement"));
 
         verify(rendezvousRepository, never()).save(any());
-        verifyNoInteractions(notificationService, emailService);
+        verifyNoInteractions(notificationService, agentNotificationService);
     }
 
     @Test
@@ -136,7 +139,7 @@ class RendezVousServiceImplTest {
                 () -> service.updateRendezVousStatus(12L, RendezVousStatus.ANNULE, null, "x".repeat(1001)));
 
         verify(rendezvousRepository, never()).save(any());
-        verifyNoInteractions(notificationService, emailService);
+        verifyNoInteractions(notificationService, agentNotificationService);
     }
 
     @Test
@@ -148,7 +151,6 @@ class RendezVousServiceImplTest {
         assertEquals(RendezVousStatus.ANNULE, rendezVous.getStatut());
         assertEquals("Véhicule indisponible", rendezVous.getMotifAnnulation());
         verify(notificationService).sendNotification(eq(client), eq("Rendez-vous annulé"), contains("a été annulé"));
-        verify(emailService).sendSimpleEmail(eq("awa@example.com"), eq("Rendez-vous annulé"), contains("a été annulé"));
     }
 
     @Test
@@ -159,6 +161,6 @@ class RendezVousServiceImplTest {
                 () -> service.cancelRendezVous(client, 12L, "Je ne suis plus disponible"));
 
         verify(rendezvousRepository, never()).save(any());
-        verifyNoInteractions(notificationService, emailService);
+        verifyNoInteractions(notificationService, agentNotificationService);
     }
 }

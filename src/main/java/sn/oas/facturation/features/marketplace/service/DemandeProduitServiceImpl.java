@@ -11,6 +11,9 @@ import sn.oas.facturation.features.marketplace.data.enums.StatutDemandeProduit;
 import sn.oas.facturation.features.marketplace.dto.DemandeProduitRequest;
 import sn.oas.facturation.features.marketplace.repository.DemandeProduitRepository;
 import sn.oas.facturation.features.marketplace.repository.ProduitRepository;
+import sn.oas.facturation.features.notification.service.AgentNotificationService;
+import sn.oas.facturation.features.notification.service.NotificationService;
+import sn.oas.facturation.features.user.data.enums.Role;
 
 import java.util.List;
 
@@ -21,6 +24,8 @@ public class DemandeProduitServiceImpl implements DemandeProduitService {
     private final DemandeProduitRepository demandeProduitRepository;
     private final ProduitRepository produitRepository;
     private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
+    private final AgentNotificationService agentNotificationService;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -38,15 +43,28 @@ public class DemandeProduitServiceImpl implements DemandeProduitService {
                 .dateCreation(java.time.LocalDateTime.now())
                 .build();
 
-        return demandeProduitRepository.save(demande);
+        DemandeProduit saved = demandeProduitRepository.save(demande);
+        String message = "Nouvelle demande " + saved.getNumero() + " pour le produit " + produit.getNom() + ".";
+        agentNotificationService.notifyRole(Role.AGENT, "Nouvelle demande Marketplace", message);
+        agentNotificationService.notifyRole(Role.SUPER_AGENT, "Nouvelle demande Marketplace", message);
+        agentNotificationService.notifyRole(Role.MASTER, "Nouvelle demande Marketplace", message);
+        return saved;
     }
 
     @Override
     @Transactional
     public DemandeProduit updateStatus(Long id, String statut) {
         DemandeProduit demande = getById(id);
-        demande.setStatut(StatutDemandeProduit.valueOf(statut.toUpperCase()));
-        return demandeProduitRepository.save(demande);
+        StatutDemandeProduit nouveauStatut = StatutDemandeProduit.valueOf(statut.toUpperCase());
+        StatutDemandeProduit ancienStatut = demande.getStatut();
+        demande.setStatut(nouveauStatut);
+        DemandeProduit saved = demandeProduitRepository.save(demande);
+        if (nouveauStatut != ancienStatut) {
+            notificationService.sendNotification(demande.getClient(), titrePour(nouveauStatut),
+                    "Le statut de votre demande " + demande.getNumero() + " pour " + demande.getProduit().getNom()
+                            + " est maintenant : " + labelPour(nouveauStatut) + ".");
+        }
+        return saved;
     }
 
     @Override
@@ -71,7 +89,34 @@ public class DemandeProduitServiceImpl implements DemandeProduitService {
             throw new IllegalStateException("Seules les demandes en attente peuvent être annulées");
         }
         demande.setStatut(StatutDemandeProduit.ANNULEE);
-        return demandeProduitRepository.save(demande);
+        DemandeProduit saved = demandeProduitRepository.save(demande);
+        String message = "Le client a annulé la demande " + demande.getNumero() + " pour " + demande.getProduit().getNom() + ".";
+        agentNotificationService.notifyRole(Role.AGENT, "Demande Marketplace annulée", message);
+        agentNotificationService.notifyRole(Role.SUPER_AGENT, "Demande Marketplace annulée", message);
+        agentNotificationService.notifyRole(Role.MASTER, "Demande Marketplace annulée", message);
+        return saved;
+    }
+
+    private String titrePour(StatutDemandeProduit statut) {
+        return switch (statut) {
+            case ACCEPTEE -> "Demande Marketplace acceptée";
+            case REFUSEE -> "Demande Marketplace refusée";
+            case COMMANDEE -> "Produit commandé";
+            case ANNULEE -> "Demande Marketplace clôturée";
+            case LIVREE -> "Produit livré";
+            case EN_ATTENTE -> "Demande Marketplace en attente";
+        };
+    }
+
+    private String labelPour(StatutDemandeProduit statut) {
+        return switch (statut) {
+            case ACCEPTEE -> "acceptée";
+            case REFUSEE -> "refusée";
+            case COMMANDEE -> "commandée";
+            case ANNULEE -> "annulée";
+            case LIVREE -> "livrée";
+            case EN_ATTENTE -> "en attente";
+        };
     }
 
     @Override

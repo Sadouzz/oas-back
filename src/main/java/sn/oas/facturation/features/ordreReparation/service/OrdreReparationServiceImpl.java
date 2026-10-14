@@ -43,6 +43,7 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.transaction.annotation.Transactional;
 
 import sn.oas.facturation.features.notification.service.AgentNotificationService;
+import sn.oas.facturation.features.notification.service.NotificationService;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -59,6 +60,7 @@ import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationResponseDT
 import sn.oas.facturation.features.ordreReparation.dto.VehiculeLightDTO;
 import sn.oas.facturation.features.ordreReparation.dto.responses.ProformaSummaryDto;
 import sn.oas.facturation.features.ordreReparation.dto.ClientLightDTO;
+import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.diagnostic.data.entity.Diagnostic;
 import sn.oas.facturation.features.diagnostic.data.entity.PieceJointeDiagnostic;
 import sn.oas.facturation.features.diagnostic.data.entity.RemarqueDiagnostic;
@@ -118,6 +120,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     private final PieceDetacheRepository pieceDetacheRepository;
     private final MainDoeuvreRepository mainDoeuvreRepository;
     private final AgentNotificationService agentNotificationService;
+    private final NotificationService notificationService;
     private final EmailService emailService;
     private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
     private final DiagnosticRepository diagnosticRepository;
@@ -209,12 +212,16 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
 
         OrdreReparation savedOrdre = ordreReparationRepository.save(ordreReparation);
 
-        agentNotificationService.notifyRole(Role.CHEF_ATELIER,
+        agentNotificationService.notifyRoleInGarage(Role.CHEF_ATELIER, savedOrdre.getGarage(),
                 "Nouvel Ordre de Réparation",
                 "Un nouvel ordre de réparation (" + savedOrdre.getNumero() + ") a été créé.");
         
-        if (savedOrdre.getVehicule() != null && savedOrdre.getVehicule().getClient() != null) {
-            String clientEmail = savedOrdre.getVehicule().getClient().getEmail();
+        Client client = clientForOrder(savedOrdre);
+        if (client != null && savedOrdre.getVehicule() != null) {
+            notificationService.sendInAppNotification(client, "Ordre de réparation créé",
+                    "L'ordre de réparation " + savedOrdre.getNumero() + " a été créé pour votre véhicule "
+                            + savedOrdre.getVehicule().getImmatriculation() + ".");
+            String clientEmail = client.getEmail();
             if (clientEmail != null && !clientEmail.isEmpty()) {
                 emailService.sendHtmlEmail(
                         clientEmail,
@@ -719,6 +726,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         if (fiche.getStatut() == StatutOrdreReparation.LIVRE) {
             throw new IllegalArgumentException("Un ordre livré ne peut pas revenir à une étape précédente.");
         }
+        StatutOrdreReparation ancienStatut = fiche.getStatut();
 
         // Un technicien doit être affecté au diagnostic avant de pouvoir démarrer le diagnostic.
         /*
@@ -757,13 +765,17 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         fiche.setUpdatedAt(LocalDateTime.now());
         OrdreReparation savedFiche = ordreReparationRepository.save(fiche);
 
-        if (newStatut == StatutOrdreReparation.BON_DE_COMMANDE || newStatut == StatutOrdreReparation.BON_DE_SORTIE) {
-            agentNotificationService.notifyRole(Role.AGENT_MAGASIN,
+        if (newStatut != ancienStatut && (newStatut == StatutOrdreReparation.BON_DE_COMMANDE || newStatut == StatutOrdreReparation.BON_DE_SORTIE)) {
+            agentNotificationService.notifyRoleInGarage(Role.AGENT_MAGASIN, savedFiche.getGarage(),
                     "Pièces en attente pour " + savedFiche.getNumero(),
                     "La fiche " + savedFiche.getNumero() + " est passée en " + newStatut + ".");
-        } else if (newStatut == StatutOrdreReparation.PRET_A_LIVRER) {
-            if (savedFiche.getVehicule() != null && savedFiche.getVehicule().getClient() != null) {
-                String clientEmail = savedFiche.getVehicule().getClient().getEmail();
+        } else if (newStatut != ancienStatut && newStatut == StatutOrdreReparation.PRET_A_LIVRER) {
+            Client client = clientForOrder(savedFiche);
+            if (client != null && savedFiche.getVehicule() != null) {
+                notificationService.sendInAppNotification(client, "Véhicule prêt à récupérer",
+                        "Les réparations de votre véhicule " + savedFiche.getVehicule().getImmatriculation()
+                                + " sont terminées. Vous pouvez venir le récupérer.");
+                String clientEmail = client.getEmail();
                 if (clientEmail != null && !clientEmail.isEmpty()) {
                     emailService.sendHtmlEmail(
                             clientEmail,
@@ -810,7 +822,14 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         ordre.setDateSortie(maintenant);
         ordre.setStatut(StatutOrdreReparation.LIVRE);
         ordre.setUpdatedAt(maintenant);
-        return ordreReparationRepository.save(ordre);
+        OrdreReparation saved = ordreReparationRepository.save(ordre);
+        Client client = clientForOrder(saved);
+        if (client != null && saved.getVehicule() != null) {
+            notificationService.sendNotification(client, "Véhicule restitué",
+                    "La restitution de votre véhicule " + saved.getVehicule().getImmatriculation()
+                            + " a été enregistrée. Votre garantie est de " + duree + " mois.");
+        }
+        return saved;
     }
 
     @Override
@@ -1046,7 +1065,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 .lignesTravaux(syntheseTravaux(travauxDemandes))
                 .lignesReception(syntheseReception(ficheAtelier))
                 .vehicule(ficheAtelier.getVehicule())
-                .client(ficheAtelier.getVehicule().getClient())
+                .client(ficheAtelier.getClient() != null ? ficheAtelier.getClient() : ficheAtelier.getVehicule().getClient())
                 .ficheAtelier(ficheAtelier)
                 .statut(StatutOrdreReparation.RECEPTION)
                 .build();
@@ -1058,8 +1077,12 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         ficheAtelier.setOrdreReparation(savedOrdre);
         ficheAtelierRepository.save(ficheAtelier);
         
-        if (savedOrdre.getVehicule() != null && savedOrdre.getVehicule().getClient() != null) {
-            String clientEmail = savedOrdre.getVehicule().getClient().getEmail();
+        Client client = clientForOrder(savedOrdre);
+        if (client != null && savedOrdre.getVehicule() != null) {
+            notificationService.sendInAppNotification(client, "Ordre de réparation créé",
+                    "L'ordre de réparation " + savedOrdre.getNumero() + " a été créé pour votre véhicule "
+                            + savedOrdre.getVehicule().getImmatriculation() + ".");
+            String clientEmail = client.getEmail();
             if (clientEmail != null && !clientEmail.isEmpty()) {
                 emailService.sendHtmlEmail(
                         clientEmail,
@@ -1079,11 +1102,16 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             }
         }
 
-        agentNotificationService.notifyRole(Role.CHEF_ATELIER,
+        agentNotificationService.notifyRoleInGarage(Role.CHEF_ATELIER, savedOrdre.getGarage(),
                 "Nouvel Ordre de Réparation",
                 "L'ordre de réparation (" + savedOrdre.getNumero() + ") a été généré depuis une fiche atelier.");
 
         return savedOrdre;
+    }
+
+    private Client clientForOrder(OrdreReparation ordre) {
+        if (ordre.getClient() != null) return ordre.getClient();
+        return ordre.getVehicule() == null ? null : ordre.getVehicule().getClient();
     }
 
     /**

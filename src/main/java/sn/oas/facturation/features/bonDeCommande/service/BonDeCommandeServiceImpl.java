@@ -149,7 +149,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
             ordreReparationRepository.save(ordreReparation);
         }
 
-        agentNotificationService.notifyRole(Role.AGENT_MAGASIN,
+        agentNotificationService.notifyRoleInGarage(Role.AGENT_MAGASIN, saved.getGarage(),
                 "Nouveau Bon de Commande",
                 "Le bon de commande " + saved.getNumero() + " a été créé et est en attente.");
 
@@ -385,7 +385,10 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
 
         bonDeCommande.setStatut(StatutBonCommande.ENVOYE);
         bonDeCommande.setDateModification(LocalDateTime.now());
-        return bonDeCommandeRepository.save(bonDeCommande);
+        BonDeCommande saved = bonDeCommandeRepository.save(bonDeCommande);
+        agentNotificationService.notifyRoleInGarage(Role.AGENT_MAGASIN, saved.getGarage(),
+                "Bon de commande envoyé", "Le bon de commande " + saved.getNumero() + " a été envoyé au fournisseur.");
+        return saved;
     }
 
     @Override
@@ -476,7 +479,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                 }
             }
 
-        agentNotificationService.notifyRole(Role.AGENT_MAGASIN,
+        agentNotificationService.notifyRoleInGarage(Role.AGENT_MAGASIN, bonDeCommande.getGarage(),
                 "Bon de Commande Réceptionné",
                 "Le bon de commande " + bonDeCommande.getNumero() + " a été réceptionné totalement.");
 
@@ -634,7 +637,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
             }
         }
 
-        agentNotificationService.notifyRole(Role.AGENT_MAGASIN,
+        agentNotificationService.notifyRoleInGarage(Role.AGENT_MAGASIN, bonDeCommande.getGarage(),
                 "Bon de Commande " + (toutRecu ? "Réceptionné" : "Partiellement Réceptionné"),
                 "Le bon de commande " + bonDeCommande.getNumero() + " a été "
                         + (toutRecu ? "réceptionné" : "partiellement réceptionné") + ".");
@@ -667,9 +670,15 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
             throw new sn.oas.facturation.shared.exception.BadRequestException("Un bon de commande déjà reçu ne peut pas être annulé.");
         }
 
+        boolean statusChanged = bonDeCommande.getStatut() != StatutBonCommande.ANNULE;
         bonDeCommande.setStatut(StatutBonCommande.ANNULE);
         bonDeCommande.setDateModification(LocalDateTime.now());
-        return bonDeCommandeRepository.save(bonDeCommande);
+        BonDeCommande saved = bonDeCommandeRepository.save(bonDeCommande);
+        if (statusChanged) {
+            agentNotificationService.notifyRoleInGarage(Role.AGENT_MAGASIN, saved.getGarage(),
+                    "Bon de commande annulé", "Le bon de commande " + saved.getNumero() + " a été annulé.");
+        }
+        return saved;
     }
 
     @Override

@@ -54,6 +54,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
     private final OrdreReparationRepository ordreReparationRepository;
     private final FactureService factureService;
     private final AgentNotificationService agentNotificationService;
+    private final sn.oas.facturation.features.piecedetache.service.StockThresholdNotificationService stockThresholdNotificationService;
     private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
     private final BonDeSortieHistoriqueRepository bonDeSortieHistoriqueRepository;
 
@@ -127,6 +128,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                     pdp.setStockMagasin(magasinAvant - quantite);
                     pdp.setStockAtelier(atelierAvant + quantite);
                     pieceDetacheRepository.save(pdp);
+                    stockThresholdNotificationService.notifyIfThresholdCrossed(pdp, magasinAvant);
 
                     pieceMouvementRepository.save(PieceMouvement.builder()
                             .type(TypeMouvement.SORTIE_MAGASIN)
@@ -197,7 +199,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
             OrdreReparation fiche = saved.getOrdreReparation();
             fiche.setBonDeSortie(saved);
             ordreReparationRepository.save(fiche);
-            agentNotificationService.notifyRole(Role.AGENT_MAGASIN,
+            agentNotificationService.notifyRoleInGarage(Role.AGENT_MAGASIN, saved.getGarage(),
                     "Nouveau Bon de Sortie",
                     "Le bon de sortie " + saved.getReference() + " est en attente de validation pour la fiche "
                             + fiche.getNumero());
@@ -301,7 +303,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                     fiche.getStatut() == StatutOrdreReparation.PROFORMA) {
 
                 fiche.setStatut(StatutOrdreReparation.ASSIGN_TECHNICIEN);
-                agentNotificationService.notifyRole(Role.CHEF_ATELIER,
+                agentNotificationService.notifyRoleInGarage(Role.CHEF_ATELIER, bon.getGarage(),
                         "Mécanicien à assigner",
                         "Le bon de sortie " + bon.getReference() + " a été validé. La fiche " + fiche.getNumero()
                                 + " est prête. Veuillez assigner les mécaniciens finaux.");
