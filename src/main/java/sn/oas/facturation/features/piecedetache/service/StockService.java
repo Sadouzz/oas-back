@@ -14,6 +14,8 @@ public interface StockService {
 
     PieceMouvement entree(EntreeStockRequest request);
 
+    PieceMouvement entree(EntreeStockRequest request, String numDocument, String typeDocument);
+
     PieceMouvement sortie(SortieStockRequest request);
 
     PieceMouvement ajustement(AjustementStockRequest request);

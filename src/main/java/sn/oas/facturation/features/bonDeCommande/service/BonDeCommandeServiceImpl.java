@@ -413,7 +413,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                             pdp.getId(),
                             ligne.getQuantite(),
                             "Réception totale BC " + bonDeCommande.getNumero());
-                    stockService.entree(entreeReq);
+                    stockService.entree(entreeReq, bonDeCommande.getNumero(), "BON DE COMMANDE");
                 } else if (piece instanceof PDG pdg) {
                     // Les pièces de type PDG ne gèrent pas le stock ici
                 }
@@ -547,7 +547,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                                     pdp.getId(),
                                     ll.getQuantiteRecue(),
                                     "Réception BC " + bonDeCommande.getNumero());
-                            stockService.entree(entreeReq);
+                            stockService.entree(entreeReq, bonDeCommande.getNumero(), "BON DE COMMANDE");
 
                             LigneFacturationPiece lfp = LigneFacturationPiece.builder()
                                     .facturation(bonDeReception)

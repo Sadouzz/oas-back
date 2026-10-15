@@ -45,12 +45,18 @@ public class StockServiceImpl implements StockService {
 
     @Transactional
     @Override
+    public PieceMouvement entree(EntreeStockRequest request) {
+        return entree(request, null, null);
+    }
+
+    @Transactional
+    @Override
     /*@Caching(evict = {
             @CacheEvict(value = "piece_stats", allEntries = true),
             @CacheEvict(value = "dashboard_super_agent", allEntries = true),
             @CacheEvict(value = "dashboard_agent_magasin", allEntries = true)
     })*/
-    public PieceMouvement entree(EntreeStockRequest request) {
+    public PieceMouvement entree(EntreeStockRequest request, String numDocument, String typeDocument) {
         PDP pdp = getPDP(request.pieceId());
         Agent agent = getAgentConnecte();
 
@@ -66,6 +72,9 @@ public class StockServiceImpl implements StockService {
         pieceDetacheRepository.save(pdp);
         stockThresholdNotificationService.notifyIfThresholdCrossed(pdp, magasinAvant);
 
+        String effectiveNumDocument = (numDocument != null && !numDocument.isBlank()) ? numDocument : "ENTREE";
+        String effectiveTypeDocument = (typeDocument != null && !typeDocument.isBlank()) ? typeDocument : "Entrée stock";
+
         return pieceMouvementRepository.save(PieceMouvement.builder()
                 .type(TypeMouvement.ENTREE)
                 .quantite(request.quantite().doubleValue())
@@ -76,8 +85,8 @@ public class StockServiceImpl implements StockService {
                 .stockReelApres(pdp.getQteReelle())
                 .prenom(agent != null ? agent.getFirstName() : "")
                 .nom(agent != null ? agent.getLastName() : "")
-                .numDocument("ENTREE")
-                .typeDocument("Entrée stock")
+                .numDocument(effectiveNumDocument)
+                .typeDocument(effectiveTypeDocument)
                 .numeroSerie(pdp.getReference())
                 .motif(request.motif())
                 .piece(pdp)
