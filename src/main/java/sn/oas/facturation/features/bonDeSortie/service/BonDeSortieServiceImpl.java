@@ -112,7 +112,8 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
         // augmente, qteReelle inchangée
         if (bon.getLignesBonDeSortiePieces() != null) {
             for (LigneBonDeSortiePiece ligne : bon.getLignesBonDeSortiePieces()) {
-                if (ligne.getPiece() instanceof PDP pdp) {
+                PDP pdp = resolvePDP(ligne.getPiece());
+                if (pdp != null) {
                     double quantite = (double) ligne.getQuantite();
 
                     Double stockMagasinDisponible = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0.0;
@@ -158,8 +159,8 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
         // Enregistre l'historique du BS pour chaque pièce
         if (saved.getLignesBonDeSortiePieces() != null && !saved.getLignesBonDeSortiePieces().isEmpty()) {
             for (LigneBonDeSortiePiece ligne : saved.getLignesBonDeSortiePieces()) {
-                PieceDetache piece = ligne.getPiece();
-                PDP pdp = piece instanceof PDP p ? p : null;
+                PDP pdp = resolvePDP(ligne.getPiece());
+                PieceDetache piece = pdp != null ? pdp : (PieceDetache) org.hibernate.Hibernate.unproxy(ligne.getPiece());
                 bonDeSortieHistoriqueRepository.save(BonDeSortieHistorique
                         .builder()
                         .bonDeSortie(saved)
@@ -220,7 +221,8 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
         // A la validation du BS : stockAtelier diminue (la pièce va sur le véhicule),
         // qteReelle reste le même
         for (LigneBonDeSortiePiece ligne : bon.getLignesBonDeSortiePieces()) {
-            if (ligne.getPiece() instanceof PDP pdp) {
+            PDP pdp = resolvePDP(ligne.getPiece());
+            if (pdp != null) {
                 double quantite = (double) ligne.getQuantite();
 
                 Double magasinAvant = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0.0;
@@ -258,8 +260,8 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
         // Enregistre l'historique du BS pour chaque pièce
         if (bon.getLignesBonDeSortiePieces() != null && !bon.getLignesBonDeSortiePieces().isEmpty()) {
             for (LigneBonDeSortiePiece ligne : bon.getLignesBonDeSortiePieces()) {
-                PieceDetache piece = ligne.getPiece();
-                PDP pdp = piece instanceof PDP p ? p : null;
+                PDP pdp = resolvePDP(ligne.getPiece());
+                PieceDetache piece = pdp != null ? pdp : (PieceDetache) org.hibernate.Hibernate.unproxy(ligne.getPiece());
                 bonDeSortieHistoriqueRepository.save(BonDeSortieHistorique
                         .builder()
                         .bonDeSortie(bon)
@@ -339,8 +341,8 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
             throw new IllegalArgumentException("La pièce id=" + pieceId + " n'est pas présente dans ce bon de sortie");
         }
 
-        PieceDetache piece = ligneARetirer.getPiece();
-        PDP pdp = piece instanceof PDP p ? p : null;
+        PDP pdp = resolvePDP(ligneARetirer.getPiece());
+        PieceDetache piece = pdp != null ? pdp : (PieceDetache) org.hibernate.Hibernate.unproxy(ligneARetirer.getPiece());
         double quantite = (double) ligneARetirer.getQuantite();
 
         if (pdp != null) {
@@ -511,6 +513,22 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
         if (!hasPieces) {
             throw new IllegalArgumentException("Le bon de sortie doit contenir au moins une pièce");
         }
+    }
+
+    private PDP resolvePDP(PieceDetache piece) {
+        if (piece == null) return null;
+        PieceDetache unproxied = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
+        if (unproxied instanceof PDP pdp) {
+            return pdp;
+        }
+        if (piece.getId() != null) {
+            return pieceDetacheRepository.findById(piece.getId())
+                    .map(p -> (PieceDetache) org.hibernate.Hibernate.unproxy(p))
+                    .filter(PDP.class::isInstance)
+                    .map(PDP.class::cast)
+                    .orElse(null);
+        }
+        return null;
     }
 
     private PDP getPDP(Long pieceId) {

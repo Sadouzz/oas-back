@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import sn.oas.facturation.shared.entity.BaseEntity;
 
 @Entity
@@ -17,6 +18,7 @@ import sn.oas.facturation.shared.entity.BaseEntity;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Garage extends BaseEntity {
 
     @Column(nullable = false)

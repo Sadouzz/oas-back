@@ -20,6 +20,7 @@ public record BonDeSortieListResponse(
         AgentSummary agentEmetteur,
         AgentSummary agentValidateur,
         Long ordreReparationId,
+        OrdreReparationSummary ordreReparation,
         List<LigneSummary> lignesBonDeSortiePieces
 ) {
     public record ClientSummary(Long id, String firstName, String lastName, String phone) {}
@@ -30,6 +31,7 @@ public record BonDeSortieListResponse(
             String firstName,
             String lastName
     ) {}
+    public record OrdreReparationSummary(Long id, String numero) {}
     public record PieceSummary(
             Long id,
             String reference,
@@ -105,6 +107,14 @@ public record BonDeSortieListResponse(
                     );
                 }).toList();
 
+        OrdreReparationSummary ordreSummary = null;
+        if (b.getOrdreReparation() != null) {
+            ordreSummary = new OrdreReparationSummary(
+                    b.getOrdreReparation().getId(),
+                    b.getOrdreReparation().getNumero()
+            );
+        }
+
         return BonDeSortieListResponse.builder()
                 .id(b.getId())
                 .reference(b.getReference())
@@ -117,6 +127,7 @@ public record BonDeSortieListResponse(
                 .agentEmetteur(emetteur)
                 .agentValidateur(validateur)
                 .ordreReparationId(b.getOrdreReparation() != null ? b.getOrdreReparation().getId() : null)
+                .ordreReparation(ordreSummary)
                 .lignesBonDeSortiePieces(lignes)
                 .build();
     }

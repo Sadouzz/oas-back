@@ -35,10 +35,12 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @EntityListeners(TenantListener.class)
 @FilterDef(name = "garageFilter", parameters = @ParamDef(name = "garageId", type = Long.class))
 @Filter(name = "garageFilter", condition = "garage_id = :garageId")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class BonDeSortie implements TenantAware  {
 
     @ManyToOne(fetch = jakarta.persistence.FetchType.LAZY)
     @jakarta.persistence.JoinColumn(name = "garage_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Garage garage;
 
     @Id
@@ -64,23 +66,27 @@ public class BonDeSortie implements TenantAware  {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Client client;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vehicule_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Vehicule vehicule;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "agent_emetteur_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Agent agentEmetteur;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "agent_validateur_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Agent agentValidateur;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ordre_reparation_id", nullable = true, unique = true)
-    @JsonIgnoreProperties("bonDeSortie") // Ignore le champ "bonDeSortie" qui est DANS la "OrdreReparation"
+    @JsonIgnoreProperties({"bonDeSortie", "hibernateLazyInitializer", "handler"})
     private OrdreReparation ordreReparation;
 
     @OneToMany(mappedBy = "bonDeSortie", cascade = CascadeType.ALL, orphanRemoval = true)

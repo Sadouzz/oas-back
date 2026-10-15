@@ -18,6 +18,7 @@ import sn.oas.facturation.shared.entity.BaseEntity;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Vehicule extends BaseEntity {
 
     @Column(nullable = false, unique = true)

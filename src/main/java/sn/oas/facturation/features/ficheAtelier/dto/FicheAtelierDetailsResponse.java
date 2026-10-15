@@ -24,9 +24,9 @@ public class FicheAtelierDetailsResponse {
     private String numero;
     // private Long rendezVousId;
 
-    // private Long clientId;
+    private Long clientId;
     private String clientName;
-    // private Long vehiculeId;
+    private Long vehiculeId;
     private String vehiculeImmatriculation;
     // private Long garageId;
 
@@ -91,6 +91,8 @@ public class FicheAtelierDetailsResponse {
                 .clientName(fiche.getClient() != null
                         ? (fiche.getClient().getFirstName() + " " + fiche.getClient().getLastName()).trim()
                         : null)
+                        .clientId(fiche.getClient() != null ? fiche.getClient().getId() : null)
+                .vehiculeId(fiche.getVehicule() != null ? fiche.getVehicule().getId() : null)
                 .vehiculeImmatriculation(fiche.getVehicule() != null ? fiche.getVehicule().getImmatriculation() : null)
                 .nomChauffeur(fiche.getNomChauffeur())
                 .telephoneChauffeur(fiche.getTelephoneChauffeur())

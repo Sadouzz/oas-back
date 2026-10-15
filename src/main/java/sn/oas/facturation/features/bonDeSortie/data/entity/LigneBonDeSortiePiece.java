@@ -8,12 +8,15 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import sn.oas.facturation.features.piecedetache.data.entity.PieceDetache;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 @Entity
 @Table(name = "lignes_bon_de_sortie_piece")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class LigneBonDeSortiePiece {
 
     @Id
@@ -27,6 +30,7 @@ public class LigneBonDeSortiePiece {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "piece_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private PieceDetache piece;
 
     @Column(nullable = false)

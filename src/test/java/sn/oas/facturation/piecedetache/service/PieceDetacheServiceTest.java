@@ -35,6 +35,18 @@ class PieceDetacheServiceTest {
     @Mock
     private DepotRepository depotRepository;
 
+    @Mock
+    private sn.oas.facturation.features.piecedetache.service.StockThresholdNotificationService stockThresholdNotificationService;
+
+    @Mock
+    private sn.oas.facturation.features.piecedetache.service.AlerteService alerteService;
+
+    @Mock
+    private sn.oas.facturation.features.piecedetache.repository.PieceMouvementRepository pieceMouvementRepository;
+
+    @Mock
+    private sn.oas.facturation.features.user.repository.UserRepository userRepository;
+
     @InjectMocks
     private PieceDetacheServiceImpl pieceDetacheService;
 
@@ -62,6 +74,38 @@ class PieceDetacheServiceTest {
         assertNotNull(result);
         assertEquals("REF-001", result.getReference());
         verify(pieceDetacheRepository).save(any(PDG.class));
+        verify(pieceMouvementRepository, never()).save(any());
+    }
+
+    @Test
+    void create_pdp_createsEntreeMovement() {
+        PieceDetacheRequest request = new PieceDetacheRequest(
+                TypePiece.PDP,
+                "REF-PDP-001",
+                "Plaquette",
+                "Freinage",
+                null, null, 15, 5000.0, 4500.0, 10.0, 5.0
+        );
+
+        when(pieceDetacheRepository.existsByReferenceIgnoreCase("REF-PDP-001")).thenReturn(false);
+        when(pieceDetacheRepository.save(any(sn.oas.facturation.features.piecedetache.data.entity.PDP.class))).thenAnswer(invocation -> {
+            sn.oas.facturation.features.piecedetache.data.entity.PDP saved = invocation.getArgument(0);
+            saved.setId(10L);
+            return saved;
+        });
+
+        var result = pieceDetacheService.create(request);
+
+        assertNotNull(result);
+        assertEquals("REF-PDP-001", result.getReference());
+        verify(pieceDetacheRepository).save(any(sn.oas.facturation.features.piecedetache.data.entity.PDP.class));
+        verify(pieceMouvementRepository).save(argThat(m ->
+                m.getType() == sn.oas.facturation.features.piecedetache.data.enums.TypeMouvement.ENTREE
+                        && m.getQuantite().equals(15.0)
+                        && m.getStockMagasinAvant().equals(0.0)
+                        && m.getStockMagasinApres().equals(15.0)
+                        && "Création de la pièce".equals(m.getTypeDocument())
+        ));
     }
 
     @Test

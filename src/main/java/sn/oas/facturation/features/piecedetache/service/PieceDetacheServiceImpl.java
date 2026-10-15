@@ -37,6 +37,14 @@ import sn.oas.facturation.features.depot_pieces.data.entity.Depot;
 import sn.oas.facturation.features.depot_pieces.repository.DepotRepository;
 import sn.oas.facturation.features.garage.data.entity.Garage;
 import sn.oas.facturation.features.piecedetache.dto.PieceStatsResponse;
+import sn.oas.facturation.features.piecedetache.data.entity.PieceMouvement;
+import sn.oas.facturation.features.piecedetache.data.enums.TypeMouvement;
+import sn.oas.facturation.features.piecedetache.repository.PieceMouvementRepository;
+import sn.oas.facturation.features.user.data.entity.Agent;
+import sn.oas.facturation.features.user.data.entity.User;
+import sn.oas.facturation.features.user.repository.UserRepository;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @Service
 @RequiredArgsConstructor
@@ -49,6 +57,8 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
     private final DepotRepository depotRepository;
     private final AlerteService alerteService;
     private final DocumentNumberGeneratorService documentNumberGeneratorService;
+    private final PieceMouvementRepository pieceMouvementRepository;
+    private final UserRepository userRepository;
 
     @Override
     public Page<PieceDetache> getAllPieces(int page, int size) {
@@ -257,7 +267,44 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
         PieceDetache piece = buildPieceFromRequest(request);
         piece.setType(request.type());
         
-        return pieceDetacheRepository.save(piece);
+        PieceDetache savedPiece = pieceDetacheRepository.save(piece);
+
+        if (savedPiece instanceof PDP pdp) {
+            Double qte = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0.0;
+            Agent agent = getAgentConnecte();
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            String prenom = "";
+            String nom = "";
+            if (agent != null) {
+                prenom = agent.getFirstName() != null ? agent.getFirstName() : "";
+                nom = agent.getLastName() != null ? agent.getLastName() : "";
+            } else if (auth != null && auth.getName() != null) {
+                prenom = auth.getName();
+            }
+
+            pieceMouvementRepository.save(PieceMouvement.builder()
+                    .type(TypeMouvement.ENTREE)
+                    .quantite(qte)
+                    .stockMagasinAvant(0.0)
+                    .stockAtelierAvant(0.0)
+                    .stockMagasinApres(qte)
+                    .stockAtelierApres(0.0)
+                    .stockReelApres(pdp.getQteReelle() != null ? pdp.getQteReelle() : qte)
+                    .prenom(prenom)
+                    .nom(nom)
+                    .numDocument("Création de la pièce")
+                    .typeDocument("Création de la pièce")
+                    .numeroSerie(pdp.getReference())
+                    .motif("Stock initial à la création")
+                    .piece(pdp)
+                    .agent(agent)
+                    .garage(currentGarage != null ? currentGarage : pdp.getGarage())
+                    .build());
+
+            stockThresholdNotificationService.notifyIfThresholdCrossed(pdp, 0.0);
+        }
+
+        return savedPiece;
     }
 
     @Transactional
@@ -484,5 +531,16 @@ public class PieceDetacheServiceImpl implements PieceDetacheService {
                     .categorie(categorie)
                     .build();
         };
+    }
+
+    private Agent getAgentConnecte() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getName() != null) {
+            User user = userRepository.findByUsername(auth.getName())
+                    .or(() -> userRepository.findByEmail(auth.getName()))
+                    .orElse(null);
+            return (user instanceof Agent agent) ? agent : null;
+        }
+        return null;
     }
 }

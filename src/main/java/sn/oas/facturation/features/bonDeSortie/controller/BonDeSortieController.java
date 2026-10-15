@@ -32,14 +32,8 @@ public class BonDeSortieController {
             @ApiResponse(responseCode = "400", description = "Client, véhicule ou pièces invalides")
     })
     @PostMapping("/creer")
-    /*@Caching(evict = {
-        @CacheEvict(value = "dashboard_super_agent", allEntries = true),
-        @CacheEvict(value = "dashboard_chef_atelier", allEntries = true),
-        @CacheEvict(value = "dashboard_agent_magasin", allEntries = true),
-        @CacheEvict(value = "dashboard_agent", allEntries = true)
-    })*/
-    public ResponseEntity<BonDeSortie> creer(@RequestBody BonDeSortieRequest request) {
-        return ResponseEntity.ok(bonDeSortieService.creer(request));
+    public ResponseEntity<BonDeSortieListResponse> creer(@RequestBody BonDeSortieRequest request) {
+        return ResponseEntity.ok(BonDeSortieListResponse.from(bonDeSortieService.creer(request)));
     }
 
     @Operation(summary = "Valider un bon de sortie", description = "Passe le bon en statut VALIDE. Vérifie le stock magasin pour chaque pièce et génère les mouvements de sortie (magasin → atelier).")
@@ -48,14 +42,8 @@ public class BonDeSortieController {
             @ApiResponse(responseCode = "400", description = "Bon déjà validé ou stock insuffisant pour une pièce")
     })
     @PutMapping("/{id}/valider")
-    /*@Caching(evict = {
-            @CacheEvict(value = "dashboard_super_agent", allEntries = true),
-            @CacheEvict(value = "dashboard_chef_atelier", allEntries = true),
-            @CacheEvict(value = "dashboard_agent_magasin", allEntries = true),
-            @CacheEvict(value = "dashboard_agent", allEntries = true)
-    })*/
-    public ResponseEntity<BonDeSortie> valider(@PathVariable Long id) {
-        return ResponseEntity.ok(bonDeSortieService.valider(id));
+    public ResponseEntity<BonDeSortieListResponse> valider(@PathVariable Long id) {
+        return ResponseEntity.ok(BonDeSortieListResponse.from(bonDeSortieService.valider(id)));
     }
 
     @Operation(summary = "Obtenir un bon de sortie par ID")
@@ -64,14 +52,14 @@ public class BonDeSortieController {
             @ApiResponse(responseCode = "400", description = "Bon introuvable")
     })
     @GetMapping("/{id}")
-    public ResponseEntity<BonDeSortie> getById(@PathVariable Long id) {
-        return ResponseEntity.ok(bonDeSortieService.getById(id));
+    public ResponseEntity<BonDeSortieListResponse> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(BonDeSortieListResponse.from(bonDeSortieService.getById(id)));
     }
 
     @Operation(summary = "Retourner une pièce d'un bon de sortie non validé", description = "Retire la pièce du bon de sortie et recrédite le stock magasin.")
     @PutMapping("/{id}/retour-piece/{pieceId}")
-    public ResponseEntity<BonDeSortie> retournerPiece(@PathVariable Long id, @PathVariable Long pieceId) {
-        return ResponseEntity.ok(bonDeSortieService.retournerPiece(id, pieceId));
+    public ResponseEntity<BonDeSortieListResponse> retournerPiece(@PathVariable Long id, @PathVariable Long pieceId) {
+        return ResponseEntity.ok(BonDeSortieListResponse.from(bonDeSortieService.retournerPiece(id, pieceId)));
     }
 
     @Operation(summary = "Obtenir l'historique d'un bon de sortie", description = "Retourne la liste chronologique paginée des événements (SORTIE, SORTIE ATELIER, RETOUR) sur ce bon.")

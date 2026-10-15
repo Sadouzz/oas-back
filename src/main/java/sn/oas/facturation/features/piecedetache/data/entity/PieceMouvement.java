@@ -82,7 +82,7 @@ public class PieceMouvement implements TenantAware {
     private PDP piece;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "agent_id", nullable = false)
+    @JoinColumn(name = "agent_id")
     private Agent agent;
 
 
