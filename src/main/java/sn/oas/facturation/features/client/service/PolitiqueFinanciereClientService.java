@@ -20,13 +20,7 @@ public class PolitiqueFinanciereClientService {
     @Transactional(readOnly = true)
     public List<String> avertissementsProforma(Client client, BigDecimal montantProforma) {
         if (client == null || client.getId() == null) return List.of();
-        BigDecimal encours = zero(factureRepository.sumResteAPayerByClientId(client.getId()));
-        BigDecimal totalApresCreation = encours.add(zero(montantProforma));
-        BigDecimal plafond = client.getMontantPlafond() == null ? null : BigDecimal.valueOf(client.getMontantPlafond());
         List<String> avertissements = new ArrayList<>();
-        if (plafond != null && totalApresCreation.compareTo(plafond) >= 0) {
-            avertissements.add("Attention : l'encours impayé atteindra ou dépassera le plafond autorisé (" + totalApresCreation.toPlainString() + " / " + plafond.toPlainString() + " F CFA). La création du proforma reste autorisée pour l'agent.");
-        }
         LocalDateTime now = LocalDateTime.now();
         boolean retard = factureRepository.existsFactureImpayeeEnRetard(client.getId(), now)
                 || (client.getEcheance() != null && client.getEcheance() > 0
@@ -50,11 +44,6 @@ public class PolitiqueFinanciereClientService {
                 || (client.getEcheance() != null && client.getEcheance() > 0
                 && factureRepository.existsFactureLegacyImpayeeEnRetard(clientId, now.minusDays(client.getEcheance())));
         if (retard) return "Votre compte comporte une facture échue impayée. Contactez OAS pour régulariser votre situation avant de prendre un rendez-vous.";
-        if (client.getMontantPlafond() != null) {
-            BigDecimal encours = zero(factureRepository.sumResteAPayerByClientId(clientId));
-            if (encours.compareTo(BigDecimal.valueOf(client.getMontantPlafond())) > 0)
-                return "Votre encours impayé dépasse le plafond autorisé. Contactez OAS avant de prendre un rendez-vous.";
-        }
         if (client.getEcheance() != null && client.getEcheance() > 0 && client.getMontantPlafondEcheance() != null) {
             BigDecimal periode = zero(factureRepository.sumMontantFacturesDepuis(clientId, now.minusDays(client.getEcheance())));
             if (periode.compareTo(client.getMontantPlafondEcheance()) >= 0)

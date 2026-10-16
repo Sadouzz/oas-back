@@ -38,14 +38,14 @@ class CompteClientServiceTest {
         when(factureRepository.existsFactureImpayeeEnRetard(eq(22L), any())).thenReturn(false);
         when(factureRepository.existsFactureLegacyImpayeeEnRetard(eq(22L), any())).thenReturn(false);
         CompteClientRequest request = new CompteClientRequest("Garage Awa", "sn123abc", 10,
-                new BigDecimal("150000"), 30, new BigDecimal("500000"), null, null, true);
+                30, new BigDecimal("500000"), null, null, true);
 
         service.configurer(22L, request);
 
         assertEquals(TypeClient.ENTREPRISE, client.getTypeClient());
         assertEquals("SN123ABC", client.getNumeroEntreprise());
         assertEquals("https://cloudinary.test/ancien-justificatif", client.getNinea());
-        assertEquals(150000, client.getMontantPlafond());
+        assertEquals(30, client.getEcheance());
         assertEquals(new BigDecimal("500000"), client.getMontantPlafondEcheance());
         verify(compteRepository).save(any(CompteClient.class));
     }
@@ -55,14 +55,14 @@ class CompteClientServiceTest {
         when(clientRepository.findById(22L)).thenReturn(Optional.of(client));
         when(clientRepository.existsByNumeroEntrepriseIgnoreCaseAndIdNot("SN123ABC", 22L)).thenReturn(true);
         CompteClientRequest request = new CompteClientRequest("Garage Awa", "SN123ABC", 10,
-                null, null, null, null, null, true);
+                null, null, null, null, true);
         assertThrows(IllegalArgumentException.class, () -> service.configurer(22L, request));
         verify(compteRepository, never()).save(any());
     }
 
     @Test void unPutDuCompteEffaceLesConditionsEnvoyeesCommeNull() {
         Client client = Client.builder().id(22L).typeClient(TypeClient.ENTREPRISE)
-                .montantPlafond(150000).echeance(30).montantPlafondEcheance(new BigDecimal("500000")).build();
+                .echeance(30).montantPlafondEcheance(new BigDecimal("500000")).build();
         when(clientRepository.findById(22L)).thenReturn(Optional.of(client));
         when(clientRepository.existsByNumeroEntrepriseIgnoreCaseAndIdNot("SN123ABC", 22L)).thenReturn(false);
         when(compteRepository.findByClientId(22L)).thenReturn(Optional.of(CompteClient.builder().client(client).actif(true).build()));
@@ -71,16 +71,15 @@ class CompteClientServiceTest {
         when(factureRepository.existsFactureImpayeeEnRetard(eq(22L), any())).thenReturn(false);
 
         service.configurer(22L, new CompteClientRequest("Garage Awa", "SN123ABC", 0,
-                null, null, null, null, null, true));
+                null, null, null, null, true));
 
-        assertNull(client.getMontantPlafond());
         assertNull(client.getEcheance());
         assertNull(client.getMontantPlafondEcheance());
     }
 
     @Test void refuseUnPlafondDePeriodeSansDelaiDePaiement() {
         CompteClientRequest request = new CompteClientRequest("Garage Awa", "SN123ABC", 0,
-                null, null, new BigDecimal("500000"), null, null, true);
+                null, new BigDecimal("500000"), null, null, true);
         assertThrows(IllegalArgumentException.class, () -> service.configurer(22L, request));
         verifyNoInteractions(clientRepository, compteRepository, factureRepository);
     }

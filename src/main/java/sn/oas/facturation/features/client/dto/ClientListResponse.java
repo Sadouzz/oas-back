@@ -20,7 +20,6 @@ public record ClientListResponse(
         Integer vehiculeNumbers,
         boolean clientFidele, 
         Integer montantRemise,
-        Integer montantPlafond,
         Integer echeance,
         java.math.BigDecimal montantPlafondEcheance,
         String ninea,
@@ -47,7 +46,6 @@ public record ClientListResponse(
                 .vehiculeNumbers(client.getVehicules().size())
                 .clientFidele(client.isClientFidele())
                 .montantRemise(client.getMontantRemise())
-                .montantPlafond(client.getMontantPlafond())
                 .echeance(client.getEcheance())
                 .montantPlafondEcheance(client.getMontantPlafondEcheance())
                 .ninea(client.getNinea())

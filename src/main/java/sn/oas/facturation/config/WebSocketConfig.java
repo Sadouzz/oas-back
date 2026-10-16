@@ -49,7 +49,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                         throw new AccessDeniedException("Authentification WebSocket requise.");
                     }
                     String token = authorization.substring(7).trim();
-                    if (token.isEmpty() || !jwtUtil.validateJwtToken(token)) {
+                    if (token.isEmpty() || !jwtUtil.isAccessToken(token)) {
                         throw new AccessDeniedException("Jeton WebSocket invalide ou expiré.");
                     }
                     String username = jwtUtil.getUsernameFromToken(token);

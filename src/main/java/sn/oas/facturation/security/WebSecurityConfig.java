@@ -82,10 +82,11 @@ public class WebSecurityConfig {
                                 "/api/partenaires/**",
                                 "/api/fournisseurs",
                                 "/api/fournisseurs/**",
-                                "/api/client/marketplace/produits",
-                                "/api/client/marketplace/produits/**",
                                 "/ws/**",
                                 "/ws-raw/**")
+                        .permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                "/api/marketplace/produits", "/api/marketplace/produits/**")
                         .permitAll()
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/admin/garages", "/api/admin/garages/**")

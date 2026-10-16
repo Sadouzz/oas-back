@@ -32,6 +32,7 @@ public class VehiculeController {
     private final ClientService clientService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
     @Operation(summary = "Lister tous les véhicules ou rechercher par mot-clé avec pagination")
     public ResponseEntity<Page<VehiculeListResponse>> getVehicules(
             @RequestParam(required = false) String keyword,
@@ -45,6 +46,7 @@ public class VehiculeController {
     }
 
     @GetMapping("/recent")
+    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
     @Operation(summary = "Récupérer les véhicules récents")
     public ResponseEntity<List<VehiculeListResponse>> getRecentVehicules() {
         return ResponseEntity
@@ -52,6 +54,7 @@ public class VehiculeController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
     @Operation(summary = "Récupérer un véhicule par son ID")
     public ResponseEntity<Vehicule> getVehiculeById(@PathVariable Long id) {
         return ResponseEntity.ok(vehiculeService.getVehiculeById(id));
@@ -65,14 +68,14 @@ public class VehiculeController {
         @CacheEvict(value = "dashboard_chef_atelier", allEntries = true),
         @CacheEvict(value = "dashboard_agent", allEntries = true)
     })*/
-    public ResponseEntity<Vehicule> createVehicule(@RequestBody VehiculeRequest request) {
+    public ResponseEntity<Vehicule> createVehicule(@jakarta.validation.Valid @RequestBody VehiculeRequest request) {
         return new ResponseEntity<>(vehiculeService.createVehicule(request), HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER')")
     @Operation(summary = "Mettre à jour un véhicule")
-    public ResponseEntity<Vehicule> updateVehicule(@PathVariable Long id, @RequestBody VehiculeRequest request) {
+    public ResponseEntity<Vehicule> updateVehicule(@PathVariable Long id, @jakarta.validation.Valid @RequestBody VehiculeRequest request) {
         return ResponseEntity.ok(vehiculeService.updateVehicule(id, request));
     }
 
@@ -90,6 +93,7 @@ public class VehiculeController {
     }
 
     @GetMapping("/client/{clientId}")
+    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
     @Operation(summary = "Récupérer les véhicules d'un client, avec pagination optionnelle")
     public ResponseEntity<?> getVehiculesByClient(@PathVariable Long clientId,
             @RequestParam(required = false) Integer page,
@@ -113,10 +117,22 @@ public class VehiculeController {
                 vehiculeService.getVehiculesActifsByClient(client.getId()).stream().map(VehiculeListResponse::from).toList());
     }
 
+    @GetMapping("/me/{id}")
+    @PreAuthorize("hasAnyAuthority('CLIENT', 'ROLE_CLIENT')")
+    @Operation(summary = "Récupérer un véhicule appartenant au client connecté")
+    public ResponseEntity<VehiculeListResponse> getMyVehicule(@PathVariable Long id) {
+        Client client = clientService.getClientConnecte();
+        Vehicule vehicule = vehiculeService.getVehiculeById(id);
+        if (vehicule.getClient() == null || !vehicule.getClient().getId().equals(client.getId())) {
+            throw new sn.oas.facturation.shared.exception.ForbiddenException("Accès non autorisé à ce véhicule");
+        }
+        return ResponseEntity.ok(VehiculeListResponse.from(vehicule));
+    }
+
     @PostMapping("/me")
     @PreAuthorize("hasAnyAuthority('CLIENT', 'ROLE_CLIENT')")
     @Operation(summary = "Enregistrer un véhicule pour le client connecté")
-    public ResponseEntity<Vehicule> addMyVehicule(@RequestBody VehiculeRequest request) {
+    public ResponseEntity<VehiculeListResponse> addMyVehicule(@jakarta.validation.Valid @RequestBody VehiculeRequest request) {
         Client client = clientService.getClientConnecte();
         VehiculeRequest securedRequest = new VehiculeRequest(
                 request.immatriculation(),
@@ -126,7 +142,7 @@ public class VehiculeController {
                 request.kilometrage(),
                 request.numeroChassis(),
                 client.getId());
-        return new ResponseEntity<>(vehiculeService.createVehicule(securedRequest, false), HttpStatus.CREATED);
+        return new ResponseEntity<>(VehiculeListResponse.from(vehiculeService.createVehicule(securedRequest, false)), HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}/activer")

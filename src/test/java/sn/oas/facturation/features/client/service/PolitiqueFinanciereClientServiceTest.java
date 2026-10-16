@@ -23,25 +23,23 @@ class PolitiqueFinanciereClientServiceTest {
     private Client client;
 
     @BeforeEach void setUp() {
-        client = Client.builder().id(7L).montantPlafond(150_000).echeance(30)
+        client = Client.builder().id(7L).echeance(30)
                 .montantPlafondEcheance(new BigDecimal("500000")).build();
-        when(factureRepository.sumResteAPayerByClientId(7L)).thenReturn(new BigDecimal("140000"));
         lenient().when(factureRepository.sumMontantFacturesDepuis(eq(7L), any(LocalDateTime.class))).thenReturn(new BigDecimal("100000"));
         lenient().when(factureRepository.existsFactureImpayeeEnRetard(eq(7L), any(LocalDateTime.class))).thenReturn(false);
         lenient().when(factureRepository.existsFactureLegacyImpayeeEnRetard(eq(7L), any(LocalDateTime.class))).thenReturn(false);
     }
 
-    @Test void proformaAuDessusDuPlafondAvertitSansRefuser() {
-        var warnings = politique.avertissementsProforma(client, new BigDecimal("30000"));
+    @Test void proformaQuiAtteintLePlafondDePeriodeAvertitSansRefuser() {
+        var warnings = politique.avertissementsProforma(client, new BigDecimal("400000"));
         assertEquals(1, warnings.size());
         assertTrue(warnings.get(0).contains("reste autorisée"));
     }
 
-    @Test void reservationClientEstBloqueeSiEncoursDepassePlafondMaisPasQuandIlEstEgal() {
+    @Test void encoursImpayesNeBloquePlusLaReservationQuandLaPeriodeEstSousSonPlafond() {
         when(clientRepository.findById(7L)).thenReturn(Optional.of(client));
         assertNull(politique.motifBlocageReservation(7L));
-        when(factureRepository.sumResteAPayerByClientId(7L)).thenReturn(new BigDecimal("150001"));
-        assertNotNull(politique.motifBlocageReservation(7L));
+        verify(factureRepository, never()).sumResteAPayerByClientId(7L);
     }
 
     @Test void reservationClientBloqueeSiFactureEchueOuPlafondPeriodeAtteint() {

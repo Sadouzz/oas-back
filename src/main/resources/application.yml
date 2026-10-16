@@ -7,6 +7,9 @@ spring:
   profiles:
     active: ${SPRING_ACTIVE_PROFILE:dev}
 app:
+  cookie:
+    secure: ${COOKIE_SECURE:false}
+    same-site: ${COOKIE_SAME_SITE:Lax}
   push:
     vapid-public-key: ${OAS_PUSH_VAPID_PUBLIC_KEY:}
     vapid-private-key: ${OAS_PUSH_VAPID_PRIVATE_KEY:}

@@ -56,12 +56,7 @@ public class CompteClientService {
         if (client.getEmailEntreprise() == null) client.setEmailEntreprise(client.getEmail());
         if (client.getAdresseEntreprise() == null) client.setAdresseEntreprise(client.getAdresse());
         client.setMontantRemise(request.remisePourcentage());
-        if (request.plafondCredit() != null && (request.plafondCredit().signum() < 0
-                || request.plafondCredit().compareTo(BigDecimal.valueOf(Integer.MAX_VALUE)) > 0
-                || request.plafondCredit().stripTrailingZeros().scale() > 0))
-            throw new IllegalArgumentException("Le plafond d'encours doit être un montant entier positif valide.");
-        // PUT remplace les conditions envoyées : une valeur null efface la limite correspondante.
-        client.setMontantPlafond(request.plafondCredit() == null ? null : request.plafondCredit().intValueExact());
+        // PUT remplace les conditions envoyées : une valeur null efface la limite de période.
         client.setEcheance(request.echeanceJours());
         client.setMontantPlafondEcheance(request.plafondPeriode());
         if (request.rccm() != null) client.setRccm(request.rccm().trim());
@@ -91,16 +86,14 @@ public class CompteClientService {
         if (periode == null) periode = BigDecimal.ZERO;
         boolean retard = factureRepository.existsFactureImpayeeEnRetard(clientId, now)
                 || (jours != null && jours > 0 && factureRepository.existsFactureLegacyImpayeeEnRetard(clientId, now.minusDays(jours)));
-        BigDecimal plafond = client.getMontantPlafond() == null ? null : BigDecimal.valueOf(client.getMontantPlafond());
         String motif = null;
         if (retard) motif = "Une ou plusieurs factures sont échues et impayées.";
-        else if (plafond != null && encours.compareTo(plafond) > 0) motif = "Le plafond d'encours autorisé est dépassé.";
         else if (client.getMontantPlafondEcheance() != null && periode.compareTo(client.getMontantPlafondEcheance()) >= 0)
             motif = "Le plafond de facturation de la période d'échéance est atteint.";
         return new CompteClientResponse(clientId, client.getTypeClient() == null ? TypeClient.PARTICULIER.name() : client.getTypeClient().name(),
                 client.getRaisonSociale(), client.getNumeroEntreprise(), compte != null, compte != null && compte.isActif(),
                 client.getMontantRemise() == null ? BigDecimal.ZERO : BigDecimal.valueOf(client.getMontantRemise()),
-                compte == null ? BigDecimal.ZERO : compte.getSoldeCredit(), plafond, jours,
+                compte == null ? BigDecimal.ZERO : compte.getSoldeCredit(), jours,
                 client.getMontantPlafondEcheance(), encours, periode, retard, motif == null, motif,
                 client.getRccm(), client.getRib(), compte == null ? null : compte.getDateCreation());
     }

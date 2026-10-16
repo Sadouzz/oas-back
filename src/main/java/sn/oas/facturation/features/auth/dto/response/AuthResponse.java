@@ -1,8 +1,10 @@
 package sn.oas.facturation.features.auth.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 public record AuthResponse(
         String token,
-        String refreshToken,
+        @JsonIgnore String refreshToken,
         String tokenType,
         String username,
         String role,

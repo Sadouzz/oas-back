@@ -2,7 +2,6 @@ package sn.oas.facturation.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +26,7 @@ public class AuthTokenFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String jwt = parseJwt(request);
-        if (jwt != null && jwtUtil.validateJwtToken(jwt)) {
+        if (jwt != null && jwtUtil.isAccessToken(jwt)) {
             String email = jwtUtil.getUsernameFromToken(jwt);
             UserDetails userDetails = userDetailsService.loadUserByUsername(email);
             UsernamePasswordAuthenticationToken authentication =
@@ -40,18 +39,8 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 
     private String parseJwt(HttpServletRequest request) {
         String headerAuth = request.getHeader("Authorization");
-        if (headerAuth != null && headerAuth.startsWith("Bearer ")) {
-            return headerAuth.substring(7);
-        }
-
-        if (request.getCookies() != null) {
-            for (Cookie cookie : request.getCookies()) {
-                if ("token".equals(cookie.getName())) {
-                    return cookie.getValue();
-                }
-            }
-        }
-
-        return null;
+        return headerAuth != null && headerAuth.startsWith("Bearer ")
+                ? headerAuth.substring(7)
+                : null;
     }
 }

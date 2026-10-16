@@ -28,6 +28,7 @@ public class JwtUtil {
     public String generateToken(String username) {
         return Jwts.builder()
                 .subject(username)
+                .claim("token_type", "access")
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
                 .signWith(key)
@@ -37,6 +38,7 @@ public class JwtUtil {
     public String generateRefreshToken(String username) {
         return Jwts.builder()
                 .subject(username)
+                .claim("token_type", "refresh")
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + jwtRefreshExpirationMs))
                 .signWith(key)
@@ -67,5 +69,22 @@ public class JwtUtil {
             System.out.println("JWT claims string is empty: " + e.getMessage());
         }
         return false;
+    }
+
+    /** Access tokens must never be interchangeable with refresh tokens. */
+    public boolean isAccessToken(String token) {
+        return validateJwtToken(token) && "access".equals(getTokenType(token));
+    }
+
+    /** Accept pre-type refresh tokens only for migration; typed access tokens are rejected. */
+    public boolean isRefreshToken(String token) {
+        if (!validateJwtToken(token)) return false;
+        String tokenType = getTokenType(token);
+        return tokenType == null || "refresh".equals(tokenType);
+    }
+
+    private String getTokenType(String token) {
+        return Jwts.parser().verifyWith(key).build()
+                .parseSignedClaims(token).getPayload().get("token_type", String.class);
     }
 }

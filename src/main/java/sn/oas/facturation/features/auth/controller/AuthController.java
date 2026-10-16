@@ -8,19 +8,17 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import sn.oas.facturation.features.auth.dto.request.ChangePasswordRequest;
 import sn.oas.facturation.features.auth.dto.request.LoginRequest;
 import sn.oas.facturation.features.auth.dto.request.RegisterRequest;
 import sn.oas.facturation.features.auth.dto.response.AuthResponse;
-import sn.oas.facturation.features.user.repository.UserRepository;
 import sn.oas.facturation.features.user.service.UserService;
 import sn.oas.facturation.features.user.dto.request.UserUpdateRequest;
 import sn.oas.facturation.features.user.dto.response.UserListResponse;
 import sn.oas.facturation.features.auth.service.AuthService;
-import sn.oas.facturation.features.user.data.entity.User;
 import sn.oas.facturation.features.user.data.enums.TypeUser;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
@@ -33,78 +31,55 @@ public class AuthController {
 
     private final AuthService authService;
     private final UserService userService;
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
 
-    @Value("${app.jwt.expiration:21600000}")
-    private long jwtExpirationMs;
+    @Value("${app.cookie.secure:false}")
+    private boolean cookieSecure;
+
+    @Value("${app.cookie.same-site:Lax}")
+    private String cookieSameSite;
 
     @PostMapping("/signin")
-    @Operation(summary = "Connexion d'un utilisateur avec cookies HttpOnly (Access token & Refresh token 7j)")
+    @Operation(summary = "Connexion avec jeton d'accès et cookie de renouvellement HttpOnly")
     public ResponseEntity<AuthResponse> signin(@RequestBody LoginRequest request) {
         AuthResponse response = authService.login(request);
 
-        ResponseCookie accessCookie = ResponseCookie.from("token", response.token())
-                .httpOnly(true)
-                .secure(false) // Mettre true en production HTTPS
-                .path("/")
-                .maxAge(jwtExpirationMs / 1000)
-                .sameSite("Lax")
-                .build();
-
         ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", response.refreshToken())
                 .httpOnly(true)
-                .secure(false)
+                .secure(cookieSecure)
                 .path("/")
                 .maxAge(7 * 24 * 60 * 60) // 7 jours
-                .sameSite("Lax")
+                .sameSite(cookieSameSite)
                 .build();
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, expiredAccessCookie("token").toString())
+                .header(HttpHeaders.SET_COOKIE, expiredAccessCookie("accessToken").toString())
                 .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
                 .body(response);
     }
 
     @PostMapping("/refresh")
-    @Operation(summary = "Rafraîchir le token d'authentification et les cookies HttpOnly")
-    public ResponseEntity<AuthResponse> refresh(
-            HttpServletRequest request,
-            @RequestBody(required = false) Map<String, String> body) {
-        String refreshToken = extractRefreshToken(request, body);
+    @Operation(summary = "Rafraîchir le jeton d'accès avec le cookie HttpOnly")
+    public ResponseEntity<AuthResponse> refresh(HttpServletRequest request) {
+        String refreshToken = extractRefreshToken(request);
         AuthResponse response = authService.refreshToken(refreshToken);
-
-        ResponseCookie accessCookie = ResponseCookie.from("token", response.token())
-                .httpOnly(true)
-                .secure(false)
-                .path("/")
-                .maxAge(jwtExpirationMs / 1000)
-                .sameSite("Lax")
-                .build();
 
         ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", response.refreshToken())
                 .httpOnly(true)
-                .secure(false)
+                .secure(cookieSecure)
                 .path("/")
                 .maxAge(7 * 24 * 60 * 60) // 7 jours
-                .sameSite("Lax")
+                .sameSite(cookieSameSite)
                 .build();
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, expiredAccessCookie("token").toString())
+                .header(HttpHeaders.SET_COOKIE, expiredAccessCookie("accessToken").toString())
                 .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
                 .body(response);
     }
 
-    private String extractRefreshToken(HttpServletRequest request, Map<String, String> body) {
-        if (body != null) {
-            if (body.get("refreshToken") != null && !body.get("refreshToken").isBlank()) {
-                return body.get("refreshToken").trim();
-            }
-            if (body.get("token") != null && !body.get("token").isBlank()) {
-                return body.get("token").trim();
-            }
-        }
+    private String extractRefreshToken(HttpServletRequest request) {
         if (request.getCookies() != null) {
             for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
                 if ("refreshToken".equals(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isBlank()) {
@@ -112,49 +87,28 @@ public class AuthController {
                 }
             }
         }
-        String customHeader = request.getHeader("X-Refresh-Token");
-        if (customHeader != null && !customHeader.isBlank()) {
-            return customHeader.trim();
-        }
-        String param = request.getParameter("refreshToken");
-        if (param != null && !param.isBlank()) {
-            return param.trim();
-        }
-        String headerAuth = request.getHeader("Authorization");
-        if (headerAuth != null && headerAuth.startsWith("Bearer ")) {
-            return headerAuth.substring(7).trim();
-        }
-        if (request.getCookies() != null) {
-            for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
-                if ("token".equals(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isBlank()) {
-                    return cookie.getValue().trim();
-                }
-            }
-        }
         return null;
+    }
+
+    private ResponseCookie expiredAccessCookie(String name) {
+        return ResponseCookie.from(name, "")
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .path("/")
+                .maxAge(0)
+                .sameSite(cookieSameSite)
+                .build();
     }
 
     @PostMapping("/signout")
     @Operation(summary = "Déconnexion et suppression des cookies HttpOnly")
     public ResponseEntity<?> signout() {
-        ResponseCookie accessCookie = ResponseCookie.from("token", "")
-                .httpOnly(true)
-                .secure(false)
-                .path("/")
-                .maxAge(0)
-                .sameSite("Lax")
-                .build();
-
-        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", "")
-                .httpOnly(true)
-                .secure(false)
-                .path("/")
-                .maxAge(0)
-                .sameSite("Lax")
-                .build();
-
+        ResponseCookie accessCookie = expiredAccessCookie("accessToken");
+        ResponseCookie legacyAccessCookie = expiredAccessCookie("token");
+        ResponseCookie refreshCookie = expiredAccessCookie("refreshToken");
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, legacyAccessCookie.toString())
                 .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
                 .body(Map.of("message", "Déconnecté avec succès"));
     }
@@ -175,36 +129,31 @@ public class AuthController {
     }
 
     @PostMapping("/change-password")
-    @Operation(summary = "Changer le mot de passe d'un utilisateur")
-    public ResponseEntity<?> changePassword(@RequestBody ChangePasswordRequest request) {
-        User user = userRepository.findFirstByUsername(request.username())
-                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
-
-        if (!passwordEncoder.matches(request.oldPassword(), user.getPassword())) {
-            return ResponseEntity.badRequest().body("Ancien mot de passe incorrect");
-        }
-
-        user.setPassword(passwordEncoder.encode(request.newPassword()));
-        userRepository.save(user);
-
-        return ResponseEntity.ok("Mot de passe changé avec succès !");
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Changer le mot de passe de l'utilisateur connecté (compatibilité)")
+    public ResponseEntity<?> changePassword(@RequestBody @jakarta.validation.Valid ChangePasswordRequest request) {
+        userService.changePasswordForCurrentUser(request.oldPassword(), request.newPassword());
+        return ResponseEntity.ok(Map.of("message", "Mot de passe changé avec succès !"));
     }
 
     @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Récupérer le profil de l'utilisateur connecté")
     public ResponseEntity<UserListResponse> getCurrentUser() {
         return ResponseEntity.ok(UserListResponse.from(userService.getCurrentUser()));
     }
 
     @PutMapping("/me")
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Mettre à jour le profil de l'utilisateur connecté")
     public ResponseEntity<UserListResponse> updateCurrentUser(@RequestBody @jakarta.validation.Valid UserUpdateRequest request) {
         return ResponseEntity.ok(UserListResponse.from(userService.updateCurrentUser(request)));
     }
 
     @PostMapping("/me/change-password")
+    @PreAuthorize("isAuthenticated()")
     @Operation(summary = "Changer le mot de passe de l'utilisateur connecté")
-    public ResponseEntity<?> changeMyPassword(@RequestBody ChangePasswordRequest request) {
+    public ResponseEntity<?> changeMyPassword(@RequestBody @jakarta.validation.Valid ChangePasswordRequest request) {
         userService.changePasswordForCurrentUser(request.oldPassword(), request.newPassword());
         return ResponseEntity.ok(Map.of("message", "Mot de passe modifié avec succès !"));
     }

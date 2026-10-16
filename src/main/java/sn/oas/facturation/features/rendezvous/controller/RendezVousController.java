@@ -224,10 +224,19 @@ public class RendezVousController {
 
     // --- Consultation globale ---
     @GetMapping("/{id}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasAnyAuthority('CLIENT', 'ROLE_CLIENT', 'ROLE_AGENT', 'AGENT', 'ROLE_SUPER_AGENT', 'SUPER_AGENT', 'ROLE_MASTER', 'MASTER', 'ROLE_CHEF_ATELIER', 'CHEF_ATELIER', 'ROLE_AGENT_MAGASIN', 'AGENT_MAGASIN')")
     @Operation(summary = "Récupérer un rendez-vous par son ID")
     public ResponseEntity<RendezVousResponse> getRendezVousById(@PathVariable Long id) {
         RendezVous rv = rendezvousService.getById(id);
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isClient = auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_CLIENT") || a.getAuthority().equals("CLIENT"));
+        if (isClient) {
+            Client client = clientService.getClientConnecte();
+            if (rv.getClient() == null || !rv.getClient().getId().equals(client.getId())) {
+                throw new sn.oas.facturation.shared.exception.ForbiddenException("Accès non autorisé à ce rendez-vous");
+            }
+        }
         return ResponseEntity.ok(RendezVousResponse.of(rv));
     }
 }

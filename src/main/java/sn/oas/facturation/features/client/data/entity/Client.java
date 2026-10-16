@@ -72,13 +72,10 @@ public class Client extends User {
     @Column(name = "montant_remise", nullable = true)
     private Integer montantRemise;
 
-    @Column(name = "montant_plafond", nullable = true)
-    private Integer montantPlafond;
-
     @Column(name = "echeance", nullable = true)
     private Integer echeance;
 
-    /** Plafond cumulé de facturation sur la période d'échéance (indépendant du plafond d'encours). */
+    /** Plafond cumulé des factures émises pendant la période d'échéance. */
     @Column(name = "montant_plafond_echeance", precision = 15, scale = 2)
     private java.math.BigDecimal montantPlafondEcheance;
 

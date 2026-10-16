@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import sn.oas.facturation.features.user.repository.UserRepository;
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.repository.ClientRepository;
 import sn.oas.facturation.features.messagerie.data.entity.Message;
@@ -22,24 +21,18 @@ import java.util.List;
 public class MessageServiceImpl implements MessageService {
 
     private final MessageRepository messageRepository;
-    private final UserRepository userRepository;
     private final ClientRepository clientRepository;
     private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
 
     @Transactional
     @Override
     public Message clientSendMessage(Client client, MessageRequest request) {
-        User destinataire = null;
-        if (request.destinataireId() != null) {
-            destinataire = userRepository.findById(request.destinataireId())
-                    .orElse(null);
-        }
-
         Message message = Message.builder()
                 .numero(documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.MSG))
                 .client(client)
                 .expediteur(client)
-                .destinataire(destinataire)
+                // Le client écrit dans sa propre conversation. Le destinataire est résolu côté serveur.
+                .destinataire(null)
                 .contenu(request.contenu())
                 .lu(false)
                 .build();

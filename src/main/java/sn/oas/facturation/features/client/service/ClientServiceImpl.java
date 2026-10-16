@@ -308,9 +308,6 @@ public class ClientServiceImpl implements ClientService {
         if (request.montantRemise() != null) {
             client.setMontantRemise(request.montantRemise());
         }
-        if (request.montantPlafond() != null) {
-            client.setMontantPlafond(request.montantPlafond());
-        }
         if (request.echeance() != null) {
             client.setEcheance(request.echeance());
         }
@@ -347,8 +344,6 @@ public class ClientServiceImpl implements ClientService {
     @Transactional
     public Client updateConditionsFinancieres(Long id, sn.oas.facturation.features.client.dto.ConditionsFinancieresRequest request) {
         if (request == null) throw new IllegalArgumentException("Les conditions financières sont obligatoires.");
-        if (request.plafondEncours() != null && request.plafondEncours() < 0)
-            throw new IllegalArgumentException("Le plafond d'encours ne peut pas être négatif.");
         if (request.echeanceJours() != null && (request.echeanceJours() < 1 || request.echeanceJours() > 3650))
             throw new IllegalArgumentException("L'échéance doit être comprise entre 1 et 3650 jours.");
         if (request.plafondPeriode() != null && request.plafondPeriode().signum() < 0)
@@ -356,7 +351,6 @@ public class ClientServiceImpl implements ClientService {
         if (request.plafondPeriode() != null && (request.echeanceJours() == null || request.echeanceJours() <= 0))
             throw new IllegalArgumentException("Un délai de paiement est obligatoire pour définir un plafond de période.");
         Client client = clientRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Client non trouvé"));
-        client.setMontantPlafond(request.plafondEncours());
         client.setEcheance(request.echeanceJours());
         client.setMontantPlafondEcheance(request.plafondPeriode());
         client.setUpdatedAt(java.time.LocalDateTime.now());

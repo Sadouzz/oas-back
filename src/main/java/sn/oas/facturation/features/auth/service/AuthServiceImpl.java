@@ -92,7 +92,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse refreshToken(String currentRefreshToken) {
-        if (currentRefreshToken == null || currentRefreshToken.isBlank() || !jwtUtil.validateJwtToken(currentRefreshToken)) {
+        if (currentRefreshToken == null || currentRefreshToken.isBlank() || !jwtUtil.isRefreshToken(currentRefreshToken)) {
             throw new BadCredentialsException("Refresh token invalide ou expiré");
         }
 
