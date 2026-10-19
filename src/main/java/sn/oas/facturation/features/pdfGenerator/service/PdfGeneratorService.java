@@ -113,7 +113,7 @@ public class PdfGeneratorService {
             
             if (bonDeCommande.getTvaApplicable() != null && bonDeCommande.getTvaApplicable()) {
                 totals.add(new Phrase("Montant HT : " + bonDeCommande.getMontantHT() + " FCFA\n", fontNormal));
-                totals.add(new Phrase("TVA (18%) : " + bonDeCommande.getMontantTVA() + " FCFA\n", fontNormal));
+                totals.add(new Phrase("TVA : " + bonDeCommande.getMontantTVA() + " FCFA\n", fontNormal));
                 totals.add(new Phrase("Montant TTC : " + bonDeCommande.getMontantTTC() + " FCFA", fontBold));
             } else {
                 totals.add(new Phrase("Total : " + bonDeCommande.getMontantHT() + " FCFA", fontBold));

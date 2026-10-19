@@ -77,6 +77,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
     private final BonDeSortieRepository bonDeSortieRepository;
     private final AgentNotificationService agentNotificationService;
     private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
+    private final sn.oas.facturation.features.fiscal.service.FiscalConfigurationService fiscalConfigurationService;
 
     @Override
     @Transactional
@@ -137,7 +138,8 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
 
         bonDeCommande.setMontantHT(montantHT);
         bonDeCommande.setTvaApplicable(request.getTvaApplicable() != null ? request.getTvaApplicable() : false);
-        BigDecimal tva = bonDeCommande.getTvaApplicable() ? montantHT.multiply(new BigDecimal("0.18"))
+        BigDecimal tva = bonDeCommande.getTvaApplicable()
+                ? fiscalConfigurationService.calculateRate(montantHT, fiscalConfigurationService.getCurrent().getTvaRate())
                 : BigDecimal.ZERO;
         bonDeCommande.setMontantTVA(tva);
         bonDeCommande.setMontantTTC(montantHT.add(tva));
@@ -219,6 +221,10 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
         log.info("Mise à jour du bon de commande id: {}", id);
         BonDeCommande bonDeCommande = bonDeCommandeRepository.findById(id)
                 .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Bon de commande non trouvé avec l'id : " + id));
+        BigDecimal tauxTvaHistorique = bonDeCommande.getMontantHT() != null && bonDeCommande.getMontantHT().signum() > 0
+                && bonDeCommande.getMontantTVA() != null
+                ? bonDeCommande.getMontantTVA().multiply(new BigDecimal("100")).divide(bonDeCommande.getMontantHT(), 4, java.math.RoundingMode.HALF_UP)
+                : fiscalConfigurationService.getCurrent().getTvaRate();
 
         if (bonDeCommande.getStatut() == StatutBonCommande.ANNULE) {
             throw new sn.oas.facturation.shared.exception.BadRequestException("Un bon de commande annulé ne peut pas être modifié.");
@@ -309,7 +315,8 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
 
         bonDeCommande.setMontantHT(montantHT);
         bonDeCommande.setTvaApplicable(request.getTvaApplicable() != null ? request.getTvaApplicable() : false);
-        BigDecimal tva = bonDeCommande.getTvaApplicable() ? montantHT.multiply(new BigDecimal("0.18"))
+        BigDecimal tva = bonDeCommande.getTvaApplicable()
+                ? fiscalConfigurationService.calculateRate(montantHT, tauxTvaHistorique)
                 : BigDecimal.ZERO;
         bonDeCommande.setMontantTVA(tva);
         bonDeCommande.setMontantTTC(montantHT.add(tva));
@@ -511,6 +518,8 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                 .agent(agent)
                 .garage(agent != null ? agent.getGarage() : null)
                 .bonDeCommande(bonDeCommande)
+                .referenceFactureFournisseur(request.getReferenceFactureFournisseur() == null
+                        ? null : request.getReferenceFactureFournisseur().trim())
                 .kilometrage(bonDeCommande.getVehicule() != null && bonDeCommande.getVehicule().getKilometrage() != null
                         ? bonDeCommande.getVehicule().getKilometrage()
                         : 0.0)
@@ -520,6 +529,10 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                 .build();
 
         BigDecimal montantHT = BigDecimal.ZERO;
+        BigDecimal tvaRateForReception = bonDeCommande.getMontantHT() != null && bonDeCommande.getMontantHT().signum() > 0
+                && bonDeCommande.getMontantTVA() != null
+                ? bonDeCommande.getMontantTVA().multiply(new BigDecimal("100")).divide(bonDeCommande.getMontantHT(), 4, java.math.RoundingMode.HALF_UP)
+                : fiscalConfigurationService.getCurrent().getTvaRate();
 
         if (request.getLignes() != null) {
             for (ReceptionBonDeCommandeRequest.LigneReception ll : request.getLignes()) {
@@ -565,7 +578,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
         if (!bonDeReception.getLignesFacturationPieces().isEmpty()) {
             bonDeReception.setMontantHT(montantHT);
             BigDecimal tva = bonDeCommande.getTvaApplicable() != null && bonDeCommande.getTvaApplicable()
-                    ? montantHT.multiply(new BigDecimal("0.18"))
+                    ? fiscalConfigurationService.calculateRate(montantHT, tvaRateForReception)
                     : BigDecimal.ZERO;
             bonDeReception.setMontantTVA(tva);
             bonDeReception.setMontantTTC(montantHT.add(tva));

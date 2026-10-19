@@ -22,7 +22,16 @@ public record BonDeReceptionListResponse(
         String remarque,
         // Double kilometrage,
         Long bonDeCommandeId,
-        String bonDeCommandeNumero
+        String bonDeCommandeNumero,
+        BigDecimal bonDeCommandeMontantTTC,
+        String fournisseurNom,
+        String statut,
+        String vehiculeImmatriculation,
+        String vehiculeMarque,
+        String vehiculeModele,
+        String clientPrenom,
+        String clientNom,
+        String clientTelephone
 ) {
     public static BonDeReceptionListResponse from(BonDeReception bl) {
         if (bl == null) return null;
@@ -42,6 +51,28 @@ public record BonDeReceptionListResponse(
                 // .kilometrage(bl.getKilometrage())
                 .bonDeCommandeId(bl.getBonDeCommande() != null ? bl.getBonDeCommande().getId() : null)
                 .bonDeCommandeNumero(bl.getBonDeCommande() != null ? bl.getBonDeCommande().getNumero() : null)
+                .bonDeCommandeMontantTTC(bl.getBonDeCommande() != null ? bl.getBonDeCommande().getMontantTTC() : null)
+                .fournisseurNom(bl.getBonDeCommande() != null && bl.getBonDeCommande().getFournisseur() != null
+                        ? (bl.getBonDeCommande().getFournisseur().getNomEntreprise() != null
+                            ? bl.getBonDeCommande().getFournisseur().getNomEntreprise()
+                            : (bl.getBonDeCommande().getFournisseur().getPrenom() + " " + bl.getBonDeCommande().getFournisseur().getNom()).trim()) : null)
+                .statut(bl.getBonDeCommande() == null || bl.getBonDeCommande().getStatut() == null ? "RECU"
+                        : bl.getBonDeCommande().getStatut().name())
+                .vehiculeImmatriculation(bl.getBonDeCommande() != null && bl.getBonDeCommande().getVehicule() != null
+                        ? bl.getBonDeCommande().getVehicule().getImmatriculation() : null)
+                .vehiculeMarque(bl.getBonDeCommande() != null && bl.getBonDeCommande().getVehicule() != null
+                        ? bl.getBonDeCommande().getVehicule().getMarque() : null)
+                .vehiculeModele(bl.getBonDeCommande() != null && bl.getBonDeCommande().getVehicule() != null
+                        ? bl.getBonDeCommande().getVehicule().getModele() : null)
+                .clientPrenom(bl.getBonDeCommande() != null && bl.getBonDeCommande().getVehicule() != null
+                        && bl.getBonDeCommande().getVehicule().getClient() != null
+                        ? bl.getBonDeCommande().getVehicule().getClient().getFirstName() : null)
+                .clientNom(bl.getBonDeCommande() != null && bl.getBonDeCommande().getVehicule() != null
+                        && bl.getBonDeCommande().getVehicule().getClient() != null
+                        ? bl.getBonDeCommande().getVehicule().getClient().getLastName() : null)
+                .clientTelephone(bl.getBonDeCommande() != null && bl.getBonDeCommande().getVehicule() != null
+                        && bl.getBonDeCommande().getVehicule().getClient() != null
+                        ? bl.getBonDeCommande().getVehicule().getClient().getPhone() : null)
                 .build();
     }
 }

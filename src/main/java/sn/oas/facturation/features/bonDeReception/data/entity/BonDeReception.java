@@ -16,4 +16,7 @@ import sn.oas.facturation.features.facturation.data.entity.FactureTTC;
 @EqualsAndHashCode(callSuper = true)
 public class BonDeReception extends FactureTTC {
 
+    @Column(name = "reference_facture_fournisseur", length = 100)
+    private String referenceFactureFournisseur;
+
 }

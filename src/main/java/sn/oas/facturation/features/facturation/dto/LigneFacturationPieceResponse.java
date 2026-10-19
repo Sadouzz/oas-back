@@ -9,7 +9,12 @@ public class LigneFacturationPieceResponse {
     private Long id;
     private Long pieceId;
     private String designationPiece;
+    private String referencePiece;
+    private String depotNom;
     private Integer quantite;
     private Integer prix;
     private Integer montantTotal;
+    private Integer quantiteCommandee;
+    private Integer quantiteRecueTotale;
+    private Integer quantiteRestante;
 }

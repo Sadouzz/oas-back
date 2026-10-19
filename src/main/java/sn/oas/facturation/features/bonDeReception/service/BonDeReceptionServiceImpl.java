@@ -66,6 +66,7 @@ public class BonDeReceptionServiceImpl implements BonDeReceptionService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public BonDeReception getById(Long id) {
         return bonDeReceptionRepository.findById(id)
                 .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Bon de réception non trouvé avec l'id : " + id));

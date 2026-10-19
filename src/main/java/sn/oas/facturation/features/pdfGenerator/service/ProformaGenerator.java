@@ -206,7 +206,7 @@ public class ProformaGenerator {
             // Totaux
             + "<table class=\"tt\"><thead><tr>\n"
             + "  <th style=\"width:22%\">Total HT</th>\n"
-            + "  <th style=\"width:20%\">TVA (18%)</th>\n"
+            + "  <th style=\"width:20%\">TVA</th>\n"
             + "  <th style=\"width:20%\">Timbre</th>\n"
             + "  <th style=\"width:22%\">Montant Total TTC</th>\n"
             + "</tr></thead><tbody>\n"
