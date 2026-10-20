@@ -38,6 +38,8 @@ public class ProformaResponse {
     private Integer annee;
 
     private String numeroBonDeCommande;
+    private Long bsId;
+    private String bsReference;
 
     private String statut;
     private Boolean visibleClient;
@@ -106,6 +108,8 @@ public class ProformaResponse {
                 .modele(modele)
                 .annee(annee)
                 .numeroBonDeCommande(p.getBonDeCommande() != null ? p.getBonDeCommande().getNumero() : null)
+                .bsId(p.getBs() != null ? p.getBs().getId() : null)
+                .bsReference(p.getBs() != null ? p.getBs().getReference() : null)
                 .lignesPieces(p.getLignesFacturationPieces() == null ? List.of() : p.getLignesFacturationPieces().stream()
                         .map(lp -> LigneFacturationPieceResponse.builder()
                                 .id(lp.getId())

@@ -3,10 +3,12 @@ package sn.oas.facturation.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.core.MethodParameter;
 import org.springframework.core.io.Resource;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
+import org.springframework.http.server.ServletServerHttpResponse;
 import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
@@ -75,7 +77,32 @@ public class ApiResponseInterceptor implements ResponseBodyAdvice<Object> {
             }
         }
 
-        // Réponses vides
+        // Vérification du statut HTTP
+        int statusCode = 200;
+        if (response instanceof ServletServerHttpResponse servletResponse) {
+            statusCode = servletResponse.getServletResponse().getStatus();
+        }
+
+        // Réponses d'erreur HTTP (>= 400)
+        if (statusCode >= 400) {
+            if (body == null) {
+                HttpStatus httpStatus = HttpStatus.resolve(statusCode);
+                return ErrorResponse.of(
+                        statusCode,
+                        httpStatus != null ? httpStatus.getReasonPhrase() : "Error",
+                        statusCode == 404 ? "Ressource introuvable" : "Erreur " + statusCode,
+                        path
+                );
+            }
+            return body;
+        }
+
+        // Réponses 204 No Content
+        if (statusCode == 204) {
+            return null;
+        }
+
+        // Réponses vides avec succès (2xx)
         if (body == null) {
             return ApiResponse.success("Opération effectuée avec succès", null);
         }

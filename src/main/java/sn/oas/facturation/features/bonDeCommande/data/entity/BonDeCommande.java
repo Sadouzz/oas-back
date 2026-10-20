@@ -14,6 +14,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import sn.oas.facturation.features.bonDeCommande.data.enums.StatutBonCommande;
+import sn.oas.facturation.features.bonDeReception.data.entity.BonDeReception;
 import sn.oas.facturation.features.facturation.data.entity.Facturation;
 import sn.oas.facturation.features.fournisseur.data.entity.Fournisseur;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
@@ -88,10 +89,22 @@ public class BonDeCommande implements TenantAware  {
         @OneToMany(mappedBy = "bonDeCommande", cascade = CascadeType.ALL, orphanRemoval = true)
         @Builder.Default
         private List<Facturation> facturations = new ArrayList<>();
+        
+        @OneToMany(mappedBy = "bonDeCommande", cascade = CascadeType.ALL, orphanRemoval = true)
+        @Builder.Default
+        private List<BonDeReception> bonDeReceptions = new ArrayList<>();
 
         @ManyToOne(fetch = FetchType.LAZY)
         @JoinColumn(name = "ordre_reparation_id", nullable = true)
         private OrdreReparation ordreReparation;
+
+        public void addBonDeReception(BonDeReception bonDeReception) {
+                if (this.bonDeReceptions == null) {
+                        this.bonDeReceptions = new ArrayList<>();
+                }
+                this.bonDeReceptions.add(bonDeReception);
+                bonDeReception.setBonDeCommande(this);
+        }
 
         @PrePersist
         protected void onCreate() {

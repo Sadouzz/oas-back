@@ -571,6 +571,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
             bonDeReception.setMontantTTC(montantHT.add(tva));
             bonDeReception.setMontantTotal(bonDeReception.getMontantTTC().add(bonDeReception.getMontantTimbre() != null ? bonDeReception.getMontantTimbre() : BigDecimal.ZERO));
             bonDeReceptionRepository.save(bonDeReception);
+            bonDeCommande.addBonDeReception(bonDeReception);
         }
 
         boolean toutRecu = bonDeCommande.getLignes().stream()

@@ -34,7 +34,9 @@ public record ProformaListResponse(
         String marque,
         String modele,
         Integer annee,
-        String numeroBonDeCommande
+        String numeroBonDeCommande,
+        Long bsId,
+        String bsReference
 ) {
     public static ProformaListResponse from(Proforma p) {
         if (p == null) return null;
@@ -93,6 +95,8 @@ public record ProformaListResponse(
                 .modele(modele)
                 .annee(annee)
                 .numeroBonDeCommande(p.getBonDeCommande() != null ? p.getBonDeCommande().getNumero() : null)
+                .bsId(p.getBs() != null ? p.getBs().getId() : null)
+                .bsReference(p.getBs() != null ? p.getBs().getReference() : null)
                 .build();
     }
 }

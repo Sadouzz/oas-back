@@ -36,6 +36,16 @@ public class BonDeSortieController {
         return ResponseEntity.ok(BonDeSortieListResponse.from(bonDeSortieService.creer(request)));
     }
 
+    @Operation(summary = "Créer un bon de sortie depuis un proforma", description = "Crée un bon de sortie et le lie au proforma spécifié en important ses pièces.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Bon de sortie créé et lié avec succès"),
+            @ApiResponse(responseCode = "400", description = "Proforma invalide, déjà lié ou données incomplètes")
+    })
+    @PostMapping(value = {"/creer-depuis-proforma/{proformaId}", "/proforma/{proformaId}"})
+    public ResponseEntity<BonDeSortieListResponse> creerDepuisProforma(@PathVariable Long proformaId) {
+        return ResponseEntity.ok(BonDeSortieListResponse.from(bonDeSortieService.creerDepuisProforma(proformaId)));
+    }
+
     @Operation(summary = "Valider un bon de sortie", description = "Passe le bon en statut VALIDE. Vérifie le stock magasin pour chaque pièce et génère les mouvements de sortie (magasin → atelier).")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Bon validé, stocks mis à jour"),

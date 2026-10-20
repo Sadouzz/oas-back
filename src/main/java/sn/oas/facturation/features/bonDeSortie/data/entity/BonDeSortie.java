@@ -11,8 +11,11 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
+import sn.oas.facturation.features.proforma.data.entity.Proforma;
 import sn.oas.facturation.features.user.data.entity.Agent;
 import sn.oas.facturation.features.bonDeSortie.data.enums.StatutBon;
 import sn.oas.facturation.features.client.data.entity.Client;
@@ -88,6 +91,13 @@ public class BonDeSortie implements TenantAware  {
     @JoinColumn(name = "ordre_reparation_id", nullable = true, unique = true)
     @JsonIgnoreProperties({"bonDeSortie", "hibernateLazyInitializer", "handler"})
     private OrdreReparation ordreReparation;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "proforma_id", nullable = true, unique = true)
+    @JsonIgnoreProperties({"bs", "hibernateLazyInitializer", "handler"})
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private Proforma proforma;
 
     @OneToMany(mappedBy = "bonDeSortie", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

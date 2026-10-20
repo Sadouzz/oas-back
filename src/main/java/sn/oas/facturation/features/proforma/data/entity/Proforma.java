@@ -14,6 +14,10 @@ import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
+import lombok.ToString;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import sn.oas.facturation.features.bonDeSortie.data.entity.BonDeSortie;
 
 @Entity
 @Table(name = "proformas")
@@ -40,4 +44,10 @@ public class Proforma extends FactureTTC {
     @org.hibernate.annotations.ColumnDefault("false")
     @Builder.Default
     private Boolean visibleClient = false;
+
+    @OneToOne(mappedBy = "proforma", fetch = FetchType.LAZY)
+    @JsonIgnoreProperties({"bs", "hibernateLazyInitializer", "handler"})
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private BonDeSortie bs;
 }

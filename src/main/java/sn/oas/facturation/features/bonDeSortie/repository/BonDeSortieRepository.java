@@ -17,6 +17,7 @@ import java.util.Optional;
 public interface BonDeSortieRepository extends JpaRepository<BonDeSortie, Long> {
 
     Optional<BonDeSortie> findByReference(String reference);
+    Optional<BonDeSortie> findByProformaId(Long proformaId);
 
     List<BonDeSortie> findByStatutOrderByDateDesc(StatutBon statut);
     Page<BonDeSortie> findByStatut(StatutBon statut, Pageable pageable);

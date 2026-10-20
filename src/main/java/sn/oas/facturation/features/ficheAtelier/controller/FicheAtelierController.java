@@ -18,6 +18,7 @@ import sn.oas.facturation.features.ficheAtelier.service.FicheAtelierService;
 import sn.oas.facturation.features.ficheAtelier.service.FicheAtelierPdfService;
 
 import java.util.Map;
+import sn.oas.facturation.shared.exception.ResourceNotFoundException;
 
 @RestController
 @RequestMapping("/api/fiches-atelier")
@@ -58,7 +59,7 @@ public class FicheAtelierController {
     public ResponseEntity<FicheAtelierDetailsResponse> getByRendezVousId(@PathVariable Long rendezVousId) {
         var fiche = ficheAtelierService.getByRendezVousId(rendezVousId);
         if (fiche == null) {
-            return ResponseEntity.notFound().build();
+            throw new ResourceNotFoundException("Fiche atelier introuvable pour le rendez-vous : " + rendezVousId);
         }
         return ResponseEntity.ok(FicheAtelierDetailsResponse.from(fiche));
     }

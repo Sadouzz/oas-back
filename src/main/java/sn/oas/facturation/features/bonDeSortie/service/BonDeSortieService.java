@@ -12,6 +12,8 @@ public interface BonDeSortieService {
 
     BonDeSortie creer(BonDeSortieRequest request);
 
+    BonDeSortie creerDepuisProforma(Long proformaId);
+
     BonDeSortie valider(Long id);
 
     BonDeSortie getById(Long id);

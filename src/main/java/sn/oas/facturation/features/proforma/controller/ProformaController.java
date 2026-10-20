@@ -23,6 +23,9 @@ import sn.oas.facturation.features.proforma.service.ProformaService;
 import sn.oas.facturation.shared.exception.ForbiddenException;
 import sn.oas.facturation.shared.exception.BadRequestException;
 
+import sn.oas.facturation.features.bonDeSortie.service.BonDeSortieService;
+import sn.oas.facturation.features.bonDeSortie.dto.BonDeSortieListResponse;
+
 import java.util.List;
 
 @RestController
@@ -33,6 +36,7 @@ public class ProformaController {
 
     private final ProformaService proformaService;
     private final ClientService clientService;
+    private final BonDeSortieService bonDeSortieService;
 
     @PostMapping
     @Operation(summary = "Créer un proforma")
@@ -133,6 +137,12 @@ public class ProformaController {
     @Operation(summary = "Convertir un proforma en facture finale")
     public ResponseEntity<FactureResponse> convertToFacture(@PathVariable Long id) {
         return ResponseEntity.ok(FactureResponse.from(proformaService.convertToFacture(id)));
+    }
+
+    @PostMapping(value = {"/{id}/creer-bs", "/{id}/bon-de-sortie"})
+    @Operation(summary = "Créer un bon de sortie depuis ce proforma", description = "Crée et lie un bon de sortie à ce proforma en important ses pièces.")
+    public ResponseEntity<BonDeSortieListResponse> creerBs(@PathVariable Long id) {
+        return ResponseEntity.ok(BonDeSortieListResponse.from(bonDeSortieService.creerDepuisProforma(id)));
     }
 
     // --- Client endpoints ---

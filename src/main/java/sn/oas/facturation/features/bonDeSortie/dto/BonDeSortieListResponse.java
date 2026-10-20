@@ -21,6 +21,8 @@ public record BonDeSortieListResponse(
         AgentSummary agentValidateur,
         Long ordreReparationId,
         OrdreReparationSummary ordreReparation,
+        Long proformaId,
+        String proformaNumero,
         List<LigneSummary> lignesBonDeSortiePieces
 ) {
     public record ClientSummary(Long id, String firstName, String lastName, String phone) {}
@@ -128,6 +130,8 @@ public record BonDeSortieListResponse(
                 .agentValidateur(validateur)
                 .ordreReparationId(b.getOrdreReparation() != null ? b.getOrdreReparation().getId() : null)
                 .ordreReparation(ordreSummary)
+                .proformaId(b.getProforma() != null ? b.getProforma().getId() : null)
+                .proformaNumero(b.getProforma() != null ? b.getProforma().getNumero() : null)
                 .lignesBonDeSortiePieces(lignes)
                 .build();
     }

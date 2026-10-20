@@ -20,5 +20,6 @@ public enum DocumentType {
     MSG, // Message
     DMD, // Demande Produit
     AG,  // Agent (matricule)
-    OR   // Ordre de Réparation
+    OR,  // Ordre de Réparation
+    OT   // Ordre de Travail
 }

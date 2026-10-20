@@ -9,6 +9,8 @@ public class StepProformaResponseDto extends BaseStepResponseDto {
     private ProformaSummaryDto proforma;
     private VehiculeHeaderDto vehicule;
     private DiagnosticDto diagnostic;
+    private Long ordreTravailId;
+    private String ordreTravailNumero;
     private java.time.LocalDateTime updatedAt;
     private java.time.LocalDateTime dateCreation;
 

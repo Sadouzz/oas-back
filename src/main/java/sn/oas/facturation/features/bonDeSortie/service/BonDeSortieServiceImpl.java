@@ -34,6 +34,10 @@ import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation;
 import sn.oas.facturation.features.ordreReparation.repository.OrdreReparationRepository;
 import sn.oas.facturation.features.notification.service.AgentNotificationService;
+import sn.oas.facturation.features.proforma.data.entity.Proforma;
+import sn.oas.facturation.features.proforma.repository.ProformaRepository;
+import sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece;
+import sn.oas.facturation.features.garage.data.entity.Garage;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -57,6 +61,199 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
     private final sn.oas.facturation.features.piecedetache.service.StockThresholdNotificationService stockThresholdNotificationService;
     private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
     private final BonDeSortieHistoriqueRepository bonDeSortieHistoriqueRepository;
+    private final ProformaRepository proformaRepository;
+
+    @Transactional
+    @Override
+    public BonDeSortie creerDepuisProforma(Long proformaId) {
+        if (proformaId == null) {
+            throw new IllegalArgumentException("L'ID du proforma est obligatoire.");
+        }
+
+        Proforma proforma = proformaRepository.findById(proformaId)
+                .orElseThrow(() -> new IllegalArgumentException("Proforma introuvable avec l'id: " + proformaId));
+
+        if (proforma.getBs() != null) {
+            throw new IllegalStateException("Un bon de sortie (" + proforma.getBs().getReference() + ") est déjà lié à ce proforma.");
+        }
+
+        var existingBs = bonDeSortieRepository.findByProformaId(proformaId);
+        if (existingBs.isPresent()) {
+            throw new IllegalStateException("Un bon de sortie (" + existingBs.get().getReference() + ") est déjà lié à ce proforma.");
+        }
+
+        if (proforma.getStatut() == sn.oas.facturation.features.facturation.data.enums.StatutFacturation.REJETE 
+                || proforma.getStatut() == sn.oas.facturation.features.facturation.data.enums.StatutFacturation.ANNULEE) {
+            throw new IllegalStateException("Impossible de créer un bon de sortie pour un proforma rejeté ou annulé.");
+        }
+
+        Vehicule vehicule = proforma.getVehicule();
+        if (vehicule == null && proforma.getOrdreReparation() != null) {
+            vehicule = proforma.getOrdreReparation().getVehicule();
+        }
+        Client client = proforma.getClient();
+        if (client == null && proforma.getOrdreReparation() != null) {
+            client = proforma.getOrdreReparation().getClient();
+        }
+        if (client == null && vehicule != null) {
+            client = vehicule.getClient();
+        }
+
+        if (client == null) {
+            throw new IllegalArgumentException("Impossible de créer un bon de sortie : aucun client associé au proforma.");
+        }
+        if (vehicule == null) {
+            throw new IllegalArgumentException("Impossible de créer un bon de sortie : aucun véhicule associé au proforma.");
+        }
+        sn.oas.facturation.features.vehicule.service.VehiculeActivationPolicy.requireActive(vehicule);
+
+        Agent agentEmetteur = getAgentConnecte();
+        if (agentEmetteur == null) {
+            agentEmetteur = proforma.getAgent();
+        }
+
+        Garage garage = proforma.getGarage();
+        if (garage == null && agentEmetteur != null) {
+            garage = agentEmetteur.getGarage();
+        }
+        if (garage == null && proforma.getOrdreReparation() != null) {
+            garage = proforma.getOrdreReparation().getGarage();
+        }
+
+        OrdreReparation ordre = proforma.getOrdreReparation();
+
+        BonDeSortie bon = BonDeSortie.builder()
+                .reference(genererReference())
+                .client(client)
+                .vehicule(vehicule)
+                .agentEmetteur(agentEmetteur)
+                .garage(garage)
+                .proforma(proforma)
+                .remarque("Créé depuis le proforma " + (proforma.getNumero() != null ? proforma.getNumero() : proforma.getId()))
+                .build();
+
+        if (ordre != null && ordre.getBonDeSortie() == null) {
+            bon.setOrdreReparation(ordre);
+        }
+
+        if (proforma.getLignesFacturationPieces() != null) {
+            for (LigneFacturationPiece ligneProforma : proforma.getLignesFacturationPieces()) {
+                if (ligneProforma.getPiece() != null) {
+                    PDP pdp = resolvePDP(ligneProforma.getPiece());
+                    if (pdp == null && ligneProforma.getPiece().getId() != null) {
+                        pdp = getPDP(ligneProforma.getPiece().getId());
+                    }
+                    if (pdp != null) {
+                        int qte = ligneProforma.getQuantite() != null && ligneProforma.getQuantite() > 0 
+                                ? ligneProforma.getQuantite() : 1;
+                        int prix = ligneProforma.getPrix() != null 
+                                ? ligneProforma.getPrix() 
+                                : (pdp.getPrixUnitaire() != null ? pdp.getPrixUnitaire().intValue() : 0);
+
+                        LigneBonDeSortiePiece ligneBs = LigneBonDeSortiePiece.builder()
+                                .bonDeSortie(bon)
+                                .piece(pdp)
+                                .quantite(qte)
+                                .prix(prix)
+                                .build();
+                        bon.getLignesBonDeSortiePieces().add(ligneBs);
+                    }
+                }
+            }
+        }
+
+        // Mouvement de stock à la création du BS
+        if (bon.getLignesBonDeSortiePieces() != null) {
+            for (LigneBonDeSortiePiece ligne : bon.getLignesBonDeSortiePieces()) {
+                PDP pdp = resolvePDP(ligne.getPiece());
+                if (pdp != null) {
+                    double quantite = (double) ligne.getQuantite();
+
+                    Double stockMagasinDisponible = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0.0;
+                    if (stockMagasinDisponible < quantite) {
+                        throw new IllegalArgumentException(
+                                "Stock magasin insuffisant pour la pièce " + pdp.getDesignation()
+                                        + ". Disponible : " + stockMagasinDisponible + ", demandé : " + quantite);
+                    }
+
+                    Double magasinAvant = stockMagasinDisponible;
+                    Double atelierAvant = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0.0;
+
+                    pdp.setStockMagasin(magasinAvant - quantite);
+                    pdp.setStockAtelier(atelierAvant + quantite);
+                    pieceDetacheRepository.save(pdp);
+                    stockThresholdNotificationService.notifyIfThresholdCrossed(pdp, magasinAvant);
+
+                    pieceMouvementRepository.save(PieceMouvement.builder()
+                            .type(TypeMouvement.SORTIE_MAGASIN)
+                            .quantite(quantite)
+                            .stockMagasinAvant(magasinAvant)
+                            .stockAtelierAvant(atelierAvant)
+                            .stockMagasinApres(pdp.getStockMagasin())
+                            .stockAtelierApres(pdp.getStockAtelier())
+                            .stockReelApres(pdp.getQteReelle())
+                            .prenom(agentEmetteur != null ? agentEmetteur.getFirstName() : "")
+                            .nom(agentEmetteur != null ? agentEmetteur.getLastName() : "")
+                            .numDocument(bon.getReference())
+                            .typeDocument("Bon de sortie")
+                            .numeroSerie(pdp.getReference())
+                            .immatriculation(bon.getVehicule() != null ? bon.getVehicule().getImmatriculation() : "")
+                            .motif("Création Bon de sortie " + bon.getReference() + " depuis proforma " + (proforma.getNumero() != null ? proforma.getNumero() : proforma.getId()))
+                            .piece(pdp)
+                            .agent(agentEmetteur)
+                            .garage(bon.getGarage())
+                            .build());
+                }
+            }
+        }
+
+        BonDeSortie saved = bonDeSortieRepository.save(bon);
+
+        // Enregistre l'historique du BS pour chaque pièce
+        if (saved.getLignesBonDeSortiePieces() != null && !saved.getLignesBonDeSortiePieces().isEmpty()) {
+            for (LigneBonDeSortiePiece ligne : saved.getLignesBonDeSortiePieces()) {
+                PDP pdp = resolvePDP(ligne.getPiece());
+                PieceDetache piece = pdp != null ? pdp : (PieceDetache) org.hibernate.Hibernate.unproxy(ligne.getPiece());
+                bonDeSortieHistoriqueRepository.save(BonDeSortieHistorique
+                        .builder()
+                        .bonDeSortie(saved)
+                        .piece(piece)
+                        .quantite((double) ligne.getQuantite())
+                        .stockMagasin(pdp != null ? pdp.getStockMagasin() : 0.0)
+                        .stockAtelier(pdp != null ? pdp.getStockAtelier() : 0.0)
+                        .qteReelle(pdp != null ? pdp.getQteReelle() : 0.0)
+                        .prenom(agentEmetteur != null ? agentEmetteur.getFirstName() : "")
+                        .nom(agentEmetteur != null ? agentEmetteur.getLastName() : "")
+                        .numBs(saved.getReference())
+                        .numeroSerie(piece != null ? piece.getReference() : "")
+                        .immatriculation(saved.getVehicule() != null ? saved.getVehicule().getImmatriculation() : "")
+                        .designation(piece != null ? piece.getDesignation() : "")
+                        .statut("SORTIE")
+                        .motif("Sortie magasin vers atelier pour BS " + saved.getReference() + " (Proforma " + (proforma.getNumero() != null ? proforma.getNumero() : proforma.getId()) + ")")
+                        .agent(agentEmetteur)
+                        .garage(saved.getGarage())
+                        .build());
+            }
+        } else {
+            bonDeSortieHistoriqueRepository.save(BonDeSortieHistorique
+                    .builder()
+                    .bonDeSortie(saved)
+                    .prenom(agentEmetteur != null ? agentEmetteur.getFirstName() : "")
+                    .nom(agentEmetteur != null ? agentEmetteur.getLastName() : "")
+                    .numBs(saved.getReference())
+                    .immatriculation(saved.getVehicule() != null ? saved.getVehicule().getImmatriculation() : "")
+                    .statut("SORTIE")
+                    .motif("Création du bon de sortie " + saved.getReference() + " depuis proforma " + (proforma.getNumero() != null ? proforma.getNumero() : proforma.getId()))
+                    .agent(agentEmetteur)
+                    .garage(saved.getGarage())
+                    .build());
+        }
+
+        proforma.setBs(saved);
+        proformaRepository.save(proforma);
+
+        return saved;
+    }
 
     @Transactional
     @Override

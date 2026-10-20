@@ -129,6 +129,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     private final FicheAtelierRepository ficheAtelierRepository;
     private final DevisPrevisionnelRepository devisPrevisionnelRepository;
     private final BonDeCommandeRepository bonDeCommandeRepository;
+    private final sn.oas.facturation.features.ordreTravail.repository.OrdreTravailRepository ordreTravailRepository;
 
     @Autowired
     @Lazy
@@ -1348,6 +1349,12 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             
             dto.setProforma(proformaDto);
         }
+
+        ordreTravailRepository.findByOrdreReparationId(ordre.getId()).ifPresent(ot -> {
+            dto.setOrdreTravailId(ot.getId());
+            dto.setOrdreTravailNumero(ot.getNumero());
+        });
+
         return dto;
     }
 
