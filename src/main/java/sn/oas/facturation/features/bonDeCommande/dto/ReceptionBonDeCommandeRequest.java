@@ -7,6 +7,7 @@ import java.util.List;
 @Data
 public class ReceptionBonDeCommandeRequest {
 
+    private String referenceFactureFournisseur;
     private List<LigneReception> lignes;
 
     @Data

@@ -58,6 +58,7 @@ public class AvoirTTCServiceImpl implements AvoirTTCService {
     private final GarageRepository garageRepository;
     private final DocumentNumberGeneratorService documentNumberGeneratorService;
     private final sn.oas.facturation.features.pdfGenerator.service.HtmlToPdfService htmlToPdfService;
+    private final sn.oas.facturation.features.fiscal.service.FiscalConfigurationService fiscalConfigurationService;
 
     private Agent getAgentConnecte() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -220,10 +221,10 @@ public class AvoirTTCServiceImpl implements AvoirTTCService {
 
         BigDecimal montantTVA = BigDecimal.ZERO;
         if (Boolean.TRUE.equals(request.getAppliquerTVA())) {
-            montantTVA = montantHT.multiply(BigDecimal.valueOf(0.18));
+            montantTVA = fiscalConfigurationService.calculateRate(montantHT, fiscalConfigurationService.getCurrent().getTvaRate());
         }
 
-        BigDecimal montantTimbre = request.getMontantTimbre() != null ? request.getMontantTimbre() : BigDecimal.ZERO;
+        BigDecimal montantTimbre = fiscalConfigurationService.getCurrent().getTimbreFiscal();
         BigDecimal montantTTC = montantHT.add(montantTVA).add(montantTimbre);
 
         avoirTTC.setMontantHT(montantHT);

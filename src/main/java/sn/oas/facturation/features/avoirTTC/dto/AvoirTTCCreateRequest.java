@@ -13,7 +13,7 @@ public class AvoirTTCCreateRequest {
     private Long vehiculeId;
     private Double kilometrage;
     private String remarque;
-    private Boolean appliquerTVA; // true = 18% TVA
+    private Boolean appliquerTVA; // Le taux actif est lu dans la configuration fiscale globale.
     private BigDecimal montantTimbre;
     private List<LigneFacturationPieceRequest> lignesPieces;
     private List<LigneFacturationMainDoeuvreRequest> lignesMainDoeuvres;

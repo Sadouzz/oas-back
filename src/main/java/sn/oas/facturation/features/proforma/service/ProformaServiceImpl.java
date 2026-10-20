@@ -75,6 +75,7 @@ public class ProformaServiceImpl implements ProformaService {
     private final EmailService emailService;
     private final sn.oas.facturation.features.notification.service.NotificationService notificationService;
     private final ProformaGenerator proformaGenerator;
+    private final sn.oas.facturation.features.fiscal.service.FiscalConfigurationService fiscalConfigurationService;
     @Override
     @Transactional
     public Proforma create(ProformaCreateRequest request) {
@@ -262,17 +263,14 @@ public class ProformaServiceImpl implements ProformaService {
         proforma.setTauxRemiseClient(BigDecimal.valueOf(tauxRemise));
         proforma.setMontantRemiseClient(montantRemise);
         proforma.setMontantHT(montantHT);
-        Double tvaRate = request.getTvaRate() != null ? request.getTvaRate() : 18.0;
-        BigDecimal rateBD = BigDecimal.valueOf(tvaRate).divide(BigDecimal.valueOf(100));
-        BigDecimal tva = montantHT.multiply(rateBD).setScale(2, RoundingMode.HALF_UP);
+        var fiscal = fiscalConfigurationService.getCurrent();
+        BigDecimal tva = fiscalConfigurationService.calculateRate(montantHT, fiscal.getTvaRate());
         proforma.setMontantTVA(tva);
         proforma.setMontantTTC(montantHT.add(tva));
         
-        BigDecimal timbre = request.getMontantTimbre() != null ? request.getMontantTimbre() : BigDecimal.valueOf(100);
-        BigDecimal autre = request.getMontantAutre() != null ? request.getMontantAutre() : BigDecimal.ZERO;
+        BigDecimal timbre = fiscal.getTimbreFiscal();
         proforma.setMontantTimbre(timbre);
-        // proforma.setMontantAutre(autre);
-        proforma.setMontantTotal(proforma.getMontantTTC().add(timbre).add(autre));
+        proforma.setMontantTotal(proforma.getMontantTTC().add(timbre));
 
         proforma.setAvertissementsFinanciers(politiqueFinanciereClientService.avertissementsProforma(client, proforma.getMontantTotal()));
 

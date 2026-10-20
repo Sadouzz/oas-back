@@ -73,6 +73,7 @@ public class FactureServiceImpl implements FactureService {
     private final sn.oas.facturation.features.pdfGenerator.service.HtmlToPdfService htmlToPdfService;
     private final sn.oas.facturation.features.pdfTemplate.repository.PdfTemplateRepository pdfTemplateRepository;
     private final CompteClientRepository compteClientRepository;
+    private final sn.oas.facturation.features.fiscal.service.FiscalConfigurationService fiscalConfigurationService;
 
     @Override
     @Transactional
@@ -145,14 +146,15 @@ public class FactureServiceImpl implements FactureService {
         facture.setMontantRemiseClient(montantRemise);
         if (client.getEcheance() != null && client.getEcheance() > 0) facture.setDateEcheance(java.time.LocalDateTime.now().plusDays(client.getEcheance()));
 
+        var fiscal = fiscalConfigurationService.getCurrent();
         BigDecimal tva = BigDecimal.ZERO;
         if (Boolean.TRUE.equals(request.getAppliquerTVA())) {
-            tva = ht.multiply(BigDecimal.valueOf(0.18)).setScale(2, java.math.RoundingMode.HALF_UP);
+            tva = fiscalConfigurationService.calculateRate(ht, fiscal.getTvaRate());
         }
 
         BigDecimal timbre = BigDecimal.ZERO;
         if (Boolean.TRUE.equals(request.getAppliquerTimbre())) {
-            timbre = BigDecimal.valueOf(200);
+            timbre = fiscal.getTimbreFiscal();
         }
 
         BigDecimal ttc = ht.add(tva).add(timbre);
@@ -293,8 +295,9 @@ public class FactureServiceImpl implements FactureService {
         facture.setTauxRemiseClient(BigDecimal.valueOf(tauxRemise));
         facture.setMontantRemiseClient(montantRemise);
         if (client != null && client.getEcheance() != null && client.getEcheance() > 0) facture.setDateEcheance(java.time.LocalDateTime.now().plusDays(client.getEcheance()));
-        BigDecimal tva = montantHT.multiply(BigDecimal.valueOf(0.18)).setScale(2, java.math.RoundingMode.HALF_UP);
-        BigDecimal timbre = BigDecimal.valueOf(100);
+        var fiscal = fiscalConfigurationService.getCurrent();
+        BigDecimal tva = fiscalConfigurationService.calculateRate(montantHT, fiscal.getTvaRate());
+        BigDecimal timbre = fiscal.getTimbreFiscal();
         BigDecimal ttc = montantHT.add(tva).add(timbre);
 
         facture.setLignesFacturationPieces(lignesPieces);
