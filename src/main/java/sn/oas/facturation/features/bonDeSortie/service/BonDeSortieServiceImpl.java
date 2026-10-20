@@ -509,7 +509,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                 ordreReparationRepository.save(fiche);
 
                 // Génération automatique de la facture
-                factureService.createFactureAuto(fiche);
+                //factureService.createFactureAuto(fiche);
             }
         }
 

@@ -70,10 +70,9 @@ public class OrdreTravail implements TenantAware {
     @Builder.Default
     private List<BonDeCommande> bonsDeCommande = new ArrayList<>();
 
-    @OneToMany
-    @JoinColumn(name = "ordre_travail_id")
-    @Builder.Default
-    private List<BonDeSortie> bonsDeSortie = new ArrayList<>();
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "bon_de_sortie_id")
+    private BonDeSortie bonDeSortie;
 
     @OneToMany(mappedBy = "ordreTravail", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

@@ -611,6 +611,9 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                             }
                         }
                     }
+                    /*
+
+
                     if (!lignesPieces.isEmpty()) {
                         BonDeSortieRequest bdsRequest = new BonDeSortieRequest(
                                 fiche.getVehicule().getClient().getId(),
@@ -633,7 +636,10 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                             log.error("Erreur auto bon de sortie FA-" + fiche.getId(), e);
                             throw new RuntimeException("Erreur lors de la création automatique du bon de sortie", e);
                         }
+
+
                     }
+                    */
                 }
             }
         }

@@ -20,5 +20,6 @@ public class OrdreTravailRequest {
     private StatutOrdreTravail statut;
     private List<Long> technicienIds;
     private List<Long> bonDeCommandeIds;
+    private Long bonDeSortieId;
     private List<Long> bonDeSortieIds;
 }

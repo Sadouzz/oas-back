@@ -30,6 +30,7 @@ public class OrdreTravailResponseDto {
     private Integer etape;
     private List<TechnicienDto> techniciens;
     private List<DocumentDto> bonsDeCommande;
+    private DocumentDto bonDeSortie;
     private List<DocumentDto> bonsDeSortie;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -120,13 +121,13 @@ public class OrdreTravailResponseDto {
                                 .build())
                         .collect(Collectors.toList());
 
-        List<DocumentDto> bss = ot.getBonsDeSortie() == null ? Collections.<DocumentDto>emptyList() :
-                ot.getBonsDeSortie().stream()
-                        .map(bs -> DocumentDto.builder()
-                                .id(bs.getId())
-                                .numero(bs.getReference())
-                                .build())
-                        .collect(Collectors.toList());
+        DocumentDto bonDeSortieDto = ot.getBonDeSortie() == null ? null :
+                DocumentDto.builder()
+                        .id(ot.getBonDeSortie().getId())
+                        .numero(ot.getBonDeSortie().getReference())
+                        .build();
+
+        List<DocumentDto> bss = bonDeSortieDto != null ? List.of(bonDeSortieDto) : Collections.emptyList();
 
         return OrdreTravailResponseDto.builder()
                 .id(ot.getId())
@@ -142,6 +143,7 @@ public class OrdreTravailResponseDto {
                 .etape(ot.getStatut() != null ? ot.getStatut().getEtape() : null)
                 .techniciens(techniciens)
                 .bonsDeCommande(bcs)
+                .bonDeSortie(bonDeSortieDto)
                 .bonsDeSortie(bss)
                 .createdAt(ot.getCreatedAt())
                 .updatedAt(ot.getUpdatedAt())
