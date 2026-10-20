@@ -521,12 +521,19 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
             dto.setClient(cDto);
         }
 
+        OrdreReparation ordre = ot.getOrdreReparation();
         Proforma proforma = ot.getProforma();
-        if (proforma == null && ot.getOrdreReparation() != null) {
-            proforma = ot.getOrdreReparation().getProforma();
+        if (proforma == null && ordre != null) {
+            proforma = ordre.getProforma();
+            if (proforma == null) {
+                proforma = proformaRepository.findByOrdreReparationId(ordre.getId()).orElse(null);
+            }
         }
 
+        List<BonDeCommande> bdcList = getLinkedBonsDeCommande(ot, ordre, proforma);
+
         if (proforma != null) {
+            dto.setProformaId(proforma.getId());
             ProformaSummaryDto proformaDto = new ProformaSummaryDto();
             proformaDto.setId(proforma.getId());
             proformaDto.setNumero(proforma.getNumero());
@@ -564,6 +571,7 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
             }
 
             dto.setProforma(proformaDto);
+            dto.setPiecesManquantesProforma(extractPiecesManquantesProforma(proforma, bdcList));
         }
 
         return dto;
@@ -598,30 +606,7 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
         }
 
         // Récupération des bons de commande liés
-        List<BonDeCommande> bdcList = new ArrayList<>();
-        if (ot.getBonsDeCommande() != null) {
-            bdcList.addAll(ot.getBonsDeCommande());
-        }
-
-        // 1. Ajouter les bons de commande liés à l'ordre de réparation s'il existe
-        if (ordre != null) {
-            List<BonDeCommande> orBdcList = bonDeCommandeRepository.findByOrdreReparationId(ordre.getId());
-            if (orBdcList != null) {
-                for (BonDeCommande bc : orBdcList) {
-                    if (bdcList.stream().noneMatch(b -> b.getId().equals(bc.getId()))) {
-                        bdcList.add(bc);
-                    }
-                }
-            }
-        }
-
-        // 2. Ajouter le BDC du proforma s'il existe et n'est pas déjà dans la liste
-        if (proforma != null && proforma.getBonDeCommande() != null) {
-            BonDeCommande proformaBdc = proforma.getBonDeCommande();
-            if (bdcList.stream().noneMatch(b -> b.getId().equals(proformaBdc.getId()))) {
-                bdcList.add(proformaBdc);
-            }
-        }
+        List<BonDeCommande> bdcList = getLinkedBonsDeCommande(ot, ordre, proforma);
 
         List<BonCommandeSummaryDto> bdcDtos = new ArrayList<>();
         if (bdcList != null) {
@@ -685,91 +670,126 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
         if (proforma != null) {
             dto.setProformaId(proforma.getId());
             dto.setProformaNumero(proforma.getNumero());
-
-            List<PieceApprovisionnementDto> piecesDto = new ArrayList<>();
-            if (proforma.getLignesFacturationPieces() != null) {
-                for (LigneFacturationPiece lp : proforma.getLignesFacturationPieces()) {
-                    boolean isCustom = Boolean.TRUE.equals(lp.getIsCustom()) || lp.getPiece() == null;
-                    if (isCustom || lp.getPiece() == null) {
-                        // On ignore les pièces custom (PDS) ou hors catalogue
-                        continue;
-                    }
-
-                    PieceDetache piece = lp.getPiece();
-                    String type = piece.getType() != null ? piece.getType().name() : (piece instanceof PDP ? "PDP" : "");
-                    if (!"PDP".equalsIgnoreCase(type) && !(piece instanceof PDP)) {
-                        // On ne traite que les PDP (Pièces Détachées Principales / Magasin)
-                        continue;
-                    }
-
-                    int qteDemandee = lp.getQuantite() != null ? lp.getQuantite() : 0;
-                    double stockMagasin = piece.getStockMagasin() != null ? piece.getStockMagasin() : 0.0;
-                    double stockAtelier = piece.getStockAtelier() != null ? piece.getStockAtelier() : 0.0;
-
-                    // Uniquement ce qui est manquant en stock magasin
-                    if (stockMagasin >= qteDemandee) {
-                        continue;
-                    }
-
-                    double manque = qteDemandee - stockMagasin;
-                    double diffStock = stockMagasin - qteDemandee;
-                    double prix = lp.getPrix() != null ? lp.getPrix().doubleValue() : 0.0;
-                    if (prix == 0.0 && piece.getPrixUnitaire() != null) {
-                        prix = piece.getPrixUnitaire();
-                    }
-
-                    // Calcul de la quantité commandée et reçue à partir des bons de commande réels
-                    int totalQteCommandee = 0;
-                    int totalQteRecue = 0;
-                    if (bdcList != null) {
-                        for (BonDeCommande bc : bdcList) {
-                            if (bc.getStatut() == StatutBonCommande.ANNULE) {
-                                continue;
-                            }
-                            if (bc.getLignes() != null) {
-                                for (LigneBonDeCommandePiece l : bc.getLignes()) {
-                                    boolean match = false;
-                                    if (l.getPieceDetachee() != null && piece.getId() != null && piece.getId().equals(l.getPieceDetachee().getId())) {
-                                        match = true;
-                                    } else if (piece.getReference() != null && !piece.getReference().isBlank()) {
-                                        String bdcRef = l.getPieceDetachee() != null ? l.getPieceDetachee().getReference() : l.getReferencePds();
-                                        if (piece.getReference().equalsIgnoreCase(bdcRef)) {
-                                            match = true;
-                                        }
-                                    }
-                                    if (match) {
-                                        totalQteCommandee += (l.getQuantite() != null ? l.getQuantite() : 0);
-                                        totalQteRecue += (l.getQuantiteRecue() != null ? l.getQuantiteRecue() : 0);
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    piecesDto.add(PieceApprovisionnementDto.builder()
-                            .ligneId(lp.getId())
-                            .pieceId(piece.getId())
-                            .reference(piece.getReference())
-                            .designation(piece.getDesignation() != null ? piece.getDesignation() : "Pièce")
-                            .type("PDP")
-                            .isCustom(false)
-                            .quantiteDemandee(qteDemandee)
-                            .stockMagasin(stockMagasin)
-                            .stockAtelier(stockAtelier)
-                            .quantiteCommande(totalQteCommandee)
-                            .quantiteRecue(totalQteRecue)
-                            .quantiteManquante(manque)
-                            .differenceStock(diffStock)
-                            .isManquant(true)
-                            .prixUnitaire(prix)
-                            .montantTotal(qteDemandee * prix)
-                            .build());
-                }
-            }
-            dto.setPiecesManquantesProforma(piecesDto);
+            dto.setPiecesManquantesProforma(extractPiecesManquantesProforma(proforma, bdcList));
         }
 
         return dto;
+    }
+
+    private List<BonDeCommande> getLinkedBonsDeCommande(OrdreTravail ot, OrdreReparation ordre, Proforma proforma) {
+        List<BonDeCommande> bdcList = new ArrayList<>();
+        if (ot != null && ot.getBonsDeCommande() != null) {
+            bdcList.addAll(ot.getBonsDeCommande());
+        }
+
+        // 1. Ajouter les bons de commande liés à l'ordre de réparation s'il existe
+        if (ordre != null) {
+            List<BonDeCommande> orBdcList = bonDeCommandeRepository.findByOrdreReparationId(ordre.getId());
+            if (orBdcList != null) {
+                for (BonDeCommande bc : orBdcList) {
+                    if (bdcList.stream().noneMatch(b -> b.getId().equals(bc.getId()))) {
+                        bdcList.add(bc);
+                    }
+                }
+            }
+        }
+
+        // 2. Ajouter le BDC du proforma s'il existe et n'est pas déjà dans la liste
+        if (proforma != null && proforma.getBonDeCommande() != null) {
+            BonDeCommande proformaBdc = proforma.getBonDeCommande();
+            if (bdcList.stream().noneMatch(b -> b.getId().equals(proformaBdc.getId()))) {
+                bdcList.add(proformaBdc);
+            }
+        }
+
+        return bdcList;
+    }
+
+    private List<PieceApprovisionnementDto> extractPiecesManquantesProforma(Proforma proforma, List<BonDeCommande> bdcList) {
+        List<PieceApprovisionnementDto> piecesDto = new ArrayList<>();
+        if (proforma == null || proforma.getLignesFacturationPieces() == null) {
+            return piecesDto;
+        }
+
+        for (LigneFacturationPiece lp : proforma.getLignesFacturationPieces()) {
+            boolean isCustom = Boolean.TRUE.equals(lp.getIsCustom()) || lp.getPiece() == null;
+            if (isCustom || lp.getPiece() == null) {
+                // On ignore les pièces custom (PDS) ou hors catalogue
+                continue;
+            }
+
+            PieceDetache piece = lp.getPiece();
+            String type = piece.getType() != null ? piece.getType().name() : (piece instanceof PDP ? "PDP" : "");
+            if (!"PDP".equalsIgnoreCase(type) && !(piece instanceof PDP)) {
+                // On ne traite que les PDP (Pièces Détachées Principales / Magasin)
+                continue;
+            }
+
+            int qteDemandee = lp.getQuantite() != null ? lp.getQuantite() : 0;
+            double stockMagasin = piece.getStockMagasin() != null ? piece.getStockMagasin() : 0.0;
+            double stockAtelier = piece.getStockAtelier() != null ? piece.getStockAtelier() : 0.0;
+
+            // Uniquement ce qui est manquant en stock magasin
+            if (stockMagasin >= qteDemandee) {
+                continue;
+            }
+
+            double manque = qteDemandee - stockMagasin;
+            double diffStock = stockMagasin - qteDemandee;
+            double prix = lp.getPrix() != null ? lp.getPrix().doubleValue() : 0.0;
+            if (prix == 0.0 && piece.getPrixUnitaire() != null) {
+                prix = piece.getPrixUnitaire();
+            }
+
+            // Calcul de la quantité commandée et reçue à partir des bons de commande réels
+            int totalQteCommandee = 0;
+            int totalQteRecue = 0;
+            if (bdcList != null) {
+                for (BonDeCommande bc : bdcList) {
+                    if (bc.getStatut() == StatutBonCommande.ANNULE) {
+                        continue;
+                    }
+                    if (bc.getLignes() != null) {
+                        for (LigneBonDeCommandePiece l : bc.getLignes()) {
+                            boolean match = false;
+                            if (l.getPieceDetachee() != null && piece.getId() != null && piece.getId().equals(l.getPieceDetachee().getId())) {
+                                match = true;
+                            } else if (piece.getReference() != null && !piece.getReference().isBlank()) {
+                                String bdcRef = l.getPieceDetachee() != null ? l.getPieceDetachee().getReference() : l.getReferencePds();
+                                if (piece.getReference().equalsIgnoreCase(bdcRef)) {
+                                    match = true;
+                                }
+                            }
+                            if (match) {
+                                totalQteCommandee += (l.getQuantite() != null ? l.getQuantite() : 0);
+                                totalQteRecue += (l.getQuantiteRecue() != null ? l.getQuantiteRecue() : 0);
+                            }
+                        }
+                    }
+                }
+            }
+
+            piecesDto.add(PieceApprovisionnementDto.builder()
+                    .ligneId(lp.getId())
+                    .pieceId(piece.getId())
+                    .reference(piece.getReference())
+                    .designation(piece.getDesignation() != null ? piece.getDesignation() : "Pièce")
+                    .type("PDP")
+                    .isCustom(false)
+                    .quantiteDemandee(qteDemandee)
+                    .stockMagasin(stockMagasin)
+                    .stockAtelier(stockAtelier)
+                    .quantiteCommande(totalQteCommandee)
+                    .quantiteRecue(totalQteRecue)
+                    .quantiteManquante(manque)
+                    .differenceStock(diffStock)
+                    .isManquant(true)
+                    .prixUnitaire(prix)
+                    .montantTotal(qteDemandee * prix)
+                    .build());
+        }
+
+        return piecesDto;
     }
 
     @Override

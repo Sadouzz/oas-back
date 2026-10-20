@@ -5,8 +5,11 @@ import lombok.EqualsAndHashCode;
 import sn.oas.facturation.features.ordreReparation.dto.responses.ClientHeaderDto;
 import sn.oas.facturation.features.ordreReparation.dto.responses.ProformaSummaryDto;
 import sn.oas.facturation.features.ordreReparation.dto.responses.VehiculeHeaderDto;
+import sn.oas.facturation.features.ordreReparation.dto.responses.StepApprovisionnementResponseDto.PieceApprovisionnementDto;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -17,4 +20,5 @@ public class StepRecapitulatifResponseDto extends BaseOtStepResponseDto {
     private String ordreReparationNumero;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private List<PieceApprovisionnementDto> piecesManquantesProforma = new ArrayList<>();
 }
