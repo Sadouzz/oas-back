@@ -56,7 +56,7 @@ import sn.oas.facturation.features.facture.repository.FactureRepository;
 import sn.oas.facturation.features.ordreReparation.dto.responses.AdditionalStubs;
 import sn.oas.facturation.features.ordreReparation.dto.responses.BonDeSortieSummaryDto;
 import sn.oas.facturation.features.ordreReparation.dto.responses.ClientHeaderDto;
-import sn.oas.facturation.features.ordreReparation.dto.responses.FactureSummaryDto;
+import sn.oas.facturation.features.ordreTravail.dto.responses.FactureSummaryDto;
 import sn.oas.facturation.features.ordreReparation.dto.responses.ProformaSummaryDto;
 import sn.oas.facturation.features.ordreReparation.dto.responses.VehiculeHeaderDto;
 import sn.oas.facturation.features.ordreReparation.service.OrdreReparationService;
