@@ -20,6 +20,8 @@ import sn.oas.facturation.features.user.data.entity.Agent;
 import sn.oas.facturation.features.bonDeSortie.data.enums.StatutBon;
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
+import sn.oas.facturation.features.ordreTravail.data.entity.OrdreTravail;
+import java.math.BigDecimal;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -87,10 +89,24 @@ public class BonDeSortie implements TenantAware  {
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Agent agentValidateur;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ordre_reparation_id", nullable = true, unique = true)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ordre_reparation_id")
     @JsonIgnoreProperties({"bonDeSortie", "hibernateLazyInitializer", "handler"})
     private OrdreReparation ordreReparation;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ordre_travail_id")
+    @JsonIgnoreProperties({"bonsDeSortie", "hibernateLazyInitializer", "handler"})
+    private OrdreTravail ordreTravail;
+
+    @Column(name = "montant_total_pieces", precision = 15, scale = 2)
+    private BigDecimal montantTotalPieces;
+
+    @Column(name = "montant_total_main_doeuvre", precision = 15, scale = 2)
+    private BigDecimal montantTotalMainDoeuvre;
+
+    @Column(name = "montant_total", precision = 15, scale = 2)
+    private BigDecimal montantTotal;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "proforma_id", nullable = true, unique = true)

@@ -39,6 +39,7 @@ public interface BonDeCommandeService {
     BonDeCommande annuler(Long id);
 
     byte[] generatePdf(Long id);
+    byte[] generatePdf(Long id, String layoutKey);
 
     void delete(Long id);
 }

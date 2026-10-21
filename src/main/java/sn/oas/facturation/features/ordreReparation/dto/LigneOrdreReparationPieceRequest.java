@@ -5,5 +5,10 @@ public record LigneOrdreReparationPieceRequest(
         Integer quantite,
         Integer prix,
         Boolean isCustom,
-        String designationPds
-) {}
+        String designationPds,
+        Double tauxRemise
+) {
+    public LigneOrdreReparationPieceRequest(Long pieceId, Integer quantite, Integer prix, Boolean isCustom, String designationPds) {
+        this(pieceId, quantite, prix, isCustom, designationPds, null);
+    }
+}

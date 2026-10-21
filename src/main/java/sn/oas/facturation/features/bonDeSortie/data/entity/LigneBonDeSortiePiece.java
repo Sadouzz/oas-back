@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import sn.oas.facturation.features.piecedetache.data.entity.PieceDetache;
+import sn.oas.facturation.features.main_doeuvre.data.entity.MainDoeuvre;
+import sn.oas.facturation.features.bonDeSortie.data.enums.TypeLigneBonDeSortie;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -29,9 +31,21 @@ public class LigneBonDeSortiePiece {
     private BonDeSortie bonDeSortie;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "piece_id", nullable = false)
+    @JoinColumn(name = "piece_id")
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private PieceDetache piece;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type_ligne", nullable = false)
+    @Builder.Default
+    private TypeLigneBonDeSortie type = TypeLigneBonDeSortie.PIECE;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "main_doeuvre_id")
+    private MainDoeuvre mainDoeuvre;
+
+    @Column(name = "designation_snapshot")
+    private String designation;
 
     @Column(nullable = false)
     private Integer quantite;

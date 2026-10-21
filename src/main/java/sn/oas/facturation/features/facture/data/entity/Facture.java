@@ -29,6 +29,11 @@ public class Facture extends FactureTTC {
     @JoinColumn(name = "pdf_template_id")
     private PdfTemplate pdfTemplate;
 
+    /** Présentation retenue à l'émission lorsque le PDF est produit sans modèle actif. */
+    @Column(name = "pdf_layout_key", length = 20)
+    @lombok.Builder.Default
+    private String pdfLayoutKey = "AVEC_ENTETE";
+
 
     @Column(name = "numero_bon_de_commande")
     private String numeroBonDeCommande;

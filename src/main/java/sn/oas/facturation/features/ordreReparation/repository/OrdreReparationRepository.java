@@ -16,6 +16,10 @@ import java.util.Optional;
 public interface OrdreReparationRepository extends JpaRepository<OrdreReparation, Long> {
 
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT o FROM OrdreReparation o WHERE o.id = :id")
+    Optional<OrdreReparation> findByIdForOrdreTravailCreation(@Param("id") Long id);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT f FROM OrdreReparation f WHERE f.id = :id")
     Optional<OrdreReparation> findByIdForRestitution(@Param("id") Long id);
 

@@ -130,9 +130,10 @@ public class OrdreReparation implements TenantAware  {
     @JsonIgnoreProperties({ "ordresReparation", "password", "authorities", "garage" })
     private List<Technicien> techniciensReparation = new ArrayList<>();
 
-    @OneToOne(mappedBy = "ordreReparation", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "ordreReparation", fetch = FetchType.LAZY)
     @JsonIgnoreProperties("ordreReparation") // Ignore le champ "ordreReparation" qui est DANS le "BonDeSortie"
-    private BonDeSortie bonDeSortie;
+    @Builder.Default
+    private List<BonDeSortie> bonsDeSortie = new ArrayList<>();
 
     @OneToOne(mappedBy = "ordreReparation", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnoreProperties("ordreReparation")

@@ -81,8 +81,8 @@ public class FactureController {
 
     @GetMapping("/{id}/pdf")
     @Operation(summary = "Générer le PDF d'une facture")
-    public ResponseEntity<byte[]> generatePdf(@PathVariable Long id) {
-        byte[] pdfBytes = factureService.generatePdf(id);
+    public ResponseEntity<byte[]> generatePdf(@PathVariable Long id, @RequestParam(required = false) String layoutKey) {
+        byte[] pdfBytes = layoutKey == null ? factureService.generatePdf(id) : factureService.generatePdf(id, layoutKey);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
         headers.setContentDispositionFormData("attachment", "Facture_" + id + ".pdf");
@@ -108,11 +108,11 @@ public class FactureController {
         if (facture.getClient() == null || !facture.getClient().getId().equals(client.getId())) {
             throw new ForbiddenException("Accès non autorisé à cette facture");
         }
-        return pdfResponse(id);
+        return pdfResponse(id, null);
     }
 
-    private ResponseEntity<byte[]> pdfResponse(Long id) {
-        byte[] pdfBytes = factureService.generatePdf(id);
+    private ResponseEntity<byte[]> pdfResponse(Long id, String layoutKey) {
+        byte[] pdfBytes = layoutKey == null ? factureService.generatePdf(id) : factureService.generatePdf(id, layoutKey);
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_PDF)
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"Facture_" + id + ".pdf\"")
                 .body(pdfBytes);

@@ -48,6 +48,7 @@ import sn.oas.facturation.features.notification.service.AgentNotificationService
 import sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService;
 import sn.oas.facturation.shared.documentNumber.DocumentType;
 import sn.oas.facturation.shared.exception.ResourceNotFoundException;
+import sn.oas.facturation.features.pdfGenerator.service.OasBrandedPdfPageEvent;
 
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
@@ -113,9 +114,11 @@ public class FactureServiceImpl implements FactureService {
                 .kilometrage(request.getKilometrage() != null ? request.getKilometrage() : 0.0)
                 .remarque(request.getRemarque())
                 .pdfTemplate(invoiceTemplate)
+                .pdfLayoutKey(normalizeInvoiceLayout(request.getPdfLayoutKey()))
                 .build();
 
-        BigDecimal ht = BigDecimal.ZERO;
+        BigDecimal piecesNet = BigDecimal.ZERO;
+        BigDecimal mainDoeuvreNet = BigDecimal.ZERO;
         
         for (LigneOrdreReparationPiece ligneFiche : ordreReparation.getLignesOrdreReparationPieces()) {
             LigneFacturationPiece lfp = LigneFacturationPiece.builder()
@@ -123,9 +126,10 @@ public class FactureServiceImpl implements FactureService {
                     .piece(ligneFiche.getPiece())
                     .quantite(ligneFiche.getQuantite())
                     .prix(ligneFiche.getPrix())
+                    .tauxRemise(ligneFiche.getTauxRemise())
                     .build();
             facture.getLignesFacturationPieces().add(lfp);
-            ht = ht.add(BigDecimal.valueOf((long) ligneFiche.getQuantite() * ligneFiche.getPrix()));
+            piecesNet = piecesNet.add(montantNet(BigDecimal.valueOf((long) ligneFiche.getQuantite() * ligneFiche.getPrix()), ligneFiche.getTauxRemise()));
         }
 
         for (LigneOrdreReparationMainDoeuvre ligneFiche : ordreReparation.getLignesOrdreReparationMainDoeuvres()) {
@@ -134,14 +138,15 @@ public class FactureServiceImpl implements FactureService {
                     .mainDoeuvre(ligneFiche.getMainDoeuvre())
                     .nbreHeure(ligneFiche.getNbreHeure())
                     .tarifHoraire(ligneFiche.getPrix())
+                    .tauxRemise(ligneFiche.getTauxRemise())
                     .build();
             facture.getLignesFacturationMainDoeuvres().add(lfm);
-            ht = ht.add(BigDecimal.valueOf((long) ligneFiche.getNbreHeure() * ligneFiche.getPrix()));
+            mainDoeuvreNet = mainDoeuvreNet.add(montantNet(BigDecimal.valueOf((long) ligneFiche.getNbreHeure() * ligneFiche.getPrix()), ligneFiche.getTauxRemise()));
         }
 
         int tauxRemise = tauxRemiseApplicable(client);
-        BigDecimal montantRemise = ht.multiply(BigDecimal.valueOf(tauxRemise)).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
-        ht = ht.subtract(montantRemise);
+        BigDecimal montantRemise = piecesNet.multiply(BigDecimal.valueOf(tauxRemise)).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+        BigDecimal ht = piecesNet.subtract(montantRemise).add(mainDoeuvreNet);
         facture.setTauxRemiseClient(BigDecimal.valueOf(tauxRemise));
         facture.setMontantRemiseClient(montantRemise);
         if (client.getEcheance() != null && client.getEcheance() > 0) facture.setDateEcheance(java.time.LocalDateTime.now().plusDays(client.getEcheance()));
@@ -247,12 +252,14 @@ public class FactureServiceImpl implements FactureService {
                 .kilometrage(vehicule != null && vehicule.getKilometrage() != null ? vehicule.getKilometrage() : 0.0)
                 .remarque("Facture générée automatiquement depuis la Fiche Atelier " + ordreReparation.getNumero())
                 .pdfTemplate(invoiceTemplate)
+                .pdfLayoutKey("AVEC_ENTETE")
                 .build();
 
         facture = factureRepository.save(facture);
 
         // Copy pieces
-        BigDecimal montantHT = BigDecimal.ZERO;
+        BigDecimal montantPiecesNet = BigDecimal.ZERO;
+        BigDecimal montantMoNet = BigDecimal.ZERO;
         List<LigneFacturationPiece> lignesPieces = new ArrayList<>();
         List<LigneFacturationMainDoeuvre> lignesMainDoeuvre = new ArrayList<>();
 
@@ -267,9 +274,10 @@ public class FactureServiceImpl implements FactureService {
                         .designationPds(pieceUtilisee.getDesignationPds())
                         .quantite(q)
                         .prix(p)
+                        .tauxRemise(pieceUtilisee.getTauxRemise())
                         .build();
                 lignesPieces.add(lignePiece);
-                montantHT = montantHT.add(BigDecimal.valueOf((long) q * p));
+                montantPiecesNet = montantPiecesNet.add(montantNet(BigDecimal.valueOf((long) q * p), pieceUtilisee.getTauxRemise()));
             }
         }
 
@@ -283,15 +291,16 @@ public class FactureServiceImpl implements FactureService {
                         .mainDoeuvre(mo.getMainDoeuvre())
                         .nbreHeure(h)
                         .tarifHoraire(t)
+                        .tauxRemise(mo.getTauxRemise())
                         .build();
                 lignesMainDoeuvre.add(ligneMO);
-                montantHT = montantHT.add(BigDecimal.valueOf((long) h * t));
+                montantMoNet = montantMoNet.add(montantNet(BigDecimal.valueOf((long) h * t), mo.getTauxRemise()));
             }
         }
 
         int tauxRemise = tauxRemiseApplicable(client);
-        BigDecimal montantRemise = montantHT.multiply(BigDecimal.valueOf(tauxRemise)).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
-        montantHT = montantHT.subtract(montantRemise);
+        BigDecimal montantRemise = montantPiecesNet.multiply(BigDecimal.valueOf(tauxRemise)).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+        BigDecimal montantHT = montantPiecesNet.subtract(montantRemise).add(montantMoNet);
         facture.setTauxRemiseClient(BigDecimal.valueOf(tauxRemise));
         facture.setMontantRemiseClient(montantRemise);
         if (client != null && client.getEcheance() != null && client.getEcheance() > 0) facture.setDateEcheance(java.time.LocalDateTime.now().plusDays(client.getEcheance()));
@@ -418,10 +427,24 @@ public class FactureServiceImpl implements FactureService {
     @Override
     @Transactional(readOnly = true)
     public byte[] generatePdf(Long id) {
+        return generateInvoicePdf(id, null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] generatePdf(Long id, String layoutKey) {
+        return generateInvoicePdf(id, layoutKey);
+    }
+
+    private byte[] generateInvoicePdf(Long id, String requestedLayoutKey) {
         Facture f = factureRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Facture non trouvée avec l'id : " + id));
 
+        String layoutKey = normalizeInvoiceLayout(requestedLayoutKey != null ? requestedLayoutKey
+                : f.getPdfTemplate() != null ? f.getPdfTemplate().getLayoutKey() : f.getPdfLayoutKey());
+
         var vehicle = f.getVehicule();
+        BigDecimal montantRemiseGenerale = calculerRemiseGenerale(f);
         var tokens = java.util.Map.<String, String>ofEntries(
                 java.util.Map.entry("numero", templateValue(f.getNumero())), java.util.Map.entry("date", templateValue(f.getDateCreation())),
                 java.util.Map.entry("agentNom", f.getAgent() == null ? "" : templateValue(f.getAgent().getFirstName() + " " + f.getAgent().getLastName())),
@@ -432,29 +455,43 @@ public class FactureServiceImpl implements FactureService {
                 java.util.Map.entry("numeroBonDeCommande", templateValue(f.getNumeroBonDeCommande())),
                 java.util.Map.entry("tauxRemiseClient", templateValue(f.getTauxRemiseClient())),
                 java.util.Map.entry("montantRemiseClient", templateValue(f.getMontantRemiseClient())),
+                java.util.Map.entry("montantRemiseGenerale", templateValue(montantRemiseGenerale)),
                 java.util.Map.entry("dateEcheance", templateValue(f.getDateEcheance())),
                 java.util.Map.entry("kilometrage", templateValue(f.getKilometrage())), java.util.Map.entry("montantHT", templateValue(f.getMontantHT())),
                 java.util.Map.entry("montantTVA", templateValue(f.getMontantTVA())), java.util.Map.entry("montantTimbre", templateValue(f.getMontantTimbre())),
                 java.util.Map.entry("montantAutre", templateValue(f.getMontantAutre())), java.util.Map.entry("montantTotal", templateValue(f.getMontantTotal())),
                 java.util.Map.entry("montantTTC", templateValue(f.getMontantTTC())), java.util.Map.entry("montantPaye", templateValue(f.getMontantPaye())),
                 java.util.Map.entry("resteAPayer", templateValue(f.getResteAPayer())), java.util.Map.entry("remarque", templateValue(f.getRemarque())));
-        var tableData = java.util.Map.of("LIGNES_PIECES", f.getLignesFacturationPieces().stream().map(ligne -> java.util.Map.of(
-                        "reference", ligne.getPiece() == null ? "" : templateValue(ligne.getPiece().getReference()),
-                        "designation", ligne.getPiece() == null ? templateValue(ligne.getDesignationPds()) : templateValue(ligne.getPiece().getDesignation()),
-                        "quantite", templateValue(ligne.getQuantite()), "prixUnitaire", templateValue(ligne.getPrix()),
-                        "montant", templateValue((long) ligne.getQuantite() * ligne.getPrix()))).toList(),
-                "LIGNES_MAIN_DOEUVRE", f.getLignesFacturationMainDoeuvres().stream().map(ligne -> java.util.Map.of(
-                        "designation", ligne.getMainDoeuvre() == null ? "" : templateValue(ligne.getMainDoeuvre().getDescription()),
-                        "heures", templateValue(ligne.getNbreHeure()), "quantite", templateValue(ligne.getNbreHeure()),
-                        "prixUnitaire", templateValue(ligne.getTarifHoraire()), "montant", templateValue((long) ligne.getNbreHeure() * ligne.getTarifHoraire()))).toList());
-        byte[] configured = f.getPdfTemplate() == null ? null : htmlToPdfService.genererTemplatePdf(f.getPdfTemplate().getId(), tokens, tableData);
+        var tableData = java.util.Map.of("LIGNES_PIECES", f.getLignesFacturationPieces().stream().map(ligne -> {
+                    BigDecimal brut = BigDecimal.valueOf((long) ligne.getQuantite() * ligne.getPrix());
+                    BigDecimal net = montantNet(brut, ligne.getTauxRemise());
+                    return java.util.Map.of("reference", ligne.getPiece() == null ? "" : templateValue(ligne.getPiece().getReference()),
+                            "designation", ligne.getPiece() == null ? templateValue(ligne.getDesignationPds()) : templateValue(ligne.getPiece().getDesignation()),
+                            "quantite", templateValue(ligne.getQuantite()), "prixUnitaire", templateValue(ligne.getPrix()),
+                            "tauxRemise", templateValue(ligne.getTauxRemise()), "montantBrut", templateValue(brut),
+                            "montantRemise", templateValue(brut.subtract(net)), "montant", templateValue(net));
+                }).toList(),
+                "LIGNES_MAIN_DOEUVRE", f.getLignesFacturationMainDoeuvres().stream().map(ligne -> {
+                    BigDecimal brut = BigDecimal.valueOf((long) ligne.getNbreHeure() * ligne.getTarifHoraire());
+                    BigDecimal net = montantNet(brut, ligne.getTauxRemise());
+                    return java.util.Map.of("designation", ligne.getMainDoeuvre() == null ? "" : templateValue(ligne.getMainDoeuvre().getDescription()),
+                            "heures", templateValue(ligne.getNbreHeure()), "quantite", templateValue(ligne.getNbreHeure()),
+                            "prixUnitaire", templateValue(ligne.getTarifHoraire()), "tauxRemise", templateValue(ligne.getTauxRemise()),
+                            "montantBrut", templateValue(brut), "montantRemise", templateValue(brut.subtract(net)), "montant", templateValue(net));
+                }).toList());
+        var selectedTemplate = requestedLayoutKey == null ? f.getPdfTemplate() : loadDefaultInvoiceTemplate(layoutKey);
+        byte[] configured = selectedTemplate == null ? null : htmlToPdfService.genererTemplatePdf(selectedTemplate.getId(), tokens, tableData);
         if (configured != null) return configured;
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        Document document = new Document();
+        boolean branded = "AVEC_ENTETE".equals(layoutKey);
+        Document document = branded
+                ? new Document(com.lowagie.text.PageSize.A4, 34, 34, 105, 78)
+                : new Document(com.lowagie.text.PageSize.A4, 40, 40, 40, 40);
 
         try {
-            PdfWriter.getInstance(document, baos);
+            PdfWriter writer = PdfWriter.getInstance(document, baos);
+            if (branded) writer.setPageEvent(new OasBrandedPdfPageEvent());
             document.open();
 
             Font fontTitre = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18);
@@ -491,11 +528,11 @@ public class FactureServiceImpl implements FactureService {
                 document.add(new Paragraph("Pièces :", fontSousTitre));
                 document.add(new Paragraph(" "));
 
-                PdfPTable tablePieces = new PdfPTable(4);
+                PdfPTable tablePieces = new PdfPTable(5);
                 tablePieces.setWidthPercentage(100);
-                tablePieces.setWidths(new float[]{4f, 2f, 2f, 2f});
+                tablePieces.setWidths(new float[]{4f, 1.2f, 1.8f, 1.5f, 2f});
 
-                String[] headersPieces = {"Désignation", "Quantité", "Prix Unitaire", "Total"};
+                String[] headersPieces = {"Désignation", "Quantité", "Prix Unitaire", "Remise (%)", "Total net"};
                 for (String header : headersPieces) {
                     PdfPCell cell = new PdfPCell(new Phrase(header, fontHeader));
                     cell.setBackgroundColor(Color.DARK_GRAY);
@@ -505,10 +542,13 @@ public class FactureServiceImpl implements FactureService {
 
                 for (LigneFacturationPiece ligne : f.getLignesFacturationPieces()) {
                     String ref = ligne.getPiece() != null ? ligne.getPiece().getDesignation() : "N/A";
+                    BigDecimal brut = BigDecimal.valueOf((long) ligne.getQuantite() * ligne.getPrix());
+                    BigDecimal net = montantNet(brut, ligne.getTauxRemise());
                     tablePieces.addCell(new Phrase(ref, fontTexte));
                     tablePieces.addCell(new Phrase(String.valueOf(ligne.getQuantite()), fontTexte));
                     tablePieces.addCell(new Phrase(String.valueOf(ligne.getPrix()), fontTexte));
-                    tablePieces.addCell(new Phrase(String.valueOf(ligne.getQuantite() * ligne.getPrix()), fontTexte));
+                    tablePieces.addCell(new Phrase(String.valueOf(ligne.getTauxRemise() == null ? BigDecimal.ZERO : ligne.getTauxRemise()), fontTexte));
+                    tablePieces.addCell(new Phrase(net.stripTrailingZeros().toPlainString(), fontTexte));
                 }
                 document.add(tablePieces);
                 document.add(new Paragraph(" "));
@@ -518,11 +558,11 @@ public class FactureServiceImpl implements FactureService {
                 document.add(new Paragraph("Main d'Œuvre :", fontSousTitre));
                 document.add(new Paragraph(" "));
 
-                PdfPTable tableMo = new PdfPTable(4);
+                PdfPTable tableMo = new PdfPTable(5);
                 tableMo.setWidthPercentage(100);
-                tableMo.setWidths(new float[]{4f, 2f, 2f, 2f});
+                tableMo.setWidths(new float[]{4f, 1.2f, 1.8f, 1.5f, 2f});
 
-                String[] headersMo = {"Catégorie", "Heures", "Tarif Horaire", "Total"};
+                String[] headersMo = {"Catégorie", "Heures", "Tarif Horaire", "Remise (%)", "Total net"};
                 for (String header : headersMo) {
                     PdfPCell cell = new PdfPCell(new Phrase(header, fontHeader));
                     cell.setBackgroundColor(Color.DARK_GRAY);
@@ -532,18 +572,22 @@ public class FactureServiceImpl implements FactureService {
 
                 for (LigneFacturationMainDoeuvre ligne : f.getLignesFacturationMainDoeuvres()) {
                     String cat = ligne.getMainDoeuvre() != null ? ligne.getMainDoeuvre().getCategorie().getNom() : "N/A";
+                    BigDecimal brut = BigDecimal.valueOf((long) ligne.getNbreHeure() * ligne.getTarifHoraire());
+                    BigDecimal net = montantNet(brut, ligne.getTauxRemise());
                     tableMo.addCell(new Phrase(cat, fontTexte));
                     tableMo.addCell(new Phrase(String.valueOf(ligne.getNbreHeure()), fontTexte));
                     tableMo.addCell(new Phrase(String.valueOf(ligne.getTarifHoraire()), fontTexte));
-                    tableMo.addCell(new Phrase(String.valueOf(ligne.getNbreHeure() * ligne.getTarifHoraire()), fontTexte));
+                    tableMo.addCell(new Phrase(String.valueOf(ligne.getTauxRemise() == null ? BigDecimal.ZERO : ligne.getTauxRemise()), fontTexte));
+                    tableMo.addCell(new Phrase(net.stripTrailingZeros().toPlainString(), fontTexte));
                 }
                 document.add(tableMo);
                 document.add(new Paragraph(" "));
             }
 
             if (f.getMontantRemiseClient() != null && f.getMontantRemiseClient().signum() > 0) {
-                document.add(new Paragraph("Remise client (" + f.getTauxRemiseClient() + " %) : " + f.getMontantRemiseClient(), fontTexte));
+                document.add(new Paragraph("Remise compte client sur les pièces (" + f.getTauxRemiseClient() + " %) : " + f.getMontantRemiseClient(), fontTexte));
             }
+            if (montantRemiseGenerale.signum() > 0) document.add(new Paragraph("Remises générales appliquées par ligne : " + montantRemiseGenerale, fontTexte));
             document.add(new Paragraph("Montant HT : " + f.getMontantHT(), fontSousTitre));
             document.add(new Paragraph("TVA : " + f.getMontantTVA(), fontTexte));
             document.add(new Paragraph("Timbre : " + f.getMontantTimbre(), fontTexte));
@@ -572,6 +616,29 @@ public class FactureServiceImpl implements FactureService {
                 || !client.isClientFidele() || client.getMontantRemise() == null) return 0;
         var compte = compteClientRepository.findByClientId(client.getId()).orElse(null);
         return compte != null && compte.isActif() ? client.getMontantRemise() : 0;
+    }
+
+    private BigDecimal montantNet(BigDecimal brut, BigDecimal tauxRemise) {
+        BigDecimal taux = tauxRemise == null ? BigDecimal.ZERO : tauxRemise;
+        return brut.multiply(BigDecimal.valueOf(100).subtract(taux))
+                .divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal calculerRemiseGenerale(Facture facture) {
+        BigDecimal remise = BigDecimal.ZERO;
+        if (facture.getLignesFacturationPieces() != null) {
+            for (LigneFacturationPiece ligne : facture.getLignesFacturationPieces()) {
+                BigDecimal brut = BigDecimal.valueOf((long) ligne.getQuantite() * ligne.getPrix());
+                remise = remise.add(brut.subtract(montantNet(brut, ligne.getTauxRemise())));
+            }
+        }
+        if (facture.getLignesFacturationMainDoeuvres() != null) {
+            for (LigneFacturationMainDoeuvre ligne : facture.getLignesFacturationMainDoeuvres()) {
+                BigDecimal brut = BigDecimal.valueOf((long) ligne.getNbreHeure() * ligne.getTarifHoraire());
+                remise = remise.add(brut.subtract(montantNet(brut, ligne.getTauxRemise())));
+            }
+        }
+        return remise;
     }
 
     private String templateValue(Object value) { return value == null ? "" : value.toString(); }

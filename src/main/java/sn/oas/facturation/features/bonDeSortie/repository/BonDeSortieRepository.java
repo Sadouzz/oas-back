@@ -18,6 +18,10 @@ public interface BonDeSortieRepository extends JpaRepository<BonDeSortie, Long> 
 
     Optional<BonDeSortie> findByReference(String reference);
     Optional<BonDeSortie> findByProformaId(Long proformaId);
+    List<BonDeSortie> findByOrdreReparationIdOrderByDateDesc(Long ordreReparationId);
+    List<BonDeSortie> findByOrdreTravailIdOrderByDateDesc(Long ordreTravailId);
+    Page<BonDeSortie> findByOrdreReparationIdOrderByDateDesc(Long ordreReparationId, Pageable pageable);
+    Page<BonDeSortie> findByOrdreTravailIdOrderByDateDesc(Long ordreTravailId, Pageable pageable);
 
     List<BonDeSortie> findByStatutOrderByDateDesc(StatutBon statut);
     Page<BonDeSortie> findByStatut(StatutBon statut, Pageable pageable);

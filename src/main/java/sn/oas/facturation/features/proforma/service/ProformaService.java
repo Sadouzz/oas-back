@@ -25,6 +25,7 @@ public interface ProformaService {
     Proforma valider(Long id);
     Proforma validerEnvoi(Long id);
     byte[] generatePdf(Long id);
+    byte[] generatePdf(Long id, String layoutKey);
     Facture convertToFacture(Long id);
 
     // Client methods

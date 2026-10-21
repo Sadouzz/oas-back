@@ -27,19 +27,28 @@ public class PdfGeneratorService {
     }
 
     public byte[] genererBonDeCommandePdf(BonDeCommande bonDeCommande) {
+        return genererBonDeCommandePdf(bonDeCommande, PdfLayout.AVEC_ENTETE);
+    }
+
+    public byte[] genererBonDeCommandePdf(BonDeCommande bonDeCommande, String layoutKey) {
+        String layout = PdfLayout.normalize(layoutKey);
+        boolean withHeader = PdfLayout.AVEC_ENTETE.equals(layout);
         String fournisseur = bonDeCommande.getFournisseur() != null ? bonDeCommande.getFournisseur().getNomEntreprise() : "";
         String vehicule = bonDeCommande.getVehicule() != null ? bonDeCommande.getVehicule().getImmatriculation() : "";
-        byte[] configuredTemplate = htmlToPdfService.genererTemplatePdfSiConfigure("BON_COMMANDE", java.util.Map.of(
+        byte[] configuredTemplate = htmlToPdfService.genererTemplatePdfSiConfigure("BON_COMMANDE", layout, java.util.Map.of(
                 "numero", safe(bonDeCommande.getNumero()), "date", bonDeCommande.getDateCommande() == null ? "" : bonDeCommande.getDateCommande().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
                 "statut", bonDeCommande.getStatut() == null ? "" : bonDeCommande.getStatut().name(), "fournisseur", safe(fournisseur),
                 "immatriculation", safe(vehicule), "montantHT", bonDeCommande.getMontantHT() == null ? "0" : bonDeCommande.getMontantHT().toString(),
                 "montantTTC", bonDeCommande.getMontantTTC() == null ? "0" : bonDeCommande.getMontantTTC().toString()));
         if (configuredTemplate != null) return configuredTemplate;
-        Document document = new Document();
+        Document document = withHeader
+                ? new Document(com.lowagie.text.PageSize.A4, 34, 34, 105, 78)
+                : new Document(com.lowagie.text.PageSize.A4, 40, 40, 40, 40);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
         try {
-            PdfWriter.getInstance(document, out);
+            PdfWriter writer = PdfWriter.getInstance(document, out);
+            if (withHeader) writer.setPageEvent(new OasBrandedPdfPageEvent());
             document.open();
 
             // Titre

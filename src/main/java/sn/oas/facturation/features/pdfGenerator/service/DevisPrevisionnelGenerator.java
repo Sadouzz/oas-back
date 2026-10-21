@@ -20,6 +20,10 @@ public class DevisPrevisionnelGenerator {
     }
 
     public byte[] genererDevisPrevisionnelPdf(DevisPrevisionnel devis) {
+        return genererDevisPrevisionnelPdf(devis, "AVEC_ENTETE");
+    }
+
+    public byte[] genererDevisPrevisionnelPdf(DevisPrevisionnel devis, String layoutKey) {
         String html = construireHtmlDevis(devis);
         String numero = devis.getNumero() != null ? devis.getNumero() : String.valueOf(devis.getId());
         String date = devis.getDateCreation() != null ? devis.getDateCreation().format(DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss")) : "";
@@ -31,7 +35,7 @@ public class DevisPrevisionnelGenerator {
         return htmlToPdfService.genererHtmlEnPdf(html, "DEVIS_PREVISIONNEL", java.util.Map.of(
                 "numero", numero, "date", date, "clientNom", clientNom, "marque", marque, "modele", modele,
                 "immatriculation", immat, "montantTotal", total,
-                "reparations", devis.getNotesReparation() == null ? "" : devis.getNotesReparation()));
+                "reparations", devis.getNotesReparation() == null ? "" : devis.getNotesReparation()), layoutKey);
     }
 
     private String construireHtmlDevis(DevisPrevisionnel devis) {

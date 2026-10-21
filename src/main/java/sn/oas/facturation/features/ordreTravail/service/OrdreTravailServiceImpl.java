@@ -149,7 +149,7 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
                 .ordreReparation(ordreReparation)
                 .statut(request.getStatut() != null ? request.getStatut() : StatutOrdreTravail.RECAPITULATIF)
                 .bonsDeCommande(new ArrayList<>())
-                .bonDeSortie(null)
+                .bonsDeSortie(new ArrayList<>())
                 .lignesTechniciens(new ArrayList<>())
                 .build();
 
@@ -173,10 +173,13 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
         }
 
         // Ajout du bon de sortie
-        if (request.getBonDeSortieId() != null) {
-            bonDeSortieRepository.findById(request.getBonDeSortieId()).ifPresent(ordreTravail::setBonDeSortie);
-        } else if (request.getBonDeSortieIds() != null && !request.getBonDeSortieIds().isEmpty()) {
-            bonDeSortieRepository.findById(request.getBonDeSortieIds().get(0)).ifPresent(ordreTravail::setBonDeSortie);
+        List<Long> bsIds = request.getBonDeSortieIds() != null ? request.getBonDeSortieIds()
+                : request.getBonDeSortieId() != null ? List.of(request.getBonDeSortieId()) : List.of();
+        if (!bsIds.isEmpty()) {
+            for (BonDeSortie bs : bonDeSortieRepository.findAllById(bsIds)) {
+                bs.setOrdreTravail(ordreTravail);
+                ordreTravail.getBonsDeSortie().add(bs);
+            }
         }
 
         OrdreTravail saved = ordreTravailRepository.save(ordreTravail);
@@ -190,7 +193,9 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
             throw new BadRequestException("L'identifiant de l'ordre de réparation est obligatoire");
         }
 
-        OrdreReparation or = ordreReparationRepository.findById(ordreReparationId)
+        // Serialize creation attempts for the same OR. The second request then sees
+        // and returns the OT created by the first one instead of creating a duplicate.
+        OrdreReparation or = ordreReparationRepository.findByIdForOrdreTravailCreation(ordreReparationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ordre de réparation introuvable : " + ordreReparationId));
 
         // Vérifier si un ordre de travail existe déjà pour cet ordre de réparation
@@ -205,8 +210,7 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
                 .clientId(or.getClient() != null ? or.getClient().getId() : (or.getVehicule() != null && or.getVehicule().getClient() != null ? or.getVehicule().getClient().getId() : null))
                 .vehiculeId(or.getVehicule() != null ? or.getVehicule().getId() : null)
                 .bonDeCommandeIds(or.getBonDeCommandes() != null ? or.getBonDeCommandes().stream().map(BonDeCommande::getId).toList() : new ArrayList<>())
-                .bonDeSortieId(or.getBonDeSortie() != null ? or.getBonDeSortie().getId() : null)
-                .bonDeSortieIds(or.getBonDeSortie() != null ? List.of(or.getBonDeSortie().getId()) : new ArrayList<>())
+                .bonDeSortieIds(or.getBonsDeSortie() != null ? or.getBonsDeSortie().stream().map(BonDeSortie::getId).toList() : new ArrayList<>())
                 .technicienIds(or.getTechniciensReparation() != null ? or.getTechniciensReparation().stream().map(Technicien::getId).toList() : new ArrayList<>())
                 .build();
 
@@ -332,7 +336,7 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
                 .client(clientDto)
                 .nombreTechniciens(ot.getLignesTechniciens() != null ? ot.getLignesTechniciens().size() : 0)
                 .nombreBonsCommande(ot.getBonsDeCommande() != null ? ot.getBonsDeCommande().size() : 0)
-                .nombreBonsSortie(ot.getBonDeSortie() != null ? 1 : 0)
+                .nombreBonsSortie(ot.getBonsDeSortie() != null ? ot.getBonsDeSortie().size() : 0)
                 .createdAt(ot.getCreatedAt())
                 .updatedAt(ot.getUpdatedAt() != null ? ot.getUpdatedAt() : ot.getCreatedAt())
                 .build();
@@ -389,13 +393,13 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
             ordreTravail.setStatut(request.getStatut());
         }
 
-        if (request.getBonDeSortieId() != null) {
-            ordreTravail.setBonDeSortie(bonDeSortieRepository.findById(request.getBonDeSortieId()).orElse(null));
-        } else if (request.getBonDeSortieIds() != null) {
-            if (request.getBonDeSortieIds().isEmpty()) {
-                ordreTravail.setBonDeSortie(null);
-            } else {
-                bonDeSortieRepository.findById(request.getBonDeSortieIds().get(0)).ifPresent(ordreTravail::setBonDeSortie);
+        if (request.getBonDeSortieId() != null || request.getBonDeSortieIds() != null) {
+            List<Long> bsIds = request.getBonDeSortieIds() != null ? request.getBonDeSortieIds()
+                    : List.of(request.getBonDeSortieId());
+            ordreTravail.getBonsDeSortie().clear();
+            for (BonDeSortie bs : bonDeSortieRepository.findAllById(bsIds)) {
+                bs.setOrdreTravail(ordreTravail);
+                ordreTravail.getBonsDeSortie().add(bs);
             }
         }
 
@@ -805,6 +809,8 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
         dto.setEtape(ot.getStatut() != null ? ot.getStatut().getEtape() : null);
         dto.setVehiculeId(ot.getVehicule() != null ? ot.getVehicule().getId() : null);
         dto.setOrdreReparationId(ot.getOrdreReparation() != null ? ot.getOrdreReparation().getId() : null);
+        dto.setClientId(ot.getClient() != null ? ot.getClient().getId() : (ot.getVehicule() != null && ot.getVehicule().getClient() != null ? ot.getVehicule().getClient().getId() : null));
+        dto.setOrdreReparationStatut(ot.getOrdreReparation() != null && ot.getOrdreReparation().getStatut() != null ? ot.getOrdreReparation().getStatut().name() : null);
 
         OrdreReparation ordre = ot.getOrdreReparation();
         Proforma proforma = ot.getProforma();
@@ -816,13 +822,10 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
         }
 
         List<BonDeSortie> bsList = new ArrayList<>();
-        if (ot.getBonDeSortie() != null) {
-            bsList.add(ot.getBonDeSortie());
-        }
-        if (ordre != null && ordre.getBonDeSortie() != null) {
-            BonDeSortie bs = ordre.getBonDeSortie();
-            if (bsList.stream().noneMatch(b -> b.getId().equals(bs.getId()))) {
-                bsList.add(bs);
+        if (ot.getBonsDeSortie() != null) bsList.addAll(ot.getBonsDeSortie());
+        if (ordre != null && ordre.getBonsDeSortie() != null) {
+            for (BonDeSortie bs : ordre.getBonsDeSortie()) {
+                if (bsList.stream().noneMatch(b -> b.getId().equals(bs.getId()))) bsList.add(bs);
             }
         }
         if (proforma != null) {
@@ -852,6 +855,19 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
         } else {
             dto.setHasBonDeSortie(false);
         }
+        dto.setBonsDeSortie(bsList.stream().map(sn.oas.facturation.features.bonDeSortie.dto.BonDeSortieListResponse::from).toList());
+        int quantiteTotalePieces = 0;
+        double montantTotalBons = 0.0;
+        for (BonDeSortie bs : bsList) {
+            montantTotalBons += bs.getMontantTotal() != null ? bs.getMontantTotal().doubleValue() : 0.0;
+            if (bs.getLignesBonDeSortiePieces() != null) {
+                quantiteTotalePieces += bs.getLignesBonDeSortiePieces().stream()
+                        .filter(l -> l.getType() != sn.oas.facturation.features.bonDeSortie.data.enums.TypeLigneBonDeSortie.MAIN_DOEUVRE)
+                        .mapToInt(l -> l.getQuantite() != null ? l.getQuantite() : 0).sum();
+            }
+        }
+        dto.setQuantiteTotalePieces(quantiteTotalePieces);
+        dto.setMontantTotalBons(montantTotalBons);
 
         if (proforma != null) {
             dto.setProformaId(proforma.getId());

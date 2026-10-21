@@ -7,5 +7,6 @@ public class LigneMoOrdreDto {
     private Long id;
     private Integer heures;
     private Integer prix;
+    private Double tauxRemise;
     private String description; 
 }

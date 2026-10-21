@@ -12,9 +12,9 @@ public interface PdfTemplateRepository extends JpaRepository<PdfTemplate, Long> 
     List<PdfTemplate> findAllByOrderByDocumentTypeAscNameAscVersionDesc();
     Optional<PdfTemplate> findFirstByDocumentTypeAndNameOrderByVersionDesc(String documentType, String name);
     Optional<PdfTemplate> findFirstByDocumentTypeAndActiveTrueOrderByVersionDesc(String documentType);
-    @Query("select distinct t from PdfTemplate t where ((:documentType member of t.assignedDocumentTypes) or (t.assignedDocumentTypes is empty and t.documentType = :documentType)) and (:documentType <> 'FACTURE' or coalesce(t.layoutKey, 'AVEC_ENTETE') = :layoutKey) and t.active = true order by t.name asc, t.version desc")
+    @Query("select distinct t from PdfTemplate t where ((:documentType member of t.assignedDocumentTypes) or (t.assignedDocumentTypes is empty and t.documentType = :documentType)) and (coalesce(t.layoutKey, 'AVEC_ENTETE') = :layoutKey or (:layoutKey = 'AVEC_ENTETE' and t.layoutKey = 'STANDARD')) and t.active = true order by t.name asc, t.version desc")
     List<PdfTemplate> findActiveForLayout(@Param("documentType") String documentType, @Param("layoutKey") String layoutKey);
-    @Query("select distinct t from PdfTemplate t where ((:documentType member of t.assignedDocumentTypes) or (t.assignedDocumentTypes is empty and t.documentType = :documentType)) and (:documentType <> 'FACTURE' or coalesce(t.layoutKey, 'AVEC_ENTETE') = :layoutKey) and t.active = true order by t.version desc, t.createdAt desc, t.id desc")
+    @Query("select distinct t from PdfTemplate t where ((:documentType member of t.assignedDocumentTypes) or (t.assignedDocumentTypes is empty and t.documentType = :documentType)) and (coalesce(t.layoutKey, 'AVEC_ENTETE') = :layoutKey or (:layoutKey = 'AVEC_ENTETE' and t.layoutKey = 'STANDARD')) and t.active = true order by t.version desc, t.createdAt desc, t.id desc")
     List<PdfTemplate> findActiveForLayoutByVersion(@Param("documentType") String documentType, @Param("layoutKey") String layoutKey);
     @Modifying
     @Query("update PdfTemplate t set t.active = false where ((:documentType member of t.assignedDocumentTypes) or (t.assignedDocumentTypes is empty and t.documentType = :documentType)) and t.active = true")

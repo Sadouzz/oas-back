@@ -543,6 +543,8 @@ VALUES
   ('PC', 3, 2026, 2),
   ('OR', 3, 2026, 1),
   ('OR', 2, 2026, 2),
+  ('OT', 1, 2026, 1),
+  ('OT', 1, 2026, 2),
   ('DMD', 4, 2026, 1),
   ('DMD', 1, 2026, 2)
 ON CONFLICT (garage_id, document_type, year) DO NOTHING;

@@ -174,9 +174,12 @@ public class ProformaServiceImpl implements ProformaService {
             }
         }
 
-        BigDecimal montantHT = BigDecimal.ZERO;
+        BigDecimal montantPiecesNet = BigDecimal.ZERO;
+        BigDecimal montantMoNet = BigDecimal.ZERO;
         List<LigneFacturationPiece> lignesPieces = new ArrayList<>();
         List<LigneFacturationMainDoeuvre> lignesMainDoeuvres = new ArrayList<>();
+        java.util.Set<Long> lignesPieceOrConsommees = new java.util.HashSet<>();
+        java.util.Set<Long> lignesMoOrConsommees = new java.util.HashSet<>();
 
         OrdreReparation ordreReparation = null;
         if (request.getOrdreReparationId() != null) {
@@ -233,9 +236,10 @@ public class ProformaServiceImpl implements ProformaService {
                         .designationPds(p.getDesignationPds())
                         .quantite(p.getQuantite())
                         .prix(prix)
+                        .tauxRemise(tauxRemisePieceDepuisOrdre(ordreReparation, p, lignesPieceOrConsommees))
                         .build();
                 lignesPieces.add(ligne);
-                montantHT = montantHT.add(BigDecimal.valueOf((long) p.getQuantite() * prix));
+                montantPiecesNet = montantPiecesNet.add(montantNet(BigDecimal.valueOf((long) p.getQuantite() * prix), ligne.getTauxRemise()));
             }
         }
 
@@ -249,17 +253,17 @@ public class ProformaServiceImpl implements ProformaService {
                         .mainDoeuvre(mainDoeuvre)
                         .nbreHeure(ligneReq.getNbreHeure())
                         .tarifHoraire(ligneReq.getTarifHoraire())
+                        .tauxRemise(tauxRemiseMoDepuisOrdre(ordreReparation, ligneReq, lignesMoOrConsommees))
                         .build();
                 lignesMainDoeuvres.add(ligne);
-                montantHT = montantHT.add(BigDecimal.valueOf((long) ligneReq.getNbreHeure() * ligneReq.getTarifHoraire()));
+                montantMoNet = montantMoNet.add(montantNet(BigDecimal.valueOf((long) ligneReq.getNbreHeure() * ligneReq.getTarifHoraire()), ligne.getTauxRemise()));
             }
         }
 
-        BigDecimal montantBrutHT = montantHT;
         int tauxRemise = tauxRemiseApplicable(client);
-        BigDecimal montantRemise = montantBrutHT.multiply(BigDecimal.valueOf(tauxRemise))
+        BigDecimal montantRemise = montantPiecesNet.multiply(BigDecimal.valueOf(tauxRemise))
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        montantHT = montantBrutHT.subtract(montantRemise);
+        BigDecimal montantHT = montantPiecesNet.subtract(montantRemise).add(montantMoNet);
         proforma.setTauxRemiseClient(BigDecimal.valueOf(tauxRemise));
         proforma.setMontantRemiseClient(montantRemise);
         proforma.setMontantHT(montantHT);
@@ -342,6 +346,7 @@ public class ProformaServiceImpl implements ProformaService {
             }
 
             if (request.getLignesPieces() != null) {
+                java.util.Set<Long> lignesPieceOrConsommees = new java.util.HashSet<>();
                 proforma.getLignesFacturationPieces().clear();
                 for (LigneFacturationPieceRequest lReq : request.getLignesPieces()) {
                     if (lReq.getQuantite() == null || lReq.getQuantite() <= 0) {
@@ -370,11 +375,13 @@ public class ProformaServiceImpl implements ProformaService {
                             .designationPds(lReq.getDesignationPds())
                             .quantite(lReq.getQuantite())
                             .prix(prix)
+                            .tauxRemise(tauxRemisePieceDepuisOrdre(proforma.getOrdreReparation(), lReq, lignesPieceOrConsommees))
                             .build());
                 }
             }
 
             if (request.getLignesMainDoeuvres() != null) {
+                java.util.Set<Long> lignesMoOrConsommees = new java.util.HashSet<>();
                 proforma.getLignesFacturationMainDoeuvres().clear();
                 for (LigneFacturationMainDoeuvreRequest lReq : request.getLignesMainDoeuvres()) {
                     if (lReq.getNbreHeure() == null || lReq.getNbreHeure() <= 0) {
@@ -390,17 +397,19 @@ public class ProformaServiceImpl implements ProformaService {
                             .mainDoeuvre(mainDoeuvre)
                             .nbreHeure(lReq.getNbreHeure())
                             .tarifHoraire(lReq.getTarifHoraire())
+                            .tauxRemise(tauxRemiseMoDepuisOrdre(proforma.getOrdreReparation(), lReq, lignesMoOrConsommees))
                             .build());
                 }
             }
         }
 
-        BigDecimal montantHT = BigDecimal.ZERO;
+        BigDecimal montantPiecesNet = BigDecimal.ZERO;
+        BigDecimal montantMoNet = BigDecimal.ZERO;
         for (LigneFacturationPiece lp : proforma.getLignesFacturationPieces()) {
-            montantHT = montantHT.add(BigDecimal.valueOf((long) lp.getQuantite() * lp.getPrix()));
+            montantPiecesNet = montantPiecesNet.add(montantNet(BigDecimal.valueOf((long) lp.getQuantite() * lp.getPrix()), lp.getTauxRemise()));
         }
         for (LigneFacturationMainDoeuvre lm : proforma.getLignesFacturationMainDoeuvres()) {
-            montantHT = montantHT.add(BigDecimal.valueOf((long) lm.getNbreHeure() * lm.getTarifHoraire()));
+            montantMoNet = montantMoNet.add(montantNet(BigDecimal.valueOf((long) lm.getNbreHeure() * lm.getTarifHoraire()), lm.getTauxRemise()));
         }
         Client clientPourTarif = proforma.getClient();
         if (clientPourTarif == null && proforma.getOrdreReparation() != null) {
@@ -408,8 +417,8 @@ public class ProformaServiceImpl implements ProformaService {
                     : proforma.getOrdreReparation().getVehicule() == null ? null : proforma.getOrdreReparation().getVehicule().getClient();
         }
         int tauxRemise = tauxRemiseApplicable(clientPourTarif);
-        BigDecimal montantRemise = montantHT.multiply(BigDecimal.valueOf(tauxRemise)).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        montantHT = montantHT.subtract(montantRemise);
+        BigDecimal montantRemise = montantPiecesNet.multiply(BigDecimal.valueOf(tauxRemise)).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        BigDecimal montantHT = montantPiecesNet.subtract(montantRemise).add(montantMoNet);
         proforma.setTauxRemiseClient(BigDecimal.valueOf(tauxRemise));
         proforma.setMontantRemiseClient(montantRemise);
         proforma.setMontantHT(montantHT);
@@ -543,9 +552,15 @@ public class ProformaServiceImpl implements ProformaService {
     @Override
     @Transactional(readOnly = true)
     public byte[] generatePdf(Long id) {
+        return generatePdf(id, "AVEC_ENTETE");
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] generatePdf(Long id, String layoutKey) {
         Proforma p = proformaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Proforma non trouvé avec l'id : " + id));
-        return proformaGenerator.genererProformaPdf(p);
+        return proformaGenerator.genererProformaPdf(p, layoutKey);
     }
 
     @Override
@@ -704,5 +719,42 @@ public class ProformaServiceImpl implements ProformaService {
                 || !client.isClientFidele() || client.getMontantRemise() == null) return 0;
         var compte = compteClientRepository.findByClientId(client.getId()).orElse(null);
         return compte != null && compte.isActif() ? client.getMontantRemise() : 0;
+    }
+
+    private BigDecimal tauxRemisePieceDepuisOrdre(OrdreReparation ordre, LigneFacturationPieceRequest ligne,
+                                                   java.util.Set<Long> dejaAssociees) {
+        if (ordre == null || ordre.getLignesOrdreReparationPieces() == null) return BigDecimal.ZERO;
+        boolean personnalisée = Boolean.TRUE.equals(ligne.getIsCustom());
+        return ordre.getLignesOrdreReparationPieces().stream()
+                .filter(orLigne -> orLigne.getId() != null && !dejaAssociees.contains(orLigne.getId()))
+                .filter(orLigne -> Boolean.TRUE.equals(orLigne.getIsCustom()) == personnalisée)
+                .filter(orLigne -> personnalisée
+                        ? java.util.Objects.equals(normaliserDesignation(orLigne.getDesignationPds()), normaliserDesignation(ligne.getDesignationPds()))
+                        : orLigne.getPiece() != null && java.util.Objects.equals(orLigne.getPiece().getId(), ligne.getPieceId()))
+                .findFirst()
+                .map(orLigne -> { dejaAssociees.add(orLigne.getId()); return orLigne.getTauxRemise() == null ? BigDecimal.ZERO : orLigne.getTauxRemise(); })
+                .orElse(BigDecimal.ZERO);
+    }
+
+    private BigDecimal tauxRemiseMoDepuisOrdre(OrdreReparation ordre, LigneFacturationMainDoeuvreRequest ligne,
+                                                java.util.Set<Long> dejaAssociees) {
+        if (ordre == null || ordre.getLignesOrdreReparationMainDoeuvres() == null) return BigDecimal.ZERO;
+        return ordre.getLignesOrdreReparationMainDoeuvres().stream()
+                .filter(orLigne -> orLigne.getId() != null && !dejaAssociees.contains(orLigne.getId()))
+                .filter(orLigne -> orLigne.getMainDoeuvre() != null
+                        && java.util.Objects.equals(orLigne.getMainDoeuvre().getId(), ligne.getMainDoeuvreId()))
+                .findFirst()
+                .map(orLigne -> { dejaAssociees.add(orLigne.getId()); return orLigne.getTauxRemise() == null ? BigDecimal.ZERO : orLigne.getTauxRemise(); })
+                .orElse(BigDecimal.ZERO);
+    }
+
+    private String normaliserDesignation(String designation) {
+        return designation == null ? "" : designation.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private BigDecimal montantNet(BigDecimal montantBrut, BigDecimal taux) {
+        BigDecimal tauxEffectif = taux == null ? BigDecimal.ZERO : taux;
+        return montantBrut.multiply(BigDecimal.valueOf(100).subtract(tauxEffectif))
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
     }
 }

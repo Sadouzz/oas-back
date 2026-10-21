@@ -14,6 +14,7 @@ public class LigneFacturationPieceResponse {
     private Integer quantite;
     private Integer prix;
     private Integer montantTotal;
+    private Double tauxRemise;
     private Integer quantiteCommandee;
     private Integer quantiteRecueTotale;
     private Integer quantiteRestante;

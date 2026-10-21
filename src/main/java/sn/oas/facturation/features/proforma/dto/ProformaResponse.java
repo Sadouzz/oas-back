@@ -38,6 +38,7 @@ public class ProformaResponse {
     private Integer annee;
 
     private String numeroBonDeCommande;
+    private Long ordreReparationId;
     private Long bsId;
     private String bsReference;
 
@@ -108,6 +109,7 @@ public class ProformaResponse {
                 .modele(modele)
                 .annee(annee)
                 .numeroBonDeCommande(p.getBonDeCommande() != null ? p.getBonDeCommande().getNumero() : null)
+                .ordreReparationId(p.getOrdreReparation() != null ? p.getOrdreReparation().getId() : null)
                 .bsId(p.getBs() != null ? p.getBs().getId() : null)
                 .bsReference(p.getBs() != null ? p.getBs().getReference() : null)
                 .lignesPieces(p.getLignesFacturationPieces() == null ? List.of() : p.getLignesFacturationPieces().stream()
@@ -117,7 +119,8 @@ public class ProformaResponse {
                                 .designationPiece(lp.getPiece() != null ? lp.getPiece().getDesignation() : null)
                                 .quantite(lp.getQuantite())
                                 .prix(lp.getPrix())
-                                .montantTotal(lp.getQuantite() * lp.getPrix())
+                                .montantTotal((int) Math.round(lp.getQuantite() * lp.getPrix() * (1 - (lp.getTauxRemise() == null ? 0 : lp.getTauxRemise().doubleValue()) / 100)))
+                                .tauxRemise(lp.getTauxRemise() != null ? lp.getTauxRemise().doubleValue() : 0.0)
                                 .build())
                         .toList())
                 .lignesMainDoeuvres(p.getLignesFacturationMainDoeuvres() == null ? List.of() : p.getLignesFacturationMainDoeuvres().stream()
@@ -127,7 +130,8 @@ public class ProformaResponse {
                                 .descriptionMainDoeuvre(lm.getMainDoeuvre() != null && lm.getMainDoeuvre().getCategorie() != null ? lm.getMainDoeuvre().getCategorie().getNom() : null)
                                 .nbreHeure(lm.getNbreHeure())
                                 .tarifHoraire(lm.getTarifHoraire())
-                                .montantTotal(lm.getNbreHeure() * lm.getTarifHoraire())
+                                .montantTotal((int) Math.round(lm.getNbreHeure() * lm.getTarifHoraire() * (1 - (lm.getTauxRemise() == null ? 0 : lm.getTauxRemise().doubleValue()) / 100)))
+                                .tauxRemise(lm.getTauxRemise() != null ? lm.getTauxRemise().doubleValue() : 0.0)
                                 .build())
                         .toList())
                 .build();

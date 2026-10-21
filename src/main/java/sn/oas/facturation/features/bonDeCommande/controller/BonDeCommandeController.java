@@ -112,12 +112,12 @@ public class BonDeCommandeController {
 
     @GetMapping("/{id}/pdf")
     @Operation(summary = "Générer le PDF d'un bon de commande")
-    public ResponseEntity<byte[]> genererPdf(@PathVariable Long id) {
-        byte[] pdfBytes = bonDeCommandeService.generatePdf(id);
+    public ResponseEntity<byte[]> genererPdf(@PathVariable Long id, @RequestParam(defaultValue = "AVEC_ENTETE") String layoutKey) {
+        byte[] pdfBytes = bonDeCommandeService.generatePdf(id, layoutKey);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
-        headers.setContentDispositionFormData("attachment", "bon_de_commande_" + id + ".pdf");
+        headers.setContentDispositionFormData("attachment", "bon_de_commande_" + id + "_" + layoutKey.toLowerCase() + ".pdf");
         headers.setCacheControl("must-revalidate, post-check=0, pre-check=0");
 
         return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);

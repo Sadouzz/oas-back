@@ -21,4 +21,5 @@ public interface BonDeReceptionService {
     List<BonDeReception> getRecentBonsDeReception();
     void delete(Long id);
     byte[] generatePdf(Long id);
+    byte[] generatePdf(Long id, String layoutKey);
 }

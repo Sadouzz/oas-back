@@ -4,6 +4,8 @@ import com.lowagie.text.*;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
+import sn.oas.facturation.features.pdfGenerator.service.PdfLayout;
+import sn.oas.facturation.features.pdfGenerator.service.OasBrandedPdfPageEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
@@ -274,6 +276,14 @@ public class AvoirHTServiceImpl implements AvoirHTService {
     @Override
     @Transactional(readOnly = true)
     public byte[] generatePdf(Long id) {
+        return generatePdf(id, PdfLayout.AVEC_ENTETE);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] generatePdf(Long id, String layoutKey) {
+        String layout = PdfLayout.normalize(layoutKey);
+        boolean withHeader = PdfLayout.AVEC_ENTETE.equals(layout);
         AvoirHT a = avoirHTRepository.findById(id)
                 .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Avoir HT non trouvé avec l'id : " + id));
 
@@ -282,7 +292,7 @@ public class AvoirHTServiceImpl implements AvoirHTService {
         Client templateClient = a.getClient() != null ? a.getClient()
                 : a.getOrdreReparation() != null ? (a.getOrdreReparation().getClient() != null ? a.getOrdreReparation().getClient()
                 : a.getOrdreReparation().getVehicule() != null ? a.getOrdreReparation().getVehicule().getClient() : null) : null;
-        byte[] configured = htmlToPdfService.genererTemplatePdfSiConfigure("AVOIR_HT", java.util.Map.of(
+        byte[] configured = htmlToPdfService.genererTemplatePdfSiConfigure("AVOIR_HT", layout, java.util.Map.of(
                 "numero", templateValue(a.getNumero()), "date", templateValue(a.getDateCreation()),
                 "clientNom", templateClient == null ? "" : templateValue(templateClient.getFirstName() + " " + templateClient.getLastName()),
                 "immatriculation", templateVehicle == null ? "" : templateValue(templateVehicle.getImmatriculation()),
@@ -291,10 +301,13 @@ public class AvoirHTServiceImpl implements AvoirHTService {
         if (configured != null) return configured;
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        Document document = new Document();
+        Document document = withHeader
+                ? new Document(com.lowagie.text.PageSize.A4, 34, 34, 105, 78)
+                : new Document(com.lowagie.text.PageSize.A4, 40, 40, 40, 40);
 
         try {
-            PdfWriter.getInstance(document, baos);
+            PdfWriter writer = PdfWriter.getInstance(document, baos);
+            if (withHeader) writer.setPageEvent(new OasBrandedPdfPageEvent());
             document.open();
 
             Font fontTitre = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18);

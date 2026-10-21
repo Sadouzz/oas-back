@@ -23,8 +23,6 @@ import sn.oas.facturation.features.proforma.service.ProformaService;
 import sn.oas.facturation.shared.exception.ForbiddenException;
 import sn.oas.facturation.shared.exception.BadRequestException;
 
-import sn.oas.facturation.features.bonDeSortie.service.BonDeSortieService;
-import sn.oas.facturation.features.bonDeSortie.dto.BonDeSortieListResponse;
 
 import java.util.List;
 
@@ -36,7 +34,6 @@ public class ProformaController {
 
     private final ProformaService proformaService;
     private final ClientService clientService;
-    private final BonDeSortieService bonDeSortieService;
 
     @PostMapping
     @Operation(summary = "Créer un proforma")
@@ -122,14 +119,14 @@ public class ProformaController {
 
     @GetMapping("/{id}/pdf")
     @Operation(summary = "Générer le PDF d'un proforma")
-    public ResponseEntity<byte[]> generatePdf(@PathVariable Long id) {
+    public ResponseEntity<byte[]> generatePdf(@PathVariable Long id, @RequestParam(defaultValue = "AVEC_ENTETE") String layoutKey) {
         var proforma = proformaService.getById(id);
-        byte[] pdfBytes = proformaService.generatePdf(id);
+        byte[] pdfBytes = proformaService.generatePdf(id, layoutKey);
         String numero = proforma.getNumero() != null ? proforma.getNumero() : String.valueOf(id);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
         headers.set(HttpHeaders.CONTENT_DISPOSITION,
-                "inline; filename=\"Proforma-" + numero + ".pdf\"");
+                "inline; filename=\"Proforma-" + numero + "-" + layoutKey.toLowerCase() + ".pdf\"");
         return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
     }
 
@@ -137,12 +134,6 @@ public class ProformaController {
     @Operation(summary = "Convertir un proforma en facture finale")
     public ResponseEntity<FactureResponse> convertToFacture(@PathVariable Long id) {
         return ResponseEntity.ok(FactureResponse.from(proformaService.convertToFacture(id)));
-    }
-
-    @PostMapping(value = {"/{id}/creer-bs", "/{id}/bon-de-sortie"})
-    @Operation(summary = "Créer un bon de sortie depuis ce proforma", description = "Crée et lie un bon de sortie à ce proforma en important ses pièces.")
-    public ResponseEntity<BonDeSortieListResponse> creerBs(@PathVariable Long id) {
-        return ResponseEntity.ok(BonDeSortieListResponse.from(bonDeSortieService.creerDepuisProforma(id)));
     }
 
     // --- Client endpoints ---

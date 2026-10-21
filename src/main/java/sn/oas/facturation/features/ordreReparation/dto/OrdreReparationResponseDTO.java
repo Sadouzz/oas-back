@@ -93,6 +93,7 @@ public class OrdreReparationResponseDTO {
         private String designationPds;
         private Integer quantite;
         private Double prix;
+        private Double tauxRemise;
     }
 
     @Data
@@ -118,6 +119,7 @@ public class OrdreReparationResponseDTO {
         private MainDoeuvreDto mainDoeuvre;
         private Integer nbreHeure;
         private Double prix;
+        private Double tauxRemise;
     }
 
     @Data

@@ -57,6 +57,42 @@ public class ApiResponseInterceptor implements ResponseBodyAdvice<Object> {
             return body;
         }
 
+        // Lire le statut avant les traitements spéciaux (notamment String),
+        // afin qu'un corps texte d'erreur ne soit jamais enveloppé en succès.
+        int statusCode = 200;
+        if (response instanceof ServletServerHttpResponse servletResponse) {
+            statusCode = servletResponse.getServletResponse().getStatus();
+        }
+
+        if (statusCode >= 400) {
+            if (body == null) {
+                HttpStatus httpStatus = HttpStatus.resolve(statusCode);
+                return ErrorResponse.of(
+                        statusCode,
+                        httpStatus != null ? httpStatus.getReasonPhrase() : "Error",
+                        statusCode == 404 ? "Ressource introuvable" : "Erreur " + statusCode,
+                        path
+                );
+            }
+            if (body instanceof String str) {
+                response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
+                try {
+                    objectMapper.readTree(str); // conserve les chaînes déjà au format JSON
+                    return str;
+                } catch (Exception ignored) {
+                    HttpStatus httpStatus = HttpStatus.resolve(statusCode);
+                    try {
+                        return objectMapper.writeValueAsString(ErrorResponse.of(statusCode,
+                                httpStatus != null ? httpStatus.getReasonPhrase() : "Error", str, path));
+                    } catch (Exception serializationError) {
+                        response.getHeaders().setContentType(MediaType.TEXT_PLAIN);
+                        return str;
+                    }
+                }
+            }
+            return body;
+        }
+
         // Conversion automatique des objets Spring Data Page en PageResponse enrichi
         if (body instanceof Page<?> springPage) {
             return ApiResponse.success(PageResponse.from(springPage));
@@ -75,26 +111,6 @@ public class ApiResponseInterceptor implements ResponseBodyAdvice<Object> {
             } catch (Exception e) {
                 return ApiResponse.success(str);
             }
-        }
-
-        // Vérification du statut HTTP
-        int statusCode = 200;
-        if (response instanceof ServletServerHttpResponse servletResponse) {
-            statusCode = servletResponse.getServletResponse().getStatus();
-        }
-
-        // Réponses d'erreur HTTP (>= 400)
-        if (statusCode >= 400) {
-            if (body == null) {
-                HttpStatus httpStatus = HttpStatus.resolve(statusCode);
-                return ErrorResponse.of(
-                        statusCode,
-                        httpStatus != null ? httpStatus.getReasonPhrase() : "Error",
-                        statusCode == 404 ? "Ressource introuvable" : "Erreur " + statusCode,
-                        path
-                );
-            }
-            return body;
         }
 
         // Réponses 204 No Content

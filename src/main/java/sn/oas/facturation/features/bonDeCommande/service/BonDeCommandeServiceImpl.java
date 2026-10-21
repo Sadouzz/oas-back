@@ -427,65 +427,6 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
             }
         }
 
-        // Auto-générer le Bon de Sortie pour la fiche atelier en attente
-        OrdreReparation fiche = bonDeCommande.getOrdreReparation();
-        if (fiche == null && bonDeCommande.getVehicule() != null) {
-            fiche = ordreReparationRepository.findFirstByVehiculeIdAndStatutNotIn(
-                    bonDeCommande.getVehicule().getId(),
-                    List.of(StatutOrdreReparation.LIVRE)).orElse(null);
-        }
-
-        if (fiche != null) {
-            Proforma proforma = proformaRepository
-                    .findByOrdreReparationId(fiche.getId()).orElse(null);
-            if (proforma != null && fiche.getVehicule() != null && fiche.getVehicule().getClient() != null) {
-                    List<LignePieceRequest> lignesPieces = new ArrayList<>();
-                    for (LigneFacturationPiece lp : proforma
-                            .getLignesFacturationPieces()) {
-                        if (lp.getPiece() == null) {
-                            continue;
-                        }
-                        PieceDetache piece = pieceDetacheRepository.findById(lp.getPiece().getId()).orElse(null);
-                        if (piece != null) {
-                            piece = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
-                        }
-                        if (piece instanceof PDP pdp) {
-                            Double stockAtelier = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0.0;
-                            Double stockMagasin = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0.0;
-                            Double manquantAtelier = Math.max(0.0, lp.getQuantite() - stockAtelier);
-                            Double aSortirMagasin = Math.min(manquantAtelier, stockMagasin);
-
-                            if (aSortirMagasin > 0) {
-                                lignesPieces.add(new LignePieceRequest(pdp.getId(),
-                                        aSortirMagasin.intValue()));
-                            }
-                        }
-                    }
-
-                    BonDeSortieRequest bdsRequest = new BonDeSortieRequest(
-                            fiche.getVehicule().getClient().getId(),
-                            fiche.getVehicule().getId(),
-                            lignesPieces,
-                            fiche.getId(),
-                            "Bon de sortie automatique suite à la réception de commande");
-
-                    try {
-                        BonDeSortie bds = bonDeSortieService
-                                .creer(bdsRequest);
-                        bds.setOrdreReparation(fiche);
-                        bds = bonDeSortieRepository.save(bds); // update le BDS avec la fiche
-
-                        fiche.setBonDeSortie(bds);
-                        fiche.setStatut(
-                                StatutOrdreReparation.BON_DE_SORTIE);
-                        fiche.setUpdatedAt(LocalDateTime.now());
-                        ordreReparationRepository.save(fiche);
-                    } catch (Exception e) {
-                        log.error("Erreur auto bon de sortie FA-" + fiche.getId(), e);
-                    }
-                }
-            }
-
         agentNotificationService.notifyRoleInGarage(Role.AGENT_MAGASIN, bonDeCommande.getGarage(),
                 "Bon de Commande Réceptionné",
                 "Le bon de commande " + bonDeCommande.getNumero() + " a été réceptionné totalement.");
@@ -591,72 +532,6 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                 .allMatch(l -> l.getQuantiteRecue() != null && l.getQuantiteRecue() >= l.getQuantite());
         bonDeCommande.setStatut(toutRecu ? StatutBonCommande.RECU : StatutBonCommande.INCOMPLET);
 
-        if (toutRecu) {
-            OrdreReparation fiche = bonDeCommande.getOrdreReparation();
-            if (fiche == null && bonDeCommande.getVehicule() != null) {
-                fiche = ordreReparationRepository.findFirstByVehiculeIdAndStatutNotIn(
-                        bonDeCommande.getVehicule().getId(),
-                        List.of(StatutOrdreReparation.LIVRE)).orElse(null);
-            }
-
-            if (fiche != null) {
-                Proforma proforma = proformaRepository
-                        .findByOrdreReparationId(fiche.getId()).orElse(null);
-                if (proforma != null && fiche.getVehicule() != null && fiche.getVehicule().getClient() != null) {
-                    List<LignePieceRequest> lignesPieces = new ArrayList<>();
-                    for (LigneFacturationPiece lp : proforma
-                            .getLignesFacturationPieces()) {
-                        if (lp.getPiece() == null) {
-                            continue;
-                        }
-                        PieceDetache piece = pieceDetacheRepository.findById(lp.getPiece().getId()).orElse(null);
-                        if (piece != null) {
-                            piece = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
-                        }
-                        if (piece instanceof PDP pdp) {
-                            Double stockAtelier = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0.0;
-                            Double stockMagasin = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0.0;
-                            Double manquantAtelier = Math.max(0.0, lp.getQuantite() - stockAtelier);
-                            Double aSortirMagasin = Math.min(manquantAtelier, stockMagasin);
-                            if (aSortirMagasin > 0) {
-                                lignesPieces.add(new LignePieceRequest(pdp.getId(),
-                                        aSortirMagasin.intValue()));
-                            }
-                        }
-                    }
-                    /*
-
-
-                    if (!lignesPieces.isEmpty()) {
-                        BonDeSortieRequest bdsRequest = new BonDeSortieRequest(
-                                fiche.getVehicule().getClient().getId(),
-                                fiche.getVehicule().getId(),
-                                lignesPieces,
-                                fiche.getId(),
-                                "Bon de sortie auto suite réception commande");
-                        try {
-                            BonDeSortie bds = bonDeSortieService
-                                    .creer(bdsRequest);
-                            bds.setOrdreReparation(fiche);
-                            bds = bonDeSortieRepository.save(bds);
-
-                            fiche.setBonDeSortie(bds);
-                            fiche.setStatut(
-                                    StatutOrdreReparation.BON_DE_SORTIE);
-                            fiche.setUpdatedAt(LocalDateTime.now());
-                            ordreReparationRepository.save(fiche);
-                        } catch (Exception e) {
-                            log.error("Erreur auto bon de sortie FA-" + fiche.getId(), e);
-                            throw new RuntimeException("Erreur lors de la création automatique du bon de sortie", e);
-                        }
-
-
-                    }
-                    */
-                }
-            }
-        }
-
         agentNotificationService.notifyRoleInGarage(Role.AGENT_MAGASIN, bonDeCommande.getGarage(),
                 "Bon de Commande " + (toutRecu ? "Réceptionné" : "Partiellement Réceptionné"),
                 "Le bon de commande " + bonDeCommande.getNumero() + " a été "
@@ -722,11 +597,17 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
     @Override
     @Transactional(readOnly = true)
     public byte[] generatePdf(Long id) {
+        return generatePdf(id, "AVEC_ENTETE");
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] generatePdf(Long id, String layoutKey) {
         BonDeCommande bonDeCommande = bonDeCommandeRepository.findById(id)
                 .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Bon de commande non trouvé avec l'id : " + id));
         // Accéder à la collection pour forcer le chargement paresseux (lazy loading) si
         // nécessaire
         bonDeCommande.getLignes().size();
-        return pdfGeneratorService.genererBonDeCommandePdf(bonDeCommande);
+        return pdfGeneratorService.genererBonDeCommandePdf(bonDeCommande, layoutKey);
     }
 }

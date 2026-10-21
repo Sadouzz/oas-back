@@ -1,6 +1,7 @@
 package sn.oas.facturation.shared.documentNumber;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,9 +19,9 @@ import java.time.Year;
 @RequiredArgsConstructor
 public class DocumentNumberGeneratorService {
 
-    private final DocumentSequenceRepository documentSequenceRepository;
     private final GarageRepository garageRepository;
     private final UserRepository userRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public String generateNextNumber(DocumentType type) {
@@ -43,19 +44,20 @@ public class DocumentNumberGeneratorService {
 
         int currentYear = Year.now().getValue();
 
-        DocumentSequence sequence = documentSequenceRepository
-                .findByGarageIdAndDocumentTypeAndYearWithLock(finalGarage.getId(), type, currentYear)
-                .orElseGet(() -> DocumentSequence.builder()
-                        .garage(finalGarage)
-                        .documentType(type)
-                        .year(currentYear)
-                        .nextValue(1L)
-                        .build());
-
-        long currentValue = sequence.getNextValue();
-        
-        sequence.setNextValue(currentValue + 1);
-        documentSequenceRepository.save(sequence);
+        // The pessimistic row lock used previously could not lock a missing sequence row.
+        // Atomic upsert protects both first use and concurrent allocations.
+        Long allocatedValue = jdbcTemplate.queryForObject("""
+                INSERT INTO document_sequences (garage_id, document_type, year, next_value)
+                VALUES (?, ?, ?, 2)
+                ON CONFLICT (garage_id, document_type, year)
+                DO UPDATE SET next_value = document_sequences.next_value + 1
+                RETURNING next_value - 1
+                """,
+                Long.class,
+                finalGarage.getId(),
+                type.name(),
+                currentYear);
+        long currentValue = allocatedValue;
 
         return String.format("%s-%s-%d-%04d", finalGarage.getPrefixe(), type.name(), currentYear, currentValue);
     }

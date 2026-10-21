@@ -7,4 +7,5 @@ public class LigneFacturationMainDoeuvreRequest {
     private Long mainDoeuvreId;
     private Integer nbreHeure;
     private Integer tarifHoraire;
+    private Double tauxRemise;
 }

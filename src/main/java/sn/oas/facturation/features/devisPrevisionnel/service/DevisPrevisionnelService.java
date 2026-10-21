@@ -36,6 +36,7 @@ public interface DevisPrevisionnelService {
     Page<DevisPrevisionnel> search(String keyword, int page, int size);
 
     byte[] generatePdf(Long id);
+    byte[] generatePdf(Long id, String layoutKey);
 
     DevisPrevisionnel valider(Long id);
 

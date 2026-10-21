@@ -86,12 +86,12 @@ public class BonDeReceptionController {
 
     @GetMapping("/{id}/pdf")
     @Operation(summary = "Générer le PDF d'un bon de réception")
-    public ResponseEntity<byte[]> generatePdf(@PathVariable Long id) {
+    public ResponseEntity<byte[]> generatePdf(@PathVariable Long id, @RequestParam(defaultValue = "AVEC_ENTETE") String layoutKey) {
         try {
-            byte[] pdfBytes = bonDeReceptionService.generatePdf(id);
+            byte[] pdfBytes = bonDeReceptionService.generatePdf(id, layoutKey);
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_PDF);
-            headers.setContentDispositionFormData("attachment", "BR_" + id + ".pdf");
+            headers.setContentDispositionFormData("attachment", "BR_" + id + "_" + layoutKey.toLowerCase() + ".pdf");
             return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
         } catch (UnsupportedOperationException e) {
             return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();

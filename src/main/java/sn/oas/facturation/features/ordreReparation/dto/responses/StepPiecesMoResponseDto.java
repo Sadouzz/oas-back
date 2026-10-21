@@ -8,6 +8,7 @@ import java.util.List;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class StepPiecesMoResponseDto extends BaseStepResponseDto {
+    private Double tauxRemiseClient;
     private List<LignePieceOrdreDto> lignesOrdreReparationPieces;
     private List<LigneMoOrdreDto> lignesOrdreReparationMainDoeuvres;
 }

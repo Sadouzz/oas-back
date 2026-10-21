@@ -18,6 +18,7 @@ public interface FactureService {
     List<Facture> getRecentFactures();
     void delete(Long id);
     byte[] generatePdf(Long id);
+    byte[] generatePdf(Long id, String layoutKey);
     Facture createFacture(FactureCreateRequest request);
     Facture createFactureAuto(OrdreReparation fiche);
     

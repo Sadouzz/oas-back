@@ -30,6 +30,7 @@ public record ProformaDetailsResponseDto(
         Integer annee,
         Integer kilometrage,
         String numeroBonDeCommande,
+        Long ordreReparationId,
 
         // Données financières
         Double tvaRate,
@@ -58,7 +59,8 @@ public record ProformaDetailsResponseDto(
             Boolean isCustom,         // true si PDS
             Integer quantite,
             Double prix,              // Prix unitaire
-            Double montantTotal
+            Double montantTotal,
+            Double tauxRemise
     ) {}
 
     @Builder
@@ -68,7 +70,8 @@ public record ProformaDetailsResponseDto(
             String descriptionMainDoeuvre,
             Double nbreHeure,         // Quantité / Heures
             Double tarifHoraire,      // Tarif unitaire
-            Double montantTotal
+            Double montantTotal,
+            Double tauxRemise
     ) {}
 
     public static ProformaDetailsResponseDto from(Proforma p) {
@@ -123,7 +126,8 @@ public record ProformaDetailsResponseDto(
                     String designation = lp.getPiece() != null ? lp.getPiece().getDesignation() : lp.getDesignationPds();
                     int qte = lp.getQuantite() != null ? lp.getQuantite() : 1;
                     double prix = lp.getPrix() != null ? lp.getPrix().doubleValue() : 0.0;
-                    double montantLigne = qte * prix;
+                    double tauxRemise = lp.getTauxRemise() != null ? lp.getTauxRemise().doubleValue() : 0.0;
+                    double montantLigne = qte * prix * (1 - tauxRemise / 100);
 
                     return LignePieceResponseDto.builder()
                             .id(lp.getId())
@@ -136,6 +140,7 @@ public record ProformaDetailsResponseDto(
                             .quantite(qte)
                             .prix(prix)
                             .montantTotal(montantLigne)
+                            .tauxRemise(tauxRemise)
                             .build();
                 }).toList();
 
@@ -146,7 +151,8 @@ public record ProformaDetailsResponseDto(
                             (lm.getMainDoeuvre().getCategorie() != null ? lm.getMainDoeuvre().getCategorie().getNom() : lm.getMainDoeuvre().getDescription()) : null;
                     double heures = lm.getNbreHeure() != null ? lm.getNbreHeure().doubleValue() : 0.0;
                     double tarif = lm.getTarifHoraire() != null ? lm.getTarifHoraire().doubleValue() : 0.0;
-                    double montantLigne = heures * tarif;
+                    double tauxRemise = lm.getTauxRemise() != null ? lm.getTauxRemise().doubleValue() : 0.0;
+                    double montantLigne = heures * tarif * (1 - tauxRemise / 100);
 
                     return LigneMainDoeuvreResponseDto.builder()
                             .id(lm.getId())
@@ -155,6 +161,7 @@ public record ProformaDetailsResponseDto(
                             .nbreHeure(heures)
                             .tarifHoraire(tarif)
                             .montantTotal(montantLigne)
+                            .tauxRemise(tauxRemise)
                             .build();
                 }).toList();
 
@@ -183,6 +190,7 @@ public record ProformaDetailsResponseDto(
                 .annee(annee)
                 .kilometrage(kilometrage)
                 .numeroBonDeCommande(p.getBonDeCommande() != null ? p.getBonDeCommande().getNumero() : null)
+                .ordreReparationId(p.getOrdreReparation() != null ? p.getOrdreReparation().getId() : null)
                 .tvaRate(tvaRate)
                 .montantTimbre(timbre)
                 .montantAutre(0.0)

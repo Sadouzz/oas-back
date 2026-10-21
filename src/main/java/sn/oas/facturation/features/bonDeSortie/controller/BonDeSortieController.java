@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -22,11 +23,12 @@ import sn.oas.facturation.features.bonDeSortie.data.entity.BonDeSortieHistorique
 @RestController
 @RequestMapping("/api/bons-de-sortie")
 @RequiredArgsConstructor
+@PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
 public class BonDeSortieController {
 
     private final BonDeSortieService bonDeSortieService;
 
-    @Operation(summary = "Créer un bon de sortie", description = "Crée un bon en statut EN_ATTENTE. La référence est générée automatiquement (ex: BS-2026-0001). Aucun mouvement de stock n'est effectué à cette étape.")
+    @Operation(summary = "Créer un bon de sortie", description = "Crée un bon en statut EN_ATTENTE et déplace uniquement les PDP du magasin vers l'atelier. Les PDG, PDS et mains-d'œuvre ne génèrent pas de mouvement de stock.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Bon créé avec succès"),
             @ApiResponse(responseCode = "400", description = "Client, véhicule ou pièces invalides")
@@ -36,22 +38,13 @@ public class BonDeSortieController {
         return ResponseEntity.ok(BonDeSortieListResponse.from(bonDeSortieService.creer(request)));
     }
 
-    @Operation(summary = "Créer un bon de sortie depuis un proforma", description = "Crée un bon de sortie et le lie au proforma spécifié en important ses pièces.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Bon de sortie créé et lié avec succès"),
-            @ApiResponse(responseCode = "400", description = "Proforma invalide, déjà lié ou données incomplètes")
-    })
-    @PostMapping(value = {"/creer-depuis-proforma/{proformaId}", "/proforma/{proformaId}"})
-    public ResponseEntity<BonDeSortieListResponse> creerDepuisProforma(@PathVariable Long proformaId) {
-        return ResponseEntity.ok(BonDeSortieListResponse.from(bonDeSortieService.creerDepuisProforma(proformaId)));
-    }
-
-    @Operation(summary = "Valider un bon de sortie", description = "Passe le bon en statut VALIDE. Vérifie le stock magasin pour chaque pièce et génère les mouvements de sortie (magasin → atelier).")
+    @Operation(summary = "Valider un bon de sortie", description = "Après réparation, passe le bon en statut VALIDE et consomme uniquement les PDP sorties vers l'atelier.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Bon validé, stocks mis à jour"),
             @ApiResponse(responseCode = "400", description = "Bon déjà validé ou stock insuffisant pour une pièce")
     })
     @PutMapping("/{id}/valider")
+    @PreAuthorize("hasAnyRole('SUPER_AGENT', 'MASTER', 'CHEF_ATELIER')")
     public ResponseEntity<BonDeSortieListResponse> valider(@PathVariable Long id) {
         return ResponseEntity.ok(BonDeSortieListResponse.from(bonDeSortieService.valider(id)));
     }
@@ -103,6 +96,8 @@ public class BonDeSortieController {
             @RequestParam(required = false) StatutBon statut,
             @RequestParam(required = false) Long clientId,
             @RequestParam(required = false) Long vehiculeId,
+            @RequestParam(required = false) Long ordreReparationId,
+            @RequestParam(required = false) Long ordreTravailId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
 
@@ -120,6 +115,14 @@ public class BonDeSortieController {
         }
         if (vehiculeId != null) {
             return ResponseEntity.ok(bonDeSortieService.getByVehicule(vehiculeId, page, size)
+                    .map(BonDeSortieListResponse::from));
+        }
+        if (ordreReparationId != null) {
+            return ResponseEntity.ok(bonDeSortieService.getByOrdreReparation(ordreReparationId, page, size)
+                    .map(BonDeSortieListResponse::from));
+        }
+        if (ordreTravailId != null) {
+            return ResponseEntity.ok(bonDeSortieService.getByOrdreTravail(ordreTravailId, page, size)
                     .map(BonDeSortieListResponse::from));
         }
         return ResponseEntity.ok(bonDeSortieService.getAll(page, size)

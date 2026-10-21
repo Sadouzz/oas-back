@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import sn.oas.facturation.features.ordreReparation.dto.responses.BonDeSortieSummaryDto;
+import sn.oas.facturation.features.bonDeSortie.dto.BonDeSortieListResponse;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,8 +14,13 @@ import java.util.List;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class StepBonSortieResponseDto extends BaseOtStepResponseDto {
+    private Long clientId;
+    private String ordreReparationStatut;
     private Boolean hasBonDeSortie = false;
     private BonDeSortieSummaryDto bonDeSortie;
+    private List<BonDeSortieListResponse> bonsDeSortie = new ArrayList<>();
+    private Integer quantiteTotalePieces = 0;
+    private Double montantTotalBons = 0.0;
     private String proformaNumero;
     private List<PieceBonDeSortieDto> piecesManquantesProforma = new ArrayList<>();
 

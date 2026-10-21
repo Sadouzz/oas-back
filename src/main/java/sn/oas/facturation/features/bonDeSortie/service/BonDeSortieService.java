@@ -12,8 +12,6 @@ public interface BonDeSortieService {
 
     BonDeSortie creer(BonDeSortieRequest request);
 
-    BonDeSortie creerDepuisProforma(Long proformaId);
-
     BonDeSortie valider(Long id);
 
     BonDeSortie getById(Long id);
@@ -29,6 +27,8 @@ public interface BonDeSortieService {
 
     List<BonDeSortie> getByVehicule(Long vehiculeId);
     Page<BonDeSortie> getByVehicule(Long vehiculeId, int page, int size);
+    Page<BonDeSortie> getByOrdreReparation(Long ordreReparationId, int page, int size);
+    Page<BonDeSortie> getByOrdreTravail(Long ordreTravailId, int page, int size);
 
     List<BonDeSortie> search(String keyword);
     Page<BonDeSortie> search(String keyword, int page, int size);

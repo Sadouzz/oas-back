@@ -21,6 +21,11 @@ public record BonDeSortieListResponse(
         AgentSummary agentValidateur,
         Long ordreReparationId,
         OrdreReparationSummary ordreReparation,
+        String ordreReparationStatut,
+        Long ordreTravailId,
+        Double montantTotalPieces,
+        Double montantTotalMainDoeuvre,
+        Double montantTotal,
         Long proformaId,
         String proformaNumero,
         List<LigneSummary> lignesBonDeSortiePieces
@@ -43,6 +48,9 @@ public record BonDeSortieListResponse(
     public record LigneSummary(
             Long id,
             PieceSummary piece,
+            Long mainDoeuvreId,
+            String type,
+            String designation,
             Integer quantite,
             Integer prix
     ) {}
@@ -104,8 +112,13 @@ public record BonDeSortieListResponse(
                     return new LigneSummary(
                             l.getId(),
                             pSummary,
+                            l.getMainDoeuvre() != null ? l.getMainDoeuvre().getId() : null,
+                            l.getType() == sn.oas.facturation.features.bonDeSortie.data.enums.TypeLigneBonDeSortie.MAIN_DOEUVRE
+                                    ? "MAIN_DOEUVRE"
+                                    : l.getPiece() != null && l.getPiece().getType() != null ? l.getPiece().getType().name() : "PDS",
+                            l.getDesignation() != null ? l.getDesignation() : (l.getPiece() != null ? l.getPiece().getDesignation() : (l.getMainDoeuvre() != null ? l.getMainDoeuvre().getDescription() : "")),
                             l.getQuantite(),
-                            l.getPrix() != null ? l.getPrix() : (l.getPiece() != null && l.getPiece().getPrixUnitaire() != null ? l.getPiece().getPrixUnitaire().intValue() : 0)
+                            l.getPrix() != null ? l.getPrix() : (l.getPiece() != null && l.getPiece().getPrixUnitaire() != null ? l.getPiece().getPrixUnitaire().intValue() : (l.getMainDoeuvre() != null && l.getMainDoeuvre().getPrix() != null ? l.getMainDoeuvre().getPrix().intValue() : 0))
                     );
                 }).toList();
 
@@ -130,6 +143,11 @@ public record BonDeSortieListResponse(
                 .agentValidateur(validateur)
                 .ordreReparationId(b.getOrdreReparation() != null ? b.getOrdreReparation().getId() : null)
                 .ordreReparation(ordreSummary)
+                .ordreReparationStatut(b.getOrdreReparation() != null && b.getOrdreReparation().getStatut() != null ? b.getOrdreReparation().getStatut().name() : null)
+                .ordreTravailId(b.getOrdreTravail() != null ? b.getOrdreTravail().getId() : null)
+                .montantTotalPieces(b.getMontantTotalPieces() != null ? b.getMontantTotalPieces().doubleValue() : 0.0)
+                .montantTotalMainDoeuvre(b.getMontantTotalMainDoeuvre() != null ? b.getMontantTotalMainDoeuvre().doubleValue() : 0.0)
+                .montantTotal(b.getMontantTotal() != null ? b.getMontantTotal().doubleValue() : 0.0)
                 .proformaId(b.getProforma() != null ? b.getProforma().getId() : null)
                 .proformaNumero(b.getProforma() != null ? b.getProforma().getNumero() : null)
                 .lignesBonDeSortiePieces(lignes)

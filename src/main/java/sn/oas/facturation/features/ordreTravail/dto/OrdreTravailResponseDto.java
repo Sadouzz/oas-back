@@ -121,13 +121,14 @@ public class OrdreTravailResponseDto {
                                 .build())
                         .collect(Collectors.toList());
 
-        DocumentDto bonDeSortieDto = ot.getBonDeSortie() == null ? null :
+        DocumentDto bonDeSortieDto = ot.getBonsDeSortie() == null || ot.getBonsDeSortie().isEmpty() ? null :
                 DocumentDto.builder()
-                        .id(ot.getBonDeSortie().getId())
-                        .numero(ot.getBonDeSortie().getReference())
+                        .id(ot.getBonsDeSortie().get(0).getId())
+                        .numero(ot.getBonsDeSortie().get(0).getReference())
                         .build();
 
-        List<DocumentDto> bss = bonDeSortieDto != null ? List.of(bonDeSortieDto) : Collections.emptyList();
+        List<DocumentDto> bss = ot.getBonsDeSortie() == null ? Collections.emptyList() : ot.getBonsDeSortie().stream()
+                .map(bs -> DocumentDto.builder().id(bs.getId()).numero(bs.getReference()).build()).collect(Collectors.toList());
 
         return OrdreTravailResponseDto.builder()
                 .id(ot.getId())

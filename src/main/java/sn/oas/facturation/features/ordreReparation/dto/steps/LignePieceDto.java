@@ -7,6 +7,7 @@ public class LignePieceDto {
     private Long pieceId;
     private Integer quantite;
     private Double prix;
+    private Double tauxRemise;
     private Boolean isCustom;
     private String designationPds;
 }

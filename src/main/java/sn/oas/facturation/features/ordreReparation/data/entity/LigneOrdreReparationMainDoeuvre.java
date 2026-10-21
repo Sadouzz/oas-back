@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import sn.oas.facturation.features.main_doeuvre.data.entity.MainDoeuvre;
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "lignes_ordre_reparation_main_doeuvre")
@@ -34,4 +35,8 @@ public class LigneOrdreReparationMainDoeuvre {
     
     @Column(nullable = false)
     private Integer prix;
+
+    @Builder.Default
+    @Column(name = "taux_remise", nullable = false, precision = 5, scale = 2)
+    private BigDecimal tauxRemise = BigDecimal.ZERO;
 }

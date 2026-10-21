@@ -11,6 +11,8 @@ public class ProformaSummaryDto {
     private Double montantHT;
     private Double montantTVA;
     private Double montantTTC;
+    private Double tauxRemiseClient;
+    private Double montantRemiseClient;
     private String numero;
     private Boolean visibleClient;
     private java.time.LocalDateTime dateCreation;

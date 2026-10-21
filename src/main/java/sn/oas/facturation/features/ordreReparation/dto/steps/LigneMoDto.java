@@ -7,4 +7,5 @@ public class LigneMoDto {
     private Long mainDoeuvreId;
     private Integer nbreHeure;
     private Double prix;
+    private Double tauxRemise;
 }

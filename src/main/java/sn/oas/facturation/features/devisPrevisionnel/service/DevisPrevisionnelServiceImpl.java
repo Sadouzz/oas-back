@@ -318,8 +318,14 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
     @Override
     @Transactional(readOnly = true)
     public byte[] generatePdf(Long id) {
+        return generatePdf(id, "AVEC_ENTETE");
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] generatePdf(Long id, String layoutKey) {
         DevisPrevisionnel devis = getById(id);
-        return devisPrevisionnelGenerator.genererDevisPrevisionnelPdf(devis);
+        return devisPrevisionnelGenerator.genererDevisPrevisionnelPdf(devis, layoutKey);
     }
 
     @Override

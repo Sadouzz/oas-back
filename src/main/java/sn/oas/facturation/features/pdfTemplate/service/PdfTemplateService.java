@@ -112,7 +112,13 @@ public class PdfTemplateService {
     @Transactional(readOnly = true)
     public String renderPreview(String documentType, List<PdfBlockRequest> blocks, Map<String, String> tokens, Map<String, List<Map<String, String>>> tableData) {
         validate(new PdfTemplateWriteRequest("Aperçu", documentType, false, blocks));
-        return renderBlocks(blocks, tokens, tableData);
+        return renderBlocks(blocks, tokens, tableData, documentType, null);
+    }
+
+    @Transactional(readOnly = true)
+    public String renderPreview(String documentType, String layoutKey, List<PdfBlockRequest> blocks, Map<String, String> tokens, Map<String, List<Map<String, String>>> tableData) {
+        validate(new PdfTemplateWriteRequest("Aperçu", documentType, false, blocks, layoutKey));
+        return renderBlocks(blocks, tokens, tableData, documentType, layoutKey);
     }
 
     @Transactional(readOnly = true)
@@ -128,7 +134,7 @@ public class PdfTemplateService {
     private String render(PdfTemplate template, Map<String, String> tokens, Map<String, List<Map<String, String>>> tableData) {
         try {
             List<PdfBlockRequest> blocks = objectMapper.readValue(template.getBlocksJson(), new TypeReference<>() {});
-            return renderBlocks(blocks, tokens, tableData);
+            return renderBlocks(blocks, tokens, tableData, template.getDocumentType(), template.getLayoutKey());
         } catch (Exception e) {
             throw new BadRequestException("Le modèle PDF actif est invalide.");
         }
@@ -139,9 +145,41 @@ public class PdfTemplateService {
     }
 
     private String renderBlocks(List<PdfBlockRequest> blocks, Map<String, String> tokens, Map<String, List<Map<String, String>>> tableData) {
-        StringBuilder html = new StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\"?><html xmlns=\"http://www.w3.org/1999/xhtml\"><head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"/><style>@page{size:A4;margin:12mm}body{position:relative;min-height:273mm;font-family:Arial,sans-serif;font-size:12px;color:#1f2937;margin:0}h1{font-size:24px}h2{font-size:18px}p{line-height:1.5}.center{text-align:center}.right{text-align:right}.divider{border:0;border-top:1px solid #d1d5db;margin:14px 0}img{max-width:100%;height:auto}table{page-break-inside:auto}tr{page-break-inside:avoid}td,th{overflow-wrap:anywhere}</style></head><body>");
+        return renderBlocks(blocks, tokens, tableData, null, null);
+    }
+
+    private String renderBlocks(List<PdfBlockRequest> blocks, Map<String, String> tokens,
+                                Map<String, List<Map<String, String>>> tableData, String documentType, String layoutKey) {
+        String normalizedDocumentType = documentType == null ? "" : normalizeType(documentType);
+        boolean brandedDocument = supportsPresentation(normalizedDocumentType)
+                && "AVEC_ENTETE".equals(normalizeLayout(normalizedDocumentType, layoutKey));
+        String pageMargins = brandedDocument ? "32mm 12mm 22mm" : "12mm";
+        StringBuilder html = new StringBuilder("<?xml version=\"1.0\" encoding=\"UTF-8\"?><html xmlns=\"http://www.w3.org/1999/xhtml\"><head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"/><style>@page{size:A4;margin:")
+                .append(pageMargins)
+                .append("}body{position:relative;min-height:243mm;font-family:Arial,sans-serif;font-size:12px;color:#1f2937;margin:0}h1{font-size:24px}h2{font-size:18px}p{line-height:1.5}.center{text-align:center}.right{text-align:right}.divider{border:0;border-top:1px solid #d1d5db;margin:14px 0}img{max-width:100%;height:auto}table{page-break-inside:auto}tr{page-break-inside:avoid}td,th{overflow-wrap:anywhere}");
+        if (brandedDocument) {
+            html.append(".oas-brand-watermark{position:fixed;top:52mm;left:-12mm;width:210mm;max-width:none;z-index:-1}.oas-brand-header{position:fixed;top:-28mm;left:0;width:100%;height:25mm}.oas-brand-header table{width:100%;border:0;border-collapse:collapse}.oas-brand-header td{border:0;padding:0;vertical-align:middle}.oas-brand-logo{width:20mm}.oas-brand-logo img{width:18mm;height:18mm}.oas-brand-headline{font-size:8pt;color:#262d36;font-weight:bold;line-height:1.2}.oas-brand-services{font-size:6.5pt;color:#464b50;line-height:1.2}.oas-brand-footer{position:fixed;bottom:-19mm;left:0;width:100%;text-align:center;color:#373c42;font-size:7pt;line-height:1.25}.oas-brand-footer .brand-strip{margin-bottom:2mm}.oas-brand-footer .rule{border-top:.5pt solid #c3c7ca;margin-bottom:2mm}");
+            html.append("</style></head><body>")
+                    .append("<img class=\"oas-brand-watermark\" src=\"").append(brandingDataUri("vehicle-brand-watermark.png")).append("\"/>")
+                    .append("<div class=\"oas-brand-header\"><table><tbody><tr><td class=\"oas-brand-logo\"><img src=\"").append(brandingDataUri("oas-logo.png")).append("\"/></td><td><div class=\"oas-brand-headline\">SPÉCIALISTE VOITURES ALLEMANDES<br/>ET PROFESSIONNEL AUTOMOBILES TOUTES MARQUES</div><div class=\"oas-brand-services\">MÉCANIQUE • ÉLECTRICITÉ • VIDANGE • CLIMATISATION<br/>TÔLERIE • PEINTURE</div></td></tr></tbody></table></div>");
+        } else {
+            html.append("</style></head><body>");
+        }
         for (PdfBlockRequest block : blocks) appendBlock(html, block, tokens, tableData);
+        if (brandedDocument) {
+            html.append("<div class=\"oas-brand-footer\"><div class=\"rule\"></div><div class=\"brand-strip\">Mercedes-Benz　 Porsche　 BMW　 LAND ROVER　 BYD　 TESLA　 Audi　 Volkswagen</div><div>Km 2,5 Bd du Centenaire, Rond Point CYRNOS — BP 14092 Dakar, Sénégal</div><div>Tél. : +221 33 821 47 11 / +221 78 596 86 42 — orientautoservice@gmail.com</div></div>");
+        }
         return html.append("</body></html>").toString();
+    }
+
+    private String brandingDataUri(String assetName) {
+        try (var stream = getClass().getResourceAsStream("/branding/" + assetName)) {
+            if (stream == null) return "";
+            String mime = assetName.endsWith(".png") ? "image/png" : "application/octet-stream";
+            return "data:" + mime + ";base64," + java.util.Base64.getEncoder().encodeToString(stream.readAllBytes());
+        } catch (java.io.IOException e) {
+            throw new BadRequestException("Impossible de charger l'identité visuelle OAS du PDF.");
+        }
     }
 
     private PdfTemplateResponse persist(PdfTemplateWriteRequest request, User user, String type, String layout, int version) {
@@ -305,11 +343,15 @@ public class PdfTemplateService {
     private boolean isLegacyEmbeddedImage(String content) { return content != null && content.matches("^data:image/(png|jpeg);base64,[A-Za-z0-9+/=]+$"); }
 
     private String normalizeLayout(String type, String layout) {
-        if (!"FACTURE".equals(type)) return "STANDARD";
+        if (!supportsPresentation(type)) return "STANDARD";
         if (layout == null || layout.isBlank() || "STANDARD".equalsIgnoreCase(layout)) return "AVEC_ENTETE";
         String normalized = normalizeType(layout);
-        if (!List.of("AVEC_ENTETE", "SANS_ENTETE").contains(normalized)) throw new BadRequestException("Variante de facture invalide.");
+        if (!List.of("AVEC_ENTETE", "SANS_ENTETE").contains(normalized)) throw new BadRequestException("Variante PDF invalide.");
         return normalized;
+    }
+    private boolean supportsPresentation(String type) {
+        return List.of("FACTURE", "PROFORMA", "DEVIS_PREVISIONNEL", "BON_COMMANDE", "BON_RECEPTION",
+                "AVOIR_HT", "AVOIR_TTC", "DIAGNOSTIC").contains(type);
     }
     private String interpolate(String text, Map<String, String> tokens) {
         if (text == null || tokens == null) return text == null ? "" : text;

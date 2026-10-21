@@ -61,6 +61,8 @@ import sn.oas.facturation.features.ordreReparation.dto.VehiculeLightDTO;
 import sn.oas.facturation.features.ordreReparation.dto.responses.ProformaSummaryDto;
 import sn.oas.facturation.features.ordreReparation.dto.ClientLightDTO;
 import sn.oas.facturation.features.client.data.entity.Client;
+import sn.oas.facturation.features.client.data.enums.TypeClient;
+import sn.oas.facturation.features.client.repository.CompteClientRepository;
 import sn.oas.facturation.features.diagnostic.data.entity.Diagnostic;
 import sn.oas.facturation.features.diagnostic.data.entity.PieceJointeDiagnostic;
 import sn.oas.facturation.features.diagnostic.data.entity.RemarqueDiagnostic;
@@ -130,6 +132,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     private final DevisPrevisionnelRepository devisPrevisionnelRepository;
     private final BonDeCommandeRepository bonDeCommandeRepository;
     private final sn.oas.facturation.features.ordreTravail.repository.OrdreTravailRepository ordreTravailRepository;
+    private final CompteClientRepository compteClientRepository;
 
     @Autowired
     @Lazy
@@ -193,6 +196,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                         .designationPds(ligneReq.designationPds())
                         .quantite(ligneReq.quantite())
                         .prix(prix)
+                        .tauxRemise(tauxRemise(ligneReq.tauxRemise()))
                         .build());
             }
         }
@@ -207,6 +211,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                         .nbreHeure(ligneReq.nbreHeure())
                         .prix(ligneReq.prix() != null ? ligneReq.prix()
                                 : (md.getPrix() != null ? md.getPrix().intValue() : 0))
+                        .tauxRemise(tauxRemise(ligneReq.tauxRemise()))
                         .build());
             }
         }
@@ -390,11 +395,12 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
 
         // Bon de sortie
         OrdreReparationResponseDTO.BonDeSortieDto bonDeSortieDto = null;
-        if (o.getBonDeSortie() != null) {
+        if (o.getBonsDeSortie() != null && !o.getBonsDeSortie().isEmpty()) {
+            var bon = o.getBonsDeSortie().get(0);
             bonDeSortieDto = OrdreReparationResponseDTO.BonDeSortieDto.builder()
-                    .id(o.getBonDeSortie().getId())
-                    .reference(o.getBonDeSortie().getReference())
-                    .statut(o.getBonDeSortie().getStatut() != null ? o.getBonDeSortie().getStatut().name() : null)
+                    .id(bon.getId())
+                    .reference(bon.getReference())
+                    .statut(bon.getStatut() != null ? bon.getStatut().name() : null)
                     .build();
         }
 
@@ -419,6 +425,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                         .designationPds(lp.getDesignationPds())
                         .quantite(lp.getQuantite())
                         .prix(lp.getPrix() != null ? lp.getPrix().doubleValue() : null)
+                        .tauxRemise(lp.getTauxRemise() != null ? lp.getTauxRemise().doubleValue() : 0.0)
                         .build();
             }).collect(Collectors.toList());
         }
@@ -448,6 +455,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                         .mainDoeuvre(moDto)
                         .nbreHeure(lm.getNbreHeure())
                         .prix(lm.getPrix() != null ? lm.getPrix().doubleValue() : null)
+                        .tauxRemise(lm.getTauxRemise() != null ? lm.getTauxRemise().doubleValue() : 0.0)
                         .build();
             }).collect(Collectors.toList());
         }
@@ -539,6 +547,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                         .designationPds(ligneReq.designationPds())
                         .quantite(ligneReq.quantite())
                         .prix(prix)
+                        .tauxRemise(tauxRemise(ligneReq.tauxRemise()))
                         .build());
             }
         }
@@ -554,6 +563,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                         .nbreHeure(ligneReq.nbreHeure())
                         .prix(ligneReq.prix() != null ? ligneReq.prix()
                                 : (md.getPrix() != null ? md.getPrix().intValue() : 0))
+                        .tauxRemise(tauxRemise(ligneReq.tauxRemise()))
                         .build());
             }
         }
@@ -582,6 +592,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                         lr.setPieceId(lp.getPiece() != null ? lp.getPiece().getId() : null);
                         lr.setQuantite(lp.getQuantite());
                         lr.setPrix(lp.getPrix());
+                        lr.setTauxRemise(lp.getTauxRemise() != null ? lp.getTauxRemise().doubleValue() : 0.0);
                         lr.setIsCustom(lp.getIsCustom());
                         lr.setDesignationPds(lp.getDesignationPds());
                         return lr;
@@ -594,6 +605,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                         lmr.setMainDoeuvreId(lm.getMainDoeuvre() != null ? lm.getMainDoeuvre().getId() : null);
                         lmr.setNbreHeure(lm.getNbreHeure());
                         lmr.setTarifHoraire(lm.getPrix());
+                        lmr.setTauxRemise(lm.getTauxRemise() != null ? lm.getTauxRemise().doubleValue() : 0.0);
                         return lmr;
                     }).collect(Collectors.toList()));
                 }
@@ -736,31 +748,6 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             throw new RuntimeException("Veuillez affecter au moins un technicien au diagnostic avant de démarrer le diagnostic.");
         }
         */
-
-        // Si la réparation commence (REPARATION), on déduit les pièces
-        // du proforma du stock de l'atelier
-        if (newStatut == StatutOrdreReparation.REPARATION && fiche.getStatut() != StatutOrdreReparation.REPARATION) {
-            proformaRepository.findByOrdreReparationId(id).ifPresent(proforma -> {
-                for (LigneFacturationPiece lp : proforma
-                        .getLignesFacturationPieces()) {
-                    if (lp.getPiece() == null) {
-                        continue;
-                    }
-                    PieceDetache piece = pieceDetacheRepository
-                            .findById(lp.getPiece().getId()).orElse(null);
-                    if (piece != null && piece instanceof PDP pdp) {
-                        double prixUnitaire = (pdp.getPrixUnitaire() != null) ? pdp.getPrixUnitaire() : 0.0;
-                        double montantPiece = prixUnitaire * lp.getQuantite();
-                        Double currentAtelier = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0.0;
-                        double quantiteUtilisee = lp.getQuantite();
-                        pdp.setStockAtelier(Math.max(0.0, currentAtelier - quantiteUtilisee));
-                        pdp.setQteReelle(
-                                (pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0) + pdp.getStockAtelier());
-                        pieceDetacheRepository.save(pdp);
-                    }
-                }
-            });
-        }
 
         fiche.setStatut(newStatut);
         fiche.setUpdatedAt(LocalDateTime.now());
@@ -1246,12 +1233,16 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         dto.setNumero(ordre.getNumero());
         dto.setStatut(ordre.getStatut() != null ? ordre.getStatut().name() : null);
         if (ordre.getVehicule() != null) dto.setVehiculeId(ordre.getVehicule().getId());
+        Client client = ordre.getClient() != null ? ordre.getClient()
+                : (ordre.getVehicule() != null ? ordre.getVehicule().getClient() : null);
+        dto.setTauxRemiseClient(tauxRemiseClientApplicable(client));
         
         dto.setLignesOrdreReparationPieces(ordre.getLignesOrdreReparationPieces().stream().map(ligne -> {
             LignePieceOrdreDto ligneDto = new LignePieceOrdreDto();
             ligneDto.setId(ligne.getId());
             ligneDto.setQuantite(ligne.getQuantite());
             ligneDto.setPrix(ligne.getPrix());
+            ligneDto.setTauxRemise(ligne.getTauxRemise() != null ? ligne.getTauxRemise().doubleValue() : 0.0);
             ligneDto.setIsCustom(ligne.getIsCustom());
             ligneDto.setDesignationPds(ligne.getDesignationPds());
             if (ligne.getPiece() != null) {
@@ -1272,6 +1263,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             ligneDto.setId(ligne.getId());
             ligneDto.setHeures(ligne.getNbreHeure());
             ligneDto.setPrix(ligne.getPrix());
+            ligneDto.setTauxRemise(ligne.getTauxRemise() != null ? ligne.getTauxRemise().doubleValue() : 0.0);
             if (ligne.getMainDoeuvre() != null) {
                 ligneDto.setDescription(ligne.getMainDoeuvre().getDescription());
             }
@@ -1279,6 +1271,17 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         }).collect(Collectors.toList()));
 
         return dto;
+    }
+
+    private double tauxRemiseClientApplicable(Client client) {
+        if (client == null || client.getTypeClient() != TypeClient.ENTREPRISE
+                || !client.isClientFidele() || client.getMontantRemise() == null) {
+            return 0.0;
+        }
+        return compteClientRepository.findByClientId(client.getId())
+                .filter(compte -> compte.isActif())
+                .map(compte -> client.getMontantRemise().doubleValue())
+                .orElse(0.0);
     }
 
     @Override
@@ -1324,6 +1327,8 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             proformaDto.setMontantHT(ordre.getProforma().getMontantHT() != null ? ordre.getProforma().getMontantHT().doubleValue() : 0.0);
             proformaDto.setMontantTVA(ordre.getProforma().getMontantTVA() != null ? ordre.getProforma().getMontantTVA().doubleValue() : 0.0);
             proformaDto.setMontantTTC(ordre.getProforma().getMontantTTC() != null ? ordre.getProforma().getMontantTTC().doubleValue() : 0.0);
+            proformaDto.setTauxRemiseClient(ordre.getProforma().getTauxRemiseClient() != null ? ordre.getProforma().getTauxRemiseClient().doubleValue() : 0.0);
+            proformaDto.setMontantRemiseClient(ordre.getProforma().getMontantRemiseClient() != null ? ordre.getProforma().getMontantRemiseClient().doubleValue() : 0.0);
             
             proformaDto.setLignesPieces(ordre.getProforma().getLignesFacturationPieces().stream().map(ligne -> {
                 LigneProformaPieceDto ligneDto = new LigneProformaPieceDto();
@@ -1332,6 +1337,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 ligneDto.setQuantite(ligne.getQuantite());
                 ligneDto.setPrix(ligne.getPrix() != null ? ligne.getPrix().doubleValue() : 0.0);
                 ligneDto.setMontantTotal(ligne.getPrix() != null && ligne.getQuantite() != null ? ligne.getPrix().doubleValue() * ligne.getQuantite() : 0.0);
+                ligneDto.setTauxRemise(ligne.getTauxRemise() != null ? ligne.getTauxRemise().doubleValue() : 0.0);
                 ligneDto.setIsCustom(ligne.getIsCustom());
                 ligneDto.setType(ligne.getPiece() != null && ligne.getPiece().getType() != null ? ligne.getPiece().getType().name() : null);
                 return ligneDto;
@@ -1344,6 +1350,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 ligneDto.setNbreHeure(ligne.getNbreHeure());
                 ligneDto.setTarifHoraire(ligne.getTarifHoraire() != null ? ligne.getTarifHoraire().doubleValue() : 0.0);
                 ligneDto.setMontantTotal(ligne.getTarifHoraire() != null && ligne.getNbreHeure() != null ? ligne.getTarifHoraire().doubleValue() * ligne.getNbreHeure() : 0.0);
+                ligneDto.setTauxRemise(ligne.getTauxRemise() != null ? ligne.getTauxRemise().doubleValue() : 0.0);
                 return ligneDto;
             }).collect(Collectors.toList()));
             
@@ -1651,12 +1658,12 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         OrdreReparationRequest req = new OrdreReparationRequest();
         if (dto.getLignesPieces() != null) {
             req.setLignesPieces(dto.getLignesPieces().stream().map(l -> 
-                new LigneOrdreReparationPieceRequest(l.getPieceId(), l.getQuantite(), (l.getPrix() != null ? l.getPrix().intValue() : 0), l.getIsCustom(), l.getDesignationPds())
+                new LigneOrdreReparationPieceRequest(l.getPieceId(), l.getQuantite(), (l.getPrix() != null ? l.getPrix().intValue() : 0), l.getIsCustom(), l.getDesignationPds(), l.getTauxRemise())
             ).collect(Collectors.toList()));
         }
         if (dto.getLignesMainDoeuvres() != null) {
             req.setLignesMainDoeuvres(dto.getLignesMainDoeuvres().stream().map(l -> 
-                new LigneOrdreReparationMainDoeuvreRequest(l.getMainDoeuvreId(), l.getNbreHeure(), (l.getPrix() != null ? l.getPrix().intValue() : 0))
+                new LigneOrdreReparationMainDoeuvreRequest(l.getMainDoeuvreId(), l.getNbreHeure(), (l.getPrix() != null ? l.getPrix().intValue() : 0), l.getTauxRemise())
             ).collect(Collectors.toList()));
         }
         boolean proformaExistedBefore = proformaRepository.findByOrdreReparationId(id).isPresent();
@@ -1674,6 +1681,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                         pReq.setPrix(l.getPrix() != null ? l.getPrix().intValue() : 0);
                         pReq.setIsCustom(l.getIsCustom());
                         pReq.setDesignationPds(l.getDesignationPds());
+                        pReq.setTauxRemise(l.getTauxRemise());
                         return pReq;
                     }).collect(Collectors.toList()));
                 }
@@ -1683,6 +1691,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                         mReq.setMainDoeuvreId(l.getMainDoeuvreId());
                         mReq.setNbreHeure(l.getNbreHeure());
                         mReq.setTarifHoraire(l.getPrix() != null ? l.getPrix().intValue() : 0);
+                        mReq.setTauxRemise(l.getTauxRemise());
                         return mReq;
                     }).collect(Collectors.toList()));
                 }
@@ -1770,5 +1779,13 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         updateBaseStepFields(ordre, dto);
         ordreReparationRepository.save(ordre);
         return dto;
+    }
+
+    private java.math.BigDecimal tauxRemise(Double taux) {
+        double valeur = taux == null ? 0 : taux;
+        if (!Double.isFinite(valeur) || valeur < 0 || valeur > 100) {
+            throw new IllegalArgumentException("Le taux de remise doit être compris entre 0 et 100 %");
+        }
+        return java.math.BigDecimal.valueOf(valeur);
     }
 }

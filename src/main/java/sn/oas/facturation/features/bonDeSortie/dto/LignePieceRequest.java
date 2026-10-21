@@ -7,14 +7,17 @@ public record LignePieceRequest(
         Integer quantite,
         @JsonAlias({"prixUnitaire", "prix_unitaire", "price"})
         Double prix,
-        Double prixUnitaire
+        Double prixUnitaire,
+        String type,
+        Long mainDoeuvreId,
+        String designation
 ) {
     public LignePieceRequest(Long pieceId, Integer quantite) {
-        this(pieceId, quantite, null, null);
+        this(pieceId, quantite, null, null, null, null, null);
     }
 
     public LignePieceRequest(Long pieceId, Integer quantite, Double prix) {
-        this(pieceId, quantite, prix, prix);
+        this(pieceId, quantite, prix, prix, null, null, null);
     }
 
     public Double getEffectivePrix() {

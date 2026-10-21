@@ -12,4 +12,5 @@ public class LigneFacturationMainDoeuvreResponse {
     private Integer nbreHeure;
     private Integer tarifHoraire;
     private Integer montantTotal;
+    private Double tauxRemise;
 }

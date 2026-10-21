@@ -20,6 +20,10 @@ public class ProformaGenerator {
     }
 
     public byte[] genererProformaPdf(Proforma p) {
+        return genererProformaPdf(p, "AVEC_ENTETE");
+    }
+
+    public byte[] genererProformaPdf(Proforma p, String layoutKey) {
         String html = construireHtmlProforma(p);
         var ownerAtWork = p.getClient();
         if (ownerAtWork == null) ownerAtWork = p.getOrdreReparation() == null ? null : p.getOrdreReparation().getClient();
@@ -36,7 +40,7 @@ public class ProformaGenerator {
                 "tauxRemiseClient", p.getTauxRemiseClient() == null ? "0" : p.getTauxRemiseClient().toPlainString(),
                 "montantRemiseClient", p.getMontantRemiseClient() == null ? "0" : p.getMontantRemiseClient().toPlainString(),
                 "montantTTC", p.getMontantTTC() == null ? "0" : p.getMontantTTC().toPlainString(),
-                "remarque", p.getRemarque() == null ? "" : p.getRemarque()));
+                "remarque", p.getRemarque() == null ? "" : p.getRemarque()), layoutKey);
     }
 
     private String construireHtmlProforma(Proforma p) {
@@ -75,8 +79,9 @@ public class ProformaGenerator {
         DecimalFormat df = new DecimalFormat("#,##0", sym);
 
         String totalHT     = p.getMontantHT()     != null ? df.format(p.getMontantHT())     : "0";
+        BigDecimal remiseGenerale = BigDecimal.ZERO;
         String remiseClient = p.getMontantRemiseClient() != null && p.getMontantRemiseClient().signum() > 0
-                ? "Remise entreprise (" + safe(p.getTauxRemiseClient() == null ? "0" : p.getTauxRemiseClient().toPlainString()) + " %) : " + df.format(p.getMontantRemiseClient()) + " F CFA"
+                ? "Remise compte client sur les pi\u00e8ces (" + safe(p.getTauxRemiseClient() == null ? "0" : p.getTauxRemiseClient().toPlainString()) + " %) : " + df.format(p.getMontantRemiseClient()) + " F CFA"
                 : "";
         String totalTVA    = p.getMontantTVA()    != null ? df.format(p.getMontantTVA())    : "0";
         String totalTimbre = p.getMontantTimbre() != null ? df.format(p.getMontantTimbre()) : "0";
@@ -98,13 +103,16 @@ public class ProformaGenerator {
                 String des = l.getPiece() != null ? safe(l.getPiece().getDesignation()) : safe(l.getDesignationPds());
                 int qte = l.getQuantite() != null ? l.getQuantite() : 0;
                 int pu  = l.getPrix()     != null ? l.getPrix()     : 0;
+                BigDecimal brut = BigDecimal.valueOf((long) qte * pu);
+                BigDecimal net = montantNet(brut, l.getTauxRemise());
+                remiseGenerale = remiseGenerale.add(brut.subtract(net));
                 lignesPieces.append("<tr>")
                     .append("<td>").append(ref).append("</td>")
                     .append("<td>").append(des).append("</td>")
                     .append("<td>").append(qte).append("</td>")
-                    .append("<td>0</td>")
+                    .append("<td>").append(df.format(l.getTauxRemise() == null ? BigDecimal.ZERO : l.getTauxRemise())).append("</td>")
                     .append("<td>").append(df.format(pu)).append("</td>")
-                    .append("<td>").append(df.format((long)qte * pu)).append("</td>")
+                    .append("<td>").append(df.format(net)).append("</td>")
                     .append("</tr>");
             }
         }
@@ -117,12 +125,16 @@ public class ProformaGenerator {
                 String des = l.getMainDoeuvre() != null ? safe(l.getMainDoeuvre().getDescription()) : "";
                 int h = l.getNbreHeure()    != null ? l.getNbreHeure()    : 0;
                 int t = l.getTarifHoraire() != null ? l.getTarifHoraire() : 0;
+                BigDecimal brut = BigDecimal.valueOf((long) h * t);
+                BigDecimal net = montantNet(brut, l.getTauxRemise());
+                remiseGenerale = remiseGenerale.add(brut.subtract(net));
                 lignesMo.append("<tr>")
                     .append("<td>").append(ref).append("</td>")
                     .append("<td>").append(des).append("</td>")
                     .append("<td>").append(h).append("</td>")
+                    .append("<td>").append(df.format(l.getTauxRemise() == null ? BigDecimal.ZERO : l.getTauxRemise())).append("</td>")
                     .append("<td>").append(df.format(t)).append("</td>")
-                    .append("<td>").append(df.format((long)h * t)).append("</td>")
+                    .append("<td>").append(df.format(net)).append("</td>")
                     .append("</tr>");
             }
         }
@@ -189,11 +201,12 @@ public class ProformaGenerator {
             // Main d'œuvre
             + "<div class=\"sc\">Mains d&#39;oeuvre</div>\n"
             + "<table class=\"dt\"><thead><tr>\n"
-            + "  <th style=\"width:15%\">R&#233;f&#233;rence</th>\n"
-            + "  <th style=\"width:50%\">D&#233;signation</th>\n"
+            + "  <th style=\"width:13%\">R&#233;f&#233;rence</th>\n"
+            + "  <th style=\"width:42%\">D&#233;signation</th>\n"
             + "  <th style=\"width:7%\">Heures</th>\n"
-            + "  <th style=\"width:14%\">Prix unitaire</th>\n"
-            + "  <th style=\"width:14%\">Total</th>\n"
+            + "  <th style=\"width:8%\">Rem.(%)</th>\n"
+            + "  <th style=\"width:15%\">Prix unitaire</th>\n"
+            + "  <th style=\"width:15%\">Total net</th>\n"
             + "</tr></thead><tbody>" + lignesMo + "</tbody></table>\n<br/>\n"
 
             // Remarques
@@ -202,6 +215,7 @@ public class ProformaGenerator {
             + "<br/><br/>\n"
 
             + (remiseClient.isEmpty() ? "" : "<p style=\"text-align:right;font-weight:bold;\">" + remiseClient + "</p>\n")
+            + (remiseGenerale.signum() == 0 ? "" : "<p style=\"text-align:right;font-weight:bold;\">Remises générales par ligne : " + df.format(remiseGenerale) + " F CFA</p>\n")
 
             // Totaux
             + "<table class=\"tt\"><thead><tr>\n"
@@ -218,6 +232,12 @@ public class ProformaGenerator {
     }
 
     private String safe(String val) { return val != null ? val : ""; }
+
+    private BigDecimal montantNet(BigDecimal brut, BigDecimal tauxRemise) {
+        BigDecimal taux = tauxRemise == null ? BigDecimal.ZERO : tauxRemise;
+        return brut.multiply(BigDecimal.valueOf(100).subtract(taux))
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+    }
 
     private String montantEnLettres(BigDecimal montant) {
         if (montant == null) return "zéro franc CFA";

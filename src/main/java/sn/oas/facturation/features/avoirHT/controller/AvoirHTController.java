@@ -75,12 +75,12 @@ public class AvoirHTController {
 
     @GetMapping("/{id}/pdf")
     @Operation(summary = "Générer le PDF d'un avoir HT")
-    public ResponseEntity<byte[]> generatePdf(@PathVariable Long id) {
+    public ResponseEntity<byte[]> generatePdf(@PathVariable Long id, @RequestParam(defaultValue = "AVEC_ENTETE") String layoutKey) {
         try {
-            byte[] pdfBytes = avoirHTService.generatePdf(id);
+            byte[] pdfBytes = avoirHTService.generatePdf(id, layoutKey);
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_PDF);
-            headers.setContentDispositionFormData("attachment", "AvoirHT_" + id + ".pdf");
+            headers.setContentDispositionFormData("attachment", "AvoirHT_" + id + "_" + layoutKey.toLowerCase() + ".pdf");
             return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
         } catch (UnsupportedOperationException e) {
             return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();

@@ -9,4 +9,5 @@ public class LigneFacturationPieceRequest {
     private Integer prix;
     private Boolean isCustom;
     private String designationPds;
+    private Double tauxRemise;
 }
