@@ -18,6 +18,7 @@ import jakarta.persistence.OneToOne;
 import lombok.ToString;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import sn.oas.facturation.features.bonDeSortie.data.entity.BonDeSortie;
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "proformas")
@@ -50,4 +51,11 @@ public class Proforma extends FactureTTC {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private BonDeSortie bs;
+
+    /** TTC métier : HT + TVA + timbre, recalculé à partir des montants historiques du document. */
+    public BigDecimal calculerMontantTtcAvecTimbre() {
+        return (getMontantHT() == null ? BigDecimal.ZERO : getMontantHT())
+                .add(getMontantTVA() == null ? BigDecimal.ZERO : getMontantTVA())
+                .add(getMontantTimbre() == null ? BigDecimal.ZERO : getMontantTimbre());
+    }
 }

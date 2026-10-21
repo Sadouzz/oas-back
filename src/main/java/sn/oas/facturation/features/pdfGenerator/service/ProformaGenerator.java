@@ -39,7 +39,7 @@ public class ProformaGenerator {
                 "immatriculation", immat, "montantHT", p.getMontantHT() == null ? "0" : p.getMontantHT().toPlainString(),
                 "tauxRemiseClient", p.getTauxRemiseClient() == null ? "0" : p.getTauxRemiseClient().toPlainString(),
                 "montantRemiseClient", p.getMontantRemiseClient() == null ? "0" : p.getMontantRemiseClient().toPlainString(),
-                "montantTTC", p.getMontantTTC() == null ? "0" : p.getMontantTTC().toPlainString(),
+                "montantTTC", p.calculerMontantTtcAvecTimbre().toPlainString(),
                 "remarque", p.getRemarque() == null ? "" : p.getRemarque()), layoutKey);
     }
 
@@ -85,8 +85,9 @@ public class ProformaGenerator {
                 : "";
         String totalTVA    = p.getMontantTVA()    != null ? df.format(p.getMontantTVA())    : "0";
         String totalTimbre = p.getMontantTimbre() != null ? df.format(p.getMontantTimbre()) : "0";
-        String totalTTC    = p.getMontantTTC()    != null ? df.format(p.getMontantTTC())    : "0";
-        String totalTTCLettres = montantEnLettres(p.getMontantTTC());
+        BigDecimal montantTtcAvecTimbre = p.calculerMontantTtcAvecTimbre();
+        String totalTTC    = df.format(montantTtcAvecTimbre);
+        String totalTTCLettres = montantEnLettres(montantTtcAvecTimbre);
 
         String remarques = "";
         if (p.getRemarque() != null) {

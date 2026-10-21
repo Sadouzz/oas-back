@@ -112,9 +112,9 @@ public record ProformaDetailsResponseDto(
 
         double ht = p.getMontantHT() != null ? p.getMontantHT().doubleValue() : 0.0;
         double tva = p.getMontantTVA() != null ? p.getMontantTVA().doubleValue() : 0.0;
-        double ttc = p.getMontantTTC() != null ? p.getMontantTTC().doubleValue() : 0.0;
         double timbre = p.getMontantTimbre() != null ? p.getMontantTimbre().doubleValue() : 0.0;
-        double total = p.getMontantTotal() != null ? p.getMontantTotal().doubleValue() : (ttc + timbre);
+        double ttc = p.calculerMontantTtcAvecTimbre().doubleValue();
+        double total = p.getMontantTotal() != null ? p.getMontantTotal().doubleValue() : ttc;
         double tvaRate = (ht > 0) ? Math.round((tva / ht * 100.0) * 100.0) / 100.0 : 18.0;
 
         List<LignePieceResponseDto> pieces = p.getLignesFacturationPieces() == null ? List.of() :

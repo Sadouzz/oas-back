@@ -576,7 +576,9 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
             proformaDto.setStatut(proforma.getStatut() != null ? proforma.getStatut().name() : null);
             proformaDto.setMontantHT(proforma.getMontantHT() != null ? proforma.getMontantHT().doubleValue() : 0.0);
             proformaDto.setMontantTVA(proforma.getMontantTVA() != null ? proforma.getMontantTVA().doubleValue() : 0.0);
-            proformaDto.setMontantTTC(proforma.getMontantTTC() != null ? proforma.getMontantTTC().doubleValue() : 0.0);
+            proformaDto.setMontantTTC(proforma.calculerMontantTtcAvecTimbre().doubleValue());
+            proformaDto.setMontantTimbre(proforma.getMontantTimbre() != null ? proforma.getMontantTimbre().doubleValue() : 0.0);
+            proformaDto.setMontantTotal(proforma.getMontantTotal() != null ? proforma.getMontantTotal().doubleValue() : proformaDto.getMontantTTC());
 
             if (proforma.getLignesFacturationPieces() != null) {
                 proformaDto.setLignesPieces(proforma.getLignesFacturationPieces().stream().map(ligne -> {
@@ -585,7 +587,9 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
                     lDto.setNom(ligne.getIsCustom() != null && ligne.getIsCustom() ? ligne.getDesignationPds() : (ligne.getPiece() != null ? ligne.getPiece().getDesignation() : "Pièce"));
                     lDto.setQuantite(ligne.getQuantite());
                     lDto.setPrix(ligne.getPrix() != null ? ligne.getPrix().doubleValue() : 0.0);
-                    lDto.setMontantTotal(ligne.getPrix() != null && ligne.getQuantite() != null ? ligne.getPrix().doubleValue() * ligne.getQuantite() : 0.0);
+                    lDto.setTauxRemise(ligne.getTauxRemise() != null ? ligne.getTauxRemise().doubleValue() : 0.0);
+                    double brut = ligne.getPrix() != null && ligne.getQuantite() != null ? ligne.getPrix().doubleValue() * ligne.getQuantite() : 0.0;
+                    lDto.setMontantTotal(Math.round(brut * (1 - lDto.getTauxRemise() / 100.0) * 100.0) / 100.0);
                     lDto.setIsCustom(ligne.getIsCustom());
                     lDto.setType(ligne.getPiece() != null && ligne.getPiece().getType() != null ? ligne.getPiece().getType().name() : null);
                     return lDto;
@@ -599,7 +603,9 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
                     lDto.setNom(ligne.getMainDoeuvre() != null ? ligne.getMainDoeuvre().getDescription() : "Main d'œuvre");
                     lDto.setNbreHeure(ligne.getNbreHeure());
                     lDto.setTarifHoraire(ligne.getTarifHoraire() != null ? ligne.getTarifHoraire().doubleValue() : 0.0);
-                    lDto.setMontantTotal(ligne.getTarifHoraire() != null && ligne.getNbreHeure() != null ? ligne.getTarifHoraire().doubleValue() * ligne.getNbreHeure() : 0.0);
+                    lDto.setTauxRemise(ligne.getTauxRemise() != null ? ligne.getTauxRemise().doubleValue() : 0.0);
+                    double brut = ligne.getTarifHoraire() != null && ligne.getNbreHeure() != null ? ligne.getTarifHoraire().doubleValue() * ligne.getNbreHeure() : 0.0;
+                    lDto.setMontantTotal(Math.round(brut * (1 - lDto.getTauxRemise() / 100.0) * 100.0) / 100.0);
                     return lDto;
                 }).collect(Collectors.toList()));
             }

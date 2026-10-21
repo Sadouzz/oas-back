@@ -11,6 +11,8 @@ public class ProformaSummaryDto {
     private Double montantHT;
     private Double montantTVA;
     private Double montantTTC;
+    private Double montantTimbre;
+    private Double montantTotal;
     private Double tauxRemiseClient;
     private Double montantRemiseClient;
     private String numero;

@@ -144,10 +144,10 @@ public class FactureServiceImpl implements FactureService {
             mainDoeuvreNet = mainDoeuvreNet.add(montantNet(BigDecimal.valueOf((long) ligneFiche.getNbreHeure() * ligneFiche.getPrix()), ligneFiche.getTauxRemise()));
         }
 
-        int tauxRemise = tauxRemiseApplicable(client);
-        BigDecimal montantRemise = piecesNet.multiply(BigDecimal.valueOf(tauxRemise)).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+        BigDecimal tauxRemise = tauxRemiseClientPourEmission(client, ordreReparation);
+        BigDecimal montantRemise = piecesNet.multiply(tauxRemise).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
         BigDecimal ht = piecesNet.subtract(montantRemise).add(mainDoeuvreNet);
-        facture.setTauxRemiseClient(BigDecimal.valueOf(tauxRemise));
+        facture.setTauxRemiseClient(tauxRemise);
         facture.setMontantRemiseClient(montantRemise);
         if (client.getEcheance() != null && client.getEcheance() > 0) facture.setDateEcheance(java.time.LocalDateTime.now().plusDays(client.getEcheance()));
 
@@ -299,10 +299,10 @@ public class FactureServiceImpl implements FactureService {
             }
         }
 
-        int tauxRemise = tauxRemiseApplicable(client);
-        BigDecimal montantRemise = montantPiecesNet.multiply(BigDecimal.valueOf(tauxRemise)).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+        BigDecimal tauxRemise = tauxRemiseClientPourEmission(client, ordreReparation);
+        BigDecimal montantRemise = montantPiecesNet.multiply(tauxRemise).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
         BigDecimal montantHT = montantPiecesNet.subtract(montantRemise).add(montantMoNet);
-        facture.setTauxRemiseClient(BigDecimal.valueOf(tauxRemise));
+        facture.setTauxRemiseClient(tauxRemise);
         facture.setMontantRemiseClient(montantRemise);
         if (client != null && client.getEcheance() != null && client.getEcheance() > 0) facture.setDateEcheance(java.time.LocalDateTime.now().plusDays(client.getEcheance()));
         var fiscal = fiscalConfigurationService.getCurrent();
@@ -617,6 +617,19 @@ public class FactureServiceImpl implements FactureService {
                 || !client.isClientFidele() || client.getMontantRemise() == null) return 0;
         var compte = compteClientRepository.findByClientId(client.getId()).orElse(null);
         return compte != null && compte.isActif() ? client.getMontantRemise() : 0;
+    }
+
+    /**
+     * La proforma liée à l'ordre conserve le taux de remise compte client appliqué lors de son émission.
+     * Une facture émise ensuite reprend ce taux historique afin qu'une modification ultérieure du compte
+     * client ne change pas le prix du même dossier. Sans proforma liée, le taux courant reste la source.
+     */
+    private BigDecimal tauxRemiseClientPourEmission(Client client, OrdreReparation ordreReparation) {
+        if (ordreReparation != null && ordreReparation.getProforma() != null
+                && ordreReparation.getProforma().getTauxRemiseClient() != null) {
+            return ordreReparation.getProforma().getTauxRemiseClient();
+        }
+        return BigDecimal.valueOf(tauxRemiseApplicable(client));
     }
 
     private BigDecimal montantNet(BigDecimal brut, BigDecimal tauxRemise) {

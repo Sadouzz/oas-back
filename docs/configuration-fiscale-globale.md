@@ -1,4 +1,4 @@
-Auteur : Codex | Date : 2026-10-19 | Action : documenter la configuration fiscale globale
+Auteur : Codex | Date : 2026-10-21 | Action : préciser la convention TTC des proformas
 
 # Configuration fiscale globale
 
@@ -9,3 +9,5 @@ La consultation de la configuration requiert une session authentifiée. Seul le 
 Les nouvelles factures, proformas, bons de commande et avoirs TTC lisent cette configuration au moment de leur création. La réception d'un bon de commande conserve le taux calculé sur ce bon de commande. Les montants des documents existants ne sont pas recalculés lors de la modification de la configuration; pour les bons de commande modifiés, le taux existant est déduit des montants enregistrés avant recalcul des lignes.
 
 La configuration comprend uniquement le taux de TVA et le montant du timbre fiscal. Les règles propres à chaque document déterminent si la TVA ou le timbre s'appliquent à ce type de document.
+
+Pour les proformas comme pour les factures, le TTC affiché inclut la TVA et le timbre : `montantTTC = montantHT + montantTVA + montantTimbre`. `montantTotal` reste le montant final à payer et peut également inclure d'autres montants. Pour les proformas historiques dont `montantTTC` avait été enregistré sans le timbre, les réponses API et les PDF recomposent le TTC à partir des montants HT, TVA et timbre déjà enregistrés ; ils ne relisent pas la configuration fiscale courante.

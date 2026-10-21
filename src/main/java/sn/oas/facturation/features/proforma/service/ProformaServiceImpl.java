@@ -270,11 +270,11 @@ public class ProformaServiceImpl implements ProformaService {
         var fiscal = fiscalConfigurationService.getCurrent();
         BigDecimal tva = fiscalConfigurationService.calculateRate(montantHT, fiscal.getTvaRate());
         proforma.setMontantTVA(tva);
-        proforma.setMontantTTC(montantHT.add(tva));
-        
         BigDecimal timbre = fiscal.getTimbreFiscal();
         proforma.setMontantTimbre(timbre);
-        proforma.setMontantTotal(proforma.getMontantTTC().add(timbre));
+        BigDecimal montantTTC = montantHT.add(tva).add(timbre);
+        proforma.setMontantTTC(montantTTC);
+        proforma.setMontantTotal(montantTTC);
 
         proforma.setAvertissementsFinanciers(politiqueFinanciereClientService.avertissementsProforma(client, proforma.getMontantTotal()));
 
@@ -427,13 +427,14 @@ public class ProformaServiceImpl implements ProformaService {
         BigDecimal rateBD = BigDecimal.valueOf(tvaRate).divide(BigDecimal.valueOf(100));
         BigDecimal tva = montantHT.multiply(rateBD).setScale(2, RoundingMode.HALF_UP);
         proforma.setMontantTVA(tva);
-        proforma.setMontantTTC(montantHT.add(tva));
 
         if (request.getMontantTimbre() != null) proforma.setMontantTimbre(request.getMontantTimbre());
         // if (request.getMontantAutre() != null) proforma.setMontantAutre(request.getMontantAutre());
 
         BigDecimal autre = request.getMontantAutre() != null ? request.getMontantAutre() : BigDecimal.ZERO;
-        proforma.setMontantTotal(proforma.getMontantTTC().add(proforma.getMontantTimbre()).add(autre));
+        BigDecimal montantTTC = montantHT.add(tva).add(proforma.getMontantTimbre());
+        proforma.setMontantTTC(montantTTC);
+        proforma.setMontantTotal(montantTTC.add(autre));
         proforma.setAvertissementsFinanciers(politiqueFinanciereClientService.avertissementsProforma(
                 clientPourTarif, proforma.getMontantTotal()));
         proforma.setStatut(StatutFacturation.EN_ATTENTE);
@@ -590,7 +591,7 @@ public class ProformaServiceImpl implements ProformaService {
                 .numeroBonDeCommande(proforma.getBonDeCommande() != null ? proforma.getBonDeCommande().getNumero() : null)
                 .montantHT(proforma.getMontantHT())
                 .montantTVA(proforma.getMontantTVA())
-                .montantTTC(proforma.getMontantTTC())
+                .montantTTC(proforma.calculerMontantTtcAvecTimbre())
                 .montantTimbre(proforma.getMontantTimbre())
                 .tauxRemiseClient(proforma.getTauxRemiseClient())
                 .montantRemiseClient(proforma.getMontantRemiseClient())
@@ -604,8 +605,11 @@ public class ProformaServiceImpl implements ProformaService {
             facture.getLignesFacturationPieces().add(LigneFacturationPiece.builder()
                     .facturation(facture)
                     .piece(lp.getPiece())
+                    .isCustom(lp.getIsCustom())
+                    .designationPds(lp.getDesignationPds())
                     .quantite(lp.getQuantite())
                     .prix(lp.getPrix())
+                    .tauxRemise(lp.getTauxRemise())
                     .build());
         }
 
@@ -615,6 +619,7 @@ public class ProformaServiceImpl implements ProformaService {
                     .mainDoeuvre(lm.getMainDoeuvre())
                     .nbreHeure(lm.getNbreHeure())
                     .tarifHoraire(lm.getTarifHoraire())
+                    .tauxRemise(lm.getTauxRemise())
                     .build());
         }
 

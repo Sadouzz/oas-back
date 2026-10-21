@@ -75,7 +75,7 @@ public record ProformaListResponse(
                 // .dateModification(p.getDateModification())
                 .montantHT(p.getMontantHT())
                 .montantTVA(p.getMontantTVA())
-                .montantTTC(p.getMontantTTC())
+                .montantTTC(p.calculerMontantTtcAvecTimbre())
                 .montantTimbre(p.getMontantTimbre())
                 .montantAutre(BigDecimal.ZERO)
                 .montantTotal(p.getMontantTotal())

@@ -1331,7 +1331,9 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             proformaDto.setStatut(ordre.getProforma().getStatut() != null ? ordre.getProforma().getStatut().name() : null);
             proformaDto.setMontantHT(ordre.getProforma().getMontantHT() != null ? ordre.getProforma().getMontantHT().doubleValue() : 0.0);
             proformaDto.setMontantTVA(ordre.getProforma().getMontantTVA() != null ? ordre.getProforma().getMontantTVA().doubleValue() : 0.0);
-            proformaDto.setMontantTTC(ordre.getProforma().getMontantTTC() != null ? ordre.getProforma().getMontantTTC().doubleValue() : 0.0);
+            proformaDto.setMontantTTC(ordre.getProforma().calculerMontantTtcAvecTimbre().doubleValue());
+            proformaDto.setMontantTimbre(ordre.getProforma().getMontantTimbre() != null ? ordre.getProforma().getMontantTimbre().doubleValue() : 0.0);
+            proformaDto.setMontantTotal(ordre.getProforma().getMontantTotal() != null ? ordre.getProforma().getMontantTotal().doubleValue() : proformaDto.getMontantTTC());
             proformaDto.setTauxRemiseClient(ordre.getProforma().getTauxRemiseClient() != null ? ordre.getProforma().getTauxRemiseClient().doubleValue() : 0.0);
             proformaDto.setMontantRemiseClient(ordre.getProforma().getMontantRemiseClient() != null ? ordre.getProforma().getMontantRemiseClient().doubleValue() : 0.0);
             
@@ -1341,8 +1343,9 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 ligneDto.setNom(ligne.getIsCustom() != null && ligne.getIsCustom() ? ligne.getDesignationPds() : (ligne.getPiece() != null ? ligne.getPiece().getDesignation() : "Pièce"));
                 ligneDto.setQuantite(ligne.getQuantite());
                 ligneDto.setPrix(ligne.getPrix() != null ? ligne.getPrix().doubleValue() : 0.0);
-                ligneDto.setMontantTotal(ligne.getPrix() != null && ligne.getQuantite() != null ? ligne.getPrix().doubleValue() * ligne.getQuantite() : 0.0);
                 ligneDto.setTauxRemise(ligne.getTauxRemise() != null ? ligne.getTauxRemise().doubleValue() : 0.0);
+                double brut = ligne.getPrix() != null && ligne.getQuantite() != null ? ligne.getPrix().doubleValue() * ligne.getQuantite() : 0.0;
+                ligneDto.setMontantTotal(Math.round(brut * (1 - ligneDto.getTauxRemise() / 100.0) * 100.0) / 100.0);
                 ligneDto.setIsCustom(ligne.getIsCustom());
                 ligneDto.setType(ligne.getPiece() != null && ligne.getPiece().getType() != null ? ligne.getPiece().getType().name() : null);
                 return ligneDto;
@@ -1354,8 +1357,9 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 ligneDto.setNom(ligne.getMainDoeuvre() != null ? ligne.getMainDoeuvre().getDescription() : "Main d'œuvre");
                 ligneDto.setNbreHeure(ligne.getNbreHeure());
                 ligneDto.setTarifHoraire(ligne.getTarifHoraire() != null ? ligne.getTarifHoraire().doubleValue() : 0.0);
-                ligneDto.setMontantTotal(ligne.getTarifHoraire() != null && ligne.getNbreHeure() != null ? ligne.getTarifHoraire().doubleValue() * ligne.getNbreHeure() : 0.0);
                 ligneDto.setTauxRemise(ligne.getTauxRemise() != null ? ligne.getTauxRemise().doubleValue() : 0.0);
+                double brut = ligne.getTarifHoraire() != null && ligne.getNbreHeure() != null ? ligne.getTarifHoraire().doubleValue() * ligne.getNbreHeure() : 0.0;
+                ligneDto.setMontantTotal(Math.round(brut * (1 - ligneDto.getTauxRemise() / 100.0) * 100.0) / 100.0);
                 return ligneDto;
             }).collect(Collectors.toList()));
             
@@ -1408,7 +1412,9 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             proformaDto.setStatut(p.getStatut() != null ? p.getStatut().name() : null);
             proformaDto.setMontantHT(p.getMontantHT() != null ? p.getMontantHT().doubleValue() : 0.0);
             proformaDto.setMontantTVA(p.getMontantTVA() != null ? p.getMontantTVA().doubleValue() : 0.0);
-            proformaDto.setMontantTTC(p.getMontantTTC() != null ? p.getMontantTTC().doubleValue() : 0.0);
+            proformaDto.setMontantTTC(p.calculerMontantTtcAvecTimbre().doubleValue());
+            proformaDto.setMontantTimbre(p.getMontantTimbre() != null ? p.getMontantTimbre().doubleValue() : 0.0);
+            proformaDto.setMontantTotal(p.getMontantTotal() != null ? p.getMontantTotal().doubleValue() : proformaDto.getMontantTTC());
             dto.setProforma(proformaDto);
         }
 
