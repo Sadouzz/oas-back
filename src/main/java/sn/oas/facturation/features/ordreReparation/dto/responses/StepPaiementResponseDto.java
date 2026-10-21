@@ -6,5 +6,6 @@ import lombok.EqualsAndHashCode;
 @Data
 @EqualsAndHashCode(callSuper = true)
 public class StepPaiementResponseDto extends BaseStepResponseDto {
+    private Integer etape;
     private FactureSummaryDto facture;
 }

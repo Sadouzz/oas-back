@@ -475,9 +475,9 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
                         bds.setOrdreReparation(fiche);
                         bds = bonDeSortieRepository.save(bds); // update le BDS avec la fiche
 
-                        fiche.setBonDeSortie(bds);
+                        fiche.addBonDeSortie(bds);
                         fiche.setStatut(
-                                StatutOrdreReparation.BON_DE_SORTIE);
+                                StatutOrdreReparation.ORDRE_DE_TRAVAIL);
                         fiche.setUpdatedAt(LocalDateTime.now());
                         ordreReparationRepository.save(fiche);
                     } catch (Exception e) {

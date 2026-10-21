@@ -130,9 +130,12 @@ public class OrdreReparation implements TenantAware  {
     @JsonIgnoreProperties({ "ordresReparation", "password", "authorities", "garage" })
     private List<Technicien> techniciensReparation = new ArrayList<>();
 
-    @OneToOne(mappedBy = "ordreReparation", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    @JsonIgnoreProperties("ordreReparation") // Ignore le champ "ordreReparation" qui est DANS le "BonDeSortie"
-    private BonDeSortie bonDeSortie;
+    @OneToMany(mappedBy = "ordreReparation", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonIgnoreProperties("ordreReparation")
+    @Builder.Default
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private List<BonDeSortie> bonsDeSortie = new ArrayList<>();
 
     @OneToOne(mappedBy = "ordreReparation", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnoreProperties("ordreReparation")
@@ -187,5 +190,40 @@ public class OrdreReparation implements TenantAware  {
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
+    }
+
+    public BonDeSortie getBonDeSortie() {
+        return (this.bonsDeSortie != null && !this.bonsDeSortie.isEmpty()) ? this.bonsDeSortie.get(0) : null;
+    }
+
+    public void setBonDeSortie(BonDeSortie bonDeSortie) {
+        if (this.bonsDeSortie == null) {
+            this.bonsDeSortie = new ArrayList<>();
+        }
+        if (bonDeSortie != null) {
+            if (!this.bonsDeSortie.contains(bonDeSortie)) {
+                this.bonsDeSortie.add(bonDeSortie);
+            }
+            bonDeSortie.setOrdreReparation(this);
+        }
+    }
+
+    public void addBonDeSortie(BonDeSortie bonDeSortie) {
+        if (bonDeSortie != null) {
+            if (this.bonsDeSortie == null) {
+                this.bonsDeSortie = new ArrayList<>();
+            }
+            if (!this.bonsDeSortie.contains(bonDeSortie)) {
+                this.bonsDeSortie.add(bonDeSortie);
+            }
+            bonDeSortie.setOrdreReparation(this);
+        }
+    }
+
+    public void removeBonDeSortie(BonDeSortie bonDeSortie) {
+        if (bonDeSortie != null && this.bonsDeSortie != null) {
+            this.bonsDeSortie.remove(bonDeSortie);
+            bonDeSortie.setOrdreReparation(null);
+        }
     }
 }

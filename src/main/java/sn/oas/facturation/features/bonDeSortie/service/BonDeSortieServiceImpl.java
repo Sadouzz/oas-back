@@ -132,7 +132,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                 .remarque("Créé depuis le proforma " + (proforma.getNumero() != null ? proforma.getNumero() : proforma.getId()))
                 .build();
 
-        if (ordre != null && ordre.getBonDeSortie() == null) {
+        if (ordre != null) {
             bon.setOrdreReparation(ordre);
         }
 
@@ -395,7 +395,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
 
         if (saved.getOrdreReparation() != null) {
             OrdreReparation fiche = saved.getOrdreReparation();
-            fiche.setBonDeSortie(saved);
+            fiche.addBonDeSortie(saved);
             ordreReparationRepository.save(fiche);
             agentNotificationService.notifyRoleInGarage(Role.AGENT_MAGASIN, saved.getGarage(),
                     "Nouveau Bon de Sortie",
@@ -496,20 +496,13 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
 
         if (bon.getOrdreReparation() != null) {
             OrdreReparation fiche = bon.getOrdreReparation();
-            // Advancing the status if it's in one of the states waiting for parts
-            if (fiche.getStatut() == StatutOrdreReparation.BON_DE_SORTIE ||
-                    fiche.getStatut() == StatutOrdreReparation.BON_DE_COMMANDE ||
-                    fiche.getStatut() == StatutOrdreReparation.PROFORMA) {
-
-                fiche.setStatut(StatutOrdreReparation.ASSIGN_TECHNICIEN);
+            if (fiche.getStatut() == StatutOrdreReparation.PROFORMA) {
+                fiche.setStatut(StatutOrdreReparation.ORDRE_DE_TRAVAIL);
                 agentNotificationService.notifyRoleInGarage(Role.CHEF_ATELIER, bon.getGarage(),
-                        "Mécanicien à assigner",
+                        "Bon de sortie validé",
                         "Le bon de sortie " + bon.getReference() + " a été validé. La fiche " + fiche.getNumero()
-                                + " est prête. Veuillez assigner les mécaniciens finaux.");
+                                + " est en cours d'exécution.");
                 ordreReparationRepository.save(fiche);
-
-                // Génération automatique de la facture
-                //factureService.createFactureAuto(fiche);
             }
         }
 

@@ -14,7 +14,7 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 public class StepBonSortieResponseDto extends BaseOtStepResponseDto {
     private Boolean hasBonDeSortie = false;
-    private BonDeSortieSummaryDto bonDeSortie;
+    private List<BonDeSortieSummaryDto> bonsDeSortie = new ArrayList<>();
     private String proformaNumero;
     private List<PieceBonDeSortieDto> piecesManquantesProforma = new ArrayList<>();
 

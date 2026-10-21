@@ -15,6 +15,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
+import sn.oas.facturation.features.ordreTravail.data.entity.OrdreTravail;
 import sn.oas.facturation.features.proforma.data.entity.Proforma;
 import sn.oas.facturation.features.user.data.entity.Agent;
 import sn.oas.facturation.features.bonDeSortie.data.enums.StatutBon;
@@ -87,9 +88,11 @@ public class BonDeSortie implements TenantAware  {
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Agent agentValidateur;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ordre_reparation_id", nullable = true, unique = true)
-    @JsonIgnoreProperties({"bonDeSortie", "hibernateLazyInitializer", "handler"})
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ordre_reparation_id", nullable = true)
+    @JsonIgnoreProperties({"bonsDeSortie", "hibernateLazyInitializer", "handler"})
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private OrdreReparation ordreReparation;
 
     @OneToOne(fetch = FetchType.LAZY)
@@ -98,6 +101,13 @@ public class BonDeSortie implements TenantAware  {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private Proforma proforma;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ordre_travail_id")
+    @JsonIgnoreProperties({"bonsDeSortie", "hibernateLazyInitializer", "handler"})
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private OrdreTravail ordreTravail;
 
     @OneToMany(mappedBy = "bonDeSortie", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

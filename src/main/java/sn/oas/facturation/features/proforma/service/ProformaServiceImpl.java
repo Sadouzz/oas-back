@@ -499,7 +499,7 @@ public class ProformaServiceImpl implements ProformaService {
         
         OrdreReparation ordreReparation = proforma.getOrdreReparation();
         if (ordreReparation != null) {
-            ordreReparation.setStatut(StatutOrdreReparation.BON_DE_COMMANDE);
+            ordreReparation.setStatut(StatutOrdreReparation.ORDRE_DE_TRAVAIL);
             ordreReparationRepository.save(ordreReparation);
         }
 
@@ -652,7 +652,7 @@ public class ProformaServiceImpl implements ProformaService {
 
         OrdreReparation ordreReparation = proforma.getOrdreReparation();
         if (ordreReparation != null) {
-            ordreReparation.setStatut(StatutOrdreReparation.BON_DE_COMMANDE);
+            ordreReparation.setStatut(StatutOrdreReparation.ORDRE_DE_TRAVAIL);
             ordreReparationRepository.save(ordreReparation);
         }
 

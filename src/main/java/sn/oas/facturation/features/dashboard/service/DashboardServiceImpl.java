@@ -167,10 +167,7 @@ public class DashboardServiceImpl implements DashboardService {
                 + ordreReparationRepository.countByStatut(StatutOrdreReparation.RECEPTION);
         long attenteProforma = ordreReparationRepository.countByStatut(StatutOrdreReparation.PIECES_MO);
         long proformaValide = ordreReparationRepository.countByStatut(StatutOrdreReparation.PROFORMA);
-        long attentePieces = ordreReparationRepository.countByStatut(StatutOrdreReparation.BON_DE_COMMANDE);
-        long attenteSortie = ordreReparationRepository.countByStatut(StatutOrdreReparation.BON_DE_SORTIE);
-        long enReparation = ordreReparationRepository.countByStatut(StatutOrdreReparation.REPARATION)
-                + ordreReparationRepository.countByStatut(StatutOrdreReparation.ASSIGN_TECHNICIEN);
+        long enReparation = ordreReparationRepository.countByStatut(StatutOrdreReparation.ORDRE_DE_TRAVAIL);
         long attentePaiement = ordreReparationRepository.countByStatut(StatutOrdreReparation.PAIEMENT);
         long termine = ordreReparationRepository.countByStatut(StatutOrdreReparation.PRET_A_LIVRER)
                 + ordreReparationRepository.countByStatut(StatutOrdreReparation.LIVRE);
@@ -180,8 +177,8 @@ public class DashboardServiceImpl implements DashboardService {
                 .diagnostic(diagnostic)
                 .attenteProforma(attenteProforma)
                 .proformaValide(proformaValide)
-                .attentePieces(attentePieces)
-                .attenteSortie(attenteSortie)
+                .attentePieces(0L)
+                .attenteSortie(0L)
                 .enReparation(enReparation)
                 .attentePaiement(attentePaiement)
                 .termine(termine)

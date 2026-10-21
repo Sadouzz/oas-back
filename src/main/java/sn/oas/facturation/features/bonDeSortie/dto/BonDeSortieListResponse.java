@@ -21,6 +21,8 @@ public record BonDeSortieListResponse(
         AgentSummary agentValidateur,
         Long ordreReparationId,
         OrdreReparationSummary ordreReparation,
+        Long ordreTravailId,
+        OrdreTravailSummary ordreTravail,
         Long proformaId,
         String proformaNumero,
         List<LigneSummary> lignesBonDeSortiePieces
@@ -34,6 +36,7 @@ public record BonDeSortieListResponse(
             String lastName
     ) {}
     public record OrdreReparationSummary(Long id, String numero) {}
+    public record OrdreTravailSummary(Long id, String numero) {}
     public record PieceSummary(
             Long id,
             String reference,
@@ -117,6 +120,14 @@ public record BonDeSortieListResponse(
             );
         }
 
+        OrdreTravailSummary ordreTravailSummary = null;
+        if (b.getOrdreTravail() != null) {
+            ordreTravailSummary = new OrdreTravailSummary(
+                    b.getOrdreTravail().getId(),
+                    b.getOrdreTravail().getNumero()
+            );
+        }
+
         return BonDeSortieListResponse.builder()
                 .id(b.getId())
                 .reference(b.getReference())
@@ -130,6 +141,8 @@ public record BonDeSortieListResponse(
                 .agentValidateur(validateur)
                 .ordreReparationId(b.getOrdreReparation() != null ? b.getOrdreReparation().getId() : null)
                 .ordreReparation(ordreSummary)
+                .ordreTravailId(b.getOrdreTravail() != null ? b.getOrdreTravail().getId() : null)
+                .ordreTravail(ordreTravailSummary)
                 .proformaId(b.getProforma() != null ? b.getProforma().getId() : null)
                 .proformaNumero(b.getProforma() != null ? b.getProforma().getNumero() : null)
                 .lignesBonDeSortiePieces(lignes)

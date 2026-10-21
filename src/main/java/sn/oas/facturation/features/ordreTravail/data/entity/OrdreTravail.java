@@ -70,9 +70,11 @@ public class OrdreTravail implements TenantAware {
     @Builder.Default
     private List<BonDeCommande> bonsDeCommande = new ArrayList<>();
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "bon_de_sortie_id")
-    private BonDeSortie bonDeSortie;
+    @OneToMany(mappedBy = "ordreTravail", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @Builder.Default
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private List<BonDeSortie> bonsDeSortie = new ArrayList<>();
 
     @OneToMany(mappedBy = "ordreTravail", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
@@ -122,5 +124,22 @@ public class OrdreTravail implements TenantAware {
     @Override
     public void setGarage(Garage garage) {
         this.garage = garage;
+    }
+
+    public void addBonDeSortie(BonDeSortie bonDeSortie) {
+        if (bonDeSortie != null) {
+            if (this.bonsDeSortie == null) {
+                this.bonsDeSortie = new ArrayList<>();
+            }
+            this.bonsDeSortie.add(bonDeSortie);
+            bonDeSortie.setOrdreTravail(this);
+        }
+    }
+
+    public void removeBonDeSortie(BonDeSortie bonDeSortie) {
+        if (bonDeSortie != null && this.bonsDeSortie != null) {
+            this.bonsDeSortie.remove(bonDeSortie);
+            bonDeSortie.setOrdreTravail(null);
+        }
     }
 }

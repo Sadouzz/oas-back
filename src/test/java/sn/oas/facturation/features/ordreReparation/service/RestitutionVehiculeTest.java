@@ -48,7 +48,7 @@ class RestitutionVehiculeTest {
     @Test
     void livraisonRefuseeAvantStatutPret() {
         OrdreReparation ordre = OrdreReparation.builder().id(3L)
-                .statut(StatutOrdreReparation.REPARATION).ficheAtelier(FicheAtelier.builder().build()).build();
+                .statut(StatutOrdreReparation.ORDRE_DE_TRAVAIL).ficheAtelier(FicheAtelier.builder().build()).build();
         when(ordreRepository.findByIdForRestitution(3L)).thenReturn(Optional.of(ordre));
 
         assertThrows(IllegalArgumentException.class, () -> service.restituerVehicule(3L, SIGNATURE, 1));
