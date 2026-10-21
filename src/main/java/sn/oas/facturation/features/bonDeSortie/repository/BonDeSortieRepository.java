@@ -33,6 +33,9 @@ public interface BonDeSortieRepository extends JpaRepository<BonDeSortie, Long> 
     List<BonDeSortie> findByVehiculeIdOrderByDateDesc(Long vehiculeId);
     Page<BonDeSortie> findByVehiculeId(Long vehiculeId, Pageable pageable);
 
+    Page<BonDeSortie> findByOrdreTravailId(Long ordreTravailId, Pageable pageable);
+    Page<BonDeSortie> findByOrdreReparationId(Long ordreReparationId, Pageable pageable);
+
     @Query("SELECT COUNT(b) FROM BonDeSortie b WHERE YEAR(b.date) = :year")
     long countByAnnee(@Param("year") int year);
 

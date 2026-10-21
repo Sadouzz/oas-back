@@ -152,25 +152,19 @@ public class OrdreTravailController {
         return ResponseEntity.ok(ordreTravailService.getStepRecapitulatif(id));
     }
 
-    @Operation(summary = "Obtenir l'étape Approvisionnement (Step 2)")
-    @GetMapping("/{id}/step-approvisionnement")
-    public ResponseEntity<StepApprovisionnementResponseDto> getStepApprovisionnement(@PathVariable Long id) {
-        return ResponseEntity.ok(ordreTravailService.getStepApprovisionnement(id));
-    }
-
-    @Operation(summary = "Obtenir l'étape Bon de Sortie (Step 3)")
+    @Operation(summary = "Obtenir l'étape Bon de Sortie (Step 2)")
     @GetMapping("/{id}/step-bon-sortie")
     public ResponseEntity<StepBonSortieResponseDto> getStepBonSortie(@PathVariable Long id) {
         return ResponseEntity.ok(ordreTravailService.getStepBonSortie(id));
     }
 
-    @Operation(summary = "Obtenir l'étape Assignation Techniciens (Step 4)")
+    @Operation(summary = "Obtenir l'étape Assignation Techniciens (Step 3)")
     @GetMapping("/{id}/step-assignation")
     public ResponseEntity<StepAssignationResponseDto> getStepAssignation(@PathVariable Long id) {
         return ResponseEntity.ok(ordreTravailService.getStepAssignation(id));
     }
 
-    @Operation(summary = "Mettre à jour l'étape Assignation Techniciens (Step 4)")
+    @Operation(summary = "Mettre à jour l'étape Assignation Techniciens (Step 3)")
     @PutMapping("/{id}/step-assignation")
     public ResponseEntity<StepAssignationDto> updateStepAssignation(
             @PathVariable Long id,
@@ -178,51 +172,17 @@ public class OrdreTravailController {
         return ResponseEntity.ok(ordreTravailService.updateStepAssignation(id, dto));
     }
 
-    @Operation(summary = "Obtenir l'étape Réparation (Step 5)")
+    @Operation(summary = "Obtenir l'étape Réparation (Step 4)")
     @GetMapping("/{id}/step-reparation")
     public ResponseEntity<StepReparationResponseDto> getStepReparation(@PathVariable Long id) {
         return ResponseEntity.ok(ordreTravailService.getStepReparation(id));
     }
 
-    @Operation(summary = "Mettre à jour l'étape Réparation (Step 5)")
+    @Operation(summary = "Mettre à jour l'étape Réparation (Step 4)")
     @PutMapping("/{id}/step-reparation")
     public ResponseEntity<StepReparationDto> updateStepReparation(
             @PathVariable Long id,
             @RequestBody StepReparationDto dto) {
         return ResponseEntity.ok(ordreTravailService.updateStepReparation(id, dto));
-    }
-
-    @Operation(summary = "Obtenir l'étape Paiement (Step 6)")
-    @GetMapping("/{id}/step-paiement")
-    public ResponseEntity<StepPaiementResponseDto> getStepPaiement(@PathVariable Long id) {
-        return ResponseEntity.ok(ordreTravailService.getStepPaiement(id));
-    }
-
-    @Operation(summary = "Obtenir l'étape Prêt à Livrer (Step 7)")
-    @GetMapping("/{id}/step-pret-a-livrer")
-    public ResponseEntity<StepPretALivrerResponseDto> getStepPretALivrer(@PathVariable Long id) {
-        return ResponseEntity.ok(ordreTravailService.getStepPretALivrer(id));
-    }
-
-    @Operation(summary = "Mettre à jour l'étape Prêt à Livrer (Step 7)")
-    @PutMapping("/{id}/step-pret-a-livrer")
-    public ResponseEntity<StepPretALivrerDto> updateStepPretALivrer(
-            @PathVariable Long id,
-            @RequestBody StepPretALivrerDto dto) {
-        return ResponseEntity.ok(ordreTravailService.updateStepPretALivrer(id, dto));
-    }
-
-    @Operation(summary = "Obtenir l'étape Livraison (Step 8)")
-    @GetMapping("/{id}/step-livraison")
-    public ResponseEntity<StepLivraisonResponseDto> getStepLivraison(@PathVariable Long id) {
-        return ResponseEntity.ok(ordreTravailService.getStepLivraison(id));
-    }
-
-    @Operation(summary = "Mettre à jour l'étape Livraison (Step 8)")
-    @PutMapping("/{id}/step-livraison")
-    public ResponseEntity<StepLivraisonDto> updateStepLivraison(
-            @PathVariable Long id,
-            @RequestBody StepLivraisonDto dto) {
-        return ResponseEntity.ok(ordreTravailService.updateStepLivraison(id, dto));
     }
 }

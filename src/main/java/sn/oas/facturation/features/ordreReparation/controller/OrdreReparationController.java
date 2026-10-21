@@ -166,6 +166,16 @@ public class OrdreReparationController {
         }
     }
 
+    @GetMapping("/{id}/step-ordre-travail")
+    @Operation(summary = "Obtenir l'étape Ordre de Travail (Step 5)")
+    public ResponseEntity<?> getStepOrdreTravail(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(ordreReparationService.getStepOrdreTravail(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
     @GetMapping("/{id}/step-approvisionnement")
     @Operation(summary = "Obtenir l'étape Approvisionnement")
     public ResponseEntity<?> getStepApprovisionnement(@PathVariable Long id) {

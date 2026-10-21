@@ -15,6 +15,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
+import sn.oas.facturation.features.ordreTravail.data.entity.OrdreTravail;
 import sn.oas.facturation.features.proforma.data.entity.Proforma;
 import sn.oas.facturation.features.user.data.entity.Agent;
 import sn.oas.facturation.features.bonDeSortie.data.enums.StatutBon;
@@ -90,13 +91,18 @@ public class BonDeSortie implements TenantAware  {
     private Agent agentValidateur;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ordre_reparation_id")
-    @JsonIgnoreProperties({"bonDeSortie", "hibernateLazyInitializer", "handler"})
+    @JoinColumn(name = "ordre_reparation_id", nullable = true)
+    @JsonIgnoreProperties({"bonsDeSortie", "hibernateLazyInitializer", "handler"})
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+
     private OrdreReparation ordreReparation;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "ordre_travail_id")
     @JsonIgnoreProperties({"bonsDeSortie", "hibernateLazyInitializer", "handler"})
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     private OrdreTravail ordreTravail;
 
     @Column(name = "montant_total_pieces", precision = 15, scale = 2)

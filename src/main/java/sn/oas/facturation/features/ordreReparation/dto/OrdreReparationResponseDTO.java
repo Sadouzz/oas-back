@@ -33,7 +33,7 @@ public class OrdreReparationResponseDTO {
     private DiagnosticDto diagnostic;
     private List<TechnicienDto> techniciens;
     private List<TechnicienDto> techniciensReparation;
-    private BonDeSortieDto bonDeSortie;
+    private List<BonDeSortieDto> bonsDeSortie;
     private List<LigneOrdreReparationPieceDto> lignesOrdreReparationPieces;
     private List<LigneOrdreReparationMainDoeuvreDto> lignesOrdreReparationMainDoeuvres;
 

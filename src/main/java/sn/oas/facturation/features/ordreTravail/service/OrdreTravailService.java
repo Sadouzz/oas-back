@@ -48,26 +48,14 @@ public interface OrdreTravailService {
     // --- Steps Getters ---
     StepRecapitulatifResponseDto getStepRecapitulatif(Long id);
 
-    StepApprovisionnementResponseDto getStepApprovisionnement(Long id);
-
     StepBonSortieResponseDto getStepBonSortie(Long id);
 
     StepAssignationResponseDto getStepAssignation(Long id);
 
     StepReparationResponseDto getStepReparation(Long id);
 
-    StepPaiementResponseDto getStepPaiement(Long id);
-
-    StepPretALivrerResponseDto getStepPretALivrer(Long id);
-
-    StepLivraisonResponseDto getStepLivraison(Long id);
-
     // --- Steps Updaters ---
     StepAssignationDto updateStepAssignation(Long id, StepAssignationDto dto);
 
     StepReparationDto updateStepReparation(Long id, StepReparationDto dto);
-
-    StepPretALivrerDto updateStepPretALivrer(Long id, StepPretALivrerDto dto);
-
-    StepLivraisonDto updateStepLivraison(Long id, StepLivraisonDto dto);
 }

@@ -38,6 +38,7 @@ import sn.oas.facturation.features.notification.service.AgentNotificationService
 import sn.oas.facturation.features.main_doeuvre.data.entity.MainDoeuvre;
 import sn.oas.facturation.features.main_doeuvre.repository.MainDoeuvreRepository;
 import sn.oas.facturation.features.ordreTravail.data.entity.OrdreTravail;
+import sn.oas.facturation.features.ordreTravail.data.enums.StatutOrdreTravail;
 import sn.oas.facturation.features.ordreTravail.repository.OrdreTravailRepository;
 
 import java.time.LocalDateTime;
@@ -65,6 +66,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
     private final BonDeSortieHistoriqueRepository bonDeSortieHistoriqueRepository;
     private final MainDoeuvreRepository mainDoeuvreRepository;
     private final OrdreTravailRepository ordreTravailRepository;
+
 
     @Transactional
     @Override
@@ -247,19 +249,17 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
         }
 
         if (saved.getOrdreReparation() != null) {
-            OrdreReparation ordreLie = saved.getOrdreReparation();
-            ordreLie.getBonsDeSortie().add(saved);
-            ordreReparationRepository.save(ordreLie);
-        }
-        if (saved.getOrdreTravail() != null) {
-            saved.getOrdreTravail().getBonsDeSortie().add(saved);
-            ordreTravailRepository.save(saved.getOrdreTravail());
-        }
-        if (saved.getOrdreReparation() != null) {
+            fiche.addBonDeSortie(saved);
+            ordreReparationRepository.save(fiche);
             agentNotificationService.notifyRoleInGarage(Role.AGENT_MAGASIN, saved.getGarage(),
                     "Nouveau Bon de Sortie",
                     "Le bon de sortie " + saved.getReference() + " est en attente de validation pour la fiche "
                             + fiche.getNumero());
+        }
+        if (saved.getOrdreTravail() != null) {
+            OrdreTravail ordreTravail = saved.getOrdreTravail();
+            ordreTravail.addBonDeSortie(saved);
+            ordreTravailRepository.save(ordreTravail);
         }
         return saved;
     }
@@ -274,10 +274,17 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
             throw new IllegalStateException("Le bon de sortie " + bon.getReference() + " est déjà validé");
         }
         OrdreReparation ordre = bon.getOrdreReparation();
-        if (ordre == null || !(ordre.getStatut() == StatutOrdreReparation.PAIEMENT
-                || ordre.getStatut() == StatutOrdreReparation.PRET_A_LIVRER
-                || ordre.getStatut() == StatutOrdreReparation.LIVRE)) {
-            throw new IllegalStateException("Le bon de sortie ne peut être validé qu'après la fin de la réparation (étape Paiement ou suivante)");
+        OrdreTravail ordreTravail = bon.getOrdreTravail();
+        if (ordreTravail == null && ordre != null) {
+            ordreTravail = ordreTravailRepository.findByOrdreReparationId(ordre.getId()).orElse(null);
+        }
+        boolean reparationTerminee = ordreTravail != null
+                ? ordreTravail.getStatut() == StatutOrdreTravail.TERMINE
+                : ordre != null && (ordre.getStatut() == StatutOrdreReparation.PAIEMENT
+                        || ordre.getStatut() == StatutOrdreReparation.PRET_A_LIVRER
+                        || ordre.getStatut() == StatutOrdreReparation.LIVRE);
+        if (!reparationTerminee) {
+            throw new IllegalStateException("Le bon de sortie ne peut être validé qu'après la fin de la réparation");
         }
 
         // A la validation du BS : stockAtelier diminue (la pièce va sur le véhicule),
@@ -360,6 +367,19 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                             .garage(bon.getGarage())
                             .build());
         }
+
+        if (bon.getOrdreReparation() != null) {
+            OrdreReparation fiche = bon.getOrdreReparation();
+            if (fiche.getStatut() == StatutOrdreReparation.PROFORMA) {
+                fiche.setStatut(StatutOrdreReparation.ORDRE_DE_TRAVAIL);
+                agentNotificationService.notifyRoleInGarage(Role.CHEF_ATELIER, bon.getGarage(),
+                        "Bon de sortie validé",
+                        "Le bon de sortie " + bon.getReference() + " a été validé. La fiche " + fiche.getNumero()
+                                + " est en cours d'exécution.");
+                ordreReparationRepository.save(fiche);
+            }
+        }
+
 
         return bonDeSortieRepository.save(bon);
     }

@@ -427,6 +427,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
             }
         }
 
+
         agentNotificationService.notifyRoleInGarage(Role.AGENT_MAGASIN, bonDeCommande.getGarage(),
                 "Bon de Commande Réceptionné",
                 "Le bon de commande " + bonDeCommande.getNumero() + " a été réceptionné totalement.");

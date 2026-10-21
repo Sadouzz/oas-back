@@ -57,9 +57,10 @@ public class ClientPortalServiceImpl implements ClientPortalService {
         return switch (statut) {
             case RECEPTION -> new StageInfo("RECEPTION", 0, "Prise en charge", "neutral", true);
             case DIAGNOSTIC -> new StageInfo("DIAGNOSTIC", 1, "Diagnostic", "info", true);
-            case PIECES_MO, PROFORMA, BON_DE_COMMANDE, BON_DE_SORTIE, ASSIGN_TECHNICIEN ->
+            case PIECES_MO, PROFORMA ->
                     new StageInfo(statut.name(), 2, "Préparation", "pending", true);
-            case REPARATION -> new StageInfo("REPARATION", 3, "Réparation en cours", "info", true);
+            case ORDRE_DE_TRAVAIL, BON_DE_COMMANDE, BON_DE_SORTIE, ASSIGN_TECHNICIEN, REPARATION ->
+                    new StageInfo("ORDRE_DE_TRAVAIL", 3, "Travaux en cours", "info", true);
             case PAIEMENT, PRET_A_LIVRER, LIVRE ->
                     new StageInfo(statut.name(), 4, "Terminée", "success", false);
         };

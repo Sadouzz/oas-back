@@ -23,6 +23,8 @@ public record BonDeSortieListResponse(
         OrdreReparationSummary ordreReparation,
         String ordreReparationStatut,
         Long ordreTravailId,
+        OrdreTravailSummary ordreTravail,
+        String ordreTravailStatut,
         Double montantTotalPieces,
         Double montantTotalMainDoeuvre,
         Double montantTotal,
@@ -39,6 +41,7 @@ public record BonDeSortieListResponse(
             String lastName
     ) {}
     public record OrdreReparationSummary(Long id, String numero) {}
+    public record OrdreTravailSummary(Long id, String numero) {}
     public record PieceSummary(
             Long id,
             String reference,
@@ -130,6 +133,14 @@ public record BonDeSortieListResponse(
             );
         }
 
+        OrdreTravailSummary ordreTravailSummary = null;
+        if (b.getOrdreTravail() != null) {
+            ordreTravailSummary = new OrdreTravailSummary(
+                    b.getOrdreTravail().getId(),
+                    b.getOrdreTravail().getNumero()
+            );
+        }
+
         return BonDeSortieListResponse.builder()
                 .id(b.getId())
                 .reference(b.getReference())
@@ -145,6 +156,8 @@ public record BonDeSortieListResponse(
                 .ordreReparation(ordreSummary)
                 .ordreReparationStatut(b.getOrdreReparation() != null && b.getOrdreReparation().getStatut() != null ? b.getOrdreReparation().getStatut().name() : null)
                 .ordreTravailId(b.getOrdreTravail() != null ? b.getOrdreTravail().getId() : null)
+                .ordreTravail(ordreTravailSummary)
+                .ordreTravailStatut(b.getOrdreTravail() != null && b.getOrdreTravail().getStatut() != null ? b.getOrdreTravail().getStatut().name() : null)
                 .montantTotalPieces(b.getMontantTotalPieces() != null ? b.getMontantTotalPieces().doubleValue() : 0.0)
                 .montantTotalMainDoeuvre(b.getMontantTotalMainDoeuvre() != null ? b.getMontantTotalMainDoeuvre().doubleValue() : 0.0)
                 .montantTotal(b.getMontantTotal() != null ? b.getMontantTotal().doubleValue() : 0.0)

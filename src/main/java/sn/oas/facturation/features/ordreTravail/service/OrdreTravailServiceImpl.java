@@ -17,12 +17,9 @@ import sn.oas.facturation.features.bonDeSortie.data.entity.BonDeSortie;
 import sn.oas.facturation.features.bonDeSortie.data.entity.LigneBonDeSortiePiece;
 import sn.oas.facturation.features.bonDeSortie.repository.BonDeSortieRepository;
 import sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece;
-import sn.oas.facturation.features.fournisseur.data.entity.Fournisseur;
 import sn.oas.facturation.features.piecedetache.data.entity.PDP;
 import sn.oas.facturation.features.piecedetache.data.entity.PieceDetache;
-import sn.oas.facturation.features.ordreReparation.dto.responses.StepApprovisionnementResponseDto.BonCommandeSummaryDto;
 import sn.oas.facturation.features.ordreReparation.dto.responses.StepApprovisionnementResponseDto.PieceApprovisionnementDto;
-import sn.oas.facturation.features.ordreReparation.dto.responses.StepApprovisionnementResponseDto.PieceBonCommandeDto;
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.garage.data.entity.Garage;
 import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
@@ -164,6 +161,13 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
                         .build();
                 ordreTravail.getLignesTechniciens().add(ligne);
             }
+        } else if (ordreReparation != null && ordreReparation.getDiagnostic() != null && ordreReparation.getDiagnostic().getTechnicien() != null) {
+            Technicien tech = ordreReparation.getDiagnostic().getTechnicien();
+            LigneTechnicienOrdreTravail ligne = LigneTechnicienOrdreTravail.builder()
+                    .ordreTravail(ordreTravail)
+                    .technicien(tech)
+                    .build();
+            ordreTravail.getLignesTechniciens().add(ligne);
         }
 
         // Ajout des bons de commande
@@ -172,14 +176,15 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
             ordreTravail.getBonsDeCommande().addAll(bcs);
         }
 
-        // Ajout du bon de sortie
-        List<Long> bsIds = request.getBonDeSortieIds() != null ? request.getBonDeSortieIds()
-                : request.getBonDeSortieId() != null ? List.of(request.getBonDeSortieId()) : List.of();
-        if (!bsIds.isEmpty()) {
-            for (BonDeSortie bs : bonDeSortieRepository.findAllById(bsIds)) {
-                bs.setOrdreTravail(ordreTravail);
-                ordreTravail.getBonsDeSortie().add(bs);
+        // Ajout des bons de sortie
+        if (request.getBonDeSortieIds() != null && !request.getBonDeSortieIds().isEmpty()) {
+            List<BonDeSortie> bss = bonDeSortieRepository.findAllById(request.getBonDeSortieIds());
+            for (BonDeSortie bs : bss) {
+                ordreTravail.addBonDeSortie(bs);
             }
+        } else if (request.getBonDeSortieId() != null) {
+            bonDeSortieRepository.findById(request.getBonDeSortieId()).ifPresent(ordreTravail::addBonDeSortie);
+
         }
 
         OrdreTravail saved = ordreTravailRepository.save(ordreTravail);
@@ -204,14 +209,28 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
             return OrdreTravailResponseDto.from(existing.get());
         }
 
+        List<Long> techIds = new ArrayList<>();
+        if (or.getDiagnostic() != null && or.getDiagnostic().getTechnicien() != null) {
+            techIds.add(or.getDiagnostic().getTechnicien().getId());
+        }
+        if (or.getTechniciensReparation() != null) {
+            for (Technicien t : or.getTechniciensReparation()) {
+                if (!techIds.contains(t.getId())) {
+                    techIds.add(t.getId());
+                }
+            }
+        }
+
         OrdreTravailRequest request = OrdreTravailRequest.builder()
                 .ordreReparationId(or.getId())
                 .proformaId(or.getProforma() != null ? or.getProforma().getId() : null)
                 .clientId(or.getClient() != null ? or.getClient().getId() : (or.getVehicule() != null && or.getVehicule().getClient() != null ? or.getVehicule().getClient().getId() : null))
                 .vehiculeId(or.getVehicule() != null ? or.getVehicule().getId() : null)
                 .bonDeCommandeIds(or.getBonDeCommandes() != null ? or.getBonDeCommandes().stream().map(BonDeCommande::getId).toList() : new ArrayList<>())
+                .bonDeSortieId(or.getBonDeSortie() != null ? or.getBonDeSortie().getId() : null)
                 .bonDeSortieIds(or.getBonsDeSortie() != null ? or.getBonsDeSortie().stream().map(BonDeSortie::getId).toList() : new ArrayList<>())
-                .technicienIds(or.getTechniciensReparation() != null ? or.getTechniciensReparation().stream().map(Technicien::getId).toList() : new ArrayList<>())
+                .technicienIds(techIds)
+
                 .build();
 
         return creer(request);
@@ -393,14 +412,22 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
             ordreTravail.setStatut(request.getStatut());
         }
 
-        if (request.getBonDeSortieId() != null || request.getBonDeSortieIds() != null) {
-            List<Long> bsIds = request.getBonDeSortieIds() != null ? request.getBonDeSortieIds()
-                    : List.of(request.getBonDeSortieId());
-            ordreTravail.getBonsDeSortie().clear();
-            for (BonDeSortie bs : bonDeSortieRepository.findAllById(bsIds)) {
-                bs.setOrdreTravail(ordreTravail);
-                ordreTravail.getBonsDeSortie().add(bs);
+        if (request.getBonDeSortieIds() != null) {
+            for (BonDeSortie oldBs : new ArrayList<>(ordreTravail.getBonsDeSortie())) {
+                ordreTravail.removeBonDeSortie(oldBs);
+
             }
+            if (!request.getBonDeSortieIds().isEmpty()) {
+                List<BonDeSortie> bss = bonDeSortieRepository.findAllById(request.getBonDeSortieIds());
+                for (BonDeSortie bs : bss) {
+                    ordreTravail.addBonDeSortie(bs);
+                }
+            }
+        } else if (request.getBonDeSortieId() != null) {
+            for (BonDeSortie oldBs : new ArrayList<>(ordreTravail.getBonsDeSortie())) {
+                ordreTravail.removeBonDeSortie(oldBs);
+            }
+            bonDeSortieRepository.findById(request.getBonDeSortieId()).ifPresent(ordreTravail::addBonDeSortie);
         }
 
         OrdreTravail updated = ordreTravailRepository.save(ordreTravail);
@@ -416,6 +443,9 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
         OrdreTravail ot = getEntityById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Ordre de travail introuvable avec l'id : " + id));
         ot.setStatut(statut);
+        if (statut == StatutOrdreTravail.TERMINE && ot.getDateFinReparation() == null) {
+            ot.setDateFinReparation(LocalDateTime.now());
+        }
         return OrdreTravailResponseDto.from(ordreTravailRepository.save(ot));
     }
 
@@ -581,105 +611,6 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
         return dto;
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public StepApprovisionnementResponseDto getStepApprovisionnement(Long id) {
-        OrdreTravail ot = getEntityById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Ordre de travail non trouvé avec l'id : " + id));
-
-        StepApprovisionnementResponseDto dto = new StepApprovisionnementResponseDto();
-        dto.setId(ot.getId());
-        dto.setNumero(ot.getNumero());
-        dto.setStatut(ot.getStatut() != null ? ot.getStatut().name() : null);
-        dto.setEtape(ot.getStatut() != null ? ot.getStatut().getEtape() : null);
-        if (ot.getVehicule() != null) {
-            dto.setVehiculeId(ot.getVehicule().getId());
-        }
-
-        OrdreReparation ordre = ot.getOrdreReparation();
-        if (ordre != null) {
-            dto.setOrdreReparationId(ordre.getId());
-        }
-
-        Proforma proforma = ot.getProforma();
-        if (proforma == null && ordre != null) {
-            proforma = ordre.getProforma();
-            if (proforma == null) {
-                proforma = proformaRepository.findByOrdreReparationId(ordre.getId()).orElse(null);
-            }
-        }
-
-        // Récupération des bons de commande liés
-        List<BonDeCommande> bdcList = getLinkedBonsDeCommande(ot, ordre, proforma);
-
-        List<BonCommandeSummaryDto> bdcDtos = new ArrayList<>();
-        if (bdcList != null) {
-            for (BonDeCommande bc : bdcList) {
-                String fournisseurNom = null;
-                if (bc.getFournisseur() != null) {
-                    Fournisseur f = bc.getFournisseur();
-                    if (f.getNomEntreprise() != null && !f.getNomEntreprise().isBlank()) {
-                        fournisseurNom = f.getNomEntreprise();
-                    } else {
-                        String prenom = f.getPrenom() != null ? f.getPrenom() : "";
-                        String nom = f.getNom() != null ? f.getNom() : "";
-                        fournisseurNom = (prenom + " " + nom).trim();
-                    }
-                }
-                double montant = bc.getMontantTTC() != null ? bc.getMontantTTC().doubleValue()
-                        : (bc.getMontantHT() != null ? bc.getMontantHT().doubleValue() : 0.0);
-
-                List<PieceBonCommandeDto> piecesBdc = new ArrayList<>();
-                int totalQuantitePieces = 0;
-                if (bc.getLignes() != null) {
-                    for (LigneBonDeCommandePiece l : bc.getLignes()) {
-                        int qte = l.getQuantite() != null ? l.getQuantite() : 0;
-                        totalQuantitePieces += qte;
-                        String ref = l.getPieceDetachee() != null ? l.getPieceDetachee().getReference() : l.getReferencePds();
-                        String des = l.getPieceDetachee() != null ? l.getPieceDetachee().getDesignation() : l.getDesignationPds();
-                        Long pId = l.getPieceDetachee() != null ? l.getPieceDetachee().getId() : null;
-                        double pu = l.getPrixUnitaire() != null ? l.getPrixUnitaire().doubleValue() : 0.0;
-                        double mt = l.getMontant() != null ? l.getMontant().doubleValue() : (qte * pu);
-
-                        piecesBdc.add(PieceBonCommandeDto.builder()
-                                .ligneId(l.getId())
-                                .pieceId(pId)
-                                .reference(ref)
-                                .designation(des != null ? des : "Pièce")
-                                .quantite(qte)
-                                .quantiteRecue(l.getQuantiteRecue() != null ? l.getQuantiteRecue() : 0)
-                                .prixUnitaire(pu)
-                                .montantTotal(mt)
-                                .build());
-                    }
-                }
-
-                bdcDtos.add(BonCommandeSummaryDto.builder()
-                        .id(bc.getId())
-                        .numero(bc.getNumero())
-                        .reference(bc.getNumero())
-                        .fournisseurNom(fournisseurNom)
-                        .montantTotal(montant)
-                        .statut(bc.getStatut() != null ? bc.getStatut().name() : null)
-                        .dateCommande(bc.getDateCommande())
-                        .nombrePieces(totalQuantitePieces)
-                        .pieces(piecesBdc)
-                        .build());
-            }
-        }
-
-        dto.setBonsDeCommande(bdcDtos);
-        dto.setHasBonDeCommande(!bdcDtos.isEmpty());
-
-        if (proforma != null) {
-            dto.setProformaId(proforma.getId());
-            dto.setProformaNumero(proforma.getNumero());
-            dto.setPiecesManquantesProforma(extractPiecesManquantesProforma(proforma, bdcList));
-        }
-
-        return dto;
-    }
-
     private List<BonDeCommande> getLinkedBonsDeCommande(OrdreTravail ot, OrdreReparation ordre, Proforma proforma) {
         List<BonDeCommande> bdcList = new ArrayList<>();
         if (ot != null && ot.getBonsDeCommande() != null) {
@@ -822,10 +753,19 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
         }
 
         List<BonDeSortie> bsList = new ArrayList<>();
-        if (ot.getBonsDeSortie() != null) bsList.addAll(ot.getBonsDeSortie());
+        if (ot.getBonsDeSortie() != null) {
+            for (BonDeSortie bs : ot.getBonsDeSortie()) {
+                if (bsList.stream().noneMatch(b -> b.getId().equals(bs.getId()))) {
+                    bsList.add(bs);
+                }
+            }
+        }
         if (ordre != null && ordre.getBonsDeSortie() != null) {
             for (BonDeSortie bs : ordre.getBonsDeSortie()) {
-                if (bsList.stream().noneMatch(b -> b.getId().equals(bs.getId()))) bsList.add(bs);
+                if (bsList.stream().noneMatch(b -> b.getId().equals(bs.getId()))) {
+                    bsList.add(bs);
+                }
+
             }
         }
         if (proforma != null) {
@@ -844,16 +784,13 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
             }
         }
 
-        if (!bsList.isEmpty()) {
-            BonDeSortie bs = bsList.get(0);
+        List<BonDeSortieSummaryDto> bssDtos = new ArrayList<>();
+        for (BonDeSortie bs : bsList) {
             BonDeSortieSummaryDto bsDto = new BonDeSortieSummaryDto();
             bsDto.setId(bs.getId());
             bsDto.setStatut(bs.getStatut() != null ? bs.getStatut().name() : null);
             bsDto.setDateSortiePrevue(bs.getDate() != null ? bs.getDate().toLocalDate() : null);
-            dto.setBonDeSortie(bsDto);
-            dto.setHasBonDeSortie(true);
-        } else {
-            dto.setHasBonDeSortie(false);
+            bssDtos.add(bsDto);
         }
         dto.setBonsDeSortie(bsList.stream().map(sn.oas.facturation.features.bonDeSortie.dto.BonDeSortieListResponse::from).toList());
         int quantiteTotalePieces = 0;
@@ -868,6 +805,7 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
         }
         dto.setQuantiteTotalePieces(quantiteTotalePieces);
         dto.setMontantTotalBons(montantTotalBons);
+        dto.setHasBonDeSortie(!bssDtos.isEmpty());
 
         if (proforma != null) {
             dto.setProformaId(proforma.getId());
@@ -969,6 +907,16 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
                 }
             }
         }
+        if (techDtos.isEmpty() && ot.getOrdreReparation() != null && ot.getOrdreReparation().getDiagnostic() != null && ot.getOrdreReparation().getDiagnostic().getTechnicien() != null) {
+            Technicien tech = ot.getOrdreReparation().getDiagnostic().getTechnicien();
+            techDtos.add(TechnicienSummaryDto.builder()
+                    .id(tech.getId())
+                    .nom(tech.getLastName())
+                    .prenom(tech.getFirstName())
+                    .specialite(tech.getSpecialite() != null ? tech.getSpecialite().name() : null)
+                    .telephone(tech.getPhone())
+                    .build());
+        }
         dto.setTechniciens(techDtos);
         return dto;
     }
@@ -1005,76 +953,17 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
                 }
             }
         }
+        if (techDtos.isEmpty() && ot.getOrdreReparation() != null && ot.getOrdreReparation().getDiagnostic() != null && ot.getOrdreReparation().getDiagnostic().getTechnicien() != null) {
+            Technicien tech = ot.getOrdreReparation().getDiagnostic().getTechnicien();
+            techDtos.add(TechnicienSummaryDto.builder()
+                    .id(tech.getId())
+                    .nom(tech.getLastName())
+                    .prenom(tech.getFirstName())
+                    .specialite(tech.getSpecialite() != null ? tech.getSpecialite().name() : null)
+                    .telephone(tech.getPhone())
+                    .build());
+        }
         dto.setTechniciensReparation(techDtos);
-        return dto;
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public StepPaiementResponseDto getStepPaiement(Long id) {
-        OrdreTravail ot = getEntityById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Ordre de travail non trouvé avec l'id : " + id));
-
-        StepPaiementResponseDto dto = new StepPaiementResponseDto();
-        dto.setId(ot.getId());
-        dto.setNumero(ot.getNumero());
-        dto.setStatut(ot.getStatut() != null ? ot.getStatut().name() : null);
-        dto.setEtape(ot.getStatut() != null ? ot.getStatut().getEtape() : null);
-        dto.setVehiculeId(ot.getVehicule() != null ? ot.getVehicule().getId() : null);
-        dto.setProformaId(ot.getProforma() != null ? ot.getProforma().getId() : null);
-        dto.setOrdreReparationId(ot.getOrdreReparation() != null ? ot.getOrdreReparation().getId() : null);
-
-        Facture facture = null;
-        if (ot.getOrdreReparation() != null) {
-            facture = factureRepository.findFirstByOrdreReparationId(ot.getOrdreReparation().getId()).orElse(null);
-        }
-
-        if (facture != null) {
-            FactureSummaryDto fDto = new FactureSummaryDto();
-            fDto.setId(facture.getId());
-            fDto.setStatut(facture.getStatut() != null ? facture.getStatut().name() : null);
-            fDto.setMontantRestant(facture.getResteAPayer() != null ? facture.getResteAPayer().doubleValue() : 0.0);
-            dto.setFacture(fDto);
-        }
-
-        return dto;
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public StepPretALivrerResponseDto getStepPretALivrer(Long id) {
-        OrdreTravail ot = getEntityById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Ordre de travail non trouvé avec l'id : " + id));
-
-        StepPretALivrerResponseDto dto = new StepPretALivrerResponseDto();
-        dto.setId(ot.getId());
-        dto.setNumero(ot.getNumero());
-        dto.setStatut(ot.getStatut() != null ? ot.getStatut().name() : null);
-        dto.setEtape(ot.getStatut() != null ? ot.getStatut().getEtape() : null);
-        dto.setVehiculeId(ot.getVehicule() != null ? ot.getVehicule().getId() : null);
-        dto.setProformaId(ot.getProforma() != null ? ot.getProforma().getId() : null);
-        dto.setOrdreReparationId(ot.getOrdreReparation() != null ? ot.getOrdreReparation().getId() : null);
-        dto.setRemarquesPreparation(ot.getRemarquesPreparation());
-        return dto;
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public StepLivraisonResponseDto getStepLivraison(Long id) {
-        OrdreTravail ot = getEntityById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Ordre de travail non trouvé avec l'id : " + id));
-
-        StepLivraisonResponseDto dto = new StepLivraisonResponseDto();
-        dto.setId(ot.getId());
-        dto.setNumero(ot.getNumero());
-        dto.setStatut(ot.getStatut() != null ? ot.getStatut().name() : null);
-        dto.setEtape(ot.getStatut() != null ? ot.getStatut().getEtape() : null);
-        dto.setVehiculeId(ot.getVehicule() != null ? ot.getVehicule().getId() : null);
-        dto.setProformaId(ot.getProforma() != null ? ot.getProforma().getId() : null);
-        dto.setOrdreReparationId(ot.getOrdreReparation() != null ? ot.getOrdreReparation().getId() : null);
-        dto.setDateSortie(ot.getDateSortie() != null ? ot.getDateSortie().toString() : null);
-        dto.setKilometrageSortie(ot.getKilometrageSortie());
-        dto.setRemarquesClient(ot.getRemarquesClient());
         return dto;
     }
 
@@ -1120,50 +1009,6 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
             } catch (Exception e) {
                 ot.setDateFinReparation(LocalDateTime.now());
             }
-        }
-        if (dto.getStatut() != null) {
-            ot.setStatut(dto.getStatut());
-        }
-        ot.setUpdatedAt(LocalDateTime.now());
-        ordreTravailRepository.save(ot);
-        return dto;
-    }
-
-    @Override
-    @Transactional
-    public StepPretALivrerDto updateStepPretALivrer(Long id, StepPretALivrerDto dto) {
-        OrdreTravail ot = getEntityById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Ordre de travail non trouvé avec l'id : " + id));
-
-        if (dto.getRemarquesPreparation() != null) {
-            ot.setRemarquesPreparation(dto.getRemarquesPreparation());
-        }
-        if (dto.getStatut() != null) {
-            ot.setStatut(dto.getStatut());
-        }
-        ot.setUpdatedAt(LocalDateTime.now());
-        ordreTravailRepository.save(ot);
-        return dto;
-    }
-
-    @Override
-    @Transactional
-    public StepLivraisonDto updateStepLivraison(Long id, StepLivraisonDto dto) {
-        OrdreTravail ot = getEntityById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Ordre de travail non trouvé avec l'id : " + id));
-
-        if (dto.getDateSortie() != null) {
-            try {
-                ot.setDateSortie(LocalDateTime.parse(dto.getDateSortie()));
-            } catch (Exception e) {
-                ot.setDateSortie(LocalDateTime.now());
-            }
-        }
-        if (dto.getKilometrageSortie() != null) {
-            ot.setKilometrageSortie(dto.getKilometrageSortie());
-        }
-        if (dto.getRemarquesClient() != null) {
-            ot.setRemarquesClient(dto.getRemarquesClient());
         }
         if (dto.getStatut() != null) {
             ot.setStatut(dto.getStatut());

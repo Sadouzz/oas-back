@@ -208,10 +208,11 @@ public class FactureServiceImpl implements FactureService {
         }
 
         // Update OrdreReparation status to PAIEMENT
-        if (ordreReparation != null && ordreReparation.getStatut() != StatutOrdreReparation.PAIEMENT) {
+        if (ordreReparation != null && (ordreReparation.getStatut() == StatutOrdreReparation.ORDRE_DE_TRAVAIL || ordreReparation.getStatut() == StatutOrdreReparation.PROFORMA)) {
             ordreReparation.setStatut(StatutOrdreReparation.PAIEMENT);
             ordreReparationRepository.save(ordreReparation);
-        }        agentNotificationService.notifyRoleInGarage(Role.AGENT, facture.getGarage(),
+        }
+        agentNotificationService.notifyRoleInGarage(Role.AGENT, facture.getGarage(),
             "Nouvelle Facture", 
             "La facture " + facture.getNumero() + " a été générée et est en attente de paiement.");
         notificationService.sendInAppNotification(client, "Nouvelle facture",

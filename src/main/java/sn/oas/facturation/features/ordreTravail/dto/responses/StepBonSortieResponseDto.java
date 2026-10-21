@@ -21,6 +21,7 @@ public class StepBonSortieResponseDto extends BaseOtStepResponseDto {
     private List<BonDeSortieListResponse> bonsDeSortie = new ArrayList<>();
     private Integer quantiteTotalePieces = 0;
     private Double montantTotalBons = 0.0;
+
     private String proformaNumero;
     private List<PieceBonDeSortieDto> piecesManquantesProforma = new ArrayList<>();
 
