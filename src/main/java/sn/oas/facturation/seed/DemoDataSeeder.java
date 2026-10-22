@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import sn.oas.facturation.features.user.repository.UserRepository;
 import sn.oas.facturation.features.client.data.entity.Client;
+import sn.oas.facturation.features.client.data.enums.TypeClient;
 import sn.oas.facturation.features.client.repository.ClientRepository;
 import sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier;
 import sn.oas.facturation.features.ficheAtelier.data.entity.LigneDefaut;
@@ -317,6 +318,7 @@ public class DemoDataSeeder implements CommandLineRunner {
                 .email(email)
                 .password(passwordEncoder.encode(DEMO_PASSWORD))
                 .type(TypeUser.CLIENT)
+                .typeClient(TypeClient.PARTICULIER)
                 .build();
     }
 

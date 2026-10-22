@@ -33,6 +33,7 @@ import java.util.List;
 public class Client extends User {
 
     // Au lieu de columnDefinition = "varchar(20) default 'PARTICULIER'"
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "type_client", nullable = false, length = 20)
     @ColumnDefault("'PARTICULIER'")
