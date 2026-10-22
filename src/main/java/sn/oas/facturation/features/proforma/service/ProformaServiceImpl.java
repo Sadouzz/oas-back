@@ -783,6 +783,7 @@ public class ProformaServiceImpl implements ProformaService {
 
     private BigDecimal tauxRemisePieceDepuisOrdre(OrdreReparation ordre, LigneFacturationPieceRequest ligne,
                                                    java.util.Set<Long> dejaAssociees) {
+        if (ligne.getTauxRemise() != null) return tauxRemise(ligne.getTauxRemise());
         if (ordre == null || ordre.getLignesOrdreReparationPieces() == null) return BigDecimal.ZERO;
         boolean personnalisée = Boolean.TRUE.equals(ligne.getIsCustom());
         return ordre.getLignesOrdreReparationPieces().stream()
@@ -798,6 +799,7 @@ public class ProformaServiceImpl implements ProformaService {
 
     private BigDecimal tauxRemiseMoDepuisOrdre(OrdreReparation ordre, LigneFacturationMainDoeuvreRequest ligne,
                                                 java.util.Set<Long> dejaAssociees) {
+        if (ligne.getTauxRemise() != null) return tauxRemise(ligne.getTauxRemise());
         if (ordre == null || ordre.getLignesOrdreReparationMainDoeuvres() == null) return BigDecimal.ZERO;
         return ordre.getLignesOrdreReparationMainDoeuvres().stream()
                 .filter(orLigne -> orLigne.getId() != null && !dejaAssociees.contains(orLigne.getId()))
@@ -810,6 +812,14 @@ public class ProformaServiceImpl implements ProformaService {
 
     private String normaliserDesignation(String designation) {
         return designation == null ? "" : designation.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private BigDecimal tauxRemise(Double taux) {
+        if (taux == null) return BigDecimal.ZERO;
+        if (!Double.isFinite(taux) || taux < 0 || taux > 100) {
+            throw new IllegalArgumentException("Le taux de remise doit être compris entre 0 et 100 %.");
+        }
+        return BigDecimal.valueOf(taux);
     }
 
     private BigDecimal montantNet(BigDecimal montantBrut, BigDecimal taux) {
