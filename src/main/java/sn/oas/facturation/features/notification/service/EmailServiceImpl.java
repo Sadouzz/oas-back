@@ -76,12 +76,22 @@ public class EmailServiceImpl implements EmailService {
     @Async
     @Override
     public void sendEmailWithAttachment(String to, String subject, String text, String attachmentName, byte[] attachmentData, String mimeType) {
+        sendAttachmentEmail(to, subject, text, attachmentName, attachmentData, mimeType, false);
+    }
+
+    @Async
+    @Override
+    public void sendHtmlEmailWithAttachment(String to, String subject, String htmlBody, String attachmentName, byte[] attachmentData, String mimeType) {
+        sendAttachmentEmail(to, subject, htmlBody, attachmentName, attachmentData, mimeType, true);
+    }
+
+    private void sendAttachmentEmail(String to, String subject, String body, String attachmentName, byte[] attachmentData, String mimeType, boolean html) {
         try {
             MimeMessage message = javaMailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
             helper.setTo(to);
             helper.setSubject(subject);
-            helper.setText(text);
+            helper.setText(body, html);
             
             ByteArrayResource resource = new ByteArrayResource(attachmentData);
             helper.addAttachment(attachmentName, resource, mimeType);

@@ -7,4 +7,5 @@ public interface EmailService {
     void sendHtmlEmail(String to, String subject, String htmlBody);
     void sendEmailWithAttachment(String to, String subject, String text, String attachmentName, File attachment);
     void sendEmailWithAttachment(String to, String subject, String text, String attachmentName, byte[] attachmentData, String mimeType);
+    void sendHtmlEmailWithAttachment(String to, String subject, String htmlBody, String attachmentName, byte[] attachmentData, String mimeType);
 }

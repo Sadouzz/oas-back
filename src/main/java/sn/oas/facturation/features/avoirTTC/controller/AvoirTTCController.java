@@ -3,6 +3,7 @@ package sn.oas.facturation.features.avoirTTC.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -17,6 +18,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/avoirs-ttc")
 @RequiredArgsConstructor
+@PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
 @Tag(name = "Avoirs TTC", description = "API pour la gestion des avoirs Toutes Taxes Comprises")
 public class AvoirTTCController {
 

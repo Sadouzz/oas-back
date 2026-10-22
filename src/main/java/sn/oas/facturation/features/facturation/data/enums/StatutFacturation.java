@@ -6,5 +6,6 @@ public enum StatutFacturation {
     REJETE,
     PAYEE,
     PARTIELLEMENT_PAYEE,
-    ANNULEE
+    ANNULEE,
+    CONVERTIE
 }

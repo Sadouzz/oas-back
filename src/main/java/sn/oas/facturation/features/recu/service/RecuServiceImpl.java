@@ -41,7 +41,7 @@ public class RecuServiceImpl implements RecuService {
     @Override
     @Transactional
     public Recu create(RecuRequest request) {
-        Facture facture = factureRepository.findById(request.getFactureId())
+        Facture facture = factureRepository.findByIdForPaiement(request.getFactureId())
                 .orElseThrow(() -> new ResourceNotFoundException("Facture introuvable avec l'id : " + request.getFactureId()));
 
         if (facture.getStatutPaiement() == StatutPaiement.PAYE) {

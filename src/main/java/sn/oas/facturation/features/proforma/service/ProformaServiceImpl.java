@@ -296,8 +296,12 @@ public class ProformaServiceImpl implements ProformaService {
     @Transactional
     public Proforma update(Long id, ProformaUpdateRequest request) {
         log.info("Mise à jour du proforma id: {}", id);
-        Proforma proforma = proformaRepository.findById(id)
+        Proforma proforma = proformaRepository.findByIdForFactureConversion(id)
                 .orElseThrow(() -> new IllegalArgumentException("Proforma non trouvé avec l'id : " + id));
+        if (proforma.getStatut() == StatutFacturation.CONVERTIE) {
+            throw new sn.oas.facturation.shared.exception.ResourceAlreadyExistsException(
+                    "Un proforma converti en facture ne peut plus être modifié.");
+        }
 
         Vehicule vehicule = null;
         if (proforma.getVehicule() != null) vehicule = proforma.getVehicule();
@@ -492,22 +496,33 @@ public class ProformaServiceImpl implements ProformaService {
     @Override
     @Transactional
     public void delete(Long id) {
-        if (!proformaRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Proforma non trouvé avec l'id : " + id);
+        Proforma proforma = proformaRepository.findByIdForFactureConversion(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Proforma non trouvé avec l'id : " + id));
+        if (proforma.getStatut() == StatutFacturation.CONVERTIE
+                || factureRepository.findFirstByProformaId(id).isPresent()) {
+            throw new sn.oas.facturation.shared.exception.BadRequestException(
+                    "Un proforma converti en facture ne peut pas être supprimé.");
         }
-        proformaRepository.deleteById(id);
+        proformaRepository.delete(proforma);
     }
 
     @Override
     @Transactional
     public Proforma valider(Long id) {
         log.info("Validation du proforma id: {}", id);
-        Proforma proforma = proformaRepository.findById(id)
+        Proforma initial = proformaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Proforma non trouvé avec l'id : " + id));
+        OrdreReparation ordreReparation = initial.getOrdreReparation() == null ? null
+                : ordreReparationRepository.findByIdForFacturation(initial.getOrdreReparation().getId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Ordre de réparation introuvable pour ce proforma."));
+        Proforma proforma = proformaRepository.findByIdForFactureConversion(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Proforma non trouvé avec l'id : " + id));
+        if (proforma.getStatut() == StatutFacturation.CONVERTIE) {
+            throw new sn.oas.facturation.shared.exception.BadRequestException("Ce proforma est déjà converti en facture.");
+        }
 
         proforma.setStatut(StatutFacturation.ACCEPTE);
         
-        OrdreReparation ordreReparation = proforma.getOrdreReparation();
         if (ordreReparation != null) {
             ordreReparation.setStatut(StatutOrdreReparation.ORDRE_DE_TRAVAIL);
             ordreReparationRepository.save(ordreReparation);
@@ -520,8 +535,11 @@ public class ProformaServiceImpl implements ProformaService {
     @Transactional
     public Proforma validerEnvoi(Long id) {
         log.info("Validation et envoi au client du proforma id: {}", id);
-        Proforma proforma = proformaRepository.findById(id)
+        Proforma proforma = proformaRepository.findByIdForFactureConversion(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Proforma non trouvé avec l'id : " + id));
+        if (proforma.getStatut() == StatutFacturation.CONVERTIE) {
+            throw new sn.oas.facturation.shared.exception.BadRequestException("Ce proforma est déjà converti en facture.");
+        }
 
         boolean firstClientPublication = !Boolean.TRUE.equals(proforma.getVisibleClient());
         proforma.setVisibleClient(true);
@@ -536,7 +554,7 @@ public class ProformaServiceImpl implements ProformaService {
             String email = ownerAtWork.getEmail();
             if (email != null && !email.isEmpty()) {
                 byte[] pdfBytes = generatePdf(saved.getId());
-                emailService.sendEmailWithAttachment(
+                emailService.sendHtmlEmailWithAttachment(
                         email,
                         "Validation de votre proforma",
                         "<p>Bonjour,</p><p>Votre proforma <b>" + saved.getNumero() + "</b> a été créé. Veuillez le trouver en pièce jointe et le valider depuis votre espace.</p><p>Cordialement.</p>",
@@ -571,6 +589,26 @@ public class ProformaServiceImpl implements ProformaService {
         Proforma proforma = proformaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Proforma non trouvé avec l'id : " + id));
 
+        if (proforma.getOrdreReparation() != null) {
+            OrdreReparation ordreVerrouille = ordreReparationRepository.findByIdForFacturation(proforma.getOrdreReparation().getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Ordre de réparation introuvable pour ce proforma."));
+            proforma.setOrdreReparation(ordreVerrouille);
+            if (factureRepository.findFirstByOrdreReparationId(ordreVerrouille.getId()).isPresent()) {
+                throw new sn.oas.facturation.shared.exception.ResourceAlreadyExistsException(
+                        "Une facture existe déjà pour l'ordre de réparation " + ordreVerrouille.getNumero() + ".");
+            }
+        }
+        proforma = proformaRepository.findByIdForFactureConversion(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Proforma non trouvé avec l'id : " + id));
+        if (proforma.getStatut() != StatutFacturation.ACCEPTE) {
+            throw new sn.oas.facturation.shared.exception.BadRequestException(
+                    "Seul un proforma accepté par le client peut être converti en facture.");
+        }
+        if (factureRepository.findFirstByProformaId(id).isPresent()) {
+            throw new sn.oas.facturation.shared.exception.ResourceAlreadyExistsException(
+                    "Ce proforma a déjà été converti en facture.");
+        }
+
         Client clientFacture = proforma.getClient();
         if (clientFacture == null) clientFacture = resolveProformaClient(proforma);
         LocalDateTime dateEcheance = clientFacture != null && clientFacture.getEcheance() != null && clientFacture.getEcheance() > 0
@@ -582,6 +620,7 @@ public class ProformaServiceImpl implements ProformaService {
                 .dateModification(LocalDateTime.now())
                 .agent(authService.getAgentConnecte())
                 .garage(proforma.getGarage())
+                .proforma(proforma)
                 .client(clientFacture)
                 .vehicule(proforma.getVehicule() != null ? proforma.getVehicule() : proforma.getOrdreReparation() != null ? proforma.getOrdreReparation().getVehicule() : null)
                 .ordreReparation(proforma.getOrdreReparation())
@@ -624,13 +663,15 @@ public class ProformaServiceImpl implements ProformaService {
         }
 
         Facture savedFacture = factureRepository.save(facture);
+        proforma.setStatut(StatutFacturation.CONVERTIE);
+        proformaRepository.save(proforma);
         String message = "Le proforma " + proforma.getNumero() + " a été converti en facture " + savedFacture.getNumero() + ".";
         if (clientFacture != null) {
             notificationService.sendInAppNotification(clientFacture, "Votre facture est disponible", message);
             String email = clientFacture.getEmail();
             if (email != null && !email.isBlank()) {
                 byte[] pdfBytes = factureService.generatePdf(savedFacture.getId());
-                emailService.sendEmailWithAttachment(email, "Votre facture " + savedFacture.getNumero(),
+                emailService.sendHtmlEmailWithAttachment(email, "Votre facture " + savedFacture.getNumero(),
                         "<p>Bonjour,</p><p>Le proforma <b>" + proforma.getNumero()
                                 + "</b> a été converti en facture <b>" + savedFacture.getNumero()
                                 + "</b>. Vous trouverez la facture en pièce jointe.</p><p>Cordialement.</p>",
@@ -662,15 +703,24 @@ public class ProformaServiceImpl implements ProformaService {
     @Transactional
     public Proforma clientValider(Client client, Long id) {
         log.info("Validation du proforma id: {} par le client: {}", id, client.getId());
-        Proforma proforma = proformaRepository.findById(id)
+        Proforma initial = proformaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Proforma non trouvé avec l'id : " + id));
+        assertClientOwnsVisibleProforma(client, initial);
+        OrdreReparation ordreReparation = initial.getOrdreReparation() == null ? null
+                : ordreReparationRepository.findByIdForFacturation(initial.getOrdreReparation().getId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Ordre de réparation introuvable pour ce proforma."));
+        Proforma proforma = proformaRepository.findByIdForFactureConversion(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Proforma non trouvé avec l'id : " + id));
+
+        if (proforma.getStatut() == StatutFacturation.CONVERTIE) {
+            throw new sn.oas.facturation.shared.exception.BadRequestException("Ce proforma est déjà converti en facture.");
+        }
 
         assertClientOwnsVisibleProforma(client, proforma);
 
         boolean statusChanged = proforma.getStatut() != StatutFacturation.ACCEPTE;
         proforma.setStatut(StatutFacturation.ACCEPTE);
 
-        OrdreReparation ordreReparation = proforma.getOrdreReparation();
         if (ordreReparation != null) {
             ordreReparation.setStatut(StatutOrdreReparation.ORDRE_DE_TRAVAIL);
             ordreReparationRepository.save(ordreReparation);
@@ -688,10 +738,15 @@ public class ProformaServiceImpl implements ProformaService {
     @Transactional
     public Proforma clientRefuser(Client client, Long id) {
         log.info("Refus du proforma id: {} par le client: {}", id, client.getId());
-        Proforma proforma = proformaRepository.findById(id)
+        Proforma proforma = proformaRepository.findByIdForFactureConversion(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Proforma non trouvé avec l'id : " + id));
 
         assertClientOwnsVisibleProforma(client, proforma);
+        if (proforma.getStatut() == StatutFacturation.CONVERTIE
+                || factureRepository.findFirstByProformaId(id).isPresent()) {
+            throw new sn.oas.facturation.shared.exception.BadRequestException(
+                    "Un proforma converti en facture ne peut plus être refusé.");
+        }
 
         boolean statusChanged = proforma.getStatut() != StatutFacturation.REJETE;
         proforma.setStatut(StatutFacturation.REJETE);

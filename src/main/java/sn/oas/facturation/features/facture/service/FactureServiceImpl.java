@@ -21,6 +21,8 @@ import sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece
 import sn.oas.facturation.features.facture.data.entity.Facture;
 import sn.oas.facturation.features.facture.data.enums.StatutPaiement;
 import sn.oas.facturation.features.facture.repository.FactureRepository;
+import sn.oas.facturation.features.proforma.data.entity.Proforma;
+import sn.oas.facturation.features.proforma.repository.ProformaRepository;
 import sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation;
 import sn.oas.facturation.features.piecedetache.data.entity.PDP;
 import sn.oas.facturation.features.piecedetache.data.entity.PieceDetache;
@@ -48,6 +50,8 @@ import sn.oas.facturation.features.notification.service.AgentNotificationService
 import sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService;
 import sn.oas.facturation.shared.documentNumber.DocumentType;
 import sn.oas.facturation.shared.exception.ResourceNotFoundException;
+import sn.oas.facturation.shared.exception.BadRequestException;
+import sn.oas.facturation.shared.exception.ResourceAlreadyExistsException;
 import sn.oas.facturation.features.pdfGenerator.service.OasBrandedPdfPageEvent;
 
 import java.awt.Color;
@@ -62,6 +66,7 @@ import java.util.List;
 public class FactureServiceImpl implements FactureService {
 
     private final FactureRepository factureRepository;
+    private final ProformaRepository proformaRepository;
     private final OrdreReparationRepository ordreReparationRepository;
     private final VehiculeRepository vehiculeRepository;
     private final UserRepository userRepository;
@@ -79,6 +84,10 @@ public class FactureServiceImpl implements FactureService {
     @Override
     @Transactional
     public Facture createFacture(FactureCreateRequest request) {
+        if (request.getOrdreReparationId() == null || request.getClientId() == null || request.getVehiculeId() == null) {
+            throw new BadRequestException("Le client, le véhicule et l'ordre de réparation sont obligatoires pour créer une facture.");
+        }
+
         Client client = (Client) userRepository.findById(request.getClientId())
                 .orElseThrow(() -> new ResourceNotFoundException("Client introuvable avec l'id : " + request.getClientId()));
         
@@ -90,8 +99,26 @@ public class FactureServiceImpl implements FactureService {
             throw new sn.oas.facturation.shared.exception.ForbiddenException("Le véhicule sélectionné n'appartient pas au client de la facture.");
         }
 
-        OrdreReparation ordreReparation = ordreReparationRepository.findById(request.getOrdreReparationId())
+        OrdreReparation ordreReparation = ordreReparationRepository.findByIdForFacturation(request.getOrdreReparationId())
                 .orElseThrow(() -> new ResourceNotFoundException("Fiche Atelier / Ordre de réparation introuvable avec l'id : " + request.getOrdreReparationId()));
+
+        Client clientOrdre = ordreReparation.getClient() != null ? ordreReparation.getClient()
+                : ordreReparation.getVehicule() != null ? ordreReparation.getVehicule().getClient() : null;
+        if (clientOrdre == null || !clientOrdre.getId().equals(client.getId())) {
+            throw new BadRequestException("Le client sélectionné ne correspond pas à l'ordre de réparation.");
+        }
+        if (ordreReparation.getVehicule() == null || !ordreReparation.getVehicule().getId().equals(vehicule.getId())) {
+            throw new BadRequestException("Le véhicule sélectionné ne correspond pas à l'ordre de réparation.");
+        }
+        if (ordreReparation.getProforma() != null) {
+            Proforma proforma = proformaRepository.findByIdForFactureConversion(ordreReparation.getProforma().getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Proforma introuvable pour cet ordre de réparation."));
+            if (proforma.getStatut() != sn.oas.facturation.features.facturation.data.enums.StatutFacturation.ACCEPTE) {
+                throw new BadRequestException("Le proforma doit être accepté par le client avant la création de la facture.");
+            }
+            ordreReparation.setProforma(proforma);
+        }
+        verifierAucuneFactureExistante(ordreReparation);
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         Agent agent = null;
@@ -110,6 +137,7 @@ public class FactureServiceImpl implements FactureService {
                 .client(client)
                 .vehicule(vehicule)
                 .ordreReparation(ordreReparation)
+                .proforma(ordreReparation.getProforma())
                 .agent(agent)
                 .kilometrage(request.getKilometrage() != null ? request.getKilometrage() : 0.0)
                 .remarque(request.getRemarque())
@@ -124,6 +152,8 @@ public class FactureServiceImpl implements FactureService {
             LigneFacturationPiece lfp = LigneFacturationPiece.builder()
                     .facturation(facture)
                     .piece(ligneFiche.getPiece())
+                    .isCustom(ligneFiche.getIsCustom())
+                    .designationPds(ligneFiche.getDesignationPds())
                     .quantite(ligneFiche.getQuantite())
                     .prix(ligneFiche.getPrix())
                     .tauxRemise(ligneFiche.getTauxRemise())
@@ -174,6 +204,7 @@ public class FactureServiceImpl implements FactureService {
         facture.setStatutPaiement(StatutPaiement.NON_PAYE);
 
         facture = factureRepository.save(facture);
+        marquerProformaConverti(ordreReparation);
 
         // Mouvement de stock : La facture diminue le stock réel (SORTIE RÉELLE)
         for (LigneFacturationPiece lfp : facture.getLignesFacturationPieces()) {
@@ -220,7 +251,7 @@ public class FactureServiceImpl implements FactureService {
 
         if (client.getEmail() != null && !client.getEmail().isEmpty()) {
             byte[] pdfBytes = generatePdf(facture.getId());
-            emailService.sendEmailWithAttachment(
+            emailService.sendHtmlEmailWithAttachment(
                     client.getEmail(),
                     "Votre facture et lien de paiement",
                     "<p>Bonjour,</p><p>Votre facture <b>" + facture.getNumero() + "</b> a été générée. Vous pouvez la trouver en pièce jointe.</p><p>Veuillez procéder au paiement depuis votre espace client pour récupérer votre véhicule.</p><p>Cordialement.</p>",
@@ -236,6 +267,22 @@ public class FactureServiceImpl implements FactureService {
     @Override
     @Transactional
     public Facture createFactureAuto(OrdreReparation ordreReparation) {
+        if (ordreReparation == null || ordreReparation.getId() == null) {
+            throw new BadRequestException("Un ordre de réparation valide est obligatoire pour créer une facture.");
+        }
+        Long ordreId = ordreReparation.getId();
+        ordreReparation = ordreReparationRepository.findByIdForFacturation(ordreId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ordre de réparation introuvable avec l'id : " + ordreId));
+        if (ordreReparation.getProforma() != null) {
+            Proforma proforma = proformaRepository.findByIdForFactureConversion(ordreReparation.getProforma().getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Proforma introuvable pour cet ordre de réparation."));
+            if (proforma.getStatut() != sn.oas.facturation.features.facturation.data.enums.StatutFacturation.ACCEPTE) {
+                throw new BadRequestException("Le proforma doit être accepté par le client avant la création de la facture.");
+            }
+            ordreReparation.setProforma(proforma);
+        }
+        verifierAucuneFactureExistante(ordreReparation);
+
         Client client = null;
         Vehicule vehicule = ordreReparation.getVehicule();
         client = ordreReparation.getClient() != null ? ordreReparation.getClient() : (vehicule == null ? null : vehicule.getClient());
@@ -248,6 +295,7 @@ public class FactureServiceImpl implements FactureService {
                 .client(client)
                 .vehicule(vehicule)
                 .ordreReparation(ordreReparation)
+                .proforma(ordreReparation.getProforma())
                 .agent(null)
                 .garage(ordreReparation.getGarage())
                 .kilometrage(vehicule != null && vehicule.getKilometrage() != null ? vehicule.getKilometrage() : 0.0)
@@ -257,6 +305,7 @@ public class FactureServiceImpl implements FactureService {
                 .build();
 
         facture = factureRepository.save(facture);
+        marquerProformaConverti(ordreReparation);
 
         // Copy pieces
         BigDecimal montantPiecesNet = BigDecimal.ZERO;
@@ -364,7 +413,7 @@ public class FactureServiceImpl implements FactureService {
         }
         if (client != null && client.getEmail() != null && !client.getEmail().isEmpty()) {
             byte[] pdfBytes = generatePdf(facture.getId());
-            emailService.sendEmailWithAttachment(
+            emailService.sendHtmlEmailWithAttachment(
                     client.getEmail(),
                     "Votre facture et lien de paiement",
                     "<p>Bonjour,</p><p>Votre facture <b>" + facture.getNumero() + "</b> a été générée. Vous pouvez la trouver en pièce jointe.</p><p>Veuillez procéder au paiement depuis votre espace client pour récupérer votre véhicule.</p><p>Cordialement.</p>",
@@ -630,6 +679,25 @@ public class FactureServiceImpl implements FactureService {
             return ordreReparation.getProforma().getTauxRemiseClient();
         }
         return BigDecimal.valueOf(tauxRemiseApplicable(client));
+    }
+
+    private void verifierAucuneFactureExistante(OrdreReparation ordreReparation) {
+        if (ordreReparation != null && ordreReparation.getId() != null
+                && factureRepository.findFirstByOrdreReparationId(ordreReparation.getId()).isPresent()) {
+            throw new ResourceAlreadyExistsException("Une facture existe déjà pour l'ordre de réparation "
+                    + ordreReparation.getNumero() + ".");
+        }
+        if (ordreReparation != null && ordreReparation.getProforma() != null
+                && factureRepository.findFirstByProformaId(ordreReparation.getProforma().getId()).isPresent()) {
+            throw new ResourceAlreadyExistsException("Ce proforma a déjà été converti en facture.");
+        }
+    }
+
+    private void marquerProformaConverti(OrdreReparation ordreReparation) {
+        if (ordreReparation != null && ordreReparation.getProforma() != null) {
+            ordreReparation.getProforma().setStatut(
+                    sn.oas.facturation.features.facturation.data.enums.StatutFacturation.CONVERTIE);
+        }
     }
 
     private BigDecimal montantNet(BigDecimal brut, BigDecimal tauxRemise) {

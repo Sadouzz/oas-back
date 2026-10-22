@@ -11,6 +11,10 @@ import java.util.List;
 @Repository
 public interface FactureRepository extends JpaRepository<Facture, Long> {
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT f FROM Facture f WHERE f.id = :id")
+    java.util.Optional<Facture> findByIdForPaiement(@Param("id") Long id);
+
     @Query("SELECT f FROM Facture f WHERE " +
             "LOWER(f.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(f.remarque) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
@@ -49,4 +53,5 @@ public interface FactureRepository extends JpaRepository<Facture, Long> {
     boolean existsFactureLegacyImpayeeEnRetard(@Param("clientId") Long clientId, @Param("limite") java.time.LocalDateTime limite);
 
     java.util.Optional<Facture> findFirstByOrdreReparationId(Long ordreReparationId);
+    java.util.Optional<Facture> findFirstByProformaId(Long proformaId);
 }

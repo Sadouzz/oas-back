@@ -12,6 +12,8 @@ import sn.oas.facturation.features.facture.data.enums.StatutPaiement;
 import sn.oas.facturation.features.recu.data.entity.Recu;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.features.pdfTemplate.data.entity.PdfTemplate;
+import sn.oas.facturation.features.proforma.data.entity.Proforma;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.math.BigDecimal;
 
@@ -33,6 +35,14 @@ public class Facture extends FactureTTC {
     @Column(name = "pdf_layout_key", length = 20)
     @lombok.Builder.Default
     private String pdfLayoutKey = "AVEC_ENTETE";
+
+    /** Proforma source, when this invoice was issued by converting a proforma. */
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "proforma_id", unique = true)
+    @JsonIgnore
+    @lombok.EqualsAndHashCode.Exclude
+    @lombok.ToString.Exclude
+    private Proforma proforma;
 
 
     @Column(name = "numero_bon_de_commande")

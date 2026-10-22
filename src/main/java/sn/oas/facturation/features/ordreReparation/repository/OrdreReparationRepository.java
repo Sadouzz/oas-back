@@ -17,6 +17,10 @@ public interface OrdreReparationRepository extends JpaRepository<OrdreReparation
 
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT o FROM OrdreReparation o WHERE o.id = :id")
+    Optional<OrdreReparation> findByIdForFacturation(@Param("id") Long id);
+
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT o FROM OrdreReparation o WHERE o.id = :id")
     Optional<OrdreReparation> findByIdForOrdreTravailCreation(@Param("id") Long id);
 
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)

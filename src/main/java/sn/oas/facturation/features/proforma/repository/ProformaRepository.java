@@ -12,6 +12,10 @@ import java.util.Optional;
 @Repository
 public interface ProformaRepository extends JpaRepository<Proforma, Long> {
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM Proforma p WHERE p.id = :id")
+    Optional<Proforma> findByIdForFactureConversion(@Param("id") Long id);
+
     @Query(value = "SELECT p FROM Proforma p " +
             "LEFT JOIN p.bonDeCommande b " +
             "LEFT JOIN p.client directClient " +

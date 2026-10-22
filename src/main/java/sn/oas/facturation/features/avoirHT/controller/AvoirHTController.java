@@ -3,6 +3,7 @@ package sn.oas.facturation.features.avoirHT.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -19,6 +20,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/avoirs-ht")
 @RequiredArgsConstructor
+@PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
 @Tag(name = "Avoirs HT", description = "API pour la gestion des avoirs Hors Taxe")
 public class AvoirHTController {
 

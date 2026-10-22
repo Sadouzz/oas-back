@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.service.ClientService;
@@ -26,12 +27,14 @@ public class RecuController {
     private final ClientService clientService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
     @Operation(summary = "Lister tous les reçus de paiement")
     public ResponseEntity<List<RecuResponse>> getAllRecus() {
         return ResponseEntity.ok(recuService.getAll().stream().map(RecuResponse::from).toList());
     }
 
     @GetMapping("/me")
+    @PreAuthorize("hasAnyRole('CLIENT')")
     @Operation(summary = "Lister l'historique des reçus du client connecté")
     public ResponseEntity<List<RecuResponse>> getClientRecus() {
         Client client = clientService.getClientConnecte();
@@ -39,12 +42,14 @@ public class RecuController {
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
     @Operation(summary = "Créer un nouveau reçu pour une facture")
     public ResponseEntity<RecuResponse> create(@RequestBody RecuRequest request) {
         return new ResponseEntity<>(RecuResponse.from(recuService.create(request)), HttpStatus.CREATED);
     }
 
     @PostMapping("/payer")
+    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
     @Operation(summary = "Enregistrer un paiement (total ou partiel) pour une facture")
     public ResponseEntity<RecuResponse> registerPayment(
             @RequestParam Long factureId,
@@ -59,6 +64,7 @@ public class RecuController {
     }
 
     @GetMapping("/facture/{factureId}")
+    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
     @Operation(summary = "Récupérer les reçus d'une facture spécifique")
     public ResponseEntity<List<RecuResponse>> getByFacture(@PathVariable Long factureId) {
         return ResponseEntity.ok(recuService.getByFacture(factureId).stream().map(RecuResponse::from).toList());

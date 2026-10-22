@@ -729,7 +729,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             @CacheEvict(value = "dashboard_agent", allEntries = true)
     })*/
     public OrdreReparation updateStatut(Long id, String statut) {
-        OrdreReparation fiche = ordreReparationRepository.findById(id)
+        OrdreReparation fiche = ordreReparationRepository.findByIdForFacturation(id)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
         StatutOrdreReparation newStatut;
         try {
@@ -1654,6 +1654,9 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         dto.setStatut(ordre.getStatut() != null ? ordre.getStatut().name() : null);
         dto.setEtape(ordre.getStatut() != null ? ordre.getStatut().getEtape() : null);
         if (ordre.getVehicule() != null) dto.setVehiculeId(ordre.getVehicule().getId());
+        Client clientPourFacture = ordre.getClient() != null ? ordre.getClient()
+                : ordre.getVehicule() != null ? ordre.getVehicule().getClient() : null;
+        if (clientPourFacture != null) dto.setClientId(clientPourFacture.getId());
 
         sn.oas.facturation.features.facture.data.entity.Facture facture =
                 factureRepository.findFirstByOrdreReparationId(ordre.getId()).orElse(null);
@@ -1672,7 +1675,8 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             fDto.setStatut(facture.getStatutPaiement() != null ? facture.getStatutPaiement().name() : null);
             fDto.setMontantAPayer(facture.getMontantTotal() != null ? facture.getMontantTotal().doubleValue() : 0.0);
             fDto.setMontantPaye(facture.getMontantPaye() != null ? facture.getMontantPaye().doubleValue() : 0.0);
-            fDto.setMontantRestant(facture.getResteAPayer() != null ? facture.getResteAPayer().doubleValue() : 0.0);
+            fDto.setMontantRestant(facture.getResteAPayer() != null ? facture.getResteAPayer().doubleValue()
+                    : facture.getMontantTotal() != null ? facture.getMontantTotal().doubleValue() : null);
             dto.setFacture(fDto);
         }
 

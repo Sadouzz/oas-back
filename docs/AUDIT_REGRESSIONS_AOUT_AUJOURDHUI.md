@@ -89,7 +89,7 @@ Le cycle courant change le premier débit : `BonDeSortieServiceImpl.creer` effec
 ### OAS-008 — Les pièces personnalisées d'un proforma font échouer les transitions métier
 
 **Sévérité :** élevée — réparation ou réception automatique bloquée
-**État :** défaut de parcours confirmé dans l'état courant, introduit avec la prise en charge des lignes personnalisées.
+**État :** partiellement corrigé le 21 octobre 2026 : les chemins de facturation conservent maintenant les désignations PDS et l'API facture les expose. Les chemins BDC/BDS restent à vérifier/corriger.
 **Zone :** lignes de proforma marquées `isCustom` / PDS.
 
 Le backend proforma accepte explicitement une ligne personnalisée avec `isCustom=true`, `designationPds` et `piece=null`; le formulaire frontend offre également ce mode. Plusieurs traitements ultérieurs supposent pourtant systématiquement `lp.getPiece() != null` :
@@ -113,6 +113,8 @@ Le flux d'approvisionnement frontend exclut explicitement les lignes `isCustom` 
 - `oas-front/src/app/agent/ordres-reparation/ordre-reparation-detail/steps/step-approvisionnement/step-approvisionnement.component.ts`
 
 **Aucune correction applicative n'a été appliquée pendant l'audit.**
+
+**Mise à jour du 21 octobre 2026 :** la création de facture depuis un OR copie `isCustom` et `designationPds`; la conversion de proforma conservait déjà ces champs. `FactureResponse` renvoie la désignation PDS comme désignation de ligne, y compris pour les vues qui n'affichent pas le champ spécialisé. Les traitements BDC/BDS ne sont pas modifiés dans cette passe.
 
 ### OAS-009 — L'étape Bon de sortie avance l'OR avant validation et saute les effets de validation
 
@@ -449,7 +451,7 @@ La régression effectivement confirmée est différente et observable: le client
 
 ### OAS-022 — Les courriels facture/proforma affichent les balises HTML comme du texte
 
-**Constat confirmé dans le code introduit le 2 octobre 2026 (`f0a09b8`).**
+**Constat confirmé dans le code introduit le 2 octobre 2026 (`f0a09b8`), corrigé le 21 octobre 2026.**
 
 `EmailServiceImpl.sendEmailWithAttachment(..., byte[], ...)` crée `MimeMessageHelper` en mode multipart, mais appelle `helper.setText(text)` sans l'option HTML. Les deux chemins de création de facture et `ProformaServiceImpl.validerEnvoi()` fournissent des corps contenant `<p>` et `<b>`. Le helper les envoie donc comme texte brut : les balises sont affichées au destinataire au lieu de former des paragraphes et du texte en gras. Le message de création proforma ajouté dans `52f6238` utilise `\n` et n'est pas concerné.
 
@@ -460,6 +462,8 @@ La régression effectivement confirmée est différente et observable: le client
 - `oas-back/src/main/java/sn/oas/facturation/features/notification/service/EmailServiceImpl.java` (`sendEmailWithAttachment` avec `byte[]`).
 - `oas-back/src/main/java/sn/oas/facturation/features/facture/service/FactureServiceImpl.java` (création manuelle et automatique, corps HTML).
 - `oas-back/src/main/java/sn/oas/facturation/features/proforma/service/ProformaServiceImpl.java` (`validerEnvoi()`, corps HTML).
+
+**Correction actuelle :** les envois HTML avec pièce jointe passent par une méthode explicite en UTF-8 qui marque le corps comme HTML. Les autres courriels avec pièce jointe gardent leur mode texte brut.
 
 ### OAS-023 — Une commande envoyée ou reçue peut être réécrite, y compris l'identité d'une pièce déjà réceptionnée
 
@@ -997,8 +1001,9 @@ Le risque est renforcé par le calcul des lignes automatiques : il ne prend que 
 
 ### OAS-049 — L'étape « paiement validé » du workflow OR contourne le règlement réel
 
-**Sévérité :** élevée — livraison possible sans paiement complet
-**État :** régression de workflow confirmée dans l'étape OR introduite le 18 septembre (`3f2799d`/`0c54129`).
+**Sévérité :** élevée — livraison possible sans paiement complet; règle métier à confirmer par garage.
+**État :** comportement initial rétabli le 21 octobre 2026 conformément à la règle de ce garage : le paiement n'est pas obligatoire avant livraison.
+**Règle actuelle :** le serveur et l'interface permettent de poursuivre vers la livraison même si la facture est absente ou non soldée; la restitution conserve ses autres contrôles métier.
 **Zone :** étapes Facturation/Règlement et Livraison de l'ordre de réparation.
 
 L'étape frontend « Facturation & Règlement » charge une facture pour afficher son numéro et `statutPaiement`, mais `validateStep()` appelle uniquement `OrdreReparationService.updateStatut(id, 'PRET_A_LIVRER')`. Elle n'appelle pas le parcours reçu/paiement et le backend `OrdreReparationServiceImpl.updateStatut()` accepte la transition sans vérifier l'état de la facture. L'étape Livraison appelle ensuite directement `updateStatut(id, 'LIVRE')`, sans garde d'encaissement non plus.
@@ -1018,7 +1023,8 @@ Le parcours backend d'encaissement existe séparément : `POST /api/recus` / `/p
 ### OAS-050 — L'étape paiement cherche la facture dans une page arbitraire et peut annoncer qu'elle est absente
 
 **Sévérité :** moyenne — écran de règlement trompeur sur les factures anciennes
-**État :** défaut introduit avec l'étape OR du 18 septembre (`3f2799d`).
+**État :** défaut introduit avec l'étape OR du 18 septembre (`3f2799d`), corrigé dans le code courant le 21 octobre 2026.
+**Correction actuelle :** la réponse dédiée `GET /api/ordres-reparation/{id}/step-paiement` fournit déjà la facture par OR. Le composant n'interroge plus une page arbitraire de factures.
 **Zone :** chargement de la facture associée à un OR.
 
 `StepPaiementComponent.loadInvoice()` appelle `FactureService.getAll()` sans préciser de page puis cherche localement une facture dont l'`ordreReparationId` correspond. La route backend `GET /api/factures` renvoie par défaut une `Page` de 10 résultats; si la facture de cet ordre n'est pas dans la page initiale, le composant affiche « Aucune facture spécifique trouvée ou en cours d'encaissement » même si elle existe. En cas d'erreur réseau, il traite aussi l'erreur comme une liste vide sans distinguer échec de chargement et absence de facture.
@@ -1090,7 +1096,8 @@ Dans `ngOnInit()`, les deux sources du `forkJoin` (`clientService.getAll()` et `
 ### OAS-054 — L'encaissement depuis la liste facture appelle une route backend supprimée
 
 **Sévérité :** élevée — paiement des factures impossible depuis le bouton d'encaissement
-**État :** régression de contrat confirmée lors du déplacement backend de septembre.
+**État :** régression de contrat confirmée lors du déplacement backend de septembre, corrigée dans le code courant le 21 octobre 2026.
+**Correction actuelle :** le service frontend poste maintenant sur `/api/recus/payer` avec `factureId`, `montant` et `methodePaiement`; après encaissement, le détail sélectionné est rechargé directement par ID.
 **Zone :** bouton « Encaisser paiement » du backoffice.
 
 Le frontend envoie `POST /api/admin/portal/factures/{id}/payer`. Cette route était fournie par l'ancien `AdminPortalController` pré-période. Elle n'existe plus dans le backend courant. Le module reçu expose désormais `POST /api/recus/payer` avec les mêmes données sous forme de paramètres `factureId`, `montant` et `methodePaiement`; aucun contrôleur courant ne mappe l'ancien chemin. Le bouton de paiement du tableau échoue donc avant d'atteindre la logique qui crée le reçu et met à jour `montantPaye`, `resteAPayer` et le statut de paiement.
