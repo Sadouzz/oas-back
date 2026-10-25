@@ -62,8 +62,10 @@ import sn.oas.facturation.features.ordreTravail.dto.steps.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -152,15 +154,7 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
 
         // Ajout des techniciens
         if (request.getTechnicienIds() != null && !request.getTechnicienIds().isEmpty()) {
-            for (Long techId : request.getTechnicienIds()) {
-                Technicien tech = technicienRepository.findById(techId)
-                        .orElseThrow(() -> new ResourceNotFoundException("Technicien introuvable : " + techId));
-                LigneTechnicienOrdreTravail ligne = LigneTechnicienOrdreTravail.builder()
-                        .ordreTravail(ordreTravail)
-                        .technicien(tech)
-                        .build();
-                ordreTravail.getLignesTechniciens().add(ligne);
-            }
+            synchroniserTechniciens(ordreTravail, request.getTechnicienIds());
         } else if (ordreReparation != null && ordreReparation.getDiagnostic() != null && ordreReparation.getDiagnostic().getTechnicien() != null) {
             Technicien tech = ordreReparation.getDiagnostic().getTechnicien();
             LigneTechnicienOrdreTravail ligne = LigneTechnicienOrdreTravail.builder()
@@ -390,16 +384,7 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
         }
 
         if (request.getTechnicienIds() != null) {
-            ordreTravail.getLignesTechniciens().clear();
-            for (Long techId : request.getTechnicienIds()) {
-                Technicien tech = technicienRepository.findById(techId)
-                        .orElseThrow(() -> new ResourceNotFoundException("Technicien introuvable : " + techId));
-                LigneTechnicienOrdreTravail ligne = LigneTechnicienOrdreTravail.builder()
-                        .ordreTravail(ordreTravail)
-                        .technicien(tech)
-                        .build();
-                ordreTravail.getLignesTechniciens().add(ligne);
-            }
+            synchroniserTechniciens(ordreTravail, request.getTechnicienIds());
         }
 
         if (request.getBonDeCommandeIds() != null) {
@@ -489,7 +474,7 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
                 .orElseThrow(() -> new ResourceNotFoundException("Ordre de travail introuvable avec l'id : " + id));
 
         if (technicienIds != null) {
-            for (Long techId : technicienIds) {
+            for (Long techId : new LinkedHashSet<>(technicienIds)) {
                 boolean exists = ordreTravail.getLignesTechniciens().stream()
                         .anyMatch(l -> l.getTechnicien() != null && techId.equals(l.getTechnicien().getId()));
                 if (!exists) {
@@ -1001,16 +986,7 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
                 .orElseThrow(() -> new ResourceNotFoundException("Ordre de travail non trouvé avec l'id : " + id));
 
         if (dto.getTechniciensIds() != null) {
-            ot.getLignesTechniciens().clear();
-            for (Long tId : dto.getTechniciensIds()) {
-                Technicien t = technicienRepository.findById(tId)
-                        .orElseThrow(() -> new ResourceNotFoundException("Technicien non trouvé avec l'id : " + tId));
-                LigneTechnicienOrdreTravail ligne = LigneTechnicienOrdreTravail.builder()
-                        .ordreTravail(ot)
-                        .technicien(t)
-                        .build();
-                ot.getLignesTechniciens().add(ligne);
-            }
+            synchroniserTechniciens(ot, dto.getTechniciensIds());
         }
 
         if (dto.getStatut() != null) {
@@ -1019,6 +995,42 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
         ot.setUpdatedAt(LocalDateTime.now());
         ordreTravailRepository.save(ot);
         return dto;
+    }
+
+    private void synchroniserTechniciens(OrdreTravail ordreTravail, List<Long> technicienIds) {
+        if (ordreTravail.getLignesTechniciens() == null) {
+            ordreTravail.setLignesTechniciens(new ArrayList<>());
+        }
+
+        if (technicienIds == null) {
+            return;
+        }
+
+        Set<Long> targetIds = new LinkedHashSet<>(technicienIds);
+
+        // 1. Supprimer les lignes des techniciens qui ne sont plus retenus
+        ordreTravail.getLignesTechniciens().removeIf(ligne ->
+                ligne.getTechnicien() == null || !targetIds.contains(ligne.getTechnicien().getId())
+        );
+
+        // 2. Déterminer les IDs des techniciens déjà présents
+        Set<Long> existingIds = ordreTravail.getLignesTechniciens().stream()
+                .filter(ligne -> ligne.getTechnicien() != null)
+                .map(ligne -> ligne.getTechnicien().getId())
+                .collect(Collectors.toSet());
+
+        // 3. Ajouter uniquement les nouveaux techniciens manquants
+        for (Long techId : targetIds) {
+            if (!existingIds.contains(techId)) {
+                Technicien tech = technicienRepository.findById(techId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Technicien introuvable : " + techId));
+                LigneTechnicienOrdreTravail ligne = LigneTechnicienOrdreTravail.builder()
+                        .ordreTravail(ordreTravail)
+                        .technicien(tech)
+                        .build();
+                ordreTravail.getLignesTechniciens().add(ligne);
+            }
+        }
     }
 
     @Override

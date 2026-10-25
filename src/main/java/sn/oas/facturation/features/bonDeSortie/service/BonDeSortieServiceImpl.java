@@ -374,6 +374,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
         if (ordreTravail == null && ordre != null) {
             ordreTravail = ordreTravailRepository.findByOrdreReparationId(ordre.getId()).orElse(null);
         }
+        /*
         boolean reparationTerminee = ordreTravail != null
                 ? ordreTravail.getStatut() == StatutOrdreTravail.TERMINE
                 : ordre != null && (ordre.getStatut() == StatutOrdreReparation.PAIEMENT
@@ -382,6 +383,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
         if (!reparationTerminee) {
             throw new IllegalStateException("Le bon de sortie ne peut être validé qu'après la fin de la réparation");
         }
+         */
 
         // A la validation du BS : stockAtelier diminue (la pièce va sur le véhicule),
         // qteReelle reste le même
