@@ -43,6 +43,7 @@ public class StepBonSortieResponseDto extends BaseOtStepResponseDto {
         private Double quantiteSortie; 
         private Double prixUnitaire;
         private Double tauxRemise;
+        private String type;
     }
 
     @Data

@@ -42,9 +42,9 @@ public class LigneBonDeSortiePiece {
     @Builder.Default
     private TypeLigneBonDeSortie type = TypeLigneBonDeSortie.PIECE;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "main_doeuvre_id")
-    private MainDoeuvre mainDoeuvre;
+    // @ManyToOne(fetch = FetchType.LAZY)
+    // @JoinColumn(name = "main_doeuvre_id")
+    // private MainDoeuvre mainDoeuvre;
 
     @Column(name = "designation_snapshot")
     private String designation;

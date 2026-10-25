@@ -873,6 +873,7 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
                             .quantiteSortie(qteSortie)
                             .prixUnitaire(prixUnitaire)
                             .tauxRemise(tauxRemise)
+                            .type(type)
                             .build());
                 }
             }

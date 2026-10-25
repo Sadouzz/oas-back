@@ -157,7 +157,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                 Double prixCatalogue = 0.0;
                 String designation;
                 if (ligneReq.pieceId() == null) {
-                    if (!"PDS".equals(type) || ligneReq.designation() == null || ligneReq.designation().isBlank()) {
+                    if (ligneReq.designation() == null || ligneReq.designation().isBlank()) {
                         throw new IllegalArgumentException("Une pièce du catalogue ou une désignation PDS est obligatoire");
                     }
                     designation = ligneReq.designation().trim();
@@ -165,9 +165,9 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                     piece = pieceDetacheRepository.findById(ligneReq.pieceId())
                             .orElseThrow(() -> new IllegalArgumentException("Pièce introuvable avec l'id : " + ligneReq.pieceId()));
                     piece = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
-                    if (!type.equals(piece.getType().name())) throw new IllegalArgumentException("Le type de pièce ne correspond pas à la pièce sélectionnée");
                     prixCatalogue = piece.getPrixUnitaire() != null ? piece.getPrixUnitaire() : 0.0;
-                    designation = piece.getDesignation();
+                    designation = (ligneReq.designation() != null && !ligneReq.designation().isBlank())
+                            ? ligneReq.designation().trim() : piece.getDesignation();
                 }
                 Double prix = ligneReq.getEffectivePrix() != null ? ligneReq.getEffectivePrix() : prixCatalogue;
                 if (prix == null || prix < 0) throw new IllegalArgumentException("Le prix unitaire ne peut pas être négatif");
@@ -428,7 +428,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
             for (LigneBonDeSortiePiece ligne : bon.getLignesBonDeSortiePieces()) {
                 PDP pdp = resolvePDP(ligne.getPiece());
                 PieceDetache piece = ligne.getPiece() == null ? null : (PieceDetache) org.hibernate.Hibernate.unproxy(ligne.getPiece());
-                String designation = ligne.getDesignation() != null ? ligne.getDesignation() : piece != null ? piece.getDesignation() : ligne.getMainDoeuvre() != null ? ligne.getMainDoeuvre().getDescription() : "";
+                String designation = ligne.getDesignation() != null ? ligne.getDesignation() : piece != null ? piece.getDesignation() : "";
                 bonDeSortieHistoriqueRepository.save(BonDeSortieHistorique
                         .builder()
                         .bonDeSortie(bon)
