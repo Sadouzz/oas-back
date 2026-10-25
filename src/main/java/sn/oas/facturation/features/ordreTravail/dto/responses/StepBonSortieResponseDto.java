@@ -24,6 +24,7 @@ public class StepBonSortieResponseDto extends BaseOtStepResponseDto {
 
     private String proformaNumero;
     private List<PieceBonDeSortieDto> piecesManquantesProforma = new ArrayList<>();
+    private List<MainDoeuvreBonDeSortieDto> mainDoeuvresProforma = new ArrayList<>();
 
     @Data
     @Builder
@@ -41,5 +42,21 @@ public class StepBonSortieResponseDto extends BaseOtStepResponseDto {
         private Double quantiteASortir; 
         private Double quantiteSortie; 
         private Double prixUnitaire;
+        private Double tauxRemise;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class MainDoeuvreBonDeSortieDto {
+        private Long ligneId;
+        private Long mainDoeuvreId;
+        private String code;
+        private String designation;
+        private Integer nbreHeure;
+        private Double tarifHoraire;
+        private Double tauxRemise;
     }
 }
+

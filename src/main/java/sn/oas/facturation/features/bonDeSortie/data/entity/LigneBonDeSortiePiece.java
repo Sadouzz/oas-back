@@ -12,6 +12,8 @@ import sn.oas.facturation.features.bonDeSortie.data.enums.TypeLigneBonDeSortie;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import java.math.BigDecimal;
+
 @Entity
 @Table(name = "lignes_bon_de_sortie_piece")
 @Data
@@ -53,5 +55,35 @@ public class LigneBonDeSortiePiece {
     @Column(nullable = false)
     private Integer prix;
 
-    
+    @Builder.Default
+    @Column(name = "taux_remise", precision = 5, scale = 2)
+    private BigDecimal tauxRemise = BigDecimal.ZERO;
+
+    @Column(name = "montant_total", precision = 15, scale = 2)
+    private BigDecimal montantTotal;
+
+    public BigDecimal getTauxRemise() {
+        return tauxRemise != null ? tauxRemise : BigDecimal.ZERO;
+    }
+
+    @PrePersist
+    @PreUpdate
+    protected void onPersist() {
+        if (this.quantite == null || this.quantite <= 0) {
+            this.quantite = 1;
+        }
+        if (this.prix == null) {
+            this.prix = 0;
+        }
+        if (this.tauxRemise == null) {
+            this.tauxRemise = BigDecimal.ZERO;
+        }
+        BigDecimal base = BigDecimal.valueOf(this.prix).multiply(BigDecimal.valueOf(this.quantite));
+        if (this.tauxRemise.compareTo(BigDecimal.ZERO) > 0) {
+            BigDecimal remise = base.multiply(this.tauxRemise).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+            this.montantTotal = base.subtract(remise);
+        } else {
+            this.montantTotal = base;
+        }
+    }
 }

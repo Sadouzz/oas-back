@@ -15,6 +15,9 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
+import jakarta.persistence.OneToMany;
+import java.util.List;
+import java.util.ArrayList;
 import lombok.ToString;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import sn.oas.facturation.features.bonDeSortie.data.entity.BonDeSortie;
@@ -46,11 +49,19 @@ public class Proforma extends FactureTTC {
     @Builder.Default
     private Boolean visibleClient = false;
 
-    @OneToOne(mappedBy = "proforma", fetch = FetchType.LAZY)
-    @JsonIgnoreProperties({"bs", "hibernateLazyInitializer", "handler"})
+    @OneToMany(mappedBy = "proforma", fetch = FetchType.LAZY)
+    @JsonIgnoreProperties({"proforma", "hibernateLazyInitializer", "handler"})
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
-    private BonDeSortie bs;
+    @Builder.Default
+    private List<BonDeSortie> bonsDeSortie = new ArrayList<>();
+
+    public BonDeSortie getBs() {
+        if (bonsDeSortie == null || bonsDeSortie.isEmpty()) {
+            return null;
+        }
+        return bonsDeSortie.get(bonsDeSortie.size() - 1);
+    }
 
     /** TTC métier : HT + TVA + timbre, recalculé à partir des montants historiques du document. */
     public BigDecimal calculerMontantTtcAvecTimbre() {

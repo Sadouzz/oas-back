@@ -117,6 +117,8 @@ public class DemoDataSeeder implements CommandLineRunner {
 
     private void dropOutdatedConstraints() {
         String[] dropStatements = {
+                "ALTER TABLE bons_de_sortie DROP CONSTRAINT IF EXISTS uk2x3pylvagcd9d99tu8brc420n",
+                "DO $$ DECLARE c_name text; BEGIN FOR c_name IN SELECT c.conname FROM pg_constraint c JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = ANY(c.conkey) WHERE c.conrelid = 'bons_de_sortie'::regclass AND c.contype = 'u' AND a.attname = 'proforma_id' LOOP EXECUTE format('ALTER TABLE bons_de_sortie DROP CONSTRAINT %I', c_name); END LOOP; END $$;",
                 "ALTER TABLE agents DROP CONSTRAINT IF EXISTS agents_role_check",
                 "ALTER TABLE rendez_vous DROP CONSTRAINT IF EXISTS rendez_vous_statut_check",
                 "ALTER TABLE ordres_reparation DROP CONSTRAINT IF EXISTS ordres_reparation_statut_check",

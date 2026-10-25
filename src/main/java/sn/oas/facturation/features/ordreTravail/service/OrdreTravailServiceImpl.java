@@ -782,11 +782,11 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
                 }
             }
             if (proforma.getId() != null) {
-                bonDeSortieRepository.findByProformaId(proforma.getId()).ifPresent(bs -> {
+                for (BonDeSortie bs : bonDeSortieRepository.findByProformaId(proforma.getId())) {
                     if (bsList.stream().noneMatch(b -> b.getId().equals(bs.getId()))) {
                         bsList.add(bs);
                     }
-                });
+                }
             }
         }
 
@@ -857,9 +857,9 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
 
                     double quantiteASortir = Math.max(0.0, (double) qteDemandee - qteSortie);
 
-                    // Prix unitaire issu du proforma associé
                     Double prixUnitaire = lp.getPrix() != null ? lp.getPrix().doubleValue()
                             : (piece.getPrixUnitaire() != null ? piece.getPrixUnitaire() : 0.0);
+                    Double tauxRemise = lp.getTauxRemise() != null ? lp.getTauxRemise().doubleValue() : 0.0;
 
                     piecesDto.add(StepBonSortieResponseDto.PieceBonDeSortieDto.builder()
                             .ligneId(lp.getId())
@@ -872,10 +872,30 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
                             .quantiteASortir(quantiteASortir)
                             .quantiteSortie(qteSortie)
                             .prixUnitaire(prixUnitaire)
+                            .tauxRemise(tauxRemise)
                             .build());
                 }
             }
             dto.setPiecesManquantesProforma(piecesDto);
+
+            if (proforma.getLignesFacturationMainDoeuvres() != null) {
+                List<StepBonSortieResponseDto.MainDoeuvreBonDeSortieDto> moDtos = new ArrayList<>();
+                for (var lm : proforma.getLignesFacturationMainDoeuvres()) {
+                    if (lm.getMainDoeuvre() == null) continue;
+                    var mo = lm.getMainDoeuvre();
+                    moDtos.add(StepBonSortieResponseDto.MainDoeuvreBonDeSortieDto.builder()
+                            .ligneId(lm.getId())
+                            .mainDoeuvreId(mo.getId())
+                            .code("MO-" + mo.getId())
+                            .designation(mo.getDescription() != null ? mo.getDescription() : "Main d'œuvre")
+                            .nbreHeure(lm.getNbreHeure() != null ? lm.getNbreHeure() : 1)
+                            .tarifHoraire(lm.getTarifHoraire() != null ? lm.getTarifHoraire().doubleValue()
+                                    : (mo.getPrix() != null ? mo.getPrix() : 0.0))
+                            .tauxRemise(lm.getTauxRemise() != null ? lm.getTauxRemise().doubleValue() : 0.0)
+                            .build());
+                }
+                dto.setMainDoeuvresProforma(moDtos);
+            }
         } else {
             dto.setProformaId(ot.getProforma() != null ? ot.getProforma().getId() : null);
         }

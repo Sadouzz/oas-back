@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import sn.oas.facturation.features.user.repository.UserRepository;
 import sn.oas.facturation.features.bonDeSortie.data.entity.BonDeSortie;
 import sn.oas.facturation.features.bonDeSortie.data.entity.LigneBonDeSortiePiece;
+import sn.oas.facturation.features.bonDeSortie.data.entity.LigneBonDeSortieMainDoeuvre;
 
 import sn.oas.facturation.features.bonDeSortie.data.entity.BonDeSortieHistorique;
 import sn.oas.facturation.features.bonDeSortie.repository.BonDeSortieHistoriqueRepository;
@@ -16,11 +17,13 @@ import sn.oas.facturation.features.facture.service.FactureService;
 import sn.oas.facturation.features.piecedetache.data.entity.PDP;
 import sn.oas.facturation.features.piecedetache.data.entity.PieceDetache;
 import sn.oas.facturation.features.piecedetache.data.entity.PieceMouvement;
+import sn.oas.facturation.features.proforma.data.entity.Proforma;
 import sn.oas.facturation.features.bonDeSortie.data.enums.StatutBon;
 import sn.oas.facturation.features.bonDeSortie.data.enums.TypeLigneBonDeSortie;
 import sn.oas.facturation.features.piecedetache.data.enums.TypeMouvement;
 import sn.oas.facturation.features.bonDeSortie.dto.BonDeSortieRequest;
 import sn.oas.facturation.features.bonDeSortie.dto.LignePieceRequest;
+import sn.oas.facturation.features.bonDeSortie.dto.LigneMainDoeuvreRequest;
 
 import sn.oas.facturation.features.bonDeSortie.repository.BonDeSortieRepository;
 import sn.oas.facturation.features.client.data.entity.Client;
@@ -101,6 +104,9 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
             throw new IllegalArgumentException("L'ordre de travail ne correspond pas à l'ordre de réparation sélectionné");
         }
 
+        Proforma proformaAssocie = ot != null && ot.getProforma() != null ? ot.getProforma()
+                : (fiche != null ? fiche.getProforma() : null);
+
         BonDeSortie bon = BonDeSortie.builder()
                 .reference(genererReference())
                 .client(client)
@@ -110,6 +116,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                 .remarque(request.remarque())
                 .ordreReparation(fiche)
                 .ordreTravail(ot)
+                .proforma(proformaAssocie)
                 .build();
 
         if (request.lignesPieces() != null) {
@@ -118,47 +125,104 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                     throw new IllegalArgumentException("La quantité doit être supérieure à zéro");
                 }
                 String type = ligneReq.type() == null ? "PDP" : ligneReq.type().trim().toUpperCase();
-                PieceDetache piece = null;
-                MainDoeuvre mainDoeuvre = null;
-                Double prixCatalogue = 0.0;
-                TypeLigneBonDeSortie typeLigne = TypeLigneBonDeSortie.PIECE;
-                String designation;
-                if ("MAIN_DOEUVRE".equals(type) || "MO".equals(type)) {
-                    typeLigne = TypeLigneBonDeSortie.MAIN_DOEUVRE;
-                    if (ligneReq.mainDoeuvreId() == null) throw new IllegalArgumentException("La main-d'œuvre sélectionnée est obligatoire");
-                    mainDoeuvre = mainDoeuvreRepository.findById(ligneReq.mainDoeuvreId())
+
+                // Compatibilité ascendante : si une main-d'œuvre est passée dans lignesPieces
+                if ("MAIN_DOEUVRE".equals(type) || "MO".equals(type) || ligneReq.mainDoeuvreId() != null) {
+                    Long moId = ligneReq.mainDoeuvreId();
+                    if (moId == null) throw new IllegalArgumentException("La main-d'œuvre sélectionnée est obligatoire");
+                    MainDoeuvre mainDoeuvre = mainDoeuvreRepository.findById(moId)
                             .orElseThrow(() -> new IllegalArgumentException("Main-d'œuvre introuvable"));
                     if (Boolean.TRUE.equals(mainDoeuvre.getIsArchived())) throw new IllegalArgumentException("Cette main-d'œuvre est archivée");
-                    prixCatalogue = mainDoeuvre.getPrix();
-                    designation = mainDoeuvre.getDescription();
-                } else {
-                    if (ligneReq.pieceId() == null) {
-                        if (!"PDS".equals(type) || ligneReq.designation() == null || ligneReq.designation().isBlank()) {
-                            throw new IllegalArgumentException("Une pièce du catalogue ou une désignation PDS est obligatoire");
-                        }
-                        designation = ligneReq.designation().trim();
-                    } else {
-                        piece = pieceDetacheRepository.findById(ligneReq.pieceId())
-                                .orElseThrow(() -> new IllegalArgumentException("Pièce introuvable avec l'id : " + ligneReq.pieceId()));
-                        piece = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
-                        if (!type.equals(piece.getType().name())) throw new IllegalArgumentException("Le type de pièce ne correspond pas à la pièce sélectionnée");
-                        prixCatalogue = piece.getPrixUnitaire() != null ? piece.getPrixUnitaire() : 0.0;
-                        designation = piece.getDesignation();
+                    Double prixCatalogue = mainDoeuvre.getPrix() != null ? mainDoeuvre.getPrix() : 0.0;
+                    Double prix = ligneReq.getEffectivePrix() != null ? ligneReq.getEffectivePrix() : prixCatalogue;
+                    if (prix == null || prix < 0) throw new IllegalArgumentException("Le prix unitaire ne peut pas être négatif");
+                    String desc = ligneReq.designation() != null && !ligneReq.designation().isBlank()
+                            ? ligneReq.designation().trim() : mainDoeuvre.getDescription();
+                    BigDecimal tauxRemise = ligneReq.tauxRemise() != null
+                            ? BigDecimal.valueOf(ligneReq.tauxRemise())
+                            : trouverTauxRemiseMoProforma(bon, moId);
+
+                    bon.getLignesBonDeSortieMainDoeuvres().add(LigneBonDeSortieMainDoeuvre.builder()
+                            .bonDeSortie(bon)
+                            .mainDoeuvre(mainDoeuvre)
+                            .description(desc)
+                            .nbreHeure(ligneReq.quantite())
+                            .tarifHoraire((int) Math.round(prix))
+                            .tauxRemise(tauxRemise)
+                            .build());
+                    continue;
+                }
+
+                PieceDetache piece = null;
+                Double prixCatalogue = 0.0;
+                String designation;
+                if (ligneReq.pieceId() == null) {
+                    if (!"PDS".equals(type) || ligneReq.designation() == null || ligneReq.designation().isBlank()) {
+                        throw new IllegalArgumentException("Une pièce du catalogue ou une désignation PDS est obligatoire");
                     }
+                    designation = ligneReq.designation().trim();
+                } else {
+                    piece = pieceDetacheRepository.findById(ligneReq.pieceId())
+                            .orElseThrow(() -> new IllegalArgumentException("Pièce introuvable avec l'id : " + ligneReq.pieceId()));
+                    piece = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
+                    if (!type.equals(piece.getType().name())) throw new IllegalArgumentException("Le type de pièce ne correspond pas à la pièce sélectionnée");
+                    prixCatalogue = piece.getPrixUnitaire() != null ? piece.getPrixUnitaire() : 0.0;
+                    designation = piece.getDesignation();
                 }
                 Double prix = ligneReq.getEffectivePrix() != null ? ligneReq.getEffectivePrix() : prixCatalogue;
                 if (prix == null || prix < 0) throw new IllegalArgumentException("Le prix unitaire ne peut pas être négatif");
+
+                BigDecimal tauxRemise = ligneReq.tauxRemise() != null
+                        ? BigDecimal.valueOf(ligneReq.tauxRemise())
+                        : trouverTauxRemisePieceProforma(bon, piece, designation);
+
                 LigneBonDeSortiePiece ligne = LigneBonDeSortiePiece.builder().bonDeSortie(bon)
-                        .piece(piece).mainDoeuvre(mainDoeuvre).type(typeLigne).designation(designation)
-                        .quantite(ligneReq.quantite()).prix((int) Math.round(prix)).build();
+                        .piece(piece).type(TypeLigneBonDeSortie.PIECE).designation(designation)
+                        .quantite(ligneReq.quantite()).prix((int) Math.round(prix))
+                        .tauxRemise(tauxRemise)
+                        .build();
                 bon.getLignesBonDeSortiePieces().add(ligne);
+            }
+        }
+
+        if (request.lignesMainDoeuvres() != null) {
+            for (LigneMainDoeuvreRequest moReq : request.lignesMainDoeuvres()) {
+                if (moReq.mainDoeuvreId() == null) {
+                    throw new IllegalArgumentException("La main-d'œuvre sélectionnée est obligatoire");
+                }
+                MainDoeuvre mo = mainDoeuvreRepository.findById(moReq.mainDoeuvreId())
+                        .orElseThrow(() -> new IllegalArgumentException("Main-d'œuvre introuvable avec l'id : " + moReq.mainDoeuvreId()));
+                if (Boolean.TRUE.equals(mo.getIsArchived())) {
+                    throw new IllegalArgumentException("Cette main-d'œuvre est archivée");
+                }
+                int nbreHeure = moReq.getEffectiveHeures();
+                Double prixCatalogue = mo.getPrix() != null ? mo.getPrix() : 0.0;
+                Double tarif = moReq.getEffectiveTarif() != null ? moReq.getEffectiveTarif() : prixCatalogue;
+                if (tarif == null || tarif < 0) {
+                    throw new IllegalArgumentException("Le tarif horaire ne peut pas être négatif");
+                }
+                String designation = moReq.designation() != null && !moReq.designation().isBlank()
+                        ? moReq.designation().trim() : mo.getDescription();
+                BigDecimal tauxRemise = moReq.tauxRemise() != null
+                        ? BigDecimal.valueOf(moReq.tauxRemise())
+                        : trouverTauxRemiseMoProforma(bon, mo.getId());
+
+                LigneBonDeSortieMainDoeuvre ligneMo = LigneBonDeSortieMainDoeuvre.builder()
+                        .bonDeSortie(bon)
+                        .mainDoeuvre(mo)
+                        .description(designation)
+                        .nbreHeure(nbreHeure)
+                        .tarifHoraire((int) Math.round(tarif))
+                        .tauxRemise(tauxRemise)
+                        .build();
+                bon.getLignesBonDeSortieMainDoeuvres().add(ligneMo);
             }
         }
 
         recalculerTotaux(bon);
 
-        // Mouvement de stock à la création du BS : stockMagasin diminue, stockAtelier
-        // augmente, qteReelle inchangée
+        // Mouvement de stock à la création du BS : UNIQUEMENT les pièces PDP sortent du magasin vers l'atelier.
+        // Les PDG, PDS et prestations de main-d'œuvre ne génèrent aucun mouvement de stock magasin.
         if (bon.getLignesBonDeSortiePieces() != null) {
             for (LigneBonDeSortiePiece ligne : bon.getLignesBonDeSortiePieces()) {
                 PDP pdp = resolvePDP(ligne.getPiece());
@@ -205,14 +269,18 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
 
         BonDeSortie saved = bonDeSortieRepository.save(bon);
 
-        // Enregistre l'historique du BS pour chaque pièce
+        // Enregistre l'historique du BS pour chaque pièce et chaque main-d'œuvre
+        boolean hasLines = false;
         if (saved.getLignesBonDeSortiePieces() != null && !saved.getLignesBonDeSortiePieces().isEmpty()) {
+            hasLines = true;
             for (LigneBonDeSortiePiece ligne : saved.getLignesBonDeSortiePieces()) {
                 PDP pdp = resolvePDP(ligne.getPiece());
                 PieceDetache piece = ligne.getPiece() == null ? null : (PieceDetache) org.hibernate.Hibernate.unproxy(ligne.getPiece());
                 String designation = ligne.getDesignation() != null ? ligne.getDesignation()
-                        : piece != null ? piece.getDesignation()
-                        : ligne.getMainDoeuvre() != null ? ligne.getMainDoeuvre().getDescription() : "";
+                        : piece != null ? piece.getDesignation() : "";
+                String motif = pdp != null
+                        ? "Sortie magasin vers atelier pour BS " + saved.getReference()
+                        : "Attribution pièce pour BS " + saved.getReference();
                 bonDeSortieHistoriqueRepository.save(BonDeSortieHistorique
                         .builder()
                         .bonDeSortie(saved)
@@ -228,12 +296,40 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                         .immatriculation(saved.getVehicule() != null ? saved.getVehicule().getImmatriculation() : "")
                         .designation(designation)
                         .statut("SORTIE")
-                        .motif("Sortie magasin vers atelier pour BS " + saved.getReference())
+                        .motif(motif)
                         .agent(agentEmetteur)
                         .garage(saved.getGarage())
                         .build());
             }
-        } else {
+        }
+
+        if (saved.getLignesBonDeSortieMainDoeuvres() != null && !saved.getLignesBonDeSortieMainDoeuvres().isEmpty()) {
+            hasLines = true;
+            for (LigneBonDeSortieMainDoeuvre lmo : saved.getLignesBonDeSortieMainDoeuvres()) {
+                String desc = lmo.getDescription() != null ? lmo.getDescription()
+                        : (lmo.getMainDoeuvre() != null ? lmo.getMainDoeuvre().getDescription() : "Main d'œuvre");
+                bonDeSortieHistoriqueRepository.save(BonDeSortieHistorique
+                        .builder()
+                        .bonDeSortie(saved)
+                        .quantite(lmo.getNbreHeure() != null ? lmo.getNbreHeure().doubleValue() : 1.0)
+                        .stockMagasin(0.0)
+                        .stockAtelier(0.0)
+                        .qteReelle(0.0)
+                        .prenom(agentEmetteur != null ? agentEmetteur.getFirstName() : "")
+                        .nom(agentEmetteur != null ? agentEmetteur.getLastName() : "")
+                        .numBs(saved.getReference())
+                        .numeroSerie(lmo.getMainDoeuvre() != null && lmo.getMainDoeuvre().getId() != null ? "MO-" + lmo.getMainDoeuvre().getId() : "")
+                        .immatriculation(saved.getVehicule() != null ? saved.getVehicule().getImmatriculation() : "")
+                        .designation(desc)
+                        .statut("MAIN_DOEUVRE")
+                        .motif("Prestation main-d'œuvre pour BS " + saved.getReference())
+                        .agent(agentEmetteur)
+                        .garage(saved.getGarage())
+                        .build());
+            }
+        }
+
+        if (!hasLines) {
             bonDeSortieHistoriqueRepository.save(BonDeSortieHistorique
                     .builder()
                     .bonDeSortie(saved)
@@ -587,23 +683,103 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
         if (request.vehiculeId() == null) {
             throw new IllegalArgumentException("Le véhicule est obligatoire");
         }
-        if (request.lignesPieces() == null || request.lignesPieces().isEmpty()) {
-            throw new IllegalArgumentException("Le bon de sortie doit contenir au moins une ligne");
+        boolean hasPieces = request.lignesPieces() != null && !request.lignesPieces().isEmpty();
+        boolean hasMo = request.lignesMainDoeuvres() != null && !request.lignesMainDoeuvres().isEmpty();
+        if (!hasPieces && !hasMo) {
+            throw new IllegalArgumentException("Le bon de sortie doit contenir au moins une ligne (pièce ou main-d'œuvre)");
         }
     }
 
     private void recalculerTotaux(BonDeSortie bon) {
         BigDecimal totalPieces = BigDecimal.ZERO;
         BigDecimal totalMo = BigDecimal.ZERO;
-        for (LigneBonDeSortiePiece ligne : bon.getLignesBonDeSortiePieces()) {
-            BigDecimal totalLigne = BigDecimal.valueOf(ligne.getPrix()).multiply(BigDecimal.valueOf(ligne.getQuantite()));
-            if (ligne.getType() == TypeLigneBonDeSortie.MAIN_DOEUVRE) totalMo = totalMo.add(totalLigne);
-            else totalPieces = totalPieces.add(totalLigne);
+
+        if (bon.getLignesBonDeSortiePieces() != null) {
+            for (LigneBonDeSortiePiece ligne : bon.getLignesBonDeSortiePieces()) {
+                if (ligne.getPrix() != null && ligne.getQuantite() != null) {
+                    BigDecimal base = BigDecimal.valueOf(ligne.getPrix()).multiply(BigDecimal.valueOf(ligne.getQuantite()));
+                    BigDecimal montantLigne;
+                    if (ligne.getTauxRemise() != null && ligne.getTauxRemise().compareTo(BigDecimal.ZERO) > 0) {
+                        BigDecimal remise = base.multiply(ligne.getTauxRemise()).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+                        montantLigne = base.subtract(remise);
+                    } else {
+                        montantLigne = base;
+                    }
+                    ligne.setMontantTotal(montantLigne);
+                    if (ligne.getType() == TypeLigneBonDeSortie.MAIN_DOEUVRE) {
+                        totalMo = totalMo.add(montantLigne);
+                    } else {
+                        totalPieces = totalPieces.add(montantLigne);
+                    }
+                }
+            }
+        }
+
+        if (bon.getLignesBonDeSortieMainDoeuvres() != null) {
+            for (LigneBonDeSortieMainDoeuvre ligneMo : bon.getLignesBonDeSortieMainDoeuvres()) {
+                if (ligneMo.getTarifHoraire() != null && ligneMo.getNbreHeure() != null) {
+                    BigDecimal base = BigDecimal.valueOf(ligneMo.getTarifHoraire()).multiply(BigDecimal.valueOf(ligneMo.getNbreHeure()));
+                    BigDecimal montantLigne;
+                    if (ligneMo.getTauxRemise() != null && ligneMo.getTauxRemise().compareTo(BigDecimal.ZERO) > 0) {
+                        BigDecimal remise = base.multiply(ligneMo.getTauxRemise()).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+                        montantLigne = base.subtract(remise);
+                    } else {
+                        montantLigne = base;
+                    }
+                    ligneMo.setMontantTotal(montantLigne);
+                    totalMo = totalMo.add(montantLigne);
+                }
+            }
         }
 
         bon.setMontantTotalPieces(totalPieces);
         bon.setMontantTotalMainDoeuvre(totalMo);
         bon.setMontantTotal(totalPieces.add(totalMo));
+    }
+
+    private BigDecimal trouverTauxRemisePieceProforma(BonDeSortie bon, PieceDetache piece, String designation) {
+        sn.oas.facturation.features.proforma.data.entity.Proforma proforma = bon.getProforma();
+        if (proforma == null && bon.getOrdreReparation() != null) {
+            proforma = bon.getOrdreReparation().getProforma();
+        }
+        if (proforma == null && bon.getOrdreTravail() != null) {
+            proforma = bon.getOrdreTravail().getProforma();
+        }
+        if (proforma != null && proforma.getLignesFacturationPieces() != null) {
+            for (var lp : proforma.getLignesFacturationPieces()) {
+                boolean match = false;
+                if (piece != null && lp.getPiece() != null && piece.getId() != null && piece.getId().equals(lp.getPiece().getId())) {
+                    match = true;
+                } else if (designation != null && (designation.equalsIgnoreCase(lp.getDesignationPds())
+                        || (lp.getPiece() != null && designation.equalsIgnoreCase(lp.getPiece().getDesignation())))) {
+                    match = true;
+                }
+                if (match && lp.getTauxRemise() != null) {
+                    return lp.getTauxRemise();
+                }
+            }
+        }
+        return BigDecimal.ZERO;
+    }
+
+    private BigDecimal trouverTauxRemiseMoProforma(BonDeSortie bon, Long moId) {
+        sn.oas.facturation.features.proforma.data.entity.Proforma proforma = bon.getProforma();
+        if (proforma == null && bon.getOrdreReparation() != null) {
+            proforma = bon.getOrdreReparation().getProforma();
+        }
+        if (proforma == null && bon.getOrdreTravail() != null) {
+            proforma = bon.getOrdreTravail().getProforma();
+        }
+        if (proforma != null && proforma.getLignesFacturationMainDoeuvres() != null) {
+            for (var lm : proforma.getLignesFacturationMainDoeuvres()) {
+                if (lm.getMainDoeuvre() != null && lm.getMainDoeuvre().getId() != null && lm.getMainDoeuvre().getId().equals(moId)) {
+                    if (lm.getTauxRemise() != null) {
+                        return lm.getTauxRemise();
+                    }
+                }
+            }
+        }
+        return BigDecimal.ZERO;
     }
 
     private PDP resolvePDP(PieceDetache piece) {

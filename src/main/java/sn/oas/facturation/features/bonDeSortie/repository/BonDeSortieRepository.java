@@ -17,7 +17,8 @@ import java.util.Optional;
 public interface BonDeSortieRepository extends JpaRepository<BonDeSortie, Long> {
 
     Optional<BonDeSortie> findByReference(String reference);
-    Optional<BonDeSortie> findByProformaId(Long proformaId);
+    List<BonDeSortie> findByProformaId(Long proformaId);
+    Optional<BonDeSortie> findTopByProformaIdOrderByIdDesc(Long proformaId);
     List<BonDeSortie> findByOrdreReparationIdOrderByDateDesc(Long ordreReparationId);
     List<BonDeSortie> findByOrdreTravailIdOrderByDateDesc(Long ordreTravailId);
     Page<BonDeSortie> findByOrdreReparationIdOrderByDateDesc(Long ordreReparationId, Pageable pageable);

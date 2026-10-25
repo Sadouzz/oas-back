@@ -114,9 +114,9 @@ public class BonDeSortie implements TenantAware  {
     @Column(name = "montant_total", precision = 15, scale = 2)
     private BigDecimal montantTotal;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "proforma_id", nullable = true, unique = true)
-    @JsonIgnoreProperties({"bs", "hibernateLazyInitializer", "handler"})
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "proforma_id", nullable = true)
+    @JsonIgnoreProperties({"bonsDeSortie", "hibernateLazyInitializer", "handler"})
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private Proforma proforma;
@@ -124,9 +124,26 @@ public class BonDeSortie implements TenantAware  {
     @OneToMany(mappedBy = "bonDeSortie", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<LigneBonDeSortiePiece> lignesBonDeSortiePieces = new ArrayList<>();
-    
 
-    
+    @OneToMany(mappedBy = "bonDeSortie", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<LigneBonDeSortieMainDoeuvre> lignesBonDeSortieMainDoeuvres = new ArrayList<>();
+
+    public void addLignePiece(LigneBonDeSortiePiece ligne) {
+        if (this.lignesBonDeSortiePieces == null) {
+            this.lignesBonDeSortiePieces = new ArrayList<>();
+        }
+        ligne.setBonDeSortie(this);
+        this.lignesBonDeSortiePieces.add(ligne);
+    }
+
+    public void addLigneMainDoeuvre(LigneBonDeSortieMainDoeuvre ligne) {
+        if (this.lignesBonDeSortieMainDoeuvres == null) {
+            this.lignesBonDeSortieMainDoeuvres = new ArrayList<>();
+        }
+        ligne.setBonDeSortie(this);
+        this.lignesBonDeSortieMainDoeuvres.add(ligne);
+    }
 
     @PrePersist
     protected void onCreate() {

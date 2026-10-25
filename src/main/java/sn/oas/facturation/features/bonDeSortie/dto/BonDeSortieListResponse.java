@@ -1,10 +1,12 @@
 package sn.oas.facturation.features.bonDeSortie.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import sn.oas.facturation.features.bonDeSortie.data.entity.BonDeSortie;
 import sn.oas.facturation.features.bonDeSortie.data.enums.StatutBon;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Builder
@@ -30,7 +32,8 @@ public record BonDeSortieListResponse(
         Double montantTotal,
         Long proformaId,
         String proformaNumero,
-        List<LigneSummary> lignesBonDeSortiePieces
+        List<LigneSummary> lignesBonDeSortiePieces,
+        List<LigneMainDoeuvreSummary> lignesBonDeSortieMainDoeuvres
 ) {
     public record ClientSummary(Long id, String firstName, String lastName, String phone) {}
     public record VehiculeSummary(Long id, String immatriculation, String marque, String modele) {}
@@ -55,8 +58,30 @@ public record BonDeSortieListResponse(
             String type,
             String designation,
             Integer quantite,
-            Integer prix
+            Integer prix,
+            Double tauxRemise,
+            Double montantTotal
     ) {}
+    public record LigneMainDoeuvreSummary(
+            Long id,
+            Long mainDoeuvreId,
+            String code,
+            String designation,
+            Integer nbreHeure,
+            Integer tarifHoraire,
+            Double tauxRemise,
+            Double montantTotal
+    ) {}
+
+    @JsonProperty("lignesPieces")
+    public List<LigneSummary> getLignesPieces() {
+        return lignesBonDeSortiePieces;
+    }
+
+    @JsonProperty("lignesMainDoeuvres")
+    public List<LigneMainDoeuvreSummary> getLignesMainDoeuvres() {
+        return lignesBonDeSortieMainDoeuvres;
+    }
 
     public static BonDeSortieListResponse from(BonDeSortie b) {
         if (b == null) return null;
@@ -101,8 +126,30 @@ public record BonDeSortieListResponse(
             );
         }
 
-        List<LigneSummary> lignes = b.getLignesBonDeSortiePieces() == null ? List.of() :
-                b.getLignesBonDeSortiePieces().stream().map(l -> {
+        List<LigneSummary> lignesPieces = new ArrayList<>();
+        List<LigneMainDoeuvreSummary> lignesMo = new ArrayList<>();
+
+        if (b.getLignesBonDeSortiePieces() != null) {
+            for (var l : b.getLignesBonDeSortiePieces()) {
+                double tauxRemise = l.getTauxRemise() != null ? l.getTauxRemise().doubleValue() : 0.0;
+                int qte = l.getQuantite() != null ? l.getQuantite() : 1;
+
+                if (l.getType() == sn.oas.facturation.features.bonDeSortie.data.enums.TypeLigneBonDeSortie.MAIN_DOEUVRE) {
+                    // Legacy MO support
+                    int tarif = l.getPrix() != null ? l.getPrix() : 0;
+                    double montant = l.getMontantTotal() != null ? l.getMontantTotal().doubleValue()
+                            : (double) (qte * tarif * (1.0 - tauxRemise / 100.0));
+                    lignesMo.add(new LigneMainDoeuvreSummary(
+                            l.getId(),
+                            l.getMainDoeuvre() != null ? l.getMainDoeuvre().getId() : null,
+                            l.getMainDoeuvre() != null && l.getMainDoeuvre().getId() != null ? "MO-" + l.getMainDoeuvre().getId() : null,
+                            l.getDesignation() != null ? l.getDesignation() : (l.getMainDoeuvre() != null ? l.getMainDoeuvre().getDescription() : "Main d'œuvre"),
+                            qte,
+                            tarif,
+                            tauxRemise,
+                            montant
+                    ));
+                } else {
                     PieceSummary pSummary = null;
                     if (l.getPiece() != null) {
                         pSummary = new PieceSummary(
@@ -112,18 +159,50 @@ public record BonDeSortieListResponse(
                                 l.getPiece().getPrixUnitaire()
                         );
                     }
-                    return new LigneSummary(
+                    int prix = l.getPrix() != null ? l.getPrix()
+                            : (l.getPiece() != null && l.getPiece().getPrixUnitaire() != null ? l.getPiece().getPrixUnitaire().intValue() : 0);
+                    double montant = l.getMontantTotal() != null ? l.getMontantTotal().doubleValue()
+                            : (double) (qte * prix * (1.0 - tauxRemise / 100.0));
+
+                    lignesPieces.add(new LigneSummary(
                             l.getId(),
                             pSummary,
-                            l.getMainDoeuvre() != null ? l.getMainDoeuvre().getId() : null,
-                            l.getType() == sn.oas.facturation.features.bonDeSortie.data.enums.TypeLigneBonDeSortie.MAIN_DOEUVRE
-                                    ? "MAIN_DOEUVRE"
-                                    : l.getPiece() != null && l.getPiece().getType() != null ? l.getPiece().getType().name() : "PDS",
-                            l.getDesignation() != null ? l.getDesignation() : (l.getPiece() != null ? l.getPiece().getDesignation() : (l.getMainDoeuvre() != null ? l.getMainDoeuvre().getDescription() : "")),
-                            l.getQuantite(),
-                            l.getPrix() != null ? l.getPrix() : (l.getPiece() != null && l.getPiece().getPrixUnitaire() != null ? l.getPiece().getPrixUnitaire().intValue() : (l.getMainDoeuvre() != null && l.getMainDoeuvre().getPrix() != null ? l.getMainDoeuvre().getPrix().intValue() : 0))
-                    );
-                }).toList();
+                            null,
+                            l.getPiece() != null && l.getPiece().getType() != null ? l.getPiece().getType().name() : "PDS",
+                            l.getDesignation() != null ? l.getDesignation() : (l.getPiece() != null ? l.getPiece().getDesignation() : ""),
+                            qte,
+                            prix,
+                            tauxRemise,
+                            montant
+                    ));
+                }
+            }
+        }
+
+        if (b.getLignesBonDeSortieMainDoeuvres() != null) {
+            for (var lmo : b.getLignesBonDeSortieMainDoeuvres()) {
+                String code = lmo.getMainDoeuvre() != null && lmo.getMainDoeuvre().getId() != null
+                        ? "MO-" + lmo.getMainDoeuvre().getId() : null;
+                String designation = lmo.getDescription() != null ? lmo.getDescription()
+                        : (lmo.getMainDoeuvre() != null ? lmo.getMainDoeuvre().getDescription() : "Main d'œuvre");
+                double tauxRemise = lmo.getTauxRemise() != null ? lmo.getTauxRemise().doubleValue() : 0.0;
+                int tarif = lmo.getTarifHoraire() != null ? lmo.getTarifHoraire() : 0;
+                int heures = lmo.getNbreHeure() != null ? lmo.getNbreHeure() : 1;
+                double montant = lmo.getMontantTotal() != null ? lmo.getMontantTotal().doubleValue()
+                        : (double) (heures * tarif * (1.0 - tauxRemise / 100.0));
+
+                lignesMo.add(new LigneMainDoeuvreSummary(
+                        lmo.getId(),
+                        lmo.getMainDoeuvre() != null ? lmo.getMainDoeuvre().getId() : null,
+                        code,
+                        designation,
+                        heures,
+                        tarif,
+                        tauxRemise,
+                        montant
+                ));
+            }
+        }
 
         OrdreReparationSummary ordreSummary = null;
         if (b.getOrdreReparation() != null) {
@@ -163,7 +242,8 @@ public record BonDeSortieListResponse(
                 .montantTotal(b.getMontantTotal() != null ? b.getMontantTotal().doubleValue() : 0.0)
                 .proformaId(b.getProforma() != null ? b.getProforma().getId() : null)
                 .proformaNumero(b.getProforma() != null ? b.getProforma().getNumero() : null)
-                .lignesBonDeSortiePieces(lignes)
+                .lignesBonDeSortiePieces(lignesPieces)
+                .lignesBonDeSortieMainDoeuvres(lignesMo)
                 .build();
     }
 }
