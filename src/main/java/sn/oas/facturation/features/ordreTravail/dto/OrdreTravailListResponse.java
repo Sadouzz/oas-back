@@ -16,6 +16,8 @@ import java.time.LocalDateTime;
 public class OrdreTravailListResponse {
     private Long id;
     private String numero;
+    private Long clientId;
+    private Long vehiculeId;
     private String clientNom;
     private String vehiculeImmatriculation;
     private String vehiculeMarqueModele;
@@ -46,6 +48,12 @@ public class OrdreTravailListResponse {
         return OrdreTravailListResponse.builder()
                 .id(ot.getId())
                 .numero(ot.getNumero())
+                .clientId(ot.getClient() != null
+                        ? ot.getClient().getId()
+                        : ot.getVehicule() != null && ot.getVehicule().getClient() != null
+                                ? ot.getVehicule().getClient().getId()
+                                : null)
+                .vehiculeId(ot.getVehicule() != null ? ot.getVehicule().getId() : null)
                 .clientNom(clientNom)
                 .vehiculeImmatriculation(immat)
                 .vehiculeMarqueModele(marqueModele)

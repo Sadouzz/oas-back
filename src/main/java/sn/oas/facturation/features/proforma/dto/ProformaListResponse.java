@@ -14,6 +14,7 @@ public record ProformaListResponse(
         // LocalDateTime dateModification,
         BigDecimal montantHT,
         BigDecimal montantTVA,
+        Boolean tvaApplicable,
         BigDecimal montantTTC,
         BigDecimal montantTimbre,
         BigDecimal montantAutre,
@@ -75,6 +76,7 @@ public record ProformaListResponse(
                 // .dateModification(p.getDateModification())
                 .montantHT(p.getMontantHT())
                 .montantTVA(p.getMontantTVA())
+                .tvaApplicable(p.getTvaApplicable())
                 .montantTTC(p.calculerMontantTtcAvecTimbre())
                 .montantTimbre(p.getMontantTimbre())
                 .montantAutre(BigDecimal.ZERO)

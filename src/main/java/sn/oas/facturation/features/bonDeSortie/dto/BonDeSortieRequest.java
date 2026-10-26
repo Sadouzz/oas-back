@@ -12,9 +12,10 @@ public record BonDeSortieRequest(
         List<LigneMainDoeuvreRequest> lignesMainDoeuvres,
         Long ordreReparationId,
         String remarque,
-        Long ordreTravailId
+        Long ordreTravailId,
+        Boolean appliquerTVA
 ) {
     public BonDeSortieRequest(Long clientId, Long vehiculeId, List<LignePieceRequest> lignesPieces, Long ordreReparationId, String remarque, Long ordreTravailId) {
-        this(clientId, vehiculeId, lignesPieces, null, ordreReparationId, remarque, ordreTravailId);
+        this(clientId, vehiculeId, lignesPieces, null, ordreReparationId, remarque, ordreTravailId, null);
     }
 }

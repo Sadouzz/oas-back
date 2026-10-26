@@ -114,6 +114,15 @@ public class BonDeSortie implements TenantAware  {
     @Column(name = "montant_total", precision = 15, scale = 2)
     private BigDecimal montantTotal;
 
+    @Column(name = "tva_applicable")
+    private Boolean tvaApplicable;
+
+    @Column(name = "montant_tva", precision = 15, scale = 2)
+    private BigDecimal montantTVA;
+
+    @Column(name = "montant_ttc", precision = 15, scale = 2)
+    private BigDecimal montantTTC;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "proforma_id", nullable = true)
     @JsonIgnoreProperties({"bonsDeSortie", "hibernateLazyInitializer", "handler"})

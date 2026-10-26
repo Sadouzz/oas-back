@@ -16,6 +16,7 @@ public class NoteDePrixRequest {
     private String remarque;
     private String numeroBonDeCommande;
     private BigDecimal montantAutre;
+    private Boolean appliquerTVA;
     private BigDecimal montantPaye;
     private BigDecimal resteAPayer;
     private String statutPaiement;

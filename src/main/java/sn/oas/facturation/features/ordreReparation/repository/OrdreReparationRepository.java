@@ -62,6 +62,32 @@ public interface OrdreReparationRepository extends JpaRepository<OrdreReparation
     Optional<OrdreReparation> findFirstByFicheAtelierId(Long ficheAtelierId);
     Optional<OrdreReparation> findFirstByVehiculeIdAndStatutNotIn(Long vehiculeId, List<StatutOrdreReparation> statuts);
 
+    @Query("SELECT ligne.piece.id AS pieceId, COALESCE(ligne.piece.designation, ligne.designationPds) AS designation, " +
+            "SUM(ligne.quantite) AS quantiteTotale " +
+            "FROM OrdreReparation ordre JOIN ordre.lignesOrdreReparationPieces ligne " +
+            "WHERE ordre.id = :ordreReparationId " +
+            "GROUP BY ligne.piece.id, COALESCE(ligne.piece.designation, ligne.designationPds)")
+    List<PieceQuantiteProjection> sommerQuantitesPiecesDemandees(@Param("ordreReparationId") Long ordreReparationId);
+
+    @Query("SELECT ligne.mainDoeuvre.id AS mainDoeuvreId, ligne.mainDoeuvre.description AS designation, " +
+            "SUM(ligne.nbreHeure) AS quantiteTotale " +
+            "FROM OrdreReparation ordre JOIN ordre.lignesOrdreReparationMainDoeuvres ligne " +
+            "WHERE ordre.id = :ordreReparationId " +
+            "GROUP BY ligne.mainDoeuvre.id, ligne.mainDoeuvre.description")
+    List<MainDoeuvreQuantiteProjection> sommerQuantitesMainDoeuvreDemandees(@Param("ordreReparationId") Long ordreReparationId);
+
+    interface PieceQuantiteProjection {
+        Long getPieceId();
+        String getDesignation();
+        Long getQuantiteTotale();
+    }
+
+    interface MainDoeuvreQuantiteProjection {
+        Long getMainDoeuvreId();
+        String getDesignation();
+        Long getQuantiteTotale();
+    }
+
     // Portail technicien : ordres où le technicien figure dans le diagnostic OU réparation.
     @Query("SELECT DISTINCT f FROM OrdreReparation f " +
             "LEFT JOIN f.diagnostic d LEFT JOIN f.techniciensReparation t2 " +

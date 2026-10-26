@@ -305,9 +305,6 @@ public class ClientServiceImpl implements ClientService {
         client.setClientFidele(true);
 
         // On ne met à jour que les champs qui ont été envoyés (non null)
-        if (request.montantRemise() != null) {
-            client.setMontantRemise(request.montantRemise());
-        }
         if (request.echeance() != null) {
             client.setEcheance(request.echeance());
         }
@@ -327,6 +324,19 @@ public class ClientServiceImpl implements ClientService {
 
         client.setUpdatedAt(java.time.LocalDateTime.now());
         clientRepository.save(client);
+    }
+
+    @Override
+    @Transactional
+    public Client configurerRemise(Long id, Integer montantRemise) {
+        if (montantRemise == null || montantRemise < 0 || montantRemise > 100) {
+            throw new IllegalArgumentException("La remise doit être comprise entre 0 et 100 %.");
+        }
+        Client client = clientRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Client non trouvé"));
+        client.setMontantRemise(montantRemise);
+        client.setUpdatedAt(java.time.LocalDateTime.now());
+        return clientRepository.save(client);
     }
 
     @Override

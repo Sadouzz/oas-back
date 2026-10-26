@@ -3,7 +3,7 @@ spring:
         name: facturation
     datasource:
         url: ${DATABASE_URL}
-        username: ${DATABASE_HOSTNAME}
+        username: ${DATABASE_USERNAME:${DATABASE_HOSTNAME}}
         password: ${DATABASE_PASSWORD}
         driver-class-name: org.postgresql.Driver
 
@@ -14,8 +14,8 @@ spring:
         database-platform: org.hibernate.dialect.PostgreSQLDialect
 
     mail:
-        host: smtp.gmail.com
-        port: 587
+        host: ${MAIL_HOST:smtp.gmail.com}
+        port: ${MAIL_PORT:587}
         username: ${MAIL_USERNAME}
         password: ${MAIL_PASSWORD}
         properties:
@@ -49,7 +49,7 @@ app:
         expiration: 21600000 # 6 heures
         refresh-expiration: 604800000 # 7 jours
     cors:
-        allowed-origins: "http://localhost:4200,http://localhost:32235,http://localhost:5173,http://10.10.10.51,https://oas-front.vercel.app"
+        allowed-origins: "${CORS_ORIGINS:http://localhost:4200,http://localhost:32235,http://localhost:5173,http://10.10.10.51,https://oas-front.vercel.app}"
     cloudinary:
         cloud-name: ${CLOUDINARY_CLOUD_NAME}
         api-key: ${CLOUDINARY_API_KEY}

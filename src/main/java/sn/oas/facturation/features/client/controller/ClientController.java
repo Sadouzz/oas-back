@@ -19,8 +19,11 @@ import sn.oas.facturation.features.client.service.ClientService;
 import sn.oas.facturation.features.client.service.CompteClientService;
 import sn.oas.facturation.features.client.dto.CompteClientRequest;
 import sn.oas.facturation.features.client.dto.CompteClientResponse;
-import sn.oas.facturation.features.client.dto.AjoutCreditRequest;
+import sn.oas.facturation.features.client.dto.AlimentationPortefeuilleRequest;
+import sn.oas.facturation.features.client.dto.PortefeuilleClientResponse;
+import sn.oas.facturation.features.client.dto.RemiseClientRequest;
 import sn.oas.facturation.features.auth.service.AuthService;
+import sn.oas.facturation.features.client.service.PortefeuilleClientService;
 
 @RestController
 @RequestMapping("/api/clients")
@@ -32,6 +35,7 @@ public class ClientController {
     private final ClientService clientService;
     private final AuthService authService;
     private final CompteClientService compteClientService;
+    private final PortefeuilleClientService portefeuilleClientService;
 
     @GetMapping
     @Operation(summary = "Lister tous les clients ou rechercher par mot-clé")
@@ -163,6 +167,28 @@ public class ClientController {
         return ResponseEntity.ok("Statut client fidèle retiré avec succès !");
     }
 
+    @PutMapping("/{id}/remise")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyAuthority('ROLE_MASTER','MASTER','ROLE_SUPER_AGENT','SUPER_AGENT')")
+    @Operation(summary = "Configurer la remise commerciale d'un client")
+    public ResponseEntity<ClientListResponse> configurerRemise(@PathVariable Long id,
+            @RequestBody @Valid RemiseClientRequest request) {
+        return ResponseEntity.ok(ClientListResponse.from(clientService.configurerRemise(id, request.montantRemise())));
+    }
+
+    @GetMapping("/{id}/portefeuille-prepaye")
+    @Operation(summary = "Consulter le solde prépayé et son historique")
+    public ResponseEntity<PortefeuilleClientResponse> lirePortefeuille(@PathVariable Long id) {
+        return ResponseEntity.ok(portefeuilleClientService.lire(id));
+    }
+
+    @PostMapping("/{id}/portefeuille-prepaye/alimentations")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyAuthority('ROLE_MASTER','MASTER','ROLE_SUPER_AGENT','SUPER_AGENT','ROLE_AGENT','AGENT','ROLE_CHEF_ATELIER','CHEF_ATELIER','ROLE_AGENT_MAGASIN','AGENT_MAGASIN')")
+    @Operation(summary = "Enregistrer un versement sur le solde prépayé d'un client")
+    public ResponseEntity<PortefeuilleClientResponse> alimenterPortefeuille(@PathVariable Long id,
+            @RequestBody @Valid AlimentationPortefeuilleRequest request) {
+        return ResponseEntity.ok(portefeuilleClientService.alimenter(id, request));
+    }
+
     @GetMapping("/{id}/compte-financier")
     @org.springframework.security.access.prepost.PreAuthorize("hasAnyAuthority('ROLE_MASTER','MASTER','ROLE_SUPER_AGENT','SUPER_AGENT')")
     @Operation(summary = "Consulter les conditions financières d'un client")
@@ -175,20 +201,6 @@ public class ClientController {
     @Operation(summary = "Ouvrir ou mettre à jour le compte financier d'une entreprise")
     public ResponseEntity<CompteClientResponse> configurerCompteFinancier(@PathVariable Long id, @RequestBody @Valid CompteClientRequest request) {
         return ResponseEntity.ok(compteClientService.configurer(id, request));
-    }
-
-    @PostMapping("/{id}/compte-financier/credits")
-    @org.springframework.security.access.prepost.PreAuthorize("hasAnyAuthority('ROLE_MASTER','MASTER','ROLE_SUPER_AGENT','SUPER_AGENT')")
-    @Operation(summary = "Ajouter un crédit au compte financier")
-    public ResponseEntity<CompteClientResponse> ajouterCredit(@PathVariable Long id, @RequestBody @Valid AjoutCreditRequest request) {
-        return ResponseEntity.ok(compteClientService.ajouterCredit(id, request));
-    }
-
-    @GetMapping("/{id}/compte-financier/mouvements")
-    @org.springframework.security.access.prepost.PreAuthorize("hasAnyAuthority('ROLE_MASTER','MASTER','ROLE_SUPER_AGENT','SUPER_AGENT')")
-    @Operation(summary = "Lister les derniers mouvements de crédit")
-    public ResponseEntity<?> mouvementsCredit(@PathVariable Long id) {
-        return ResponseEntity.ok(compteClientService.mouvements(id));
     }
 
     @DeleteMapping("/{id}/compte-financier")

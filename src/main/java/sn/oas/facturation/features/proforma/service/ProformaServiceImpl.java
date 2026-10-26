@@ -12,7 +12,6 @@ import sn.oas.facturation.features.pdfGenerator.service.ProformaGenerator;
 import sn.oas.facturation.features.auth.service.AuthService;
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.repository.ClientRepository;
-import sn.oas.facturation.features.client.repository.CompteClientRepository;
 import sn.oas.facturation.features.client.service.PolitiqueFinanciereClientService;
 import sn.oas.facturation.features.facturation.data.entity.LigneFacturationMainDoeuvre;
 import sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece;
@@ -63,7 +62,6 @@ public class ProformaServiceImpl implements ProformaService {
     private final FactureRepository factureRepository;
     private final FactureService factureService;
     private final ClientRepository clientRepository;
-    private final CompteClientRepository compteClientRepository;
     private final PolitiqueFinanciereClientService politiqueFinanciereClientService;
     private final VehiculeRepository vehiculeRepository;
     private final PieceDetacheRepository pieceDetacheRepository;
@@ -268,7 +266,10 @@ public class ProformaServiceImpl implements ProformaService {
         proforma.setMontantRemiseClient(montantRemise);
         proforma.setMontantHT(montantHT);
         var fiscal = fiscalConfigurationService.getCurrent();
-        BigDecimal tva = fiscalConfigurationService.calculateRate(montantHT, fiscal.getTvaRate());
+        boolean appliquerTVA = request.getAppliquerTVA() == null || request.getAppliquerTVA();
+        proforma.setTvaApplicable(appliquerTVA);
+        BigDecimal tva = appliquerTVA
+                ? fiscalConfigurationService.calculateRate(montantHT, fiscal.getTvaRate()) : BigDecimal.ZERO;
         proforma.setMontantTVA(tva);
         BigDecimal timbre = fiscal.getTimbreFiscal();
         proforma.setMontantTimbre(timbre);
@@ -427,9 +428,14 @@ public class ProformaServiceImpl implements ProformaService {
         proforma.setMontantRemiseClient(montantRemise);
         proforma.setMontantHT(montantHT);
 
-        Double tvaRate = request.getTvaRate() != null ? request.getTvaRate() : 18.0;
+        boolean appliquerTVA = request.getAppliquerTVA() != null ? request.getAppliquerTVA()
+                : proforma.getTvaApplicable() != null ? proforma.getTvaApplicable()
+                : proforma.getMontantTVA() != null && proforma.getMontantTVA().signum() > 0;
+        proforma.setTvaApplicable(appliquerTVA);
+        Double tvaRate = request.getTvaRate() != null ? request.getTvaRate()
+                : fiscalConfigurationService.getCurrent().getTvaRate().doubleValue();
         BigDecimal rateBD = BigDecimal.valueOf(tvaRate).divide(BigDecimal.valueOf(100));
-        BigDecimal tva = montantHT.multiply(rateBD).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal tva = appliquerTVA ? montantHT.multiply(rateBD).setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO;
         proforma.setMontantTVA(tva);
 
         if (request.getMontantTimbre() != null) proforma.setMontantTimbre(request.getMontantTimbre());
@@ -630,6 +636,7 @@ public class ProformaServiceImpl implements ProformaService {
                 .numeroBonDeCommande(proforma.getBonDeCommande() != null ? proforma.getBonDeCommande().getNumero() : null)
                 .montantHT(proforma.getMontantHT())
                 .montantTVA(proforma.getMontantTVA())
+                .tvaApplicable(proforma.getTvaApplicable())
                 .montantTTC(proforma.calculerMontantTtcAvecTimbre())
                 .montantTimbre(proforma.getMontantTimbre())
                 .tauxRemiseClient(proforma.getTauxRemiseClient())
@@ -775,10 +782,8 @@ public class ProformaServiceImpl implements ProformaService {
     }
 
     private int tauxRemiseApplicable(Client client) {
-        if (client == null || client.getTypeClient() != sn.oas.facturation.features.client.data.enums.TypeClient.ENTREPRISE
-                || !client.isClientFidele() || client.getMontantRemise() == null) return 0;
-        var compte = compteClientRepository.findByClientId(client.getId()).orElse(null);
-        return compte != null && compte.isActif() ? client.getMontantRemise() : 0;
+        if (client == null || client.getMontantRemise() == null) return 0;
+        return Math.max(0, Math.min(100, client.getMontantRemise()));
     }
 
     private BigDecimal tauxRemisePieceDepuisOrdre(OrdreReparation ordre, LigneFacturationPieceRequest ligne,

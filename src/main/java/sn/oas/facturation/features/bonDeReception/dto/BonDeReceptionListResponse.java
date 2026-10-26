@@ -14,6 +14,7 @@ public record BonDeReceptionListResponse(
         // LocalDateTime dateModification,
         BigDecimal montantHT,
         BigDecimal montantTVA,
+        Boolean tvaApplicable,
         BigDecimal montantTTC,
         BigDecimal montantTimbre,
         BigDecimal montantTotal,
@@ -42,6 +43,7 @@ public record BonDeReceptionListResponse(
                 // .dateModification(bl.getDateModification())
                 .montantHT(bl.getMontantHT())
                 .montantTVA(bl.getMontantTVA())
+                .tvaApplicable(bl.getTvaApplicable())
                 .montantTTC(bl.getMontantTTC())
                 .montantTimbre(bl.getMontantTimbre())
                 .montantTotal(bl.getMontantTotal())

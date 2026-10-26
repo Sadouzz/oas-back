@@ -34,13 +34,17 @@ public class ProformaGenerator {
         String marque = pdfVehicle == null ? "" : safe(pdfVehicle.getMarque());
         String modele = pdfVehicle == null ? "" : safe(pdfVehicle.getModele());
         String immat = pdfVehicle == null ? "" : safe(pdfVehicle.getImmatriculation());
-        return htmlToPdfService.genererHtmlEnPdf(html, "PROFORMA", java.util.Map.of(
-                "numero", safe(p.getNumero()), "clientNom", clientNom, "marque", marque, "modele", modele,
-                "immatriculation", immat, "montantHT", p.getMontantHT() == null ? "0" : p.getMontantHT().toPlainString(),
-                "tauxRemiseClient", p.getTauxRemiseClient() == null ? "0" : p.getTauxRemiseClient().toPlainString(),
-                "montantRemiseClient", p.getMontantRemiseClient() == null ? "0" : p.getMontantRemiseClient().toPlainString(),
-                "montantTTC", p.calculerMontantTtcAvecTimbre().toPlainString(),
-                "remarque", p.getRemarque() == null ? "" : p.getRemarque()), layoutKey);
+        return htmlToPdfService.genererHtmlEnPdf(html, "PROFORMA", java.util.Map.ofEntries(
+                java.util.Map.entry("numero", safe(p.getNumero())), java.util.Map.entry("clientNom", clientNom),
+                java.util.Map.entry("marque", marque), java.util.Map.entry("modele", modele),
+                java.util.Map.entry("immatriculation", immat),
+                java.util.Map.entry("montantHT", p.getMontantHT() == null ? "0" : p.getMontantHT().toPlainString()),
+                java.util.Map.entry("tvaApplicable", Boolean.TRUE.equals(p.getTvaApplicable()) ? "Oui" : "Non"),
+                java.util.Map.entry("montantTVA", Boolean.FALSE.equals(p.getTvaApplicable()) ? "Non appliquée" : p.getMontantTVA() == null ? "0" : p.getMontantTVA().toPlainString()),
+                java.util.Map.entry("tauxRemiseClient", p.getTauxRemiseClient() == null ? "0" : p.getTauxRemiseClient().toPlainString()),
+                java.util.Map.entry("montantRemiseClient", p.getMontantRemiseClient() == null ? "0" : p.getMontantRemiseClient().toPlainString()),
+                java.util.Map.entry("montantTTC", p.calculerMontantTtcAvecTimbre().toPlainString()),
+                java.util.Map.entry("remarque", p.getRemarque() == null ? "" : p.getRemarque())), layoutKey);
     }
 
     private String construireHtmlProforma(Proforma p) {
@@ -83,7 +87,7 @@ public class ProformaGenerator {
         String remiseClient = p.getMontantRemiseClient() != null && p.getMontantRemiseClient().signum() > 0
                 ? "Remise compte client sur les pi\u00e8ces (" + safe(p.getTauxRemiseClient() == null ? "0" : p.getTauxRemiseClient().toPlainString()) + " %) : " + df.format(p.getMontantRemiseClient()) + " F CFA"
                 : "";
-        String totalTVA    = p.getMontantTVA()    != null ? df.format(p.getMontantTVA())    : "0";
+        String totalTVA    = Boolean.FALSE.equals(p.getTvaApplicable()) ? "Non appliquée" : p.getMontantTVA() != null ? df.format(p.getMontantTVA()) : "0";
         String totalTimbre = p.getMontantTimbre() != null ? df.format(p.getMontantTimbre()) : "0";
         BigDecimal montantTtcAvecTimbre = p.calculerMontantTtcAvecTimbre();
         String totalTTC    = df.format(montantTtcAvecTimbre);

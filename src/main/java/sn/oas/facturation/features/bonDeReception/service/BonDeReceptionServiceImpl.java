@@ -148,7 +148,8 @@ public class BonDeReceptionServiceImpl implements BonDeReceptionService {
                 java.util.Map.entry("agent", templateValue(response.getAgentNom())),
                 java.util.Map.entry("remarque", templateValue(bl.getRemarque())),
                 java.util.Map.entry("montantHT", templateValue(bl.getMontantHT())),
-                java.util.Map.entry("montantTVA", templateValue(bl.getMontantTVA())),
+                java.util.Map.entry("montantTVA", Boolean.FALSE.equals(bl.getTvaApplicable()) ? "Non appliquée" : templateValue(bl.getMontantTVA())),
+                java.util.Map.entry("tvaApplicable", Boolean.TRUE.equals(bl.getTvaApplicable()) ? "Oui" : "Non"),
                 java.util.Map.entry("montantTimbre", templateValue(bl.getMontantTimbre())),
                 java.util.Map.entry("montantTTC", templateValue(bl.getMontantTTC())),
                 java.util.Map.entry("montantTotal", templateValue(bl.getMontantTotal()))),
@@ -276,7 +277,7 @@ public class BonDeReceptionServiceImpl implements BonDeReceptionService {
             // Totaux
             Paragraph total = new Paragraph(
                     "Total HT : " + templateValue(bl.getMontantHT()) + " FCFA\n" +
-                            "TVA : " + templateValue(bl.getMontantTVA()) + " FCFA\n" +
+                            "TVA : " + (Boolean.FALSE.equals(bl.getTvaApplicable()) ? "Non appliquée" : templateValue(bl.getMontantTVA())) + "\n" +
                             "Timbre : " + templateValue(bl.getMontantTimbre()) + " FCFA\n" +
                             "Total TTC : " + templateValue(bl.getMontantTTC()) + " FCFA\n" +
                             "TOTAL GÉNÉRAL : " + templateValue(bl.getMontantTotal()) + " FCFA",
@@ -353,7 +354,7 @@ public class BonDeReceptionServiceImpl implements BonDeReceptionService {
         }
         html.append("<h2>Totaux</h2><table style='width:45%;margin-left:auto;border-collapse:collapse'>")
                 .append(htmlRow("Montant HT", templateValue(bon.getMontantHT()) + " FCFA"))
-                .append(htmlRow("TVA", templateValue(bon.getMontantTVA()) + " FCFA"))
+                .append(htmlRow("TVA", Boolean.FALSE.equals(bon.getTvaApplicable()) ? "Non appliquée" : templateValue(bon.getMontantTVA()) + " FCFA"))
                 .append(htmlRow("Timbre", templateValue(bon.getMontantTimbre()) + " FCFA"))
                 .append(htmlRow("Total TTC", templateValue(bon.getMontantTTC()) + " FCFA"))
                 .append(htmlRow("Net à payer", templateValue(bon.getMontantTotal()) + " FCFA"))

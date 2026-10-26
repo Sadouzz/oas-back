@@ -522,6 +522,7 @@ public class BonDeCommandeServiceImpl implements BonDeCommandeService {
             BigDecimal tva = bonDeCommande.getTvaApplicable() != null && bonDeCommande.getTvaApplicable()
                     ? fiscalConfigurationService.calculateRate(montantHT, tvaRateForReception)
                     : BigDecimal.ZERO;
+            bonDeReception.setTvaApplicable(Boolean.TRUE.equals(bonDeCommande.getTvaApplicable()));
             bonDeReception.setMontantTVA(tva);
             bonDeReception.setMontantTTC(montantHT.add(tva));
             bonDeReception.setMontantTotal(bonDeReception.getMontantTTC().add(bonDeReception.getMontantTimbre() != null ? bonDeReception.getMontantTimbre() : BigDecimal.ZERO));

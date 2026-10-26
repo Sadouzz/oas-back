@@ -18,6 +18,7 @@ public class ProformaResponse {
     private LocalDateTime dateModification;
     private BigDecimal montantHT;
     private BigDecimal montantTVA;
+    private Boolean tvaApplicable;
     private BigDecimal montantTTC;
     private BigDecimal montantTimbre;
     private BigDecimal montantAutre;
@@ -87,6 +88,7 @@ public class ProformaResponse {
                 .dateModification(p.getDateModification())
                 .montantHT(p.getMontantHT())
                 .montantTVA(p.getMontantTVA())
+                .tvaApplicable(p.getTvaApplicable())
                 .montantTTC(p.calculerMontantTtcAvecTimbre())
                 .montantTimbre(p.getMontantTimbre())
                 .montantAutre(BigDecimal.ZERO)

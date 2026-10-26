@@ -12,6 +12,8 @@ public record NoteDePrixListResponse(
         String numero,
         LocalDateTime dateCreation,
         BigDecimal montantHT,
+        BigDecimal montantTVA,
+        Boolean tvaApplicable,
         BigDecimal montantTotal,
         BigDecimal montantPaye,
         BigDecimal resteAPayer,
@@ -81,6 +83,8 @@ public record NoteDePrixListResponse(
                 .numero(note.getNumero())
                 .dateCreation(note.getDateCreation())
                 .montantHT(note.getMontantHT())
+                .montantTVA(note.getMontantTVA())
+                .tvaApplicable(note.getTvaApplicable())
                 .montantTotal(note.getMontantTotal())
                 .montantPaye(note.getMontantPaye())
                 .resteAPayer(note.getResteAPayer())

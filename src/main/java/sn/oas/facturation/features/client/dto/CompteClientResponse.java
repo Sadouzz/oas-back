@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 
 public record CompteClientResponse(
         Long clientId, String typeClient, String raisonSociale, String ninea,
-        boolean compteExiste, boolean compteActif, BigDecimal remisePourcentage, BigDecimal soldeCredit,
+        boolean compteExiste, boolean compteActif,
         Integer echeanceJours, BigDecimal plafondPeriode,
         BigDecimal encoursImpayes, BigDecimal facturePeriode,
         boolean facturesEnRetard, boolean reservationClientAutorisee,

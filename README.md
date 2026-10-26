@@ -31,11 +31,15 @@ The project is structured into features/domains under `src/main/java/sn/oas/fact
 The application uses `application.yml` and environment-specific files like `application-dev.yml`.
 
 ### Environment Variables (.env)
-You must set the following environment variables (or define them in a `.env` file at the root of the project):
-- `DATABASE_URL`: PostgreSQL connection string (e.g., `jdbc:postgresql://localhost:5432/facturation`)
-- `DATABASE_HOSTNAME`: Database username
-- `DATABASE_PASSWORD`: Database password
-- `JWT_SECRET`: Secret key used for signing JWT tokens
+Copy `.env.example` to `.env` at the backend root and replace the placeholder values. The backend loads this file on startup. Main settings:
+- PostgreSQL: `DATABASE_URL`, `DATABASE_USERNAME`, `DATABASE_PASSWORD`
+- Authentication: `JWT_SECRET` (use a long, randomly generated secret)
+- Email: `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`
+- Media uploads: `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
+- Browser access: `CORS_ORIGINS`; cookie options: `COOKIE_SECURE`, `COOKIE_SAME_SITE`
+- Optional Web Push: `OAS_PUSH_VAPID_PUBLIC_KEY`, `OAS_PUSH_VAPID_PRIVATE_KEY`, `OAS_PUSH_VAPID_SUBJECT`
+
+`DATABASE_HOSTNAME` remains supported as a legacy alias for the database username in the `dev` profile. The frontend API URL is configured in `oas-front/src/environments/environment.ts` and `environment.prod.ts`; Angular does not load the backend `.env` file.
 
 ### Profiles
 The active profile is controlled via the `SPRING_ACTIVE_PROFILE` environment variable (defaults to `dev`).

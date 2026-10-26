@@ -36,7 +36,6 @@ import sn.oas.facturation.features.user.data.enums.Role;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.features.user.repository.UserRepository;
 import sn.oas.facturation.features.client.data.entity.Client;
-import sn.oas.facturation.features.client.repository.CompteClientRepository;
 import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.features.ordreReparation.data.entity.LigneOrdreReparationMainDoeuvre;
 import sn.oas.facturation.features.ordreReparation.data.entity.LigneOrdreReparationPiece;
@@ -78,7 +77,6 @@ public class FactureServiceImpl implements FactureService {
     private final sn.oas.facturation.features.notification.service.NotificationService notificationService;
     private final sn.oas.facturation.features.pdfGenerator.service.HtmlToPdfService htmlToPdfService;
     private final sn.oas.facturation.features.pdfTemplate.repository.PdfTemplateRepository pdfTemplateRepository;
-    private final CompteClientRepository compteClientRepository;
     private final sn.oas.facturation.features.fiscal.service.FiscalConfigurationService fiscalConfigurationService;
 
     @Override
@@ -130,6 +128,12 @@ public class FactureServiceImpl implements FactureService {
         }
 
         String numero = documentNumberGeneratorService.generateNextNumber(DocumentType.FC);
+        Proforma proformaSource = ordreReparation.getProforma();
+        boolean appliquerTVA = request.getAppliquerTVA() != null ? request.getAppliquerTVA()
+                : proformaSource != null
+                    ? (proformaSource.getTvaApplicable() != null ? proformaSource.getTvaApplicable()
+                        : proformaSource.getMontantTVA() != null && proformaSource.getMontantTVA().signum() > 0)
+                    : true;
         var invoiceTemplate = request.getPdfTemplateId() == null ? loadDefaultInvoiceTemplate(request.getPdfLayoutKey()) : loadInvoiceTemplate(request.getPdfTemplateId(), request.getPdfLayoutKey());
 
         Facture facture = Facture.builder()
@@ -143,6 +147,7 @@ public class FactureServiceImpl implements FactureService {
                 .remarque(request.getRemarque())
                 .pdfTemplate(invoiceTemplate)
                 .pdfLayoutKey(normalizeInvoiceLayout(request.getPdfLayoutKey()))
+                .tvaApplicable(appliquerTVA)
                 .build();
 
         BigDecimal piecesNet = BigDecimal.ZERO;
@@ -183,7 +188,7 @@ public class FactureServiceImpl implements FactureService {
 
         var fiscal = fiscalConfigurationService.getCurrent();
         BigDecimal tva = BigDecimal.ZERO;
-        if (Boolean.TRUE.equals(request.getAppliquerTVA())) {
+        if (appliquerTVA) {
             tva = fiscalConfigurationService.calculateRate(ht, fiscal.getTvaRate());
         }
 
@@ -289,6 +294,10 @@ public class FactureServiceImpl implements FactureService {
 
         String numero = documentNumberGeneratorService.generateNextNumber(DocumentType.FC);
         var invoiceTemplate = loadDefaultInvoiceTemplate("AVEC_ENTETE");
+        Proforma proformaSource = ordreReparation.getProforma();
+        boolean appliquerTVA = proformaSource == null || (proformaSource.getTvaApplicable() != null
+                ? proformaSource.getTvaApplicable()
+                : proformaSource.getMontantTVA() != null && proformaSource.getMontantTVA().signum() > 0);
 
         Facture facture = Facture.builder()
                 .numero(numero)
@@ -302,6 +311,7 @@ public class FactureServiceImpl implements FactureService {
                 .remarque("Facture générée automatiquement depuis la Fiche Atelier " + ordreReparation.getNumero())
                 .pdfTemplate(invoiceTemplate)
                 .pdfLayoutKey("AVEC_ENTETE")
+                .tvaApplicable(appliquerTVA)
                 .build();
 
         facture = factureRepository.save(facture);
@@ -355,7 +365,7 @@ public class FactureServiceImpl implements FactureService {
         facture.setMontantRemiseClient(montantRemise);
         if (client != null && client.getEcheance() != null && client.getEcheance() > 0) facture.setDateEcheance(java.time.LocalDateTime.now().plusDays(client.getEcheance()));
         var fiscal = fiscalConfigurationService.getCurrent();
-        BigDecimal tva = fiscalConfigurationService.calculateRate(montantHT, fiscal.getTvaRate());
+        BigDecimal tva = appliquerTVA ? fiscalConfigurationService.calculateRate(montantHT, fiscal.getTvaRate()) : BigDecimal.ZERO;
         BigDecimal timbre = fiscal.getTimbreFiscal();
         BigDecimal ttc = montantHT.add(tva).add(timbre);
 
@@ -508,7 +518,8 @@ public class FactureServiceImpl implements FactureService {
                 java.util.Map.entry("montantRemiseGenerale", templateValue(montantRemiseGenerale)),
                 java.util.Map.entry("dateEcheance", templateValue(f.getDateEcheance())),
                 java.util.Map.entry("kilometrage", templateValue(f.getKilometrage())), java.util.Map.entry("montantHT", templateValue(f.getMontantHT())),
-                java.util.Map.entry("montantTVA", templateValue(f.getMontantTVA())), java.util.Map.entry("montantTimbre", templateValue(f.getMontantTimbre())),
+                java.util.Map.entry("montantTVA", Boolean.FALSE.equals(f.getTvaApplicable()) ? "Non appliquée" : templateValue(f.getMontantTVA())),
+                java.util.Map.entry("tvaApplicable", Boolean.TRUE.equals(f.getTvaApplicable()) ? "Oui" : "Non"), java.util.Map.entry("montantTimbre", templateValue(f.getMontantTimbre())),
                 java.util.Map.entry("montantAutre", templateValue(f.getMontantAutre())), java.util.Map.entry("montantTotal", templateValue(f.getMontantTotal())),
                 java.util.Map.entry("montantTTC", templateValue(f.getMontantTTC())), java.util.Map.entry("montantPaye", templateValue(f.getMontantPaye())),
                 java.util.Map.entry("resteAPayer", templateValue(f.getResteAPayer())), java.util.Map.entry("remarque", templateValue(f.getRemarque())));
@@ -639,7 +650,7 @@ public class FactureServiceImpl implements FactureService {
             }
             if (montantRemiseGenerale.signum() > 0) document.add(new Paragraph("Remises générales appliquées par ligne : " + montantRemiseGenerale, fontTexte));
             document.add(new Paragraph("Montant HT : " + f.getMontantHT(), fontSousTitre));
-            document.add(new Paragraph("TVA : " + f.getMontantTVA(), fontTexte));
+            document.add(new Paragraph("TVA : " + (Boolean.FALSE.equals(f.getTvaApplicable()) ? "Non appliquée" : f.getMontantTVA()), fontTexte));
             document.add(new Paragraph("Timbre : " + f.getMontantTimbre(), fontTexte));
             if (f.getMontantAutre() != null && f.getMontantAutre().compareTo(BigDecimal.ZERO) > 0) {
                 document.add(new Paragraph("Autre : " + f.getMontantAutre(), fontTexte));
@@ -662,10 +673,8 @@ public class FactureServiceImpl implements FactureService {
     }
 
     private int tauxRemiseApplicable(Client client) {
-        if (client == null || client.getTypeClient() != sn.oas.facturation.features.client.data.enums.TypeClient.ENTREPRISE
-                || !client.isClientFidele() || client.getMontantRemise() == null) return 0;
-        var compte = compteClientRepository.findByClientId(client.getId()).orElse(null);
-        return compte != null && compte.isActif() ? client.getMontantRemise() : 0;
+        if (client == null || client.getMontantRemise() == null) return 0;
+        return Math.max(0, Math.min(100, client.getMontantRemise()));
     }
 
     /**

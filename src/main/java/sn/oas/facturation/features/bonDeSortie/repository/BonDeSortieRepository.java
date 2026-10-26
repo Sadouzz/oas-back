@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 import sn.oas.facturation.features.bonDeSortie.data.entity.BonDeSortie;
 import sn.oas.facturation.features.bonDeSortie.data.enums.StatutBon;
+import sn.oas.facturation.features.bonDeSortie.data.enums.TypeLigneBonDeSortie;
 
 import java.util.List;
 import java.util.Optional;
@@ -27,6 +28,48 @@ public interface BonDeSortieRepository extends JpaRepository<BonDeSortie, Long> 
     List<BonDeSortie> findByStatutOrderByDateDesc(StatutBon statut);
     Page<BonDeSortie> findByStatut(StatutBon statut, Pageable pageable);
     long countByStatut(StatutBon statut);
+
+    @Query("SELECT ligne.piece.id AS pieceId, ligne.designation AS designation, SUM(ligne.quantite) AS quantiteTotale " +
+            "FROM BonDeSortie bon JOIN bon.lignesBonDeSortiePieces ligne " +
+            "WHERE bon.ordreReparation.id = :ordreReparationId AND bon.statut = :statut AND ligne.type = :type " +
+            "GROUP BY ligne.piece.id, ligne.designation")
+    List<PieceQuantiteProjection> sommerQuantitesPiecesValideesParOrdreReparation(
+            @Param("ordreReparationId") Long ordreReparationId, @Param("statut") StatutBon statut,
+            @Param("type") TypeLigneBonDeSortie type);
+
+    @Query("SELECT ligne.mainDoeuvreId AS mainDoeuvreId, ligne.designation AS designation, SUM(ligne.quantite) AS quantiteTotale " +
+            "FROM BonDeSortie bon JOIN bon.lignesBonDeSortiePieces ligne " +
+            "WHERE bon.ordreReparation.id = :ordreReparationId AND bon.statut = :statut " +
+            "AND ligne.type = :type AND ligne.mainDoeuvreId IS NOT NULL " +
+            "GROUP BY ligne.mainDoeuvreId, ligne.designation")
+    List<LegacyMainDoeuvreQuantiteProjection> sommerQuantitesMainDoeuvreLegacyValideesParOrdreReparation(
+            @Param("ordreReparationId") Long ordreReparationId, @Param("statut") StatutBon statut,
+            @Param("type") TypeLigneBonDeSortie type);
+
+    @Query("SELECT ligne.mainDoeuvre.id AS mainDoeuvreId, ligne.description AS designation, SUM(ligne.nbreHeure) AS quantiteTotale " +
+            "FROM BonDeSortie bon JOIN bon.lignesBonDeSortieMainDoeuvres ligne " +
+            "WHERE bon.ordreReparation.id = :ordreReparationId AND bon.statut = :statut " +
+            "GROUP BY ligne.mainDoeuvre.id, ligne.description")
+    List<MainDoeuvreQuantiteProjection> sommerQuantitesMainDoeuvreValideesParOrdreReparation(
+            @Param("ordreReparationId") Long ordreReparationId, @Param("statut") StatutBon statut);
+
+    interface PieceQuantiteProjection {
+        Long getPieceId();
+        String getDesignation();
+        Long getQuantiteTotale();
+    }
+
+    interface MainDoeuvreQuantiteProjection {
+        Long getMainDoeuvreId();
+        String getDesignation();
+        Long getQuantiteTotale();
+    }
+
+    interface LegacyMainDoeuvreQuantiteProjection {
+        Long getMainDoeuvreId();
+        String getDesignation();
+        Long getQuantiteTotale();
+    }
 
     List<BonDeSortie> findByClientIdOrderByDateDesc(Long clientId);
     Page<BonDeSortie> findByClientId(Long clientId, Pageable pageable);

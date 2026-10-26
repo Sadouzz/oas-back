@@ -69,6 +69,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
     private final BonDeSortieHistoriqueRepository bonDeSortieHistoriqueRepository;
     private final MainDoeuvreRepository mainDoeuvreRepository;
     private final OrdreTravailRepository ordreTravailRepository;
+    private final sn.oas.facturation.features.fiscal.service.FiscalConfigurationService fiscalConfigurationService;
 
 
     @Transactional
@@ -100,8 +101,9 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
             throw new IllegalArgumentException("L'ordre de réparation ne correspond pas au client sélectionné");
         }
         if (ot != null && (ot.getVehicule() == null || !ot.getVehicule().getId().equals(vehicule.getId())
+                || (ot.getClient() != null && !ot.getClient().getId().equals(client.getId()))
                 || (ot.getOrdreReparation() != null && !ot.getOrdreReparation().getId().equals(fiche.getId())))) {
-            throw new IllegalArgumentException("L'ordre de travail ne correspond pas à l'ordre de réparation sélectionné");
+            throw new IllegalArgumentException("L'ordre de travail ne correspond pas au client, au véhicule ou à l'ordre de réparation sélectionné");
         }
 
         Proforma proformaAssocie = ot != null && ot.getProforma() != null ? ot.getProforma()
@@ -114,6 +116,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                 .agentEmetteur(agentEmetteur)
                 .garage(agentEmetteur != null ? agentEmetteur.getGarage() : null)
                 .remarque(request.remarque())
+                .tvaApplicable(Boolean.TRUE.equals(request.appliquerTVA()))
                 .ordreReparation(fiche)
                 .ordreTravail(ot)
                 .proforma(proformaAssocie)
@@ -736,7 +739,13 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
 
         bon.setMontantTotalPieces(totalPieces);
         bon.setMontantTotalMainDoeuvre(totalMo);
-        bon.setMontantTotal(totalPieces.add(totalMo));
+        BigDecimal montantHT = totalPieces.add(totalMo);
+        BigDecimal montantTVA = Boolean.TRUE.equals(bon.getTvaApplicable())
+                ? fiscalConfigurationService.calculateRate(montantHT, fiscalConfigurationService.getCurrent().getTvaRate())
+                : BigDecimal.ZERO;
+        bon.setMontantTotal(montantHT);
+        bon.setMontantTVA(montantTVA);
+        bon.setMontantTTC(montantHT.add(montantTVA));
     }
 
     private BigDecimal trouverTauxRemisePieceProforma(BonDeSortie bon, PieceDetache piece, String designation) {

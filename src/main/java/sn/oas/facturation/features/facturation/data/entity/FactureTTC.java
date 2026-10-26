@@ -24,6 +24,10 @@ public abstract class FactureTTC extends Facturation {
     @Column(name = "montant_tva", nullable = false, precision = 15, scale = 2)
     private BigDecimal montantTVA;
 
+    /** Choix fiscal figé sur le document; null reste accepté pour les documents historiques. */
+    @Column(name = "tva_applicable")
+    private Boolean tvaApplicable;
+
     @Column(name = "montant_ttc", nullable = false, precision = 15, scale = 2)
     private BigDecimal montantTTC;
 

@@ -34,6 +34,7 @@ public record ProformaDetailsResponseDto(
 
         // Données financières
         Double tvaRate,
+        Boolean tvaApplicable,
         Double montantTimbre,
         Double montantAutre,
         Double montantHT,
@@ -192,6 +193,7 @@ public record ProformaDetailsResponseDto(
                 .numeroBonDeCommande(p.getBonDeCommande() != null ? p.getBonDeCommande().getNumero() : null)
                 .ordreReparationId(p.getOrdreReparation() != null ? p.getOrdreReparation().getId() : null)
                 .tvaRate(tvaRate)
+                .tvaApplicable(p.getTvaApplicable())
                 .montantTimbre(timbre)
                 .montantAutre(0.0)
                 .montantHT(ht)

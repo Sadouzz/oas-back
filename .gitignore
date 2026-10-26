@@ -4,6 +4,23 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 .env
+.env.*
+!.env.example
+
+# Logs and temporary local files
+*.log
+logs/
+hs_err_pid*
+replay_pid*
+*.tmp
+*.bak
+*.swp
+*~
+
+/.cache/
+*.hprof
+*.jfr
+*.dump
 
 /test-client-react/
 ### STS ###

@@ -1,4 +1,4 @@
-Auteur : Codex | Date : 2026-10-21 | Action : préciser le calcul et la propagation des remises OR
+Auteur : Codex | Date : 2026-10-26 | Action : documenter l'avertissement non bloquant de couverture des BS
 
 # Workflow des bons de sortie
 
@@ -13,6 +13,8 @@ Les taux de remise sont saisis sur les lignes de l’OR, jamais sur le BS ou le 
 La remise générale est appliquée séparément à chaque ligne de pièce et de main-d’œuvre. Ensuite, si le client a un compte actif avec une remise, celle-ci est calculée sur le sous-total des pièces déjà remisées ; elle ne s’applique pas à la main-d’œuvre. Le proforma et la facture reprennent ce calcul et affichent les remises par ligne ainsi que la remise de compte client séparément. Le BS ne porte ni taux ni montant de remise.
 
 Le magasinier peut créer un BS. La validation est réservée au chef d’atelier, au master et au super-agent, et n’est proposée qu’après la réparation (statut OR `PAIEMENT` ou ultérieur). Le master reste dans son garage ; le super-agent conserve sa portée système selon les règles de sécurité existantes.
+
+La clôture d’un OT ne dépend pas de la couverture des lignes demandées par des bons de sortie validés. À l’étape Réparation, le système affiche les pièces et heures de main-d’œuvre qui restent absentes des BS validés, mais cet écart n’empêche pas de terminer l’OT.
 
 ## Déploiement des colonnes
 

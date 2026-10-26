@@ -42,6 +42,10 @@ public class LigneBonDeSortiePiece {
     @Builder.Default
     private TypeLigneBonDeSortie type = TypeLigneBonDeSortie.PIECE;
 
+    /** Identifiant conservé pour lire les anciennes lignes de main-d'œuvre stockées dans cette table. */
+    @Column(name = "main_doeuvre_id")
+    private Long mainDoeuvreId;
+
     // @ManyToOne(fetch = FetchType.LAZY)
     // @JoinColumn(name = "main_doeuvre_id")
     // private MainDoeuvre mainDoeuvre;

@@ -15,6 +15,7 @@ public record FactureListResponse(
         // LocalDateTime dateModification,
         BigDecimal montantHT,
         BigDecimal montantTVA,
+        Boolean tvaApplicable,
         BigDecimal montantTTC,
         BigDecimal montantTimbre,
         BigDecimal montantAutre,
@@ -50,6 +51,7 @@ public record FactureListResponse(
                 // .dateModification(f.getDateModification())
                 .montantHT(f.getMontantHT())
                 .montantTVA(f.getMontantTVA())
+                .tvaApplicable(f.getTvaApplicable())
                 .montantTTC(f.getMontantTTC())
                 .montantTimbre(f.getMontantTimbre())
                 .montantAutre(f.getMontantAutre())

@@ -26,6 +26,7 @@ public interface ClientService {
     Client getClientConnecte();
 
     void updateClientFideleConfig(Long id, ClientFideleRequest request);
+    Client configurerRemise(Long id, Integer montantRemise);
 
     void removeClientFidele(Long id);
 

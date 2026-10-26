@@ -18,6 +18,7 @@ public class BonDeReceptionResponse {
     private LocalDateTime dateModification;
     private BigDecimal montantHT;
     private BigDecimal montantTVA;
+    private Boolean tvaApplicable;
     private BigDecimal montantTTC;
     private BigDecimal montantTimbre;
     private BigDecimal montantTotal;
@@ -44,6 +45,7 @@ public class BonDeReceptionResponse {
                 .dateModification(bl.getDateModification())
                 .montantHT(bl.getMontantHT())
                 .montantTVA(bl.getMontantTVA())
+                .tvaApplicable(bl.getTvaApplicable())
                 .montantTTC(bl.getMontantTTC())
                 .montantTimbre(bl.getMontantTimbre())
                 .montantTotal(bl.getMontantTotal())

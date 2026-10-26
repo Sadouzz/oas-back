@@ -40,6 +40,8 @@ public class ProformaCreateRequest {
 
     private Double tvaRate; // taux TVA en pourcentage (ex: 18.0)
 
+    private Boolean appliquerTVA;
+
     private BigDecimal montantTimbre; // montant timbre fiscal
 
     private BigDecimal montantAutre; // autre montant (ex: frais additionnels)

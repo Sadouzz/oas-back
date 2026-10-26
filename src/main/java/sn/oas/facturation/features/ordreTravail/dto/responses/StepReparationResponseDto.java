@@ -12,4 +12,5 @@ public class StepReparationResponseDto extends BaseOtStepResponseDto {
     private String rapportReparation;
     private String dateFinReparation;
     private List<TechnicienSummaryDto> techniciensReparation = new ArrayList<>();
+    private List<String> avertissementsBonsDeSortie = new ArrayList<>();
 }

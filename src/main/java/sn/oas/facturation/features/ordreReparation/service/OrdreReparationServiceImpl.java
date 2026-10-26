@@ -62,7 +62,6 @@ import sn.oas.facturation.features.ordreReparation.dto.responses.ProformaSummary
 import sn.oas.facturation.features.ordreReparation.dto.ClientLightDTO;
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.data.enums.TypeClient;
-import sn.oas.facturation.features.client.repository.CompteClientRepository;
 import sn.oas.facturation.features.diagnostic.data.entity.Diagnostic;
 import sn.oas.facturation.features.diagnostic.data.entity.PieceJointeDiagnostic;
 import sn.oas.facturation.features.diagnostic.data.entity.RemarqueDiagnostic;
@@ -135,7 +134,6 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     private final DevisPrevisionnelRepository devisPrevisionnelRepository;
     private final BonDeCommandeRepository bonDeCommandeRepository;
     private final sn.oas.facturation.features.ordreTravail.repository.OrdreTravailRepository ordreTravailRepository;
-    private final CompteClientRepository compteClientRepository;
     private final sn.oas.facturation.features.facture.repository.FactureRepository factureRepository;
 
     @Autowired
@@ -1279,14 +1277,8 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     }
 
     private double tauxRemiseClientApplicable(Client client) {
-        if (client == null || client.getTypeClient() != TypeClient.ENTREPRISE
-                || !client.isClientFidele() || client.getMontantRemise() == null) {
-            return 0.0;
-        }
-        return compteClientRepository.findByClientId(client.getId())
-                .filter(compte -> compte.isActif())
-                .map(compte -> client.getMontantRemise().doubleValue())
-                .orElse(0.0);
+        if (client == null || client.getMontantRemise() == null) return 0.0;
+        return Math.max(0, Math.min(100, client.getMontantRemise()));
     }
 
     @Override

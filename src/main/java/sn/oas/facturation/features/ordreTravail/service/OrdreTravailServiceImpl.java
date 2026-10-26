@@ -15,6 +15,8 @@ import sn.oas.facturation.features.bonDeCommande.data.enums.StatutBonCommande;
 import sn.oas.facturation.features.bonDeCommande.repository.BonDeCommandeRepository;
 import sn.oas.facturation.features.bonDeSortie.data.entity.BonDeSortie;
 import sn.oas.facturation.features.bonDeSortie.data.entity.LigneBonDeSortiePiece;
+import sn.oas.facturation.features.bonDeSortie.data.enums.StatutBon;
+import sn.oas.facturation.features.bonDeSortie.data.enums.TypeLigneBonDeSortie;
 import sn.oas.facturation.features.bonDeSortie.repository.BonDeSortieRepository;
 import sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece;
 import sn.oas.facturation.features.piecedetache.data.entity.PDP;
@@ -62,8 +64,12 @@ import sn.oas.facturation.features.ordreTravail.dto.steps.*;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -949,6 +955,7 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
         dto.setOrdreReparationId(ot.getOrdreReparation() != null ? ot.getOrdreReparation().getId() : null);
         dto.setRapportReparation(ot.getRapportReparation());
         dto.setDateFinReparation(ot.getDateFinReparation() != null ? ot.getDateFinReparation().toString() : null);
+        dto.setAvertissementsBonsDeSortie(calculerAvertissementsCouvertureBonsDeSortie(ot, StatutOrdreTravail.TERMINE));
 
         List<TechnicienSummaryDto> techDtos = new ArrayList<>();
         if (ot.getLignesTechniciens() != null) {
@@ -1049,11 +1056,95 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
                 ot.setDateFinReparation(LocalDateTime.now());
             }
         }
+        dto.setAvertissementsBonsDeSortie(calculerAvertissementsCouvertureBonsDeSortie(
+                ot, dto.getStatut() != null ? dto.getStatut() : StatutOrdreTravail.TERMINE));
         if (dto.getStatut() != null) {
             ot.setStatut(dto.getStatut());
         }
         ot.setUpdatedAt(LocalDateTime.now());
         ordreTravailRepository.save(ot);
         return dto;
+    }
+
+    /**
+     * Signale les lignes demandées qui ne sont pas couvertes par des bons de sortie validés.
+     * Cet écart est informatif et ne bloque pas la fin de réparation.
+     * Les quantités sont agrégées en base au lieu de charger les collections d'entités.
+     */
+    private List<String> calculerAvertissementsCouvertureBonsDeSortie(OrdreTravail ordreTravail, StatutOrdreTravail nouveauStatut) {
+        if (nouveauStatut != StatutOrdreTravail.TERMINE
+                || ordreTravail.getOrdreReparation() == null
+                || ordreTravail.getOrdreReparation().getId() == null) {
+            return List.of();
+        }
+
+        Long ordreReparationId = ordreTravail.getOrdreReparation().getId();
+        Map<String, Long> quantitesDemandees = new LinkedHashMap<>();
+        Map<String, String> libelles = new HashMap<>();
+
+        for (var ligne : ordreReparationRepository.sommerQuantitesPiecesDemandees(ordreReparationId)) {
+            String cle = clePiece(ligne.getPieceId(), ligne.getDesignation());
+            quantitesDemandees.merge(cle, quantite(ligne.getQuantiteTotale()), Long::sum);
+            libelles.putIfAbsent(cle, "Pièce — " + libelle(ligne.getDesignation(), "ligne personnalisée"));
+        }
+        for (var ligne : ordreReparationRepository.sommerQuantitesMainDoeuvreDemandees(ordreReparationId)) {
+            String cle = cleMainDoeuvre(ligne.getMainDoeuvreId());
+            quantitesDemandees.merge(cle, quantite(ligne.getQuantiteTotale()), Long::sum);
+            libelles.putIfAbsent(cle, "Main-d'œuvre — " + libelle(ligne.getDesignation(), "ligne sans désignation"));
+        }
+
+        if (quantitesDemandees.isEmpty()) {
+            return List.of();
+        }
+
+        Map<String, Long> quantitesValidees = new HashMap<>();
+        for (var ligne : bonDeSortieRepository.sommerQuantitesPiecesValideesParOrdreReparation(ordreReparationId,
+                StatutBon.VALIDE, TypeLigneBonDeSortie.PIECE)) {
+            quantitesValidees.merge(clePiece(ligne.getPieceId(), ligne.getDesignation()),
+                    quantite(ligne.getQuantiteTotale()), Long::sum);
+        }
+        for (var ligne : bonDeSortieRepository.sommerQuantitesMainDoeuvreValideesParOrdreReparation(ordreReparationId,
+                StatutBon.VALIDE)) {
+            quantitesValidees.merge(cleMainDoeuvre(ligne.getMainDoeuvreId()),
+                    quantite(ligne.getQuantiteTotale()), Long::sum);
+        }
+        for (var ligne : bonDeSortieRepository.sommerQuantitesMainDoeuvreLegacyValideesParOrdreReparation(ordreReparationId,
+                StatutBon.VALIDE, TypeLigneBonDeSortie.MAIN_DOEUVRE)) {
+            quantitesValidees.merge(cleMainDoeuvre(ligne.getMainDoeuvreId()),
+                    quantite(ligne.getQuantiteTotale()), Long::sum);
+        }
+
+        List<String> manquants = new ArrayList<>();
+        quantitesDemandees.forEach((cle, demandee) -> {
+            long validee = quantitesValidees.getOrDefault(cle, 0L);
+            if (validee < demandee) {
+                manquants.add(libelles.get(cle) + " : demandé " + demandee + ", sur les bons validés " + validee
+                        + ", reste " + (demandee - validee));
+            }
+        });
+
+        return manquants;
+    }
+
+    private String clePiece(Long pieceId, String designation) {
+        if (pieceId != null) {
+            return "PIECE:" + pieceId;
+        }
+        if (designation != null && !designation.isBlank()) {
+            return "PDS:" + designation.trim().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
+        }
+        return "PDS_SANS_DESIGNATION";
+    }
+
+    private String cleMainDoeuvre(Long mainDoeuvreId) {
+        return "MO:" + mainDoeuvreId;
+    }
+
+    private long quantite(Long quantite) {
+        return quantite != null ? quantite : 0L;
+    }
+
+    private String libelle(String valeur, String fallback) {
+        return valeur == null || valeur.isBlank() ? fallback : valeur.trim();
     }
 }

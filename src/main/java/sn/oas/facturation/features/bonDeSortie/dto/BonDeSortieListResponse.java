@@ -31,6 +31,9 @@ public record BonDeSortieListResponse(
         Double montantTotalPieces,
         Double montantTotalMainDoeuvre,
         Double montantTotal,
+        Boolean tvaApplicable,
+        Double montantTVA,
+        Double montantTTC,
         Long proformaId,
         String proformaNumero,
         @JsonAlias({"lignesBonDeSortiePieces", "pieces"})
@@ -218,6 +221,9 @@ public record BonDeSortieListResponse(
                 .montantTotalPieces(b.getMontantTotalPieces() != null ? b.getMontantTotalPieces().doubleValue() : 0.0)
                 .montantTotalMainDoeuvre(b.getMontantTotalMainDoeuvre() != null ? b.getMontantTotalMainDoeuvre().doubleValue() : 0.0)
                 .montantTotal(b.getMontantTotal() != null ? b.getMontantTotal().doubleValue() : 0.0)
+                .tvaApplicable(b.getTvaApplicable())
+                .montantTVA(b.getMontantTVA() != null ? b.getMontantTVA().doubleValue() : 0.0)
+                .montantTTC(b.getMontantTTC() != null ? b.getMontantTTC().doubleValue() : (b.getMontantTotal() != null ? b.getMontantTotal().doubleValue() : 0.0))
                 .proformaId(b.getProforma() != null ? b.getProforma().getId() : null)
                 .proformaNumero(b.getProforma() != null ? b.getProforma().getNumero() : null)
                 .lignesPieces(lignesPieces)

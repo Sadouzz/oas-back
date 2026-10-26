@@ -221,8 +221,9 @@ public class AvoirTTCServiceImpl implements AvoirTTCService {
             }
         }
 
+        boolean appliquerTVA = Boolean.TRUE.equals(request.getAppliquerTVA());
         BigDecimal montantTVA = BigDecimal.ZERO;
-        if (Boolean.TRUE.equals(request.getAppliquerTVA())) {
+        if (appliquerTVA) {
             montantTVA = fiscalConfigurationService.calculateRate(montantHT, fiscalConfigurationService.getCurrent().getTvaRate());
         }
 
@@ -230,6 +231,7 @@ public class AvoirTTCServiceImpl implements AvoirTTCService {
         BigDecimal montantTTC = montantHT.add(montantTVA).add(montantTimbre);
 
         avoirTTC.setMontantHT(montantHT);
+        avoirTTC.setTvaApplicable(appliquerTVA);
         avoirTTC.setMontantTVA(montantTVA);
         avoirTTC.setMontantTimbre(montantTimbre);
         avoirTTC.setMontantTTC(montantTTC);
@@ -431,7 +433,7 @@ public class AvoirTTCServiceImpl implements AvoirTTCService {
             }
 
             document.add(new Paragraph("Montant HT : " + a.getMontantHT(), fontSousTitre));
-            document.add(new Paragraph("TVA : " + a.getMontantTVA(), fontTexte));
+            document.add(new Paragraph("TVA : " + (Boolean.FALSE.equals(a.getTvaApplicable()) ? "Non appliquée" : a.getMontantTVA()), fontTexte));
             document.add(new Paragraph("Timbre : " + a.getMontantTimbre(), fontTexte));
 
             Paragraph totalTTC = new Paragraph("Montant Total TTC : " + a.getMontantTTC(), fontTitre);

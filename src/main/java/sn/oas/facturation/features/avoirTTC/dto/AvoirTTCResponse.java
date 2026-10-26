@@ -18,6 +18,7 @@ public class AvoirTTCResponse {
     // private LocalDateTime dateModification;
     private BigDecimal montantHT;
     private BigDecimal montantTVA;
+    private Boolean tvaApplicable;
     private BigDecimal montantTTC;
     private BigDecimal montantTimbre;
     private BigDecimal montantTotal;
@@ -62,6 +63,7 @@ public class AvoirTTCResponse {
                 // .dateModification(a.getDateModification())
                 .montantHT(a.getMontantHT())
                 .montantTVA(a.getMontantTVA())
+                .tvaApplicable(a.getTvaApplicable())
                 .montantTTC(a.getMontantTTC())
                 .montantTimbre(a.getMontantTimbre())
                 .montantTotal(a.getMontantTTC())

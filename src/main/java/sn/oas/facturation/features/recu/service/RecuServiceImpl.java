@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import sn.oas.facturation.features.client.data.entity.Client;
+import sn.oas.facturation.features.client.service.PortefeuilleClientService;
 import sn.oas.facturation.features.facture.data.entity.Facture;
 import sn.oas.facturation.features.facture.data.enums.StatutPaiement;
 import sn.oas.facturation.features.facture.repository.FactureRepository;
@@ -37,6 +38,7 @@ public class RecuServiceImpl implements RecuService {
     private final DocumentNumberGeneratorService documentNumberGeneratorService;
     private final NotificationService notificationService;
     private final AgentNotificationService agentNotificationService;
+    private final PortefeuilleClientService portefeuilleClientService;
 
     @Override
     @Transactional
@@ -58,15 +60,24 @@ public class RecuServiceImpl implements RecuService {
 
         String numero = documentNumberGeneratorService.generateNextNumber(DocumentType.RC);
 
+        boolean paiementParSolde = PortefeuilleClientService.MODE_PAIEMENT.equalsIgnoreCase(
+                request.getModePaiement() == null ? "" : request.getModePaiement().trim());
+        if (paiementParSolde && request.getMontant().scale() > 2) {
+            throw new BadRequestException("Le montant du paiement doit comporter au maximum deux décimales.");
+        }
+
         Recu recu = Recu.builder()
                 .numero(numero)
                 .facture(facture)
                 .montant(request.getMontant())
-                .modePaiement(request.getModePaiement())
+                .modePaiement(paiementParSolde ? PortefeuilleClientService.MODE_PAIEMENT : request.getModePaiement())
                 .remarque(request.getRemarque())
                 .build();
 
         recu = recuRepository.save(recu);
+        if (paiementParSolde) {
+            portefeuilleClientService.debiterPourFacture(facture, recu, request.getMontant());
+        }
 
         // Update Facture
         facture.setMontantPaye(facture.getMontantPaye().add(request.getMontant()));

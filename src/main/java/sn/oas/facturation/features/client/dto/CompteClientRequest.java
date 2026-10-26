@@ -6,9 +6,8 @@ import java.math.BigDecimal;
 public record CompteClientRequest(
         @NotBlank @Size(max = 200) String raisonSociale,
         @NotBlank @Pattern(regexp = "(?i)[A-Z0-9]{3,40}", message = "Le NINEA doit contenir entre 3 et 40 lettres ou chiffres.") String ninea,
-        @NotNull @Min(0) @Max(100) Integer remisePourcentage,
-        @Min(1) @Max(3650) Integer echeanceJours,
-        @DecimalMin("0.0") BigDecimal plafondPeriode,
-        @Size(max = 100) String rccm,
-        @Size(max = 100) String rib,
-        Boolean actif) { }
+        @NotNull @Min(1) @Max(3650) Integer echeanceJours,
+        @NotNull @DecimalMin(value = "0.01") BigDecimal plafondPeriode,
+        @NotBlank @Size(max = 100) String rccm,
+        @NotBlank @Size(max = 100) String rib,
+        @NotNull Boolean actif) { }

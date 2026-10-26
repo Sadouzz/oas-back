@@ -28,6 +28,7 @@ public class ProformaUpdateRequest {
     private String numeroBonDeCommande;
     private String remarque;
     private Double tvaRate;
+    private Boolean appliquerTVA;
     private BigDecimal montantTimbre;
     private BigDecimal montantAutre;
 

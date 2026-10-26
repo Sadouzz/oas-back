@@ -20,6 +20,7 @@ public class FactureResponse {
     private LocalDateTime dateModification;
     private BigDecimal montantHT;
     private BigDecimal montantTVA;
+    private Boolean tvaApplicable;
     private BigDecimal montantTTC;
     private BigDecimal montantTimbre;
     private BigDecimal montantAutre;
@@ -64,6 +65,7 @@ public class FactureResponse {
                 .dateModification(f.getDateModification())
                 .montantHT(f.getMontantHT())
                 .montantTVA(f.getMontantTVA())
+                .tvaApplicable(f.getTvaApplicable())
                 .montantTTC(f.getMontantTTC())
                 .montantTimbre(f.getMontantTimbre())
                 .montantAutre(f.getMontantAutre())
