@@ -75,9 +75,9 @@ public class ProformaController {
 
     @GetMapping("/ordre-reparation/{ordreReparationId}")
     @Operation(summary = "Récupérer le proforma lié à une fiche atelier")
-    public ResponseEntity<ProformaResponse> getByOrdreReparationId(@PathVariable Long ordreReparationId) {
+    public ResponseEntity<ProformaDetailsResponseDto> getByOrdreReparationId(@PathVariable Long ordreReparationId) {
         var p = proformaService.getByOrdreReparationId(ordreReparationId);
-        return p != null ? ResponseEntity.ok(ProformaResponse.from(p)) : ResponseEntity.noContent().build();
+        return p != null ? ResponseEntity.ok(ProformaDetailsResponseDto.from(p)) : ResponseEntity.noContent().build();
     }
 
     @GetMapping
