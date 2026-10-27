@@ -13,6 +13,7 @@ import sn.oas.facturation.features.recu.data.entity.Recu;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.features.pdfTemplate.data.entity.PdfTemplate;
 import sn.oas.facturation.features.proforma.data.entity.Proforma;
+import sn.oas.facturation.features.bonDeLivraison.data.entity.BonDeLivraison;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.math.BigDecimal;
@@ -25,6 +26,13 @@ import java.math.BigDecimal;
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
 public class Facture extends FactureTTC {
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "bon_de_livraison_id", unique = true)
+    @JsonIgnore
+    @lombok.EqualsAndHashCode.Exclude
+    @lombok.ToString.Exclude
+    private BonDeLivraison bonDeLivraison;
 
     /** Template version captured when the invoice was issued; null denotes legacy rendering. */
     @ManyToOne(fetch = FetchType.LAZY)

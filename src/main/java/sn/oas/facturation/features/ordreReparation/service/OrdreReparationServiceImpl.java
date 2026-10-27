@@ -135,6 +135,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     private final BonDeCommandeRepository bonDeCommandeRepository;
     private final sn.oas.facturation.features.ordreTravail.repository.OrdreTravailRepository ordreTravailRepository;
     private final sn.oas.facturation.features.facture.repository.FactureRepository factureRepository;
+    private final sn.oas.facturation.features.bonDeLivraison.repository.BonDeLivraisonRepository bonDeLivraisonRepository;
 
     @Autowired
     @Lazy
@@ -787,6 +788,12 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Ordre de réparation introuvable"));
         if (ordre.getStatut() != StatutOrdreReparation.PRET_A_LIVRER) {
             throw new IllegalArgumentException("Le véhicule doit être prêt à livrer avant sa restitution.");
+        }
+        if (!bonDeLivraisonRepository.existsByOrdreReparationId(ordre.getId())) {
+            throw new IllegalArgumentException("Créez le bon de livraison à partir des bons de sortie avant de restituer le véhicule.");
+        }
+        if (factureRepository.findFirstByOrdreReparationId(ordre.getId()).isEmpty()) {
+            throw new IllegalArgumentException("La facture doit être créée à partir du bon de livraison avant de restituer le véhicule.");
         }
         FicheAtelier fiche = ordre.getFicheAtelier();
         if (ordre.getDateRestitution() != null) {

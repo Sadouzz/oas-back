@@ -16,6 +16,7 @@ import lombok.experimental.SuperBuilder;
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.facturation.data.entity.FactureHT;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
+import sn.oas.facturation.features.bonDeLivraison.data.entity.BonDeLivraison;
 
 import java.math.BigDecimal;
 
@@ -30,6 +31,13 @@ import java.math.BigDecimal;
 @FilterDef(name = "garageFilter", parameters = @ParamDef(name = "garageId", type = Long.class))
 @Filter(name = "garageFilter", condition = "garage_id = :garageId")
 public class NoteDePrix extends FactureHT implements TenantAware {
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "bon_de_livraison_id", unique = true)
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @lombok.EqualsAndHashCode.Exclude
+    @lombok.ToString.Exclude
+    private BonDeLivraison bonDeLivraison;
 
 
     @Column(name = "numero_bon_de_commande")

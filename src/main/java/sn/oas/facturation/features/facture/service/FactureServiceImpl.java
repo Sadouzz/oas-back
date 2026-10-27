@@ -85,6 +85,8 @@ public class FactureServiceImpl implements FactureService {
         if (request.getOrdreReparationId() == null || request.getClientId() == null || request.getVehiculeId() == null) {
             throw new BadRequestException("Le client, le véhicule et l'ordre de réparation sont obligatoires pour créer une facture.");
         }
+        if (request.getOrdreReparationId() != null)
+            throw new BadRequestException("Pour un ordre de réparation, créez la facture depuis son bon de livraison.");
 
         Client client = (Client) userRepository.findById(request.getClientId())
                 .orElseThrow(() -> new ResourceNotFoundException("Client introuvable avec l'id : " + request.getClientId()));
@@ -276,6 +278,8 @@ public class FactureServiceImpl implements FactureService {
             throw new BadRequestException("Un ordre de réparation valide est obligatoire pour créer une facture.");
         }
         Long ordreId = ordreReparation.getId();
+        if (ordreReparation.getId() != null)
+            throw new BadRequestException("Pour un ordre de réparation, créez la facture depuis son bon de livraison.");
         ordreReparation = ordreReparationRepository.findByIdForFacturation(ordreId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ordre de réparation introuvable avec l'id : " + ordreId));
         if (ordreReparation.getProforma() != null) {

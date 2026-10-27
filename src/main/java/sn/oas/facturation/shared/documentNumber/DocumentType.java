@@ -7,7 +7,7 @@ public enum DocumentType {
     BS,  // Bon de Sortie
     BC,  // Bon de Commande
     BR,  // Bon de Réception
-    BL,  // Bon de Réception (alias)
+    BL,  // Bon de Livraison client
     RC,  // Reçu
     AH,  // Avoir HT
     AT,  // Avoir TTC

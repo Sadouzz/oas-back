@@ -20,7 +20,7 @@ import sn.oas.facturation.features.bonDeReception.service.BonDeReceptionService;
 import java.util.List;
 
 @RestController
-@RequestMapping({"/api/bons-de-reception", "/api/bons-de-livraison"})
+@RequestMapping("/api/bons-de-reception")
 @RequiredArgsConstructor
 @Tag(name = "Bon de Réception", description = "API pour la gestion des bons de réception")
 public class BonDeReceptionController {

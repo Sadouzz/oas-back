@@ -599,10 +599,8 @@ public class ProformaServiceImpl implements ProformaService {
             OrdreReparation ordreVerrouille = ordreReparationRepository.findByIdForFacturation(proforma.getOrdreReparation().getId())
                     .orElseThrow(() -> new ResourceNotFoundException("Ordre de réparation introuvable pour ce proforma."));
             proforma.setOrdreReparation(ordreVerrouille);
-            if (factureRepository.findFirstByOrdreReparationId(ordreVerrouille.getId()).isPresent()) {
-                throw new sn.oas.facturation.shared.exception.ResourceAlreadyExistsException(
-                        "Une facture existe déjà pour l'ordre de réparation " + ordreVerrouille.getNumero() + ".");
-            }
+            throw new sn.oas.facturation.shared.exception.BadRequestException(
+                    "Pour un ordre de réparation, convertissez le bon de livraison en facture. Le proforma seul ne peut pas créer la facture.");
         }
         proforma = proformaRepository.findByIdForFactureConversion(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Proforma non trouvé avec l'id : " + id));
