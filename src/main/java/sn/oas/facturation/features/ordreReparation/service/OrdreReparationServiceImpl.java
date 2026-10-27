@@ -89,6 +89,11 @@ import sn.oas.facturation.features.ordreReparation.dto.responses.StepApprovision
 import sn.oas.facturation.features.ordreReparation.dto.responses.StepAssignationResponseDto;
 import sn.oas.facturation.features.ordreReparation.dto.responses.StepBonSortieResponseDto;
 import sn.oas.facturation.features.ordreReparation.dto.responses.StepDiagnosticResponseDto;
+import sn.oas.facturation.features.ordreReparation.dto.responses.DiagnosticSummaryDto;
+import sn.oas.facturation.features.ordreReparation.dto.responses.AdditionalStubs.TechnicienDto;
+import sn.oas.facturation.features.ordreReparation.dto.responses.AdditionalStubs.RemarqueDiagnosticDto;
+import sn.oas.facturation.features.ordreReparation.dto.responses.AdditionalStubs.PieceJointeDiagnosticDto;
+
 import sn.oas.facturation.features.ordreReparation.dto.responses.StepLivraisonResponseDto;
 import sn.oas.facturation.features.ordreReparation.dto.responses.StepPaiementResponseDto;
 import sn.oas.facturation.features.ordreReparation.dto.responses.StepPiecesMoResponseDto;
@@ -1224,6 +1229,104 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         dto.setStatut(ordre.getStatut() != null ? ordre.getStatut().name() : null);
         if (ordre.getVehicule() != null) dto.setVehiculeId(ordre.getVehicule().getId());
         dto.setListeDefauts(ordre.getListeDefauts());
+
+        Diagnostic diagnostic = diagnosticRepository.findByOrdreReparationId(ordre.getId())
+                .orElse(ordre.getDiagnostic());
+
+        if (diagnostic != null) {
+            DiagnosticSummaryDto diagDto = new DiagnosticSummaryDto();
+            diagDto.setId(diagnostic.getId());
+            diagDto.setStatut(diagnostic.getStatut() != null ? diagnostic.getStatut().name() : null);
+            diagDto.setPannesDetectees(diagnostic.getPannesDetectees());
+            diagDto.setObservations(diagnostic.getObservations());
+            diagDto.setRecommandations(diagnostic.getRecommandations());
+            diagDto.setKilometrage(diagnostic.getKilometrage());
+            if (diagnostic.getDateDebut() != null) {
+                diagDto.setDateDebut(diagnostic.getDateDebut().toString());
+            }
+            if (diagnostic.getDateFin() != null) {
+                diagDto.setDateFin(diagnostic.getDateFin().toString());
+            }
+
+            if (diagnostic.getTechnicien() != null) {
+                Technicien t = diagnostic.getTechnicien();
+                diagDto.setTechnicienId(t.getId());
+                String prenom = t.getFirstName() != null ? t.getFirstName() : "";
+                String nom = t.getLastName() != null ? t.getLastName() : "";
+                String full = (prenom + " " + nom).trim();
+                diagDto.setTechnicienNom(full.isEmpty() ? t.getUsername() : full);
+            }
+
+            // Remarques de diagnostic
+            List<RemarqueDiagnostic> rems = remarqueDiagnosticRepository.findByOrdreReparationIdOrderByCreatedAtDesc(ordre.getId());
+            if ((rems == null || rems.isEmpty()) && diagnostic.getRemarques() != null) {
+                rems = diagnostic.getRemarques();
+            }
+            if (rems != null) {
+                List<RemarqueDiagnosticDto> remDtos = rems.stream().map(r -> {
+                    RemarqueDiagnosticDto rDto = new RemarqueDiagnosticDto();
+                    rDto.setId(r.getId());
+                    rDto.setTexte(r.getContenu());
+                    rDto.setContenu(r.getContenu());
+                    if (r.getTechnicien() != null) {
+                        rDto.setTechnicienId(r.getTechnicien().getId());
+                        String p = r.getTechnicien().getFirstName() != null ? r.getTechnicien().getFirstName() : "";
+                        String n = r.getTechnicien().getLastName() != null ? r.getTechnicien().getLastName() : "";
+                        String f = (p + " " + n).trim();
+                        rDto.setTechnicienNom(f.isEmpty() ? r.getTechnicien().getUsername() : f);
+                    }
+                    if (r.getCreatedAt() != null) {
+                        rDto.setCreatedAt(r.getCreatedAt().toString());
+                    }
+                    return rDto;
+                }).collect(Collectors.toList());
+                diagDto.setRemarques(remDtos);
+            }
+
+            // Pièces jointes de diagnostic
+            List<PieceJointeDiagnostic> pjs = pieceJointeDiagnosticRepository.findByDiagnosticOrdreReparationIdOrderByCreatedAtDesc(ordre.getId());
+            if ((pjs == null || pjs.isEmpty()) && diagnostic.getPiecesJointes() != null) {
+                pjs = diagnostic.getPiecesJointes();
+            }
+            if (pjs != null) {
+                List<PieceJointeDiagnosticDto> pjDtos = pjs.stream().map(p -> {
+                    PieceJointeDiagnosticDto pDto = new PieceJointeDiagnosticDto();
+                    pDto.setId(p.getId());
+                    pDto.setUrl(p.getUrl());
+                    pDto.setType(p.getType() != null ? p.getType().name() : null);
+                    pDto.setRemarque(p.getRemarque());
+                    if (p.getTechnicien() != null) {
+                        String pre = p.getTechnicien().getFirstName() != null ? p.getTechnicien().getFirstName() : "";
+                        String last = p.getTechnicien().getLastName() != null ? p.getTechnicien().getLastName() : "";
+                        String f = (pre + " " + last).trim();
+                        pDto.setTechnicienNom(f.isEmpty() ? p.getTechnicien().getUsername() : f);
+                    }
+                    if (p.getCreatedAt() != null) {
+                        pDto.setCreatedAt(p.getCreatedAt().toString());
+                    }
+                    return pDto;
+                }).collect(Collectors.toList());
+                diagDto.setPiecesJointes(pjDtos);
+            }
+
+            dto.setDiagnostic(diagDto);
+
+            List<TechnicienDto> techDtos = new ArrayList<>();
+            if (diagnostic.getTechnicien() != null) {
+                Technicien t = diagnostic.getTechnicien();
+                TechnicienDto tDto = new TechnicienDto();
+                tDto.setId(t.getId());
+                tDto.setNom(t.getLastName());
+                tDto.setPrenom(t.getFirstName());
+                tDto.setTelephone(t.getPhone());
+                tDto.setSpecialite(t.getSpecialite() != null ? t.getSpecialite().name() : null);
+                techDtos.add(tDto);
+            }
+            dto.setTechniciensAssocies(techDtos);
+        } else {
+            dto.setTechniciensAssocies(new ArrayList<>());
+        }
+
         return dto;
     }
 

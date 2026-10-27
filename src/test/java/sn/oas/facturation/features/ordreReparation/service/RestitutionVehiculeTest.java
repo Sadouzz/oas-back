@@ -1,6 +1,13 @@
 package sn.oas.facturation.features.ordreReparation.service;
 
 import org.junit.jupiter.api.Test;
+import sn.oas.facturation.features.diagnostic.data.entity.Diagnostic;
+import sn.oas.facturation.features.diagnostic.data.enums.StatutDiagnostic;
+import sn.oas.facturation.features.diagnostic.repository.DiagnosticRepository;
+import sn.oas.facturation.features.diagnostic.repository.PieceJointeDiagnosticRepository;
+import sn.oas.facturation.features.diagnostic.repository.RemarqueDiagnosticRepository;
+import sn.oas.facturation.features.ordreReparation.dto.responses.StepDiagnosticResponseDto;
+import sn.oas.facturation.features.technicien.data.entity.Technicien;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -22,6 +29,9 @@ import static org.mockito.Mockito.*;
 class RestitutionVehiculeTest {
     @Mock OrdreReparationRepository ordreRepository;
     @Mock FicheAtelierRepository ficheRepository;
+    @Mock DiagnosticRepository diagnosticRepository;
+    @Mock RemarqueDiagnosticRepository remarqueDiagnosticRepository;
+    @Mock PieceJointeDiagnosticRepository pieceJointeDiagnosticRepository;
     @InjectMocks OrdreReparationServiceImpl service;
 
     private static final String SIGNATURE = "data:image/png;base64,iVBORw0KGgo=";
@@ -102,5 +112,31 @@ class RestitutionVehiculeTest {
         assertEquals(3, resultat.getGarantieMois());
         assertNotNull(resultat.getDateRestitution());
         verify(ficheRepository, never()).save(any());
+    }
+    @Test
+    void testStepDiagnosticContientDiagnosticEtTechniciens() {
+        Technicien tech = Technicien.builder().id(5L).firstName("Moussa").lastName("Diop").phone("771234567").build();
+        Diagnostic diag = Diagnostic.builder()
+                .pannesDetectees("Plaquettes de frein usées")
+                .observations("Disques intacts")
+                .technicien(tech)
+                .statut(StatutDiagnostic.TERMINE)
+                .build();
+        diag.setId(10L);
+        OrdreReparation ordre = OrdreReparation.builder().id(67L).numero("DK-OR-2026-0059").statut(StatutOrdreReparation.ORDRE_DE_TRAVAIL).listeDefauts("Freinage").build();
+
+        when(ordreRepository.findById(67L)).thenReturn(Optional.of(ordre));
+        when(diagnosticRepository.findByOrdreReparationId(67L)).thenReturn(Optional.of(diag));
+
+        StepDiagnosticResponseDto res = service.getStepDiagnostic(67L);
+
+        assertNotNull(res);
+        assertNotNull(res.getDiagnostic());
+        assertEquals(10L, res.getDiagnostic().getId());
+        assertEquals("Plaquettes de frein usées", res.getDiagnostic().getPannesDetectees());
+        assertEquals("Moussa Diop", res.getDiagnostic().getTechnicienNom());
+        assertNotNull(res.getTechniciensAssocies());
+        assertEquals(1, res.getTechniciensAssocies().size());
+        assertEquals("Diop", res.getTechniciensAssocies().get(0).getNom());
     }
 }

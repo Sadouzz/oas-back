@@ -1,5 +1,11 @@
 package sn.oas.facturation.features.ordreTravail.controller;
 
+import org.springframework.http.MediaType;
+import org.springframework.web.multipart.MultipartFile;
+import sn.oas.facturation.features.ordreTravail.data.enums.TypeDocumentOt;
+import sn.oas.facturation.features.ordreTravail.dto.DocumentOrdreTravailRequestDto;
+import sn.oas.facturation.features.ordreTravail.dto.responses.DocumentOrdreTravailResponseDto;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -184,5 +190,79 @@ public class OrdreTravailController {
             @PathVariable Long id,
             @RequestBody StepReparationDto dto) {
         return ResponseEntity.ok(ordreTravailService.updateStepReparation(id, dto));
+    }
+
+    // ==================== DOCUMENTS & PHOTOS (STEP 4 & OT) ====================
+
+    @Operation(summary = "Lister les documents / photos d'un ordre de travail")
+    @GetMapping("/{id}/documents")
+    public ResponseEntity<List<DocumentOrdreTravailResponseDto>> getDocuments(
+            @PathVariable Long id,
+            @RequestParam(required = false) TypeDocumentOt type,
+            @RequestParam(required = false) Integer etape) {
+        return ResponseEntity.ok(ordreTravailService.getDocuments(id, type, etape));
+    }
+
+    @Operation(summary = "Lister les documents / photos de l'étape Réparation (Step 4)")
+    @GetMapping("/{id}/step-reparation/documents")
+    public ResponseEntity<List<DocumentOrdreTravailResponseDto>> getDocumentsStepReparation(
+            @PathVariable Long id,
+            @RequestParam(required = false) TypeDocumentOt type) {
+        return ResponseEntity.ok(ordreTravailService.getDocuments(id, type, 4));
+    }
+
+    @Operation(summary = "Ajouter un document / photo (métadonnées + URL Cloudinary ou externe)")
+    @PostMapping("/{id}/documents")
+    public ResponseEntity<DocumentOrdreTravailResponseDto> addDocument(
+            @PathVariable Long id,
+            @RequestBody DocumentOrdreTravailRequestDto request) {
+        return new ResponseEntity<>(ordreTravailService.addDocument(id, request), HttpStatus.CREATED);
+    }
+
+    @Operation(summary = "Ajouter un document / photo pour l'étape Réparation (Step 4)")
+    @PostMapping("/{id}/step-reparation/documents")
+    public ResponseEntity<DocumentOrdreTravailResponseDto> addDocumentStepReparation(
+            @PathVariable Long id,
+            @RequestBody DocumentOrdreTravailRequestDto request) {
+        if (request != null && request.getEtape() == null) {
+            request.setEtape(4);
+        }
+        return new ResponseEntity<>(ordreTravailService.addDocument(id, request), HttpStatus.CREATED);
+    }
+
+    @Operation(summary = "Uploader directement un fichier (photo, PDF, doc) pour un ordre de travail")
+    @PostMapping(value = "/{id}/documents/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<DocumentOrdreTravailResponseDto> uploadDocument(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(required = false) TypeDocumentOt type,
+            @RequestParam(required = false) String remarque) {
+        return new ResponseEntity<>(ordreTravailService.uploadDocument(id, file, type, remarque), HttpStatus.CREATED);
+    }
+
+    @Operation(summary = "Uploader directement un fichier (photo, PDF, doc) pour l'étape Réparation (Step 4)")
+    @PostMapping(value = "/{id}/step-reparation/documents/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<DocumentOrdreTravailResponseDto> uploadDocumentStepReparation(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(required = false) TypeDocumentOt type,
+            @RequestParam(required = false) String remarque) {
+        return new ResponseEntity<>(ordreTravailService.uploadDocument(id, file, type, remarque), HttpStatus.CREATED);
+    }
+
+    @Operation(summary = "Supprimer un document par son identifiant")
+    @DeleteMapping("/documents/{documentId}")
+    public ResponseEntity<Void> deleteDocument(@PathVariable Long documentId) {
+        ordreTravailService.deleteDocument(documentId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Supprimer un document d'un ordre de travail")
+    @DeleteMapping("/{id}/documents/{documentId}")
+    public ResponseEntity<Void> deleteDocumentFromOt(
+            @PathVariable Long id,
+            @PathVariable Long documentId) {
+        ordreTravailService.deleteDocument(documentId);
+        return ResponseEntity.noContent().build();
     }
 }
