@@ -29,6 +29,7 @@ app:
 
 server:
   port: ${PORT:9090}
+  forward-headers-strategy: framework
 
 # Actuator & Prometheus monitoring
 management:
