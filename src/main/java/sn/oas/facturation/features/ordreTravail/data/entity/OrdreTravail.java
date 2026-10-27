@@ -80,6 +80,12 @@ public class OrdreTravail implements TenantAware {
     @Builder.Default
     private List<LigneTechnicienOrdreTravail> lignesTechniciens = new ArrayList<>();
 
+    @OneToMany(mappedBy = "ordreTravail", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private List<DocumentOrdreTravail> documents = new ArrayList<>();
+
     @Column(name = "rapport_reparation", columnDefinition = "TEXT")
     private String rapportReparation;
 
@@ -140,6 +146,23 @@ public class OrdreTravail implements TenantAware {
         if (bonDeSortie != null && this.bonsDeSortie != null) {
             this.bonsDeSortie.remove(bonDeSortie);
             bonDeSortie.setOrdreTravail(null);
+        }
+    }
+
+    public void addDocument(DocumentOrdreTravail document) {
+        if (document != null) {
+            if (this.documents == null) {
+                this.documents = new ArrayList<>();
+            }
+            this.documents.add(document);
+            document.setOrdreTravail(this);
+        }
+    }
+
+    public void removeDocument(DocumentOrdreTravail document) {
+        if (document != null && this.documents != null) {
+            this.documents.remove(document);
+            document.setOrdreTravail(null);
         }
     }
 }

@@ -40,20 +40,14 @@ public class AuthController {
 
     @PostMapping("/signin")
     @Operation(summary = "Connexion avec jeton d'accès et cookie de renouvellement HttpOnly")
-    public ResponseEntity<AuthResponse> signin(@RequestBody LoginRequest request) {
+    public ResponseEntity<AuthResponse> signin(@RequestBody LoginRequest request, HttpServletRequest httpRequest) {
         AuthResponse response = authService.login(request);
 
-        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", response.refreshToken())
-                .httpOnly(true)
-                .secure(cookieSecure)
-                .path("/")
-                .maxAge(7 * 24 * 60 * 60) // 7 jours
-                .sameSite(cookieSameSite)
-                .build();
+        ResponseCookie refreshCookie = buildRefreshCookie(response.refreshToken(), httpRequest);
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, expiredAccessCookie("token").toString())
-                .header(HttpHeaders.SET_COOKIE, expiredAccessCookie("accessToken").toString())
+                .header(HttpHeaders.SET_COOKIE, expiredCookie("token", httpRequest).toString())
+                .header(HttpHeaders.SET_COOKIE, expiredCookie("accessToken", httpRequest).toString())
                 .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
                 .body(response);
     }
@@ -64,48 +58,94 @@ public class AuthController {
         String refreshToken = extractRefreshToken(request);
         AuthResponse response = authService.refreshToken(refreshToken);
 
-        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", response.refreshToken())
-                .httpOnly(true)
-                .secure(cookieSecure)
-                .path("/")
-                .maxAge(7 * 24 * 60 * 60) // 7 jours
-                .sameSite(cookieSameSite)
-                .build();
+        ResponseCookie refreshCookie = buildRefreshCookie(response.refreshToken(), request);
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, expiredAccessCookie("token").toString())
-                .header(HttpHeaders.SET_COOKIE, expiredAccessCookie("accessToken").toString())
+                .header(HttpHeaders.SET_COOKIE, expiredCookie("token", request).toString())
+                .header(HttpHeaders.SET_COOKIE, expiredCookie("accessToken", request).toString())
                 .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
                 .body(response);
     }
 
     private String extractRefreshToken(HttpServletRequest request) {
-        if (request.getCookies() != null) {
+        if (request != null && request.getCookies() != null) {
             for (jakarta.servlet.http.Cookie cookie : request.getCookies()) {
                 if ("refreshToken".equals(cookie.getName()) && cookie.getValue() != null && !cookie.getValue().isBlank()) {
                     return cookie.getValue().trim();
                 }
             }
         }
+        if (request != null) {
+            String header = request.getHeader("X-Refresh-Token");
+            if (header != null && !header.isBlank()) {
+                return header.trim();
+            }
+        }
         return null;
     }
 
-    private ResponseCookie expiredAccessCookie(String name) {
+    private boolean isSecure(HttpServletRequest request) {
+        if (cookieSecure) {
+            return true;
+        }
+        if (request == null) {
+            return false;
+        }
+        if (request.isSecure()) {
+            return true;
+        }
+        String proto = request.getHeader("X-Forwarded-Proto");
+        if (proto != null && "https".equalsIgnoreCase(proto.trim())) {
+            return true;
+        }
+        String ssl = request.getHeader("X-Forwarded-Ssl");
+        if (ssl != null && "on".equalsIgnoreCase(ssl.trim())) {
+            return true;
+        }
+        String origin = request.getHeader("Origin");
+        if (origin != null && origin.toLowerCase().startsWith("https://")) {
+            return true;
+        }
+        return false;
+    }
+
+    private String resolveSameSite(boolean secure) {
+        if (secure) {
+            return "None";
+        }
+        return (cookieSameSite != null && !cookieSameSite.isBlank()) ? cookieSameSite : "Lax";
+    }
+
+    private ResponseCookie buildRefreshCookie(String token, HttpServletRequest request) {
+        boolean secure = isSecure(request);
+        String sameSite = resolveSameSite(secure);
+        return ResponseCookie.from("refreshToken", token)
+                .httpOnly(true)
+                .secure(secure)
+                .path("/")
+                .maxAge(7 * 24 * 60 * 60) // 7 jours
+                .sameSite(sameSite)
+                .build();
+    }
+
+    private ResponseCookie expiredCookie(String name, HttpServletRequest request) {
+        boolean secure = isSecure(request);
+        String sameSite = resolveSameSite(secure);
         return ResponseCookie.from(name, "")
                 .httpOnly(true)
-                .secure(cookieSecure)
+                .secure(secure)
                 .path("/")
                 .maxAge(0)
-                .sameSite(cookieSameSite)
+                .sameSite(sameSite)
                 .build();
     }
 
     @PostMapping("/signout")
     @Operation(summary = "Déconnexion et suppression des cookies HttpOnly")
-    public ResponseEntity<?> signout() {
-        ResponseCookie accessCookie = expiredAccessCookie("accessToken");
-        ResponseCookie legacyAccessCookie = expiredAccessCookie("token");
-        ResponseCookie refreshCookie = expiredAccessCookie("refreshToken");
+    public ResponseEntity<?> signout(HttpServletRequest request) {
+        ResponseCookie accessCookie = expiredCookie("accessToken", request);
+        ResponseCookie legacyAccessCookie = expiredCookie("token", request);
+        ResponseCookie refreshCookie = expiredCookie("refreshToken", request);
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
                 .header(HttpHeaders.SET_COOKIE, legacyAccessCookie.toString())

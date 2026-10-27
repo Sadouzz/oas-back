@@ -1,5 +1,13 @@
 package sn.oas.facturation.features.ordreTravail.service;
 
+import com.cloudinary.Cloudinary;
+import org.springframework.web.multipart.MultipartFile;
+import sn.oas.facturation.features.ordreTravail.data.entity.DocumentOrdreTravail;
+import sn.oas.facturation.features.ordreTravail.data.enums.TypeDocumentOt;
+import sn.oas.facturation.features.ordreTravail.dto.DocumentOrdreTravailRequestDto;
+import sn.oas.facturation.features.ordreTravail.dto.responses.DocumentOrdreTravailResponseDto;
+import sn.oas.facturation.features.ordreTravail.repository.DocumentOrdreTravailRepository;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -91,6 +99,8 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
     private final VehiculeService vehiculeService;
     private final AuthService authService;
     private final DocumentNumberGeneratorService documentNumberGeneratorService;
+    private final DocumentOrdreTravailRepository documentOrdreTravailRepository;
+    private final Cloudinary cloudinary;
 
     @Override
     @Transactional
@@ -983,6 +993,8 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
                     .build());
         }
         dto.setTechniciensReparation(techDtos);
+        List<DocumentOrdreTravail> docs = documentOrdreTravailRepository.findByOrdreTravailIdOrderByCreatedAtDesc(ot.getId());
+        dto.setDocuments(docs.stream().map(DocumentOrdreTravailResponseDto::from).collect(Collectors.toList()));
         return dto;
     }
 
@@ -1056,6 +1068,18 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
                 ot.setDateFinReparation(LocalDateTime.now());
             }
         }
+        List<DocumentOrdreTravailRequestDto> docsToSave = new ArrayList<>();
+        if (dto.getDocuments() != null && !dto.getDocuments().isEmpty()) {
+            docsToSave.addAll(dto.getDocuments());
+        }
+        if (dto.getPiecesJointes() != null && !dto.getPiecesJointes().isEmpty()) {
+            docsToSave.addAll(dto.getPiecesJointes());
+        }
+        for (DocumentOrdreTravailRequestDto docReq : docsToSave) {
+            if (docReq != null && docReq.getUrl() != null && !docReq.getUrl().isBlank()) {
+                addDocumentToOt(ot, docReq);
+            }
+        }
         dto.setAvertissementsBonsDeSortie(calculerAvertissementsCouvertureBonsDeSortie(
                 ot, dto.getStatut() != null ? dto.getStatut() : StatutOrdreTravail.TERMINE));
         if (dto.getStatut() != null) {
@@ -1063,6 +1087,20 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
         }
         ot.setUpdatedAt(LocalDateTime.now());
         ordreTravailRepository.save(ot);
+
+        List<DocumentOrdreTravail> updatedDocs = documentOrdreTravailRepository.findByOrdreTravailIdOrderByCreatedAtDesc(ot.getId());
+        List<DocumentOrdreTravailRequestDto> updatedReqs = updatedDocs.stream().map(d -> DocumentOrdreTravailRequestDto.builder()
+                .nomFichier(d.getNomFichier())
+                .url(d.getUrl())
+                .type(d.getType())
+                .taille(d.getTaille())
+                .remarque(d.getRemarque())
+                .publicId(d.getPublicId())
+                .etape(d.getEtape())
+                .technicienId(d.getTechnicien() != null ? d.getTechnicien().getId() : null)
+                .build()).collect(Collectors.toList());
+        dto.setDocuments(updatedReqs);
+        dto.setPiecesJointes(updatedReqs);
         return dto;
     }
 
@@ -1146,5 +1184,143 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
 
     private String libelle(String valeur, String fallback) {
         return valeur == null || valeur.isBlank() ? fallback : valeur.trim();
+    }
+
+    // ==================== DOCUMENTS / PIECES JOINTES ====================
+
+    @Override
+    @Transactional
+    public DocumentOrdreTravailResponseDto addDocument(Long ordreTravailId, DocumentOrdreTravailRequestDto request) {
+        OrdreTravail ot = getEntityById(ordreTravailId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ordre de travail non trouvé avec l'id : " + ordreTravailId));
+
+        if (request == null || request.getUrl() == null || request.getUrl().isBlank()) {
+            throw new BadRequestException("L'URL du document est obligatoire");
+        }
+
+        DocumentOrdreTravail saved = addDocumentToOt(ot, request);
+        return DocumentOrdreTravailResponseDto.from(saved);
+    }
+
+    private DocumentOrdreTravail addDocumentToOt(OrdreTravail ot, DocumentOrdreTravailRequestDto req) {
+        TypeDocumentOt docType = req.getType();
+        if (docType == null) {
+            docType = detectTypeFromUrlOrName(req.getUrl(), req.getNomFichier());
+        }
+
+        Technicien tech = null;
+        if (req.getTechnicienId() != null) {
+            tech = technicienRepository.findById(req.getTechnicienId()).orElse(null);
+        }
+
+        DocumentOrdreTravail doc = DocumentOrdreTravail.builder()
+                .ordreTravail(ot)
+                .nomFichier(req.getNomFichier())
+                .url(req.getUrl().trim())
+                .type(docType)
+                .taille(req.getTaille())
+                .remarque(req.getRemarque())
+                .publicId(req.getPublicId())
+                .etape(req.getEtape() != null ? req.getEtape() : 4)
+                .technicien(tech)
+                .build();
+
+        return documentOrdreTravailRepository.save(doc);
+    }
+
+    @Override
+    @Transactional
+    public DocumentOrdreTravailResponseDto uploadDocument(Long ordreTravailId, MultipartFile file, TypeDocumentOt type, String remarque) {
+        OrdreTravail ot = getEntityById(ordreTravailId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ordre de travail non trouvé avec l'id : " + ordreTravailId));
+
+        if (file == null || file.isEmpty()) {
+            throw new BadRequestException("Le fichier à uploader est obligatoire");
+        }
+
+        try {
+            String originalFilename = file.getOriginalFilename();
+            TypeDocumentOt resolvedType = type != null ? type : detectTypeFromUrlOrName(originalFilename, originalFilename);
+
+            String folder = "oas/ordres-travail/reparation";
+            Map<String, Object> uploadParams = new HashMap<>();
+            uploadParams.put("folder", folder);
+            uploadParams.put("resource_type", "auto");
+
+            Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(), uploadParams);
+            String secureUrl = (String) uploadResult.get("secure_url");
+            String publicId = (String) uploadResult.get("public_id");
+
+            DocumentOrdreTravail doc = DocumentOrdreTravail.builder()
+                    .ordreTravail(ot)
+                    .nomFichier(originalFilename)
+                    .url(secureUrl)
+                    .type(resolvedType)
+                    .taille(file.getSize())
+                    .remarque(remarque)
+                    .publicId(publicId)
+                    .etape(4)
+                    .build();
+
+            DocumentOrdreTravail saved = documentOrdreTravailRepository.save(doc);
+            return DocumentOrdreTravailResponseDto.from(saved);
+        } catch (Exception e) {
+            log.error("Erreur lors de l'upload du document pour l'OT {}: {}", ordreTravailId, e.getMessage(), e);
+            throw new RuntimeException("Échec de l'upload du document : " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DocumentOrdreTravailResponseDto> getDocuments(Long ordreTravailId, TypeDocumentOt type, Integer etape) {
+        if (!ordreTravailRepository.existsById(ordreTravailId)) {
+            throw new ResourceNotFoundException("Ordre de travail non trouvé avec l'id : " + ordreTravailId);
+        }
+
+        List<DocumentOrdreTravail> docs;
+        if (etape != null && type != null) {
+            docs = documentOrdreTravailRepository.findByOrdreTravailIdAndEtapeAndTypeOrderByCreatedAtDesc(ordreTravailId, etape, type);
+        } else if (etape != null) {
+            docs = documentOrdreTravailRepository.findByOrdreTravailIdAndEtapeOrderByCreatedAtDesc(ordreTravailId, etape);
+        } else if (type != null) {
+            docs = documentOrdreTravailRepository.findByOrdreTravailIdAndTypeOrderByCreatedAtDesc(ordreTravailId, type);
+        } else {
+            docs = documentOrdreTravailRepository.findByOrdreTravailIdOrderByCreatedAtDesc(ordreTravailId);
+        }
+
+        return docs.stream().map(DocumentOrdreTravailResponseDto::from).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public void deleteDocument(Long documentId) {
+        DocumentOrdreTravail doc = documentOrdreTravailRepository.findById(documentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document non trouvé avec l'id : " + documentId));
+
+        if (doc.getPublicId() != null && !doc.getPublicId().isBlank()) {
+            try {
+                cloudinary.uploader().destroy(doc.getPublicId(), com.cloudinary.utils.ObjectUtils.emptyMap());
+            } catch (Exception e) {
+                log.warn("Impossible de supprimer le fichier Cloudinary publicId {}: {}", doc.getPublicId(), e.getMessage());
+            }
+        }
+
+        documentOrdreTravailRepository.delete(doc);
+    }
+
+    private TypeDocumentOt detectTypeFromUrlOrName(String url, String filename) {
+        String target = filename != null && !filename.isBlank() ? filename : url;
+        if (target == null) return TypeDocumentOt.DOCUMENT;
+        String lower = target.toLowerCase(Locale.ROOT);
+        if (lower.matches(".*\\.(jpg|jpeg|png|gif|webp|bmp|svg)(\\?.*)?$")) {
+            return TypeDocumentOt.PHOTO;
+        }
+        if (lower.matches(".*\\.(pdf)(\\?.*)?$")) {
+            return TypeDocumentOt.PDF;
+        }
+        if (lower.matches(".*\\.(doc|docx|odt|rtf|txt|xls|xlsx|csv)(\\?.*)?$")) {
+            return TypeDocumentOt.DOCUMENT;
+        }
+        return TypeDocumentOt.AUTRE;
     }
 }

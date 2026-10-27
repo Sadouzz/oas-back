@@ -75,6 +75,8 @@ public class MediaController {
         });
         if ("oas/temp".equals(folder)) return technician || staff;
         if ("oas/ordres-reparation/diagnostic".equals(folder)) return technician || staff;
+        if (folder.startsWith("oas/ordres-travail")) return technician || staff;
+        if (folder.startsWith("oas/ordres-reparation")) return technician || staff;
         return "oas/pdf-templates".equals(folder) && authentication.getAuthorities().stream()
                 .anyMatch(a -> "ROLE_SUPER_AGENT".equals(a.getAuthority()) || "SUPER_AGENT".equals(a.getAuthority())
                         || "ROLE_MASTER".equals(a.getAuthority()) || "MASTER".equals(a.getAuthority()));

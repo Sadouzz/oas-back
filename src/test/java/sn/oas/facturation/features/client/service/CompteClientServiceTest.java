@@ -38,7 +38,7 @@ class CompteClientServiceTest {
         when(factureRepository.existsFactureImpayeeEnRetard(eq(22L), any())).thenReturn(false);
         when(factureRepository.existsFactureLegacyImpayeeEnRetard(eq(22L), any())).thenReturn(false);
         CompteClientRequest request = new CompteClientRequest("Garage Awa", "sn123abc", 30,
-                new BigDecimal("500000"), "RCCM-123", "RIB-123", true);
+                new BigDecimal("500000"), "SN-DKR-2020-B-1234", "SN08 0000 0000 0000", true);
 
         service.configurer(22L, request);
 
@@ -54,22 +54,29 @@ class CompteClientServiceTest {
         Client client = Client.builder().id(22L).build();
         when(clientRepository.findById(22L)).thenReturn(Optional.of(client));
         when(clientRepository.existsByNumeroEntrepriseIgnoreCaseAndIdNot("SN123ABC", 22L)).thenReturn(true);
-        CompteClientRequest request = new CompteClientRequest("Garage Awa", "SN123ABC", 10,
-                new BigDecimal("500000"), "RCCM-123", "RIB-123", true);
+        CompteClientRequest request = new CompteClientRequest("Garage Awa", "SN123ABC", 30,
+                new BigDecimal("500000"), "SN-DKR-2020-B-1234", "SN08 0000 0000 0000", true);
         assertThrows(IllegalArgumentException.class, () -> service.configurer(22L, request));
         verify(compteRepository, never()).save(any());
     }
 
     @Test void refuseLaSuppressionDesConditionsObligatoires() {
         CompteClientRequest request = new CompteClientRequest("Garage Awa", "SN123ABC", null,
-                null, "RCCM-123", "RIB-123", true);
+                null, "SN-DKR-2020-B-1234", "SN08 0000 0000 0000", true);
         assertThrows(IllegalArgumentException.class, () -> service.configurer(22L, request));
         verifyNoInteractions(clientRepository, compteRepository, factureRepository);
     }
 
-    @Test void refuseUnPlafondDePeriodeSansDelaiDePaiement() {
+    @Test void refuseUneEcheanceInvalide() {
         CompteClientRequest request = new CompteClientRequest("Garage Awa", "SN123ABC", 0,
-                new BigDecimal("500000"), "RCCM-123", "RIB-123", true);
+                new BigDecimal("500000"), "SN-DKR-2020-B-1234", "SN08 0000 0000 0000", true);
+        assertThrows(IllegalArgumentException.class, () -> service.configurer(22L, request));
+        verifyNoInteractions(clientRepository, compteRepository, factureRepository);
+    }
+
+    @Test void refuseUnPlafondDePeriodeAbsent() {
+        CompteClientRequest request = new CompteClientRequest("Garage Awa", "SN123ABC", 30,
+                null, "SN-DKR-2020-B-1234", "SN08 0000 0000 0000", true);
         assertThrows(IllegalArgumentException.class, () -> service.configurer(22L, request));
         verifyNoInteractions(clientRepository, compteRepository, factureRepository);
     }

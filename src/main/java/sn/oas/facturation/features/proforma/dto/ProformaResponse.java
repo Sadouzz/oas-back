@@ -115,26 +115,52 @@ public class ProformaResponse {
                 .bsId(p.getBs() != null ? p.getBs().getId() : null)
                 .bsReference(p.getBs() != null ? p.getBs().getReference() : null)
                 .lignesPieces(p.getLignesFacturationPieces() == null ? List.of() : p.getLignesFacturationPieces().stream()
-                        .map(lp -> LigneFacturationPieceResponse.builder()
-                                .id(lp.getId())
-                                .pieceId(lp.getPiece() != null ? lp.getPiece().getId() : null)
-                                .designationPiece(lp.getPiece() != null ? lp.getPiece().getDesignation() : null)
-                                .quantite(lp.getQuantite())
-                                .prix(lp.getPrix())
-                                .montantTotal((int) Math.round(lp.getQuantite() * lp.getPrix() * (1 - (lp.getTauxRemise() == null ? 0 : lp.getTauxRemise().doubleValue()) / 100)))
-                                .tauxRemise(lp.getTauxRemise() != null ? lp.getTauxRemise().doubleValue() : 0.0)
-                                .build())
+                        .map(lp -> {
+                            Long pieceId = lp.getPiece() != null ? lp.getPiece().getId() : null;
+                            String type = Boolean.TRUE.equals(lp.getIsCustom()) ? "PDS" :
+                                    (lp.getPiece() != null && lp.getPiece().getType() != null ? lp.getPiece().getType().name() : "PDP");
+                            String ref = lp.getPiece() != null ? lp.getPiece().getReference() : null;
+                            String designation = lp.getPiece() != null ? lp.getPiece().getDesignation() : lp.getDesignationPds();
+                            int qte = lp.getQuantite() != null ? lp.getQuantite() : 1;
+                            int prix = lp.getPrix() != null ? lp.getPrix() : 0;
+                            double tauxRemise = lp.getTauxRemise() != null ? lp.getTauxRemise().doubleValue() : 0.0;
+                            int montantLigne = (int) Math.round(qte * prix * (1 - tauxRemise / 100));
+
+                            return LigneFacturationPieceResponse.builder()
+                                    .id(lp.getId())
+                                    .pieceId(pieceId)
+                                    .type(type)
+                                    .referencePiece(ref)
+                                    .designationPiece(designation)
+                                    .designationPds(lp.getDesignationPds())
+                                    .isCustom(lp.getIsCustom() != null ? lp.getIsCustom() : (pieceId == null))
+                                    .quantite(qte)
+                                    .prix(prix)
+                                    .montantTotal(montantLigne)
+                                    .tauxRemise(tauxRemise)
+                                    .build();
+                        })
                         .toList())
                 .lignesMainDoeuvres(p.getLignesFacturationMainDoeuvres() == null ? List.of() : p.getLignesFacturationMainDoeuvres().stream()
-                        .map(lm -> LigneFacturationMainDoeuvreResponse.builder()
-                                .id(lm.getId())
-                                .mainDoeuvreId(lm.getMainDoeuvre() != null ? lm.getMainDoeuvre().getId() : null)
-                                .descriptionMainDoeuvre(lm.getMainDoeuvre() != null && lm.getMainDoeuvre().getCategorie() != null ? lm.getMainDoeuvre().getCategorie().getNom() : null)
-                                .nbreHeure(lm.getNbreHeure())
-                                .tarifHoraire(lm.getTarifHoraire())
-                                .montantTotal((int) Math.round(lm.getNbreHeure() * lm.getTarifHoraire() * (1 - (lm.getTauxRemise() == null ? 0 : lm.getTauxRemise().doubleValue()) / 100)))
-                                .tauxRemise(lm.getTauxRemise() != null ? lm.getTauxRemise().doubleValue() : 0.0)
-                                .build())
+                        .map(lm -> {
+                            Long moId = lm.getMainDoeuvre() != null ? lm.getMainDoeuvre().getId() : null;
+                            String desc = lm.getMainDoeuvre() != null ?
+                                    (lm.getMainDoeuvre().getCategorie() != null ? lm.getMainDoeuvre().getCategorie().getNom() : lm.getMainDoeuvre().getDescription()) : null;
+                            int heures = lm.getNbreHeure() != null ? lm.getNbreHeure() : 0;
+                            int tarif = lm.getTarifHoraire() != null ? lm.getTarifHoraire() : 0;
+                            double tauxRemise = lm.getTauxRemise() != null ? lm.getTauxRemise().doubleValue() : 0.0;
+                            int montantLigne = (int) Math.round(heures * tarif * (1 - tauxRemise / 100));
+
+                            return LigneFacturationMainDoeuvreResponse.builder()
+                                    .id(lm.getId())
+                                    .mainDoeuvreId(moId)
+                                    .descriptionMainDoeuvre(desc)
+                                    .nbreHeure(heures)
+                                    .tarifHoraire(tarif)
+                                    .montantTotal(montantLigne)
+                                    .tauxRemise(tauxRemise)
+                                    .build();
+                        })
                         .toList())
                 .build();
     }

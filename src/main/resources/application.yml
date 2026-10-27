@@ -5,7 +5,7 @@ spring:
     converters:
       preferred-json-mapper: jackson2
   profiles:
-    active: ${SPRING_ACTIVE_PROFILE:dev}
+    active: ${SPRING_PROFILES_ACTIVE:${SPRING_ACTIVE_PROFILE:dev}}
 app:
   cookie:
     secure: ${COOKIE_SECURE:false}
@@ -14,3 +14,5 @@ app:
     vapid-public-key: ${OAS_PUSH_VAPID_PUBLIC_KEY:}
     vapid-private-key: ${OAS_PUSH_VAPID_PRIVATE_KEY:}
     subject: ${OAS_PUSH_VAPID_SUBJECT:mailto:admin@orientautoservice.sn}
+server:
+  forward-headers-strategy: framework

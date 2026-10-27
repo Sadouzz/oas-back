@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import sn.oas.facturation.features.ordreTravail.data.entity.OrdreTravail;
 import sn.oas.facturation.features.ordreTravail.data.enums.StatutOrdreTravail;
+import sn.oas.facturation.features.ordreTravail.dto.responses.DocumentOrdreTravailResponseDto;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -32,6 +33,7 @@ public class OrdreTravailResponseDto {
     private List<TechnicienDto> techniciens;
     private List<DocumentDto> bonsDeCommande;
     private List<DocumentDto> bonsDeSortie;
+    private List<DocumentOrdreTravailResponseDto> documents;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -123,15 +125,10 @@ public class OrdreTravailResponseDto {
                     .build());
         }
 
-        List<DocumentDto> bcs = ot.getBonsDeCommande() == null ? Collections.<DocumentDto>emptyList() :
-                ot.getBonsDeCommande().stream()
-                        .map(bc -> DocumentDto.builder()
-                                .id(bc.getId())
-                                .numero(bc.getNumero())
-                                .build())
-                        .collect(Collectors.toList());
+        List<DocumentDto> bcs = ot.getBonsDeCommande() == null ? Collections.emptyList() : ot.getBonsDeCommande().stream()
+                .map(bc -> DocumentDto.builder().id(bc.getId()).numero(bc.getNumero()).build()).collect(Collectors.toList());
 
-        DocumentDto bonDeSortieDto = ot.getBonsDeSortie() == null || ot.getBonsDeSortie().isEmpty() ? null :
+        DocumentDto bsDto = (ot.getBonsDeSortie() == null || ot.getBonsDeSortie().isEmpty()) ? null :
                 DocumentDto.builder()
                         .id(ot.getBonsDeSortie().get(0).getId())
                         .numero(ot.getBonsDeSortie().get(0).getReference())
@@ -140,6 +137,9 @@ public class OrdreTravailResponseDto {
         List<DocumentDto> bss = ot.getBonsDeSortie() == null ? Collections.emptyList() : ot.getBonsDeSortie().stream()
                 .map(bs -> DocumentDto.builder().id(bs.getId()).numero(bs.getReference()).build()).collect(Collectors.toList());
 
+        List<DocumentOrdreTravailResponseDto> docs = ot.getDocuments() == null ? Collections.emptyList() : ot.getDocuments().stream()
+                .map(DocumentOrdreTravailResponseDto::from)
+                .collect(Collectors.toList());
 
         return OrdreTravailResponseDto.builder()
                 .id(ot.getId())
@@ -156,6 +156,7 @@ public class OrdreTravailResponseDto {
                 .techniciens(techniciens)
                 .bonsDeCommande(bcs)
                 .bonsDeSortie(bss)
+                .documents(docs)
                 .createdAt(ot.getCreatedAt())
                 .updatedAt(ot.getUpdatedAt())
                 .build();
