@@ -33,7 +33,7 @@ public class PdfGeneratorService {
     public byte[] genererBonDeCommandePdf(BonDeCommande bonDeCommande, String layoutKey) {
         String layout = PdfLayout.normalize(layoutKey);
         boolean withHeader = PdfLayout.AVEC_ENTETE.equals(layout);
-        String fournisseur = bonDeCommande.getFournisseur() != null ? bonDeCommande.getFournisseur().getNomEntreprise() : "";
+        String fournisseur = bonDeCommande.getFournisseur() != null ? bonDeCommande.getFournisseur().getNom() : "";
         String vehicule = bonDeCommande.getVehicule() != null ? bonDeCommande.getVehicule().getImmatriculation() : "";
         byte[] configuredTemplate = htmlToPdfService.genererTemplatePdfSiConfigure("BON_COMMANDE", layout, java.util.Map.of(
                 "numero", safe(bonDeCommande.getNumero()), "date", bonDeCommande.getDateCommande() == null ? "" : bonDeCommande.getDateCommande().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
@@ -67,8 +67,8 @@ public class PdfGeneratorService {
             document.add(new Paragraph("Statut : " + bonDeCommande.getStatut().name(), fontNormal));
             
             if (bonDeCommande.getFournisseur() != null) {
-                document.add(new Paragraph("\nFournisseur : " + bonDeCommande.getFournisseur().getNomEntreprise(), fontBold));
-                document.add(new Paragraph("Contact : " + bonDeCommande.getFournisseur().getPrenom() + " " + bonDeCommande.getFournisseur().getNom(), fontNormal));
+                document.add(new Paragraph("\nFournisseur : " + bonDeCommande.getFournisseur().getNom(), fontBold));
+                document.add(new Paragraph("Contact : " + bonDeCommande.getFournisseur().getNom(), fontNormal));
             }
             
             if (bonDeCommande.getVehicule() != null) {

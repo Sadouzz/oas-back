@@ -32,7 +32,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
     @UniqueConstraint(name = "uk_pieces_garage_reference", columnNames = {"garage_id", "numero_serie"})
 })
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
-@DiscriminatorColumn(name = "type_piece", discriminatorType = DiscriminatorType.STRING)
+@DiscriminatorColumn(name = "type", discriminatorType = DiscriminatorType.STRING)
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Data
 @SuperBuilder
@@ -41,8 +41,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @EntityListeners(TenantListener.class)
 @FilterDef(name = "garageFilter", parameters = @ParamDef(name = "garageId", type = Long.class))
 @Filter(name = "garageFilter", condition = "garage_id = :garageId")
-@SQLDelete(sql = "UPDATE pieces_detachees SET deleted = true WHERE id=?")
-@SQLRestriction("deleted = false")
+/*@SQLDelete(sql = "UPDATE pieces_detachees SET deleted = true WHERE id=?")
+@SQLRestriction("deleted = false")*/
 public abstract class PieceDetache implements TenantAware {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -54,7 +54,7 @@ public abstract class PieceDetache implements TenantAware {
     private Long id;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "type_piece", insertable = false, updatable = false)
+    @Column(name = "type", insertable = false, updatable = false)
     private TypePiece type;
 
     @Column(name = "numero")
@@ -70,10 +70,6 @@ public abstract class PieceDetache implements TenantAware {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "categorie_id")
     private Categorie categorie;
-
-    @Column(name = "reference", nullable = false, columnDefinition = "varchar(255) default 'N/A'")
-    @lombok.Builder.Default
-    private String legacyReference = "N/A";
 
     @Column(columnDefinition = "varchar(255) default 'N/A'", nullable = false)
     private String designation;
@@ -91,10 +87,6 @@ public abstract class PieceDetache implements TenantAware {
     @Column(name = "stock_atelier")
     @lombok.Builder.Default
     private Double stockAtelier = 0.0;
-
-    @Column(nullable = false)
-    @lombok.Builder.Default
-    private Boolean deleted = false;
 
     @Column(nullable = false, columnDefinition = "double precision default 0.0")
     @lombok.Builder.Default
@@ -114,7 +106,7 @@ public abstract class PieceDetache implements TenantAware {
     @CreationTimestamp
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    @Column(name = "update_at")
+    @Column(name = "updated_at")
     @lombok.Builder.Default
     @UpdateTimestamp
     private LocalDateTime updatedAt = LocalDateTime.now();

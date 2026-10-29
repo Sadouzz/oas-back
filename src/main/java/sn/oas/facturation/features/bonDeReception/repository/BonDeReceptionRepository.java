@@ -30,7 +30,6 @@ public interface BonDeReceptionRepository extends JpaRepository<BonDeReception, 
             "LOWER(CONCAT(bcc.firstName, ' ', bcc.lastName)) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(bcc.phone) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(bcf.nom) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(bcf.nomEntreprise) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(ov.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(ovc.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(ovc.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
@@ -56,7 +55,6 @@ public interface BonDeReceptionRepository extends JpaRepository<BonDeReception, 
             "LOWER(CONCAT(bcc.firstName, ' ', bcc.lastName)) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(bcc.phone) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(bcf.nom) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(bcf.nomEntreprise) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(ov.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(ovc.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(ovc.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
@@ -80,7 +78,6 @@ public interface BonDeReceptionRepository extends JpaRepository<BonDeReception, 
             "LOWER(CONCAT(bcc.firstName, ' ', bcc.lastName)) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(bcc.phone) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(bcf.nom) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(bcf.nomEntreprise) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(ov.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(ovc.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(ovc.lastName) LIKE LOWER(CONCAT('%', :keyword, '%'))")

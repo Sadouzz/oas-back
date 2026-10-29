@@ -56,9 +56,8 @@ public class BonDeReceptionResponse {
                 .bonDeCommandeId(bl.getBonDeCommande() != null ? bl.getBonDeCommande().getId() : null)
                 .bonDeCommandeNumero(bl.getBonDeCommande() != null ? bl.getBonDeCommande().getNumero() : null)
                 .fournisseurNom(bl.getBonDeCommande() != null && bl.getBonDeCommande().getFournisseur() != null
-                        ? (bl.getBonDeCommande().getFournisseur().getNomEntreprise() != null
-                            ? bl.getBonDeCommande().getFournisseur().getNomEntreprise()
-                            : (bl.getBonDeCommande().getFournisseur().getPrenom() + " " + bl.getBonDeCommande().getFournisseur().getNom()).trim()) : null)
+                        ? bl.getBonDeCommande().getFournisseur().getNom()
+                        : null)
                 .referenceFactureFournisseur(bl.getReferenceFactureFournisseur())
                 .statut(bl.getBonDeCommande() == null || bl.getBonDeCommande().getStatut() == null ? "RECU"
                         : bl.getBonDeCommande().getStatut().name())

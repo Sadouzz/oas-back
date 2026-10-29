@@ -49,7 +49,7 @@ public class BonDeCommandeResponse {
                 .dateCommande(bc.getDateCommande())
                 .statut(bc.getStatut() != null ? bc.getStatut().name() : null)
                 .fournisseurId(bc.getFournisseur() != null ? bc.getFournisseur().getId() : null)
-                .fournisseurNom(bc.getFournisseur() != null ? bc.getFournisseur().getNomEntreprise() : null)
+                .fournisseurNom(bc.getFournisseur() != null ? bc.getFournisseur().getNom() : null)
                 .vehiculeId(bc.getVehicule() != null ? bc.getVehicule().getId() : null)
                 .immatriculationVehicule(bc.getVehicule() != null ? bc.getVehicule().getImmatriculation() : null)
                 .montantHT(bc.getMontantHT())

@@ -1579,12 +1579,8 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 String fournisseurNom = null;
                 if (bc.getFournisseur() != null) {
                     Fournisseur f = bc.getFournisseur();
-                    if (f.getNomEntreprise() != null && !f.getNomEntreprise().isBlank()) {
-                        fournisseurNom = f.getNomEntreprise();
-                    } else {
-                        String prenom = f.getPrenom() != null ? f.getPrenom() : "";
-                        String nom = f.getNom() != null ? f.getNom() : "";
-                        fournisseurNom = (prenom + " " + nom).trim();
+                    if (f.getNom() != null && !f.getNom().isBlank()) {
+                        fournisseurNom = f.getNom();
                     }
                 }
                 double montant = bc.getMontantTTC() != null ? bc.getMontantTTC().doubleValue()

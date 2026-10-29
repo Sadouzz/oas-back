@@ -7,10 +7,8 @@ import sn.oas.facturation.features.fournisseur.data.entity.Fournisseur;
 @Builder
 public record FournisseurListResponse(
         Long id,
-        String matricule,
-        String nomEntreprise,
+        String numero,
         String nom,
-        String prenom,
         boolean archived
         // LocalDateTime createdAt
 ) {
@@ -19,10 +17,8 @@ public record FournisseurListResponse(
             return null;
         return FournisseurListResponse.builder()
                 .id(f.getId())
-                .matricule(f.getMatricule())
-                .nomEntreprise(f.getNomEntreprise())
+                .numero(f.getNumero())
                 .nom(f.getNom())
-                .prenom(f.getPrenom())
                 .archived(f.isArchived())
                 // .createdAt(f.getCreatedAt())
                 .build();

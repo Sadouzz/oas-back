@@ -55,9 +55,8 @@ public record BonDeReceptionListResponse(
                 .bonDeCommandeNumero(bl.getBonDeCommande() != null ? bl.getBonDeCommande().getNumero() : null)
                 .bonDeCommandeMontantTTC(bl.getBonDeCommande() != null ? bl.getBonDeCommande().getMontantTTC() : null)
                 .fournisseurNom(bl.getBonDeCommande() != null && bl.getBonDeCommande().getFournisseur() != null
-                        ? (bl.getBonDeCommande().getFournisseur().getNomEntreprise() != null
-                            ? bl.getBonDeCommande().getFournisseur().getNomEntreprise()
-                            : (bl.getBonDeCommande().getFournisseur().getPrenom() + " " + bl.getBonDeCommande().getFournisseur().getNom()).trim()) : null)
+                        ? bl.getBonDeCommande().getFournisseur().getNom()
+                        : null)
                 .statut(bl.getBonDeCommande() == null || bl.getBonDeCommande().getStatut() == null ? "RECU"
                         : bl.getBonDeCommande().getStatut().name())
                 .vehiculeImmatriculation(bl.getBonDeCommande() != null && bl.getBonDeCommande().getVehicule() != null

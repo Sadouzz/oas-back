@@ -15,6 +15,9 @@ import sn.oas.facturation.shared.entity.BaseEntity;
 @NoArgsConstructor
 @AllArgsConstructor
 public class MainDoeuvre extends BaseEntity {
+    
+    @Column(name = "numero")
+    private String numero;
 
     @Column(nullable = false)
     private Double prix;
@@ -32,11 +35,6 @@ public class MainDoeuvre extends BaseEntity {
     @Column(name = "is_archived", nullable = false)
     @Builder.Default
     private Boolean isArchived = false;
-
-    @JsonIgnore
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "bon_de_sortie_id", nullable = true)
-    private BonDeSortie bonDeSortie;
 
     @PrePersist
     protected void onPrePersist() {

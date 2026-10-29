@@ -5,11 +5,8 @@ import lombok.Data;
 @Data
 public class FournisseurRequest {
 
-    private String matricule;
-
-    private String nomEntreprise;
+    private String numero;
 
     private String nom;
 
-    private String prenom;
 }

@@ -20,17 +20,15 @@ public class FournisseurServiceImpl implements FournisseurService{
 
     @Override
     public Fournisseur createFournisseur(FournisseurRequest request) {
-        String matricule = request.getMatricule();
-        if (matricule == null || matricule.trim().isEmpty()) {
-            matricule = documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.FO);
-        } else if (fournisseurRepository.existsByMatricule(matricule)) {
-            throw new IllegalArgumentException("Matricule déjà existant : " + matricule);
+        String numero = request.getNumero();
+        if (numero == null || numero.trim().isEmpty()) {
+            numero = documentNumberGeneratorService.generateNextNumber(sn.oas.facturation.shared.documentNumber.DocumentType.FO);
+        } else if (fournisseurRepository.existsByNumero(numero)) {
+            throw new IllegalArgumentException("Numero déjà existant : " + numero);
         }
         Fournisseur fournisseur = Fournisseur.builder()
-                .matricule(matricule)
-                .nomEntreprise(request.getNomEntreprise())
+                .numero(numero)
                 .nom(request.getNom())
-                .prenom(request.getPrenom())
                 .archived(false)
                 .build();
 
@@ -61,10 +59,8 @@ public class FournisseurServiceImpl implements FournisseurService{
         if (fournisseur.isArchived()) {
             throw new RuntimeException("Impossible de modifier un fournisseur archivé");
         }
-        if (request.getMatricule() != null) fournisseur.setMatricule(request.getMatricule());
-        if (request.getNomEntreprise() != null) fournisseur.setNomEntreprise(request.getNomEntreprise());
+        if (request.getNumero() != null) fournisseur.setNumero(request.getNumero());
         if (request.getNom() != null) fournisseur.setNom(request.getNom());
-        if (request.getPrenom() != null) fournisseur.setPrenom(request.getPrenom());
 
         return fournisseurRepository.save(fournisseur);
     }
