@@ -9,4 +9,5 @@ public class PieceSummaryDto {
     private String designation;
     private String type; // "PDP" ou "PDG"
     private Double stockMagasin;
+    private Double prixUnitaire;
 }

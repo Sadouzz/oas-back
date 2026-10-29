@@ -107,7 +107,9 @@ public class NoteDePrixResponse {
                                             lp.getPiece() != null ? lp.getPiece().getDesignation() : "Pièce")
                                     .quantite(q)
                                     .prix(p)
-                                    .montantTotal(p * q)
+                                    .montantTotal((int) Math.round(q * p * (1 - (lp.getTauxRemise() == null ? 0 : lp.getTauxRemise().doubleValue()) / 100)))
+                                    .tauxRemise(lp.getTauxRemise() == null ? 0d : lp.getTauxRemise().doubleValue())
+                                    .datesHeuresSaisieSource(lp.getDatesHeuresSaisieSource() == null ? List.of() : List.copyOf(lp.getDatesHeuresSaisieSource()))
                                     .build();
                         })
                         .toList();

@@ -26,6 +26,7 @@ import sn.oas.facturation.features.main_doeuvre.repository.MainDoeuvreRepository
 import sn.oas.facturation.features.piecedetache.data.entity.PDP;
 import sn.oas.facturation.features.piecedetache.data.entity.PieceDetache;
 import sn.oas.facturation.features.piecedetache.repository.PieceDetacheRepository;
+import sn.oas.facturation.features.piecedetache.service.CataloguePiecePricingPolicy;
 import sn.oas.facturation.features.proforma.data.entity.Proforma;
 import sn.oas.facturation.features.proforma.dto.ProformaCreateRequest;
 import sn.oas.facturation.features.proforma.dto.ProformaUpdateRequest;
@@ -74,6 +75,7 @@ public class ProformaServiceImpl implements ProformaService {
     private final sn.oas.facturation.features.notification.service.NotificationService notificationService;
     private final ProformaGenerator proformaGenerator;
     private final sn.oas.facturation.features.fiscal.service.FiscalConfigurationService fiscalConfigurationService;
+    private final CataloguePiecePricingPolicy cataloguePiecePricingPolicy;
     @Override
     @Transactional
     public Proforma create(ProformaCreateRequest request) {
@@ -156,7 +158,7 @@ public class ProformaServiceImpl implements ProformaService {
                 if (p.getQuantite() == null || p.getQuantite() <= 0) {
                     throw new IllegalArgumentException("La quantité de chaque pièce doit être supérieure à 0.");
                 }
-                if (p.getPrix() == null || p.getPrix() < 0) {
+                if (p.getPrix() != null && p.getPrix() < 0) {
                     throw new IllegalArgumentException("Le prix de chaque pièce doit être positif ou nul.");
                 }
             }
@@ -224,7 +226,8 @@ public class ProformaServiceImpl implements ProformaService {
                     PieceDetache piece = pieceDetacheRepository.findById(p.getPieceId())
                             .orElseThrow(() -> new RuntimeException("Pièce non trouvée"));
                     pieceUnproxied = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
-                    if (prix == null) prix = pieceUnproxied.getPrixUnitaire() != null ? pieceUnproxied.getPrixUnitaire().intValue() : 0;
+                    prix = (int) Math.round(cataloguePiecePricingPolicy.resolveForDocument(
+                            pieceUnproxied, prix == null ? null : prix.doubleValue()));
                 }
                 
                 LigneFacturationPiece ligne = LigneFacturationPiece.builder()
@@ -352,12 +355,24 @@ public class ProformaServiceImpl implements ProformaService {
 
             if (request.getLignesPieces() != null) {
                 java.util.Set<Long> lignesPieceOrConsommees = new java.util.HashSet<>();
+                boolean conserverPrixHistorique = proforma.getStatut() == StatutFacturation.ACCEPTE
+                        || proforma.getStatut() == StatutFacturation.PAYEE
+                        || proforma.getStatut() == StatutFacturation.PARTIELLEMENT_PAYEE;
+                java.util.Map<Long, java.util.ArrayDeque<Integer>> prixHistoriquesParPiece = new java.util.HashMap<>();
+                if (conserverPrixHistorique && proforma.getLignesFacturationPieces() != null) {
+                    for (LigneFacturationPiece ancienneLigne : proforma.getLignesFacturationPieces()) {
+                        if (ancienneLigne.getPiece() != null && ancienneLigne.getPrix() != null) {
+                            prixHistoriquesParPiece.computeIfAbsent(ancienneLigne.getPiece().getId(), ignored -> new java.util.ArrayDeque<>())
+                                    .addLast(ancienneLigne.getPrix());
+                        }
+                    }
+                }
                 proforma.getLignesFacturationPieces().clear();
                 for (LigneFacturationPieceRequest lReq : request.getLignesPieces()) {
                     if (lReq.getQuantite() == null || lReq.getQuantite() <= 0) {
                         throw new IllegalArgumentException("La quantité de chaque pièce doit être supérieure à 0.");
                     }
-                    if (lReq.getPrix() == null && Boolean.FALSE.equals(lReq.getIsCustom())) {
+                    if (lReq.getPrix() != null && lReq.getPrix() < 0) {
                         throw new IllegalArgumentException("Le prix de chaque pièce doit être positif ou nul.");
                     }
                     
@@ -370,7 +385,12 @@ public class ProformaServiceImpl implements ProformaService {
                         PieceDetache piece = pieceDetacheRepository.findById(lReq.getPieceId())
                                 .orElseThrow(() -> new RuntimeException("Pièce non trouvée"));
                         pieceUnproxied = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
-                        if (prix == null) prix = pieceUnproxied.getPrixUnitaire() != null ? pieceUnproxied.getPrixUnitaire().intValue() : 0;
+                        java.util.ArrayDeque<Integer> prixHistoriqueQueue = conserverPrixHistorique
+                                ? prixHistoriquesParPiece.get(pieceUnproxied.getId()) : null;
+                        Integer prixHistorique = prixHistoriqueQueue == null ? null : prixHistoriqueQueue.pollFirst();
+                        prix = prixHistorique != null ? prixHistorique
+                                : (int) Math.round(cataloguePiecePricingPolicy.resolveForDocument(
+                                        pieceUnproxied, prix == null ? null : prix.doubleValue()));
                     }
 
                     proforma.getLignesFacturationPieces().add(LigneFacturationPiece.builder()

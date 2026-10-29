@@ -13,6 +13,7 @@ import sn.oas.facturation.features.bonDeSortie.data.enums.TypeLigneBonDeSortie;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "lignes_bon_de_sortie_piece")
@@ -66,6 +67,14 @@ public class LigneBonDeSortiePiece {
     @Column(name = "montant_total", precision = 15, scale = 2)
     private BigDecimal montantTotal;
 
+    /** Horodatage de création de la ligne, utile notamment pour distinguer les saisies PDS répétées. */
+    @Column(name = "date_heure_saisie", updatable = false)
+    private LocalDateTime dateHeureSaisie;
+
+    /** Ligne de proforma à l'origine de cette sortie, pour suivre les demandes PDG répétées. */
+    @Column(name = "proforma_ligne_id", updatable = false)
+    private Long proformaLineId;
+
     public BigDecimal getTauxRemise() {
         return tauxRemise != null ? tauxRemise : BigDecimal.ZERO;
     }
@@ -73,6 +82,9 @@ public class LigneBonDeSortiePiece {
     @PrePersist
     @PreUpdate
     protected void onPersist() {
+        if (this.id == null && this.dateHeureSaisie == null) {
+            this.dateHeureSaisie = LocalDateTime.now();
+        }
         if (this.quantite == null || this.quantite <= 0) {
             this.quantite = 1;
         }

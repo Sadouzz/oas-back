@@ -43,6 +43,28 @@ public interface OrdreReparationRepository extends JpaRepository<OrdreReparation
             "LOWER(f.vehicule.client.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
             "ORDER BY COALESCE(f.updatedAt, f.dateCreation) DESC, f.id DESC")
     List<OrdreReparation> searchOrdresReparation(@Param("keyword") String keyword);
+
+    @Query(value = "SELECT DISTINCT o FROM OrdreReparation o " +
+            "LEFT JOIN o.vehicule v LEFT JOIN o.client c LEFT JOIN v.client vc WHERE " +
+            "LOWER(COALESCE(o.numero, '')) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(COALESCE(o.descriptionTravaux, '')) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(COALESCE(o.listeDefauts, '')) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(COALESCE(v.immatriculation, '')) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(COALESCE(v.marque, '')) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(COALESCE(v.modele, '')) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(COALESCE(c.firstName, vc.firstName, '')) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(COALESCE(c.lastName, vc.lastName, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))",
+            countQuery = "SELECT COUNT(DISTINCT o) FROM OrdreReparation o " +
+                    "LEFT JOIN o.vehicule v LEFT JOIN o.client c LEFT JOIN v.client vc WHERE " +
+                    "LOWER(COALESCE(o.numero, '')) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+                    "LOWER(COALESCE(o.descriptionTravaux, '')) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+                    "LOWER(COALESCE(o.listeDefauts, '')) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+                    "LOWER(COALESCE(v.immatriculation, '')) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+                    "LOWER(COALESCE(v.marque, '')) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+                    "LOWER(COALESCE(v.modele, '')) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+                    "LOWER(COALESCE(c.firstName, vc.firstName, '')) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+                    "LOWER(COALESCE(c.lastName, vc.lastName, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    Page<OrdreReparation> searchOrdresReparation(@Param("keyword") String keyword, Pageable pageable);
     List<OrdreReparation> findByVehiculeClientIdOrderByDateCreationDesc(Long clientId);
     List<OrdreReparation> findByVehiculeIdOrderByDateCreationDesc(Long vehiculeId);
     List<OrdreReparation> findByClientIdOrderByDateCreationDesc(Long clientId);

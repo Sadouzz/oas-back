@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 import sn.oas.facturation.features.bonDeSortie.data.entity.BonDeSortie;
 import sn.oas.facturation.features.bonDeSortie.data.enums.StatutBon;
 import sn.oas.facturation.features.bonDeSortie.data.enums.TypeLigneBonDeSortie;
+import sn.oas.facturation.features.bonDeSortie.dto.BonDeSortieDisponibleResponse;
 
 import java.util.List;
 import java.util.Optional;
@@ -21,6 +22,12 @@ public interface BonDeSortieRepository extends JpaRepository<BonDeSortie, Long> 
     List<BonDeSortie> findByProformaId(Long proformaId);
     Optional<BonDeSortie> findTopByProformaIdOrderByIdDesc(Long proformaId);
     List<BonDeSortie> findByOrdreReparationIdOrderByDateDesc(Long ordreReparationId);
+    List<BonDeSortie> findByOrdreReparationIdAndStatutOrderByDateDesc(Long ordreReparationId, StatutBon statut);
+    @Query("SELECT new sn.oas.facturation.features.bonDeSortie.dto.BonDeSortieDisponibleResponse(" +
+            "b.id, b.reference, b.date, b.montantTotal, b.client.id, b.vehicule.id, b.ordreReparation.id) " +
+            "FROM BonDeSortie b WHERE b.ordreReparation.id = :ordreReparationId AND b.statut = :statut ORDER BY b.date DESC")
+    List<BonDeSortieDisponibleResponse> trouverDisponiblesParOrdreEtStatut(
+            @Param("ordreReparationId") Long ordreReparationId, @Param("statut") StatutBon statut);
     List<BonDeSortie> findByOrdreTravailIdOrderByDateDesc(Long ordreTravailId);
     Page<BonDeSortie> findByOrdreReparationIdOrderByDateDesc(Long ordreReparationId, Pageable pageable);
     Page<BonDeSortie> findByOrdreTravailIdOrderByDateDesc(Long ordreTravailId, Pageable pageable);

@@ -19,6 +19,7 @@ import sn.oas.facturation.features.fournisseur.data.entity.Fournisseur;
 import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation;
 import sn.oas.facturation.features.piecedetache.repository.PieceDetacheRepository;
+import sn.oas.facturation.features.piecedetache.service.CataloguePiecePricingPolicy;
 import sn.oas.facturation.features.proforma.repository.ProformaRepository;
 import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationRequest;
 import sn.oas.facturation.features.ordreReparation.repository.OrdreReparationRepository;
@@ -141,6 +142,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     private final sn.oas.facturation.features.ordreTravail.repository.OrdreTravailRepository ordreTravailRepository;
     private final sn.oas.facturation.features.facture.repository.FactureRepository factureRepository;
     private final sn.oas.facturation.features.bonDeLivraison.repository.BonDeLivraisonRepository bonDeLivraisonRepository;
+    private final CataloguePiecePricingPolicy cataloguePiecePricingPolicy;
 
     @Autowired
     @Lazy
@@ -194,7 +196,8 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                     piece = pieceDetacheRepository.findById(ligneReq.pieceId())
                             .orElseThrow(() -> new RuntimeException("Pièce non trouvée"));
                     piece = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
-                    if (prix == null) prix = (piece.getPrixUnitaire() != null ? piece.getPrixUnitaire().intValue() : 0);
+                    prix = (int) Math.round(cataloguePiecePricingPolicy.resolveForDocument(
+                            piece, prix == null ? null : prix.doubleValue()));
                 }
 
                 ordreReparation.getLignesOrdreReparationPieces().add(LigneOrdreReparationPiece.builder()
@@ -250,8 +253,15 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
 
     @Override
     public Page<OrdreReparation> getAllOrdresReparation(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Order.desc("updatedAt").nullsLast(), Sort.Order.desc("id")));
-        return ordreReparationRepository.findAll(pageable);
+        return getAllOrdresReparation(page, size, null);
+    }
+
+    @Override
+    public Page<OrdreReparation> getAllOrdresReparation(int page, int size, String keyword) {
+        Pageable pageable = PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 100),
+                Sort.by(Sort.Order.desc("updatedAt").nullsLast(), Sort.Order.desc("id")));
+        if (keyword == null || keyword.isBlank()) return ordreReparationRepository.findAll(pageable);
+        return ordreReparationRepository.searchOrdresReparation(keyword.trim(), pageable);
     }
 
     @Override
@@ -513,7 +523,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         if (request.getLignesTravaux() != null)
             ordreReparation.setLignesTravaux(request.getLignesTravaux());
         if (request.getLignesReception() != null)
-            ordreReparation.setLignesReception(request.getLignesReception());
+            throw new IllegalArgumentException("L'état des lieux de réception ne peut plus être modifié après la création de l'ordre.");
         if (request.getListeDefauts() != null)
             ordreReparation.setListeDefauts(request.getListeDefauts());
         if (request.getStatut() == StatutOrdreReparation.LIVRE)
@@ -546,7 +556,8 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                     piece = pieceDetacheRepository.findById(ligneReq.pieceId())
                             .orElseThrow(() -> new RuntimeException("Pièce non trouvée"));
                     piece = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
-                    if (prix == null) prix = (piece.getPrixUnitaire() != null ? piece.getPrixUnitaire().intValue() : 0);
+                    prix = (int) Math.round(cataloguePiecePricingPolicy.resolveForDocument(
+                            piece, prix == null ? null : prix.doubleValue()));
                 }
 
                 ordreReparation.getLignesOrdreReparationPieces().add(LigneOrdreReparationPiece.builder()
@@ -1366,6 +1377,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 pieceDto.setDesignation(ligne.getPiece().getDesignation());
                 pieceDto.setType(ligne.getPiece().getType() != null ? ligne.getPiece().getType().name() : null);
                 pieceDto.setStockMagasin(ligne.getPiece().getStockMagasin());
+                pieceDto.setPrixUnitaire(ligne.getPiece().getPrixUnitaire());
                 ligneDto.setPiece(pieceDto);
             }
             return ligneDto;
@@ -1759,6 +1771,10 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         Client clientPourFacture = ordre.getClient() != null ? ordre.getClient()
                 : ordre.getVehicule() != null ? ordre.getVehicule().getClient() : null;
         if (clientPourFacture != null) dto.setClientId(clientPourFacture.getId());
+        var proformaPourTva = ordre.getProforma();
+        dto.setTvaApplicable(proformaPourTva == null || proformaPourTva.getTvaApplicable() == null
+                ? proformaPourTva == null || proformaPourTva.getMontantTVA() == null || proformaPourTva.getMontantTVA().signum() <= 0
+                : proformaPourTva.getTvaApplicable());
 
         sn.oas.facturation.features.facture.data.entity.Facture facture =
                 factureRepository.findFirstByOrdreReparationId(ordre.getId()).orElse(null);
@@ -1813,12 +1829,8 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     @Transactional
     public StepReceptionDto updateStepReception(Long id, StepReceptionDto dto) {
         OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Ordre de réparation non trouvé"));
-        updateBaseStepFields(ordre, dto);
-        if (dto.getListeDefauts() != null) ordre.setListeDefauts(dto.getListeDefauts());
-        if (dto.getLignesTravaux() != null) ordre.setLignesTravaux(dto.getLignesTravaux());
-        if (dto.getLignesReception() != null) ordre.setLignesReception(dto.getLignesReception());
-        if (dto.getLignesDefauts() != null && ordre.getFicheAtelier() != null) {
-            ordre.getFicheAtelier().setLignesDefauts(dto.getLignesDefauts());
+        if (dto.getDescriptionTravaux() != null) {
+            ordre.setDescriptionTravaux(dto.getDescriptionTravaux());
         }
         ordre.setUpdatedAt(LocalDateTime.now());
         ordreReparationRepository.save(ordre);

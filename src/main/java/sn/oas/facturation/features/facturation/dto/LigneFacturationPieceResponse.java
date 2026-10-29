@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -25,4 +27,5 @@ public class LigneFacturationPieceResponse {
     private Integer quantiteCommandee;
     private Integer quantiteRecueTotale;
     private Integer quantiteRestante;
+    private List<LocalDateTime> datesHeuresSaisieSource;
 }

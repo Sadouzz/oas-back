@@ -8,5 +8,6 @@ import lombok.EqualsAndHashCode;
 public class StepPaiementResponseDto extends BaseStepResponseDto {
     private Integer etape;
     private Long clientId;
+    private Boolean tvaApplicable;
     private FactureSummaryDto facture;
 }

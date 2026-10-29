@@ -102,6 +102,7 @@ public class FactureResponse {
                                 .prix(lp.getPrix())
                                 .montantTotal((int) Math.round(lp.getQuantite() * lp.getPrix() * (1 - (lp.getTauxRemise() == null ? 0 : lp.getTauxRemise().doubleValue()) / 100)))
                                 .tauxRemise(lp.getTauxRemise() != null ? lp.getTauxRemise().doubleValue() : 0.0)
+                                .datesHeuresSaisieSource(lp.getDatesHeuresSaisieSource() == null ? List.of() : List.copyOf(lp.getDatesHeuresSaisieSource()))
                                 .build())
                         .toList())
                 .lignesMainDoeuvres(f.getLignesFacturationMainDoeuvres() == null ? List.of() : f.getLignesFacturationMainDoeuvres().stream()

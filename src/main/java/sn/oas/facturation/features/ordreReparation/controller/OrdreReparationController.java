@@ -42,9 +42,12 @@ public class OrdreReparationController {
     @Operation(summary = "Lister toutes les  atelier avec pagination")
     public ResponseEntity<Page<OrdreReparationListDTO>> getAllOrdresReparation(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String search) {
+        String term = keyword != null && !keyword.isBlank() ? keyword : search;
         return ResponseEntity
-                .ok(ordreReparationService.getAllOrdresReparation(page, size).map(OrdreReparationListDTO::from));
+                .ok(ordreReparationService.getAllOrdresReparation(page, size, term).map(OrdreReparationListDTO::from));
     }
 
     @GetMapping({"/usage", "/rubriques-usage", "/ordres-usage"})

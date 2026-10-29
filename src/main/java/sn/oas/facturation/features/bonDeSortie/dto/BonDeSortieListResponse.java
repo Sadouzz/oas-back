@@ -55,7 +55,8 @@ public record BonDeSortieListResponse(
             Long id,
             String reference,
             String designation,
-            Double prix
+            Double prix,
+            Double prixUnitaire
     ) {}
     public record LigneSummary(
             Long id,
@@ -65,7 +66,9 @@ public record BonDeSortieListResponse(
             Integer quantite,
             Integer prix,
             Double tauxRemise,
-            Double montantTotal
+            Double montantTotal,
+            java.time.LocalDateTime dateHeureSaisie,
+            Long proformaLineId
     ) {}
     public record LigneMainDoeuvreSummary(
             Long id,
@@ -135,6 +138,7 @@ public record BonDeSortieListResponse(
                             l.getPiece().getId(),
                             l.getPiece().getReference(),
                             l.getPiece().getDesignation(),
+                            l.getPiece().getPrixUnitaire(),
                             l.getPiece().getPrixUnitaire()
                     );
                 }
@@ -155,7 +159,9 @@ public record BonDeSortieListResponse(
                         qte,
                         prix,
                         tauxRemise,
-                        montant
+                        montant,
+                        l.getDateHeureSaisie(),
+                        l.getProformaLineId()
                 ));
             }
         }

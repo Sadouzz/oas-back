@@ -7,6 +7,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import sn.oas.facturation.features.piecedetache.data.entity.PieceDetache;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "lignes_facturation_piece")
@@ -43,6 +46,13 @@ public class LigneFacturationPiece {
     @Builder.Default
     @Column(name = "taux_remise", nullable = false, precision = 5, scale = 2)
     private BigDecimal tauxRemise = BigDecimal.ZERO;
+
+    @ElementCollection
+    @CollectionTable(name = "ligne_facturation_piece_dates_source", joinColumns = @JoinColumn(name = "ligne_facturation_piece_id"))
+    @OrderColumn(name = "position")
+    @Column(name = "date_heure_saisie", nullable = false)
+    @Builder.Default
+    private List<LocalDateTime> datesHeuresSaisieSource = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {

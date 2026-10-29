@@ -43,6 +43,7 @@ import sn.oas.facturation.features.technicien.data.entity.Technicien;
 public interface OrdreReparationService {
     OrdreReparation createOrdreReparation(OrdreReparationRequest request);
     Page<OrdreReparation> getAllOrdresReparation(int page, int size);
+    Page<OrdreReparation> getAllOrdresReparation(int page, int size, String keyword);
     List<OrdreReparationLightDTO> getAllOrdresReparation();
     Optional<OrdreReparation> getOrdreReparationById(Long id);
     OrdreReparationResponseDTO getOrdreReparationResponseById(Long id);

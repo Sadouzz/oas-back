@@ -1,7 +1,9 @@
 package sn.oas.facturation.features.bonDeLivraison.controller;
 
 import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -9,16 +11,21 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import sn.oas.facturation.features.bonDeLivraison.dto.BonDeLivraisonCreateRequest;
+import sn.oas.facturation.features.bonDeLivraison.dto.BonDeLivraisonFactureRequest;
+import sn.oas.facturation.features.bonDeLivraison.dto.BonDeLivraisonOrdreContextResponse;
 import sn.oas.facturation.features.bonDeLivraison.dto.BonDeLivraisonResponse;
+import sn.oas.facturation.features.bonDeLivraison.dto.FactureDepuisOrdreResponse;
+import sn.oas.facturation.features.bonDeSortie.dto.BonDeSortieDisponibleResponse;
 import sn.oas.facturation.features.bonDeLivraison.service.BonDeLivraisonService;
 import sn.oas.facturation.features.facture.dto.FactureResponse;
 import sn.oas.facturation.features.noteDePrix.dto.NoteDePrixResponse;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/bons-de-livraison")
 @RequiredArgsConstructor
+@Tag(name = "Bons de livraison", description = "Livraisons de véhicules depuis les bons de sortie d'un ordre de réparation")
+@PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
 public class BonDeLivraisonController {
     private final BonDeLivraisonService service;
 
@@ -39,7 +46,15 @@ public class BonDeLivraisonController {
                 .contentType(MediaType.APPLICATION_PDF).body(service.generatePdf(id));
     }
     @GetMapping("/ordres-reparation/{ordreId}/bons-de-sortie")
-    public List<Map<String, Object>> bonsDeSortie(@PathVariable Long ordreId) { return service.bonsDeSortieDisponibles(ordreId); }
+    public List<BonDeSortieDisponibleResponse> bonsDeSortie(@PathVariable Long ordreId) { return service.bonsDeSortieDisponibles(ordreId); }
+    @GetMapping("/ordres-reparation/{ordreId}/contexte")
+    public BonDeLivraisonOrdreContextResponse contexteOrdre(@PathVariable Long ordreId) { return service.contexteOrdre(ordreId); }
+    @PostMapping("/ordres-reparation/{ordreId}/facture")
+    public FactureDepuisOrdreResponse creerFactureDepuisOrdre(@PathVariable Long ordreId,
+            @RequestBody(required = false) BonDeLivraisonFactureRequest request) {
+        var facture = service.creerFactureDepuisOrdre(ordreId, request);
+        return new FactureDepuisOrdreResponse(facture.getId(), facture.getNumero());
+    }
     @PostMapping("/{id}/convertir-en-facture")
     public FactureResponse convertirEnFacture(@PathVariable Long id) { return FactureResponse.from(service.convertirEnFacture(id)); }
     @PostMapping("/{id}/convertir-en-note-de-prix")

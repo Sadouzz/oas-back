@@ -28,6 +28,7 @@ import sn.oas.facturation.features.bonDeSortie.dto.LigneMainDoeuvreRequest;
 import sn.oas.facturation.features.bonDeSortie.repository.BonDeSortieRepository;
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.piecedetache.repository.PieceDetacheRepository;
+import sn.oas.facturation.features.piecedetache.service.CataloguePiecePricingPolicy;
 import sn.oas.facturation.features.piecedetache.repository.PieceMouvementRepository;
 import sn.oas.facturation.features.user.data.entity.Agent;
 import sn.oas.facturation.features.user.data.entity.User;
@@ -70,6 +71,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
     private final MainDoeuvreRepository mainDoeuvreRepository;
     private final OrdreTravailRepository ordreTravailRepository;
     private final sn.oas.facturation.features.fiscal.service.FiscalConfigurationService fiscalConfigurationService;
+    private final CataloguePiecePricingPolicy cataloguePiecePricingPolicy;
 
 
     @Transactional
@@ -157,32 +159,37 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                 }
 
                 PieceDetache piece = null;
-                Double prixCatalogue = 0.0;
                 String designation;
+                Double prix;
                 if (ligneReq.pieceId() == null) {
                     if (ligneReq.designation() == null || ligneReq.designation().isBlank()) {
                         throw new IllegalArgumentException("Une pièce du catalogue ou une désignation PDS est obligatoire");
                     }
                     designation = ligneReq.designation().trim();
+                    prix = ligneReq.getEffectivePrix() != null ? ligneReq.getEffectivePrix() : 0.0;
                 } else {
                     piece = pieceDetacheRepository.findById(ligneReq.pieceId())
                             .orElseThrow(() -> new IllegalArgumentException("Pièce introuvable avec l'id : " + ligneReq.pieceId()));
                     piece = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
-                    prixCatalogue = piece.getPrixUnitaire() != null ? piece.getPrixUnitaire() : 0.0;
+                    validerLigneProformaSource(bon, piece, ligneReq.proformaLineId());
+                    Double prixHistoriqueProforma = trouverPrixUnitaireProforma(bon, piece, ligneReq.proformaLineId());
+                    prix = prixHistoriqueProforma != null
+                            ? prixHistoriqueProforma
+                            : cataloguePiecePricingPolicy.resolveForDocument(piece, ligneReq.getEffectivePrix());
                     designation = (ligneReq.designation() != null && !ligneReq.designation().isBlank())
                             ? ligneReq.designation().trim() : piece.getDesignation();
                 }
-                Double prix = ligneReq.getEffectivePrix() != null ? ligneReq.getEffectivePrix() : prixCatalogue;
                 if (prix == null || prix < 0) throw new IllegalArgumentException("Le prix unitaire ne peut pas être négatif");
 
                 BigDecimal tauxRemise = ligneReq.tauxRemise() != null
                         ? BigDecimal.valueOf(ligneReq.tauxRemise())
-                        : trouverTauxRemisePieceProforma(bon, piece, designation);
+                        : trouverTauxRemisePieceProforma(bon, piece, designation, ligneReq.proformaLineId());
 
                 LigneBonDeSortiePiece ligne = LigneBonDeSortiePiece.builder().bonDeSortie(bon)
                         .piece(piece).type(TypeLigneBonDeSortie.PIECE).designation(designation)
                         .quantite(ligneReq.quantite()).prix((int) Math.round(prix))
                         .tauxRemise(tauxRemise)
+                        .proformaLineId(ligneReq.proformaLineId())
                         .build();
                 bon.getLignesBonDeSortiePieces().add(ligne);
             }
@@ -748,15 +755,14 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
         bon.setMontantTTC(montantHT.add(montantTVA));
     }
 
-    private BigDecimal trouverTauxRemisePieceProforma(BonDeSortie bon, PieceDetache piece, String designation) {
-        sn.oas.facturation.features.proforma.data.entity.Proforma proforma = bon.getProforma();
-        if (proforma == null && bon.getOrdreReparation() != null) {
-            proforma = bon.getOrdreReparation().getProforma();
-        }
-        if (proforma == null && bon.getOrdreTravail() != null) {
-            proforma = bon.getOrdreTravail().getProforma();
-        }
+    private BigDecimal trouverTauxRemisePieceProforma(BonDeSortie bon, PieceDetache piece, String designation, Long proformaLineId) {
+        Proforma proforma = proformaLiee(bon);
         if (proforma != null && proforma.getLignesFacturationPieces() != null) {
+            if (proformaLineId != null) {
+                for (var lp : proforma.getLignesFacturationPieces()) {
+                    if (proformaLineId.equals(lp.getId())) return lp.getTauxRemise() == null ? BigDecimal.ZERO : lp.getTauxRemise();
+                }
+            }
             for (var lp : proforma.getLignesFacturationPieces()) {
                 boolean match = false;
                 if (piece != null && lp.getPiece() != null && piece.getId() != null && piece.getId().equals(lp.getPiece().getId())) {
@@ -771,6 +777,47 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
             }
         }
         return BigDecimal.ZERO;
+    }
+
+    private Double trouverPrixUnitaireProforma(BonDeSortie bon, PieceDetache piece, Long proformaLineId) {
+        Proforma proforma = proformaLiee(bon);
+        if (proforma == null || proforma.getStatut() == null
+                || !(proforma.getStatut() == sn.oas.facturation.features.facturation.data.enums.StatutFacturation.ACCEPTE
+                || proforma.getStatut() == sn.oas.facturation.features.facturation.data.enums.StatutFacturation.PAYEE
+                || proforma.getStatut() == sn.oas.facturation.features.facturation.data.enums.StatutFacturation.PARTIELLEMENT_PAYEE
+                || proforma.getStatut() == sn.oas.facturation.features.facturation.data.enums.StatutFacturation.CONVERTIE)
+                || proforma.getLignesFacturationPieces() == null) {
+            return null;
+        }
+        if (proformaLineId != null) {
+            for (var ligne : proforma.getLignesFacturationPieces()) {
+                if (proformaLineId.equals(ligne.getId()) && ligne.getPrix() != null) return ligne.getPrix().doubleValue();
+            }
+        }
+        for (var ligne : proforma.getLignesFacturationPieces()) {
+            if (piece != null && ligne.getPiece() != null
+                    && piece.getId() != null && piece.getId().equals(ligne.getPiece().getId())
+                    && ligne.getPrix() != null) {
+                return ligne.getPrix().doubleValue();
+            }
+        }
+        return null;
+    }
+
+    private void validerLigneProformaSource(BonDeSortie bon, PieceDetache piece, Long proformaLineId) {
+        if (proformaLineId == null) return;
+        Proforma proforma = proformaLiee(bon);
+        boolean sourceValide = proforma != null && proforma.getLignesFacturationPieces() != null
+                && proforma.getLignesFacturationPieces().stream().anyMatch(l -> proformaLineId.equals(l.getId())
+                        && l.getPiece() != null && piece.getId().equals(l.getPiece().getId()));
+        if (!sourceValide) throw new IllegalArgumentException("La ligne PDG source ne correspond pas au proforma de cet ordre.");
+    }
+
+    private Proforma proformaLiee(BonDeSortie bon) {
+        if (bon.getProforma() != null) return bon.getProforma();
+        if (bon.getOrdreReparation() != null && bon.getOrdreReparation().getProforma() != null) return bon.getOrdreReparation().getProforma();
+        if (bon.getOrdreTravail() != null) return bon.getOrdreTravail().getProforma();
+        return null;
     }
 
     private BigDecimal trouverTauxRemiseMoProforma(BonDeSortie bon, Long moId) {

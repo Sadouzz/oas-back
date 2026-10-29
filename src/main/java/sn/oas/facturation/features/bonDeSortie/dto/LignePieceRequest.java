@@ -12,18 +12,19 @@ public record LignePieceRequest(
         Long mainDoeuvreId,
         String designation,
         @JsonAlias({"remise", "taux_remise", "discount", "tauxRemise"})
-        Double tauxRemise
+        Double tauxRemise,
+        Long proformaLineId
 ) {
     public LignePieceRequest(Long pieceId, Integer quantite) {
-        this(pieceId, quantite, null, null, null, null, null, null);
+        this(pieceId, quantite, null, null, null, null, null, null, null);
     }
 
     public LignePieceRequest(Long pieceId, Integer quantite, Double prix) {
-        this(pieceId, quantite, prix, prix, null, null, null, null);
+        this(pieceId, quantite, prix, prix, null, null, null, null, null);
     }
 
     public LignePieceRequest(Long pieceId, Integer quantite, Double prix, Double prixUnitaire, String type, Long mainDoeuvreId, String designation) {
-        this(pieceId, quantite, prix, prixUnitaire, type, mainDoeuvreId, designation, null);
+        this(pieceId, quantite, prix, prixUnitaire, type, mainDoeuvreId, designation, null, null);
     }
 
     public Double getEffectivePrix() {

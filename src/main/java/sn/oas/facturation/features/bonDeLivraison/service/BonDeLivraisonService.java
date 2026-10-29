@@ -9,7 +9,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.core.context.SecurityContextHolder;
 import sn.oas.facturation.features.bonDeLivraison.data.entity.BonDeLivraison;
 import sn.oas.facturation.features.bonDeLivraison.dto.BonDeLivraisonCreateRequest;
+import sn.oas.facturation.features.bonDeLivraison.dto.BonDeLivraisonFactureRequest;
+import sn.oas.facturation.features.bonDeLivraison.dto.BonDeLivraisonOrdreContextResponse;
 import sn.oas.facturation.features.bonDeLivraison.dto.BonDeLivraisonResponse;
+import sn.oas.facturation.features.bonDeSortie.dto.BonDeSortieDisponibleResponse;
 import sn.oas.facturation.features.bonDeLivraison.repository.BonDeLivraisonRepository;
 import sn.oas.facturation.features.bonDeSortie.data.entity.BonDeSortie;
 import sn.oas.facturation.features.bonDeSortie.data.entity.LigneBonDeSortieMainDoeuvre;
@@ -31,6 +34,7 @@ import sn.oas.facturation.features.user.repository.UserRepository;
 import sn.oas.facturation.features.user.data.entity.Agent;
 import sn.oas.facturation.features.user.data.entity.User;
 import sn.oas.facturation.features.piecedetache.data.entity.PDP;
+import sn.oas.facturation.features.piecedetache.data.enums.TypePiece;
 import sn.oas.facturation.features.piecedetache.data.entity.PieceDetache;
 import sn.oas.facturation.features.piecedetache.data.entity.PieceMouvement;
 import sn.oas.facturation.features.piecedetache.data.enums.TypeMouvement;
@@ -57,6 +61,7 @@ import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
 import java.io.ByteArrayOutputStream;
 import java.awt.Color;
+import java.time.format.DateTimeFormatter;
 
 @Service @RequiredArgsConstructor
 public class BonDeLivraisonService {
@@ -75,11 +80,15 @@ public class BonDeLivraisonService {
     @Transactional(readOnly = true)
     public Page<BonDeLivraisonResponse> list(int page, int size, String keyword) {
         var pageable = PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 100), Sort.by("id").descending());
-        Page<BonDeLivraison> results = keyword == null || keyword.isBlank()
-                ? repository.findAll(pageable)
-                : repository.search(keyword.trim(), pageable);
-        return results
-                .map(BonDeLivraisonResponse::from);
+        Page<sn.oas.facturation.features.bonDeLivraison.dto.BonDeLivraisonListRow> results = keyword == null || keyword.isBlank()
+                ? repository.findListRows(pageable)
+                : repository.searchListRows(keyword.trim(), pageable);
+        List<Long> bonIds = results.getContent().stream().map(row -> row.id()).toList();
+        Map<Long, List<sn.oas.facturation.features.bonDeLivraison.dto.BonDeLivraisonSortieReference>> references = bonIds.isEmpty()
+                ? Map.of()
+                : repository.findSortieReferences(bonIds).stream().collect(java.util.stream.Collectors.groupingBy(
+                        sn.oas.facturation.features.bonDeLivraison.dto.BonDeLivraisonSortieReference::bonDeLivraisonId));
+        return results.map(row -> BonDeLivraisonResponse.fromListRow(row, references.get(row.id())));
     }
 
     @Transactional(readOnly = true)
@@ -109,7 +118,14 @@ public class BonDeLivraisonService {
                 PdfPCell cell = new PdfPCell(new Phrase(label, head)); cell.setBackgroundColor(new Color(38, 58, 82)); cell.setPadding(7); table.addCell(cell);
             }
             for (var l : bl.getLignesFacturationPieces()) {
-                table.addCell(new Phrase(l.getDesignationPds() != null ? l.getDesignationPds() : l.getPiece() == null ? "Pièce" : l.getPiece().getDesignation(), body));
+                PdfPCell designationCell = new PdfPCell(new Phrase(l.getDesignationPds() != null ? l.getDesignationPds() : l.getPiece() == null ? "Pièce" : l.getPiece().getDesignation(), body));
+                var datesSaisie = l.getDatesHeuresSaisieSource();
+                if (datesSaisie != null && !datesSaisie.isEmpty()) {
+                    String datesFormatees = datesSaisie.stream().map(d -> d.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")))
+                            .collect(java.util.stream.Collectors.joining(", "));
+                    designationCell.addElement(new Paragraph("Saisies : " + datesFormatees, FontFactory.getFont(FontFactory.HELVETICA, 7, Color.DARK_GRAY)));
+                }
+                table.addCell(designationCell);
                 table.addCell(new Phrase(String.valueOf(l.getQuantite()), body)); table.addCell(new Phrase(String.valueOf(l.getPrix()), body));
                 table.addCell(new Phrase(net(BigDecimal.valueOf((long) l.getPrix() * l.getQuantite()), nz(l.getTauxRemise())).toPlainString(), body));
             }
@@ -127,15 +143,24 @@ public class BonDeLivraisonService {
     }
 
     @Transactional(readOnly = true)
-    public List<Map<String, Object>> bonsDeSortieDisponibles(Long ordreId) {
+    public List<BonDeSortieDisponibleResponse> bonsDeSortieDisponibles(Long ordreId) {
         OrdreReparation ordre = orRepository.findById(ordreId).orElseThrow(() -> new ResourceNotFoundException("Ordre de réparation introuvable."));
-        return bsRepository.findByOrdreReparationIdOrderByDateDesc(ordreId).stream()
-                .filter(bs -> bs.getStatut() == StatutBon.VALIDE)
-                .map(bs -> Map.<String, Object>of("id", bs.getId(), "reference", bs.getReference(), "date", bs.getDate(),
-                        "montant", Optional.ofNullable(bs.getMontantTotal()).orElse(BigDecimal.ZERO),
-                        "clientId", bs.getClient().getId(), "vehiculeId", bs.getVehicule().getId(),
-                        "ordreReparationId", ordre.getId()))
-                .toList();
+        return bsRepository.trouverDisponiblesParOrdreEtStatut(ordreId, StatutBon.VALIDE);
+    }
+
+    @Transactional(readOnly = true)
+    public BonDeLivraisonOrdreContextResponse contexteOrdre(Long ordreId) {
+        OrdreReparation ordre = orRepository.findById(ordreId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ordre de réparation introuvable."));
+        var bons = bsRepository.trouverDisponiblesParOrdreEtStatut(ordreId, StatutBon.VALIDE);
+        var bon = repository.findByOrdreReparationId(ordreId).orElse(null);
+        var summary = bon == null ? null : new BonDeLivraisonOrdreContextResponse.BonDeLivraisonSummary(
+                bon.getId(), bon.getNumero(), bon.getMontantTTC(),
+                bon.getFacture() == null ? null : bon.getFacture().getId(),
+                bon.getFacture() == null ? null : bon.getFacture().getNumero(),
+                bon.getNoteDePrix() == null ? null : bon.getNoteDePrix().getId(),
+                bon.getNoteDePrix() == null ? null : bon.getNoteDePrix().getNumero());
+        return new BonDeLivraisonOrdreContextResponse(ordre.getId(), ordre.getNumero(), tvaParDefaut(ordre), bons, summary);
     }
 
     @Transactional
@@ -144,9 +169,8 @@ public class BonDeLivraisonService {
                 .orElseThrow(() -> new ResourceNotFoundException("Ordre de réparation introuvable."));
         if (repository.existsByOrdreReparationId(ordre.getId())) throw new BadRequestException("Un bon de livraison existe déjà pour cet ordre de réparation.");
         if (factureRepository.findFirstByOrdreReparationId(ordre.getId()).isPresent()) throw new BadRequestException("Une facture existe déjà pour cet ordre. Le bon de livraison doit être créé avant la facture.");
-        var bons = bsRepository.findAllById(new HashSet<>(req.getBonsDeSortieIds()));
-        if (bons.size() != new HashSet<>(req.getBonsDeSortieIds()).size()) throw new BadRequestException("Un ou plusieurs bons de sortie sont introuvables.");
-        if (bons.isEmpty()) throw new BadRequestException("Sélectionnez au moins un bon de sortie validé.");
+        var bons = bsRepository.findByOrdreReparationIdAndStatutOrderByDateDesc(ordre.getId(), StatutBon.VALIDE);
+        if (bons.isEmpty()) throw new BadRequestException("Aucun bon de sortie validé n'est lié à cet ordre de réparation.");
         var client = ordre.getClient() != null ? ordre.getClient() : ordre.getVehicule() == null ? null : ordre.getVehicule().getClient();
         if (client == null || ordre.getVehicule() == null) throw new BadRequestException("L'ordre doit avoir un client et un véhicule.");
         for (BonDeSortie bs : bons) {
@@ -155,13 +179,14 @@ public class BonDeLivraisonService {
             if (bs.getClient() == null || !client.getId().equals(bs.getClient().getId()) || bs.getVehicule() == null || !ordre.getVehicule().getId().equals(bs.getVehicule().getId())) throw new BadRequestException("Le client ou le véhicule d'un bon de sortie ne correspond pas à l'ordre.");
         }
         Agent agent = currentAgent();
-        boolean tva = req.getAppliquerTVA() == null || Boolean.TRUE.equals(req.getAppliquerTVA());
+        boolean tva = req.getAppliquerTVA() == null ? tvaParDefaut(ordre) : Boolean.TRUE.equals(req.getAppliquerTVA());
         BonDeLivraison bl = BonDeLivraison.builder().numero(numberGenerator.generateNextNumber(DocumentType.BL))
                 .garage(ordre.getGarage()).client(client).vehicule(ordre.getVehicule()).ordreReparation(ordre)
                 .agent(agent).kilometrage(0d)
                 .remarque(req.getRemarque()).statut(StatutFacturation.EN_ATTENTE).bonsDeSortie(new ArrayList<>(bons))
                 .lignesFacturationPieces(new ArrayList<>()).lignesFacturationMainDoeuvres(new ArrayList<>()).tvaApplicable(tva).build();
         BigDecimal ht = BigDecimal.ZERO;
+        Map<PdgAggregationKey, LigneFacturationPiece> lignesPdgConsolidees = new LinkedHashMap<>();
         for (BonDeSortie bs : bons) {
             for (LigneBonDeSortiePiece l : bs.getLignesBonDeSortiePieces()) {
                 if (l.getQuantite() == null || l.getQuantite() <= 0) continue;
@@ -172,28 +197,74 @@ public class BonDeLivraisonService {
                     var row = LigneFacturationMainDoeuvre.builder().facturation(bl).mainDoeuvre(mainDoeuvre)
                             .nbreHeure(l.getQuantite()).tarifHoraire(l.getPrix()).tauxRemise(remise).build();
                     bl.getLignesFacturationMainDoeuvres().add(row);
-                    ht = ht.add(net(BigDecimal.valueOf((long) l.getPrix() * l.getQuantite()), remise));
                     continue;
                 }
-                var row = LigneFacturationPiece.builder().facturation(bl).piece(l.getPiece())
-                        .isCustom(l.getPiece() == null).designationPds(l.getDesignation())
-                        .quantite(l.getQuantite()).prix(l.getPrix()).tauxRemise(remise).build();
-                bl.getLignesFacturationPieces().add(row);
-                ht = ht.add(net(BigDecimal.valueOf((long) l.getPrix() * l.getQuantite()), remise));
+                boolean isPdg = l.getPiece() != null && l.getPiece().getType() == TypePiece.PDG;
+                if (isPdg) {
+                    PdgAggregationKey key = new PdgAggregationKey(l.getPiece().getId(), l.getPrix(), remise.stripTrailingZeros());
+                    LigneFacturationPiece row = lignesPdgConsolidees.get(key);
+                    if (row == null) {
+                        row = nouvelleLigneFacturation(bl, l.getPiece(), l.getDesignation(), l.getQuantite(), l.getPrix(), remise);
+                        lignesPdgConsolidees.put(key, row);
+                        bl.getLignesFacturationPieces().add(row);
+                    } else {
+                        row.setQuantite(row.getQuantite() + l.getQuantite());
+                    }
+                    if (l.getDateHeureSaisie() != null) row.getDatesHeuresSaisieSource().add(l.getDateHeureSaisie());
+                } else {
+                    bl.getLignesFacturationPieces().add(nouvelleLigneFacturation(
+                            bl, l.getPiece(), l.getDesignation(), l.getQuantite(), l.getPrix(), remise));
+                }
             }
             for (LigneBonDeSortieMainDoeuvre l : bs.getLignesBonDeSortieMainDoeuvres()) {
                 if (l.getMainDoeuvre() == null || l.getNbreHeure() == null || l.getNbreHeure() <= 0) continue;
                 var row = LigneFacturationMainDoeuvre.builder().facturation(bl).mainDoeuvre(l.getMainDoeuvre())
                         .nbreHeure(l.getNbreHeure()).tarifHoraire(l.getTarifHoraire()).tauxRemise(nz(l.getTauxRemise())).build();
                 bl.getLignesFacturationMainDoeuvres().add(row);
-                ht = ht.add(net(BigDecimal.valueOf((long) l.getTarifHoraire() * l.getNbreHeure()), l.getTauxRemise()));
             }
+        }
+        for (LigneFacturationPiece ligne : lignesPdgConsolidees.values()) {
+            ligne.getDatesHeuresSaisieSource().sort(Comparator.naturalOrder());
+        }
+        for (LigneFacturationPiece ligne : bl.getLignesFacturationPieces()) {
+            ht = ht.add(net(BigDecimal.valueOf((long) ligne.getPrix() * ligne.getQuantite()), nz(ligne.getTauxRemise())));
+        }
+        for (LigneFacturationMainDoeuvre ligne : bl.getLignesFacturationMainDoeuvres()) {
+            ht = ht.add(net(BigDecimal.valueOf((long) ligne.getTarifHoraire() * ligne.getNbreHeure()), nz(ligne.getTauxRemise())));
         }
         var fiscal = fiscalService.getCurrent();
         BigDecimal montantTVA = tva ? fiscalService.calculateRate(ht, fiscal.getTvaRate()) : BigDecimal.ZERO;
         bl.setMontantHT(ht); bl.setMontantTVA(montantTVA); bl.setMontantTimbre(BigDecimal.ZERO);
         bl.setMontantTTC(ht.add(montantTVA)); bl.setMontantTotal(ht.add(montantTVA));
         return BonDeLivraisonResponse.from(repository.save(bl));
+    }
+
+    @Transactional
+    public Facture creerFactureDepuisOrdre(Long ordreId, BonDeLivraisonFactureRequest request) {
+        OrdreReparation ordre = orRepository.findByIdForFacturation(ordreId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ordre de réparation introuvable."));
+        BonDeLivraison bl = repository.findByOrdreReparationId(ordre.getId()).orElse(null);
+        Facture factureExistante = factureRepository.findFirstByOrdreReparationId(ordre.getId()).orElse(null);
+        if (factureExistante != null) {
+            if (bl == null || factureExistante.getBonDeLivraison() == null
+                    || !bl.getId().equals(factureExistante.getBonDeLivraison().getId())) {
+                throw new BadRequestException("Une facture existe déjà pour cet ordre, mais elle n'est pas issue de son bon de livraison.");
+            }
+            return factureExistante;
+        }
+
+        if (bl == null) {
+            BonDeLivraisonCreateRequest createRequest = new BonDeLivraisonCreateRequest();
+            createRequest.setOrdreReparationId(ordre.getId());
+            if (request != null) {
+                createRequest.setAppliquerTVA(request.getAppliquerTVA());
+                createRequest.setRemarque(request.getRemarque());
+            }
+            BonDeLivraisonResponse created = create(createRequest);
+            bl = repository.findById(created.getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Le bon de livraison créé est introuvable."));
+        }
+        return convertirEnFacture(bl.getId());
     }
 
     @Transactional
@@ -249,8 +320,18 @@ public class BonDeLivraisonService {
     private List<LigneFacturationPiece> copyPieces(BonDeLivraison source, sn.oas.facturation.features.facturation.data.entity.Facturation target) {
         return source.getLignesFacturationPieces().stream().map(l -> LigneFacturationPiece.builder().piece(l.getPiece())
                 .facturation(target).isCustom(l.getIsCustom()).designationPds(l.getDesignationPds()).quantite(l.getQuantite())
-                .prix(l.getPrix()).tauxRemise(nz(l.getTauxRemise())).build()).toList();
+                .prix(l.getPrix()).tauxRemise(nz(l.getTauxRemise()))
+                .datesHeuresSaisieSource(new ArrayList<>(l.getDatesHeuresSaisieSource() == null ? List.of() : l.getDatesHeuresSaisieSource()))
+                .build()).toList();
     }
+
+    private LigneFacturationPiece nouvelleLigneFacturation(BonDeLivraison bl, sn.oas.facturation.features.piecedetache.data.entity.PieceDetache piece,
+            String designation, Integer quantite, Integer prix, BigDecimal remise) {
+        return LigneFacturationPiece.builder().facturation(bl).piece(piece).isCustom(piece == null).designationPds(designation)
+                .quantite(quantite).prix(prix).tauxRemise(remise).datesHeuresSaisieSource(new ArrayList<>()).build();
+    }
+
+    private record PdgAggregationKey(Long pieceId, Integer prix, BigDecimal tauxRemise) {}
     private List<LigneFacturationMainDoeuvre> copyMo(BonDeLivraison source, sn.oas.facturation.features.facturation.data.entity.Facturation target) {
         return source.getLignesFacturationMainDoeuvres().stream().map(l -> LigneFacturationMainDoeuvre.builder().mainDoeuvre(l.getMainDoeuvre())
                 .facturation(target).nbreHeure(l.getNbreHeure()).tarifHoraire(l.getTarifHoraire()).tauxRemise(nz(l.getTauxRemise())).build()).toList();
@@ -262,5 +343,11 @@ public class BonDeLivraisonService {
         return user instanceof Agent a ? a : null;
     }
     private BigDecimal nz(BigDecimal v) { return v == null ? BigDecimal.ZERO : v; }
+    private boolean tvaParDefaut(OrdreReparation ordre) {
+        var proforma = ordre.getProforma();
+        if (proforma == null) return true;
+        if (proforma.getTvaApplicable() != null) return proforma.getTvaApplicable();
+        return proforma.getMontantTVA() != null && proforma.getMontantTVA().signum() > 0;
+    }
     private BigDecimal net(BigDecimal base, BigDecimal rate) { return rate.signum() <= 0 ? base : base.subtract(base.multiply(rate).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP)); }
 }

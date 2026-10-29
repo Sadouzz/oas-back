@@ -169,8 +169,12 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
         fiche.setNiveauEssence(request.getNiveauEssence());
         fiche.setKilometrage(request.getKilometrage());
         fiche.setDesignationTravaux(request.getDesignationTravaux());
-        fiche.setLignesReception(request.getLignesReception());
-        fiche.setLignesDefauts(request.getLignesDefauts());
+        if (request.getLignesReception() != null) {
+            fiche.setLignesReception(request.getLignesReception());
+        }
+        if (request.getLignesDefauts() != null) {
+            fiche.setLignesDefauts(request.getLignesDefauts());
+        }
         fiche.setNb(request.getNb());
         fiche.setSignatureReceptionnaireBase64(request.getSignatureReceptionnaireBase64());
         fiche.setSignatureBase64(request.getSignatureBase64());
