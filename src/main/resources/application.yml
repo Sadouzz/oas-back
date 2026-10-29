@@ -16,3 +16,9 @@ app:
     subject: ${OAS_PUSH_VAPID_SUBJECT:mailto:admin@orientautoservice.sn}
 server:
   forward-headers-strategy: framework
+management:
+  health:
+    redis:
+      enabled: false
+    mail:
+      enabled: false

@@ -21,8 +21,10 @@ import sn.oas.facturation.features.piecedetache.service.PieceDetacheService;
 import sn.oas.facturation.features.piecedetache.service.StockService;
 
 import java.time.LocalDateTime;
+import lombok.extern.slf4j.Slf4j;
 import java.util.List;
 
+@Slf4j
 @Tag(name = "Pièces détachées", description = "CRUD des pièces détachées (PDP, PDG, PDS) et historique des mouvements")
 @RestController
 @RequestMapping("/api/pieces-detachees")
@@ -148,7 +150,7 @@ public class PieceDetacheController {
             pieceDetacheService.delete(id);
             return ResponseEntity.ok(java.util.Map.of("message", "Pièce détachée supprimée avec succès !"));
         } catch (RuntimeException e) {
-            e.printStackTrace(); // Pour voir l'erreur dans la console backend
+            log.error("Erreur lors de la suppression de la pièce {}: {}", id, e.getMessage(), e);
             return ResponseEntity.badRequest()
                     .body(java.util.Map.of("message", e.getMessage() != null ? e.getMessage() : e.toString()));
         }

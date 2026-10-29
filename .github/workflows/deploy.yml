@@ -57,9 +57,9 @@ jobs:
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
-            cd /opt/oas
+            cd /home/oas/apps/oas/deploy
             echo ${{ secrets.GHCR_TOKEN }} | docker login ghcr.io -u ${{ secrets.GHCR_USER }} --password-stdin
-            docker compose pull backend
-            docker compose up -d backend
+            docker compose -p oas -f docker-compose.yml -f docker-compose.override.yml pull backend
+            docker compose -p oas -f docker-compose.yml -f docker-compose.override.yml up -d backend
             docker image prune -f
             echo "✅ Backend deployed successfully"
