@@ -32,7 +32,7 @@ app:
     expiration: 21600000
     refresh-expiration: 604800000
   cors:
-    allowed-origins: ${CORS_ORIGINS:https://oas-front.vercel.app}
+    allowed-origins: ${CORS_ORIGINS:https://oas-senegal.com,https://www.oas-senegal.com,https://api.oas-senegal.com}
   cloudinary:
     cloud-name: ${CLOUDINARY_CLOUD_NAME}
     api-key: ${CLOUDINARY_API_KEY}
