@@ -17,6 +17,8 @@ public class RecuResponse {
     private String numero;
     private Long factureId;
     private BigDecimal montant;
+    private BigDecimal montantTimbre;
+    private BigDecimal montantEncaisse;
     private String modePaiement;
     // private String remarque;
     private LocalDateTime datePaiement;
@@ -51,6 +53,8 @@ public class RecuResponse {
                 .clientNom(clientNom)
                 .numeroOrdreReparation(numeroOrdreReparation)
                 .montant(r.getMontant())
+                .montantTimbre(r.getMontantTimbre() == null ? BigDecimal.ZERO : r.getMontantTimbre())
+                .montantEncaisse(r.getMontant().add(r.getMontantTimbre() == null ? BigDecimal.ZERO : r.getMontantTimbre()))
                 .modePaiement(r.getModePaiement())
                 // .remarque(r.getRemarque())
                 .datePaiement(r.getDatePaiement())

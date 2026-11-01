@@ -582,7 +582,9 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
             proformaDto.setMontantTotal(proforma.getMontantTotal() != null ? proforma.getMontantTotal().doubleValue() : proformaDto.getMontantTTC());
 
             if (proforma.getLignesFacturationPieces() != null) {
-                proformaDto.setLignesPieces(proforma.getLignesFacturationPieces().stream().map(ligne -> {
+                proformaDto.setLignesPieces(sn.oas.facturation.shared.OrdreAffichageLignes.plusRecentesEnPremier(
+                        proforma.getLignesFacturationPieces(), sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece::getId)
+                        .stream().map(ligne -> {
                     AdditionalStubs.LigneProformaPieceDto lDto = new AdditionalStubs.LigneProformaPieceDto();
                     lDto.setId(ligne.getId());
                     lDto.setNom(ligne.getIsCustom() != null && ligne.getIsCustom() ? ligne.getDesignationPds() : (ligne.getPiece() != null ? ligne.getPiece().getDesignation() : "Pièce"));

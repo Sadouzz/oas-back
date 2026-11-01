@@ -21,7 +21,7 @@ public class FiscalConfiguration {
     @Column(nullable = false, precision = 7, scale = 4)
     private BigDecimal tvaRate = new BigDecimal("18.0000");
 
-    @Column(nullable = false, precision = 15, scale = 2)
-    private BigDecimal timbreFiscal = new BigDecimal("100.00");
+    @Column(name = "timbre_fiscal_rate", nullable = false, precision = 7, scale = 4)
+    private BigDecimal timbreFiscalRate = new BigDecimal("1.0000");
 
 }

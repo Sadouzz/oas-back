@@ -47,6 +47,10 @@ public class Recu implements TenantAware  {
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal montant;
 
+    @Column(name = "montant_timbre", nullable = false, precision = 15, scale = 2)
+    @lombok.Builder.Default
+    private BigDecimal montantTimbre = BigDecimal.ZERO;
+
     @Column(name = "mode_paiement")
     private String modePaiement; // ESPECE, CHEQUE, VIREMENT...
 

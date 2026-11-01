@@ -23,6 +23,7 @@ import jakarta.persistence.InheritanceType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.SequenceGenerator;
 import lombok.AllArgsConstructor;
@@ -125,6 +126,7 @@ public abstract class Facturation implements TenantAware  {
     private Double kilometrage;
     
     @OneToMany(mappedBy = "facturation", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("id ASC")
     @Builder.Default
     @JsonIgnoreProperties("facturation")
     private List<LigneFacturationPiece> lignesFacturationPieces = new ArrayList<>();

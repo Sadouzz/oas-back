@@ -152,6 +152,7 @@ public class OrdreReparation implements TenantAware  {
     private Proforma proforma;
 
     @OneToMany(mappedBy = "ordreReparation", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("id ASC")
     @Builder.Default
     @JsonIgnoreProperties({"ordreReparation"})
     private List<DevisPrevisionnel> devisPrevisionnels = new ArrayList<>();

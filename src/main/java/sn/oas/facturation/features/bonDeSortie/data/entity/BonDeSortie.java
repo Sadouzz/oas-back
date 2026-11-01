@@ -131,6 +131,7 @@ public class BonDeSortie implements TenantAware  {
     private Proforma proforma;
 
     @OneToMany(mappedBy = "bonDeSortie", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("id ASC")
     @Builder.Default
     private List<LigneBonDeSortiePiece> lignesBonDeSortiePieces = new ArrayList<>();
 

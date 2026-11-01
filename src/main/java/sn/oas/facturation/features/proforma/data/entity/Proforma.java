@@ -31,6 +31,9 @@ import java.math.BigDecimal;
 @EqualsAndHashCode(callSuper = true)
 public class Proforma extends FactureTTC {
 
+    @Column(name = "timbre_fiscal_rate", precision = 7, scale = 4)
+    private BigDecimal timbreFiscalRate;
+
 
 
     /** Alertes calculées lors de la création, non persistées et destinées à l'agent. */

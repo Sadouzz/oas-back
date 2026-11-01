@@ -426,7 +426,9 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         // Lignes pièces
         List<OrdreReparationResponseDTO.LigneOrdreReparationPieceDto> lignesPieces = null;
         if (o.getLignesOrdreReparationPieces() != null) {
-            lignesPieces = o.getLignesOrdreReparationPieces().stream().map(lp -> {
+            lignesPieces = sn.oas.facturation.shared.OrdreAffichageLignes.plusRecentesEnPremier(
+                    o.getLignesOrdreReparationPieces(), sn.oas.facturation.features.ordreReparation.data.entity.LigneOrdreReparationPiece::getId)
+                    .stream().map(lp -> {
                 OrdreReparationResponseDTO.PieceDto pieceDto = null;
                 if (lp.getPiece() != null) {
                     pieceDto = OrdreReparationResponseDTO.PieceDto.builder()
@@ -1361,7 +1363,9 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 : (ordre.getVehicule() != null ? ordre.getVehicule().getClient() : null);
         dto.setTauxRemiseClient(tauxRemiseClientApplicable(client));
         
-        dto.setLignesOrdreReparationPieces(ordre.getLignesOrdreReparationPieces().stream().map(ligne -> {
+        dto.setLignesOrdreReparationPieces(sn.oas.facturation.shared.OrdreAffichageLignes.plusRecentesEnPremier(
+                ordre.getLignesOrdreReparationPieces(), sn.oas.facturation.features.ordreReparation.data.entity.LigneOrdreReparationPiece::getId)
+                .stream().map(ligne -> {
             LignePieceOrdreDto ligneDto = new LignePieceOrdreDto();
             ligneDto.setId(ligne.getId());
             ligneDto.setQuantite(ligne.getQuantite());
@@ -1451,7 +1455,9 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             proformaDto.setTauxRemiseClient(ordre.getProforma().getTauxRemiseClient() != null ? ordre.getProforma().getTauxRemiseClient().doubleValue() : 0.0);
             proformaDto.setMontantRemiseClient(ordre.getProforma().getMontantRemiseClient() != null ? ordre.getProforma().getMontantRemiseClient().doubleValue() : 0.0);
             
-            proformaDto.setLignesPieces(ordre.getProforma().getLignesFacturationPieces().stream().map(ligne -> {
+            proformaDto.setLignesPieces(sn.oas.facturation.shared.OrdreAffichageLignes.plusRecentesEnPremier(
+                    ordre.getProforma().getLignesFacturationPieces(), sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece::getId)
+                    .stream().map(ligne -> {
                 LigneProformaPieceDto ligneDto = new LigneProformaPieceDto();
                 ligneDto.setId(ligne.getId());
                 ligneDto.setNom(ligne.getIsCustom() != null && ligne.getIsCustom() ? ligne.getDesignationPds() : (ligne.getPiece() != null ? ligne.getPiece().getDesignation() : "Pièce"));
@@ -1795,6 +1801,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             fDto.setMontantPaye(facture.getMontantPaye() != null ? facture.getMontantPaye().doubleValue() : 0.0);
             fDto.setMontantRestant(facture.getResteAPayer() != null ? facture.getResteAPayer().doubleValue()
                     : facture.getMontantTotal() != null ? facture.getMontantTotal().doubleValue() : null);
+            fDto.setTimbreFiscalRate(facture.getTimbreFiscalRate() == null ? null : facture.getTimbreFiscalRate().doubleValue());
             dto.setFacture(fDto);
         }
 

@@ -227,8 +227,8 @@ public class AvoirTTCServiceImpl implements AvoirTTCService {
             montantTVA = fiscalConfigurationService.calculateRate(montantHT, fiscalConfigurationService.getCurrent().getTvaRate());
         }
 
-        BigDecimal montantTimbre = fiscalConfigurationService.getCurrent().getTimbreFiscal();
-        BigDecimal montantTTC = montantHT.add(montantTVA).add(montantTimbre);
+        BigDecimal montantTimbre = BigDecimal.ZERO;
+        BigDecimal montantTTC = montantHT.add(montantTVA);
 
         avoirTTC.setMontantHT(montantHT);
         avoirTTC.setTvaApplicable(appliquerTVA);
@@ -390,7 +390,8 @@ public class AvoirTTCServiceImpl implements AvoirTTCService {
                     tablePieces.addCell(cell);
                 }
 
-                for (LigneFacturationPiece ligne : a.getLignesFacturationPieces()) {
+                for (LigneFacturationPiece ligne : sn.oas.facturation.shared.OrdreAffichageLignes.plusRecentesEnPremier(
+                        a.getLignesFacturationPieces(), LigneFacturationPiece::getId)) {
                     String ref = ligne.getPiece() != null ? ligne.getPiece().getDesignation()
                             : (ligne.getDesignationPds() != null ? ligne.getDesignationPds() : "N/A");
                     tablePieces.addCell(new Phrase(ref, fontTexte));

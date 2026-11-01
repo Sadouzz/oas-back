@@ -357,6 +357,26 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
         }
 
         if (request.getMontantPaye() != null) {
+            BigDecimal montantPayeActuel = note.getMontantPaye() != null ? note.getMontantPaye() : BigDecimal.ZERO;
+            BigDecimal nouveauMontantPaye = request.getMontantPaye();
+            if (nouveauMontantPaye.compareTo(montantPayeActuel) < 0) {
+                throw new sn.oas.facturation.shared.exception.BadRequestException(
+                        "Le montant payé d'une note de prix ne peut pas être diminué.");
+            }
+            if (nouveauMontantPaye.compareTo(note.getMontantTotal()) > 0) {
+                throw new sn.oas.facturation.shared.exception.BadRequestException(
+                        "Le montant payé dépasse le total de la note de prix.");
+            }
+            BigDecimal partNouvellementPayee = nouveauMontantPaye.subtract(montantPayeActuel);
+            String modePaiementEffectif = request.getModePaiement() != null
+                    ? request.getModePaiement().trim().toUpperCase(java.util.Locale.ROOT)
+                    : note.getModePaiement();
+            if ("ESPECE".equals(modePaiementEffectif) && partNouvellementPayee.signum() > 0) {
+                BigDecimal timbre = fiscalConfigurationService.calculateRate(partNouvellementPayee,
+                        fiscalConfigurationService.getCurrent().getTimbreFiscalRate());
+                BigDecimal timbreActuel = note.getMontantTimbrePaye() != null ? note.getMontantTimbrePaye() : BigDecimal.ZERO;
+                note.setMontantTimbrePaye(timbreActuel.add(timbre));
+            }
             note.setMontantPaye(request.getMontantPaye());
             BigDecimal total = note.getMontantTotal() != null ? note.getMontantTotal() : BigDecimal.ZERO;
             BigDecimal reste = total.subtract(request.getMontantPaye()).max(BigDecimal.ZERO);

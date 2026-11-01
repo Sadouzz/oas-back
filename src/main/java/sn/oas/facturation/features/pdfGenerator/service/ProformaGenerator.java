@@ -1,6 +1,7 @@
 package sn.oas.facturation.features.pdfGenerator.service;
 
 import org.springframework.stereotype.Service;
+import sn.oas.facturation.features.fiscal.service.FiscalConfigurationService;
 import sn.oas.facturation.features.proforma.data.entity.Proforma;
 
 import java.math.BigDecimal;
@@ -14,9 +15,11 @@ import java.util.Locale;
 public class ProformaGenerator {
 
     private final HtmlToPdfService htmlToPdfService;
+    private final FiscalConfigurationService fiscalConfigurationService;
 
-    public ProformaGenerator(HtmlToPdfService htmlToPdfService) {
+    public ProformaGenerator(HtmlToPdfService htmlToPdfService, FiscalConfigurationService fiscalConfigurationService) {
         this.htmlToPdfService = htmlToPdfService;
+        this.fiscalConfigurationService = fiscalConfigurationService;
     }
 
     public byte[] genererProformaPdf(Proforma p) {
@@ -34,7 +37,8 @@ public class ProformaGenerator {
         String marque = pdfVehicle == null ? "" : safe(pdfVehicle.getMarque());
         String modele = pdfVehicle == null ? "" : safe(pdfVehicle.getModele());
         String immat = pdfVehicle == null ? "" : safe(pdfVehicle.getImmatriculation());
-        return htmlToPdfService.genererHtmlEnPdf(html, "PROFORMA", java.util.Map.ofEntries(
+        String tauxTimbre = tauxTimbreEspeces(p);
+        var tokens = java.util.Map.ofEntries(
                 java.util.Map.entry("numero", safe(p.getNumero())), java.util.Map.entry("clientNom", clientNom),
                 java.util.Map.entry("marque", marque), java.util.Map.entry("modele", modele),
                 java.util.Map.entry("immatriculation", immat),
@@ -44,7 +48,29 @@ public class ProformaGenerator {
                 java.util.Map.entry("tauxRemiseClient", p.getTauxRemiseClient() == null ? "0" : p.getTauxRemiseClient().toPlainString()),
                 java.util.Map.entry("montantRemiseClient", p.getMontantRemiseClient() == null ? "0" : p.getMontantRemiseClient().toPlainString()),
                 java.util.Map.entry("montantTTC", p.calculerMontantTtcAvecTimbre().toPlainString()),
-                java.util.Map.entry("remarque", p.getRemarque() == null ? "" : p.getRemarque())), layoutKey);
+                java.util.Map.entry("timbreFiscalRate", tauxTimbre),
+                java.util.Map.entry("remarque", p.getRemarque() == null ? "" : p.getRemarque()));
+        byte[] configuredTemplate = htmlToPdfService.genererTemplatePdfSiConfigure(
+                "PROFORMA", layoutKey, tokens, noticeTimbreEspeces(p, tauxTimbre));
+        return configuredTemplate != null ? configuredTemplate
+                : htmlToPdfService.genererHtmlEnPdf(html, "PROFORMA", tokens, layoutKey);
+    }
+
+    private String tauxTimbreEspeces(Proforma proforma) {
+        BigDecimal rate = proforma.getTimbreFiscalRate();
+        if (rate == null) rate = fiscalConfigurationService.getCurrent().getTimbreFiscalRate();
+        return rate.stripTrailingZeros().toPlainString();
+    }
+
+    private String noticeTimbreEspeces(Proforma proforma, String rate) {
+        boolean timbreHistorique = proforma.getMontantTimbre() != null && proforma.getMontantTimbre().signum() > 0;
+        String detailTotal = timbreHistorique
+                ? " Ce document conserve également le timbre historique déjà inclus dans son total à l'émission."
+                : " Ce timbre n'est pas inclus dans le total de ce proforma.";
+        return "<div style=\"margin-top:10px;padding:8px;border:1px solid #d9e2ec;font-size:9pt;\">"
+                + "Pour tout paiement en espèces, un timbre fiscal de " + rate
+                + " % s'applique uniquement au montant réglé en espèces." + detailTotal
+                + "</div>";
     }
 
     private String construireHtmlProforma(Proforma p) {
@@ -92,6 +118,7 @@ public class ProformaGenerator {
         BigDecimal montantTtcAvecTimbre = p.calculerMontantTtcAvecTimbre();
         String totalTTC    = df.format(montantTtcAvecTimbre);
         String totalTTCLettres = montantEnLettres(montantTtcAvecTimbre);
+        String noticeTimbre = noticeTimbreEspeces(p, tauxTimbreEspeces(p));
 
         String remarques = "";
         if (p.getRemarque() != null) {
@@ -103,7 +130,8 @@ public class ProformaGenerator {
         // Lignes pièces
         StringBuilder lignesPieces = new StringBuilder();
         if (p.getLignesFacturationPieces() != null) {
-            for (var l : p.getLignesFacturationPieces()) {
+            for (var l : sn.oas.facturation.shared.OrdreAffichageLignes.plusRecentesEnPremier(
+                    p.getLignesFacturationPieces(), sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece::getId)) {
                 String ref = l.getPiece() != null ? safe(l.getPiece().getReference()) : "";
                 String des = l.getPiece() != null ? safe(l.getPiece().getDesignation()) : safe(l.getDesignationPds());
                 int qte = l.getQuantite() != null ? l.getQuantite() : 0;
@@ -233,6 +261,7 @@ public class ProformaGenerator {
             + "  <tr><td colspan=\"4\" style=\"text-align:center;font-style:italic;font-weight:normal;\">"
             + totalTTCLettres + "</td></tr>\n"
             + "</tbody></table>\n"
+            + noticeTimbre + "\n"
             + "</body>\n</html>\n";
     }
 

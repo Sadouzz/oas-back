@@ -72,8 +72,9 @@ public class AvoirHTResponse {
                 .modele(vehicule != null ? vehicule.getModele() : null)
                 .annee(vehicule != null ? vehicule.getAnnee() : null)
                 .numeroBonDeCommande(a.getBonDeCommande() != null ? a.getBonDeCommande().getNumero() : null)
-                .lignesPieces(a.getLignesFacturationPieces() == null ? List.of()
-                        : a.getLignesFacturationPieces().stream()
+                .lignesPieces(sn.oas.facturation.shared.OrdreAffichageLignes.plusRecentesEnPremier(
+                        a.getLignesFacturationPieces(), sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece::getId)
+                        .stream()
                                 .map(lp -> LigneFacturationPieceResponse.builder()
                                         .id(lp.getId())
                                         .pieceId(lp.getPiece() != null ? lp.getPiece().getId() : null)

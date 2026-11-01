@@ -23,6 +23,7 @@ public class FactureResponse {
     private Boolean tvaApplicable;
     private BigDecimal montantTTC;
     private BigDecimal montantTimbre;
+    private BigDecimal timbreFiscalRate;
     private BigDecimal montantAutre;
     private BigDecimal montantTotal;
     private BigDecimal tauxRemiseClient;
@@ -58,6 +59,11 @@ public class FactureResponse {
 
     public static FactureResponse from(sn.oas.facturation.features.facture.data.entity.Facture f) {
         if (f == null) return null;
+        var ordre = f.getOrdreReparation();
+        var vehicule = f.getVehicule() != null ? f.getVehicule() : ordre != null ? ordre.getVehicule() : null;
+        var client = f.getClient() != null ? f.getClient()
+                : ordre != null && ordre.getClient() != null ? ordre.getClient()
+                : vehicule != null ? vehicule.getClient() : null;
         return FactureResponse.builder()
                 .id(f.getId())
                 .numero(f.getNumero())
@@ -68,6 +74,7 @@ public class FactureResponse {
                 .tvaApplicable(f.getTvaApplicable())
                 .montantTTC(f.getMontantTTC())
                 .montantTimbre(f.getMontantTimbre())
+                .timbreFiscalRate(f.getTimbreFiscalRate())
                 .montantAutre(f.getMontantAutre())
                 .montantTotal(f.getMontantTotal())
                 .tauxRemiseClient(f.getTauxRemiseClient())
@@ -80,18 +87,19 @@ public class FactureResponse {
                 .agentNom(f.getAgent() != null ? (f.getAgent().getFirstName() + " " + f.getAgent().getLastName()).trim() : null)
                 .remarque(f.getRemarque())
                 .kilometrage(f.getKilometrage())
-                .clientId(f.getClient() != null ? f.getClient().getId() : null)
-                .clientNom(f.getClient() != null ? (f.getClient().getFirstName() + " " + f.getClient().getLastName()).trim() : null)
-                .vehiculeId(f.getVehicule() != null ? f.getVehicule().getId() : null)
-                .immatriculation(f.getVehicule() != null ? f.getVehicule().getImmatriculation() : null)
-                .numeroChassis(f.getVehicule() != null ? f.getVehicule().getNumeroChassis() : null)
-                .marque(f.getVehicule() != null ? f.getVehicule().getMarque() : null)
-                .modele(f.getVehicule() != null ? f.getVehicule().getModele() : null)
-                .annee(f.getVehicule() != null ? f.getVehicule().getAnnee() : null)
+                .clientId(client != null ? client.getId() : null)
+                .clientNom(client != null ? (client.getFirstName() + " " + client.getLastName()).trim() : null)
+                .vehiculeId(vehicule != null ? vehicule.getId() : null)
+                .immatriculation(vehicule != null ? vehicule.getImmatriculation() : null)
+                .numeroChassis(vehicule != null ? vehicule.getNumeroChassis() : null)
+                .marque(vehicule != null ? vehicule.getMarque() : null)
+                .modele(vehicule != null ? vehicule.getModele() : null)
+                .annee(vehicule != null ? vehicule.getAnnee() : null)
                 .numeroBonDeCommande(f.getNumeroBonDeCommande())
                 .ordreReparationId(f.getOrdreReparation() != null ? f.getOrdreReparation().getId() : null)
                 .numeroOrdreReparation(f.getOrdreReparation() != null ? f.getOrdreReparation().getNumero() : null)
-                .lignesPieces(f.getLignesFacturationPieces() == null ? List.of() : f.getLignesFacturationPieces().stream()
+                .lignesPieces(sn.oas.facturation.shared.OrdreAffichageLignes.plusRecentesEnPremier(
+                        f.getLignesFacturationPieces(), sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece::getId).stream()
                         .map(lp -> LigneFacturationPieceResponse.builder()
                                 .id(lp.getId())
                                 .pieceId(lp.getPiece() != null ? lp.getPiece().getId() : null)

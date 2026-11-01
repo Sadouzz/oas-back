@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.format.annotation.DateTimeFormat;
+import java.time.LocalDate;
 
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.service.ClientService;
@@ -45,12 +47,16 @@ public class FactureController {
     @Operation(summary = "Récupérer toutes les factures ou rechercher par mot-clé avec pagination")
     public ResponseEntity<Page<FactureListResponse>> getAll(
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String statut,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateDebut,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFin,
+            @RequestParam(required = false) String client,
+            @RequestParam(required = false) Long ordreReparationId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            return ResponseEntity.ok(factureService.search(keyword.trim(), page, size).map(FactureListResponse::from));
-        }
-        return ResponseEntity.ok(factureService.getAll(page, size).map(FactureListResponse::from));
+        return ResponseEntity.ok(factureService.getAllFiltered(keyword, statut, dateDebut, dateFin, client,
+                ordreReparationId, page, size)
+                .map(FactureListResponse::from));
     }
 
     @GetMapping("/search")

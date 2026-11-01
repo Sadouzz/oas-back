@@ -17,6 +17,7 @@ public record ProformaListResponse(
         Boolean tvaApplicable,
         BigDecimal montantTTC,
         BigDecimal montantTimbre,
+        BigDecimal timbreFiscalRate,
         BigDecimal montantAutre,
         BigDecimal montantTotal,
         BigDecimal tauxRemiseClient,
@@ -79,6 +80,7 @@ public record ProformaListResponse(
                 .tvaApplicable(p.getTvaApplicable())
                 .montantTTC(p.calculerMontantTtcAvecTimbre())
                 .montantTimbre(p.getMontantTimbre())
+                .timbreFiscalRate(p.getTimbreFiscalRate())
                 .montantAutre(BigDecimal.ZERO)
                 .montantTotal(p.getMontantTotal())
                 .tauxRemiseClient(p.getTauxRemiseClient())

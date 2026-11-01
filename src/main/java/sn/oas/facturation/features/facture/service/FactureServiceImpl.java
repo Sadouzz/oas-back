@@ -14,6 +14,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.oas.facturation.features.facturation.data.entity.LigneFacturationMainDoeuvre;
@@ -144,6 +146,8 @@ public class FactureServiceImpl implements FactureService {
                 .vehicule(vehicule)
                 .ordreReparation(ordreReparation)
                 .proforma(ordreReparation.getProforma())
+                .timbreFiscalRate(proformaSource != null && proformaSource.getTimbreFiscalRate() != null
+                        ? proformaSource.getTimbreFiscalRate() : fiscalConfigurationService.getCurrent().getTimbreFiscalRate())
                 .agent(agent)
                 .kilometrage(request.getKilometrage() != null ? request.getKilometrage() : 0.0)
                 .remarque(request.getRemarque())
@@ -195,9 +199,6 @@ public class FactureServiceImpl implements FactureService {
         }
 
         BigDecimal timbre = BigDecimal.ZERO;
-        if (Boolean.TRUE.equals(request.getAppliquerTimbre())) {
-            timbre = fiscal.getTimbreFiscal();
-        }
 
         BigDecimal ttc = ht.add(tva).add(timbre);
 
@@ -309,6 +310,8 @@ public class FactureServiceImpl implements FactureService {
                 .vehicule(vehicule)
                 .ordreReparation(ordreReparation)
                 .proforma(ordreReparation.getProforma())
+                .timbreFiscalRate(proformaSource != null && proformaSource.getTimbreFiscalRate() != null
+                        ? proformaSource.getTimbreFiscalRate() : fiscalConfigurationService.getCurrent().getTimbreFiscalRate())
                 .agent(null)
                 .garage(ordreReparation.getGarage())
                 .kilometrage(vehicule != null && vehicule.getKilometrage() != null ? vehicule.getKilometrage() : 0.0)
@@ -370,7 +373,7 @@ public class FactureServiceImpl implements FactureService {
         if (client != null && client.getEcheance() != null && client.getEcheance() > 0) facture.setDateEcheance(java.time.LocalDateTime.now().plusDays(client.getEcheance()));
         var fiscal = fiscalConfigurationService.getCurrent();
         BigDecimal tva = appliquerTVA ? fiscalConfigurationService.calculateRate(montantHT, fiscal.getTvaRate()) : BigDecimal.ZERO;
-        BigDecimal timbre = fiscal.getTimbreFiscal();
+        BigDecimal timbre = BigDecimal.ZERO;
         BigDecimal ttc = montantHT.add(tva).add(timbre);
 
         facture.setLignesFacturationPieces(lignesPieces);
@@ -450,8 +453,109 @@ public class FactureServiceImpl implements FactureService {
     @Override
     @Transactional(readOnly = true)
     public Page<Facture> getAll(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "dateCreation"));
         return factureRepository.findAll(pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Facture> getAllFiltered(String keyword, String statut, java.time.LocalDate dateDebut,
+            java.time.LocalDate dateFin, String clientKeyword, Long ordreReparationId, int page, int size) {
+        String statutFiltre = "PAYE".equals(statut) || "EN_COURS".equals(statut) ? statut : null;
+        java.time.LocalDateTime debut = dateDebut == null ? null : dateDebut.atStartOfDay();
+        java.time.LocalDateTime finExclusive = dateFin == null ? null : dateFin.plusDays(1).atStartOfDay();
+        Long clientId = null;
+        String filtreClient = clientKeyword == null ? null : clientKeyword.trim();
+        if (filtreClient != null) {
+            java.util.regex.Matcher idClient = java.util.regex.Pattern
+                    .compile("(?i)^client\\s*#?\\s*(\\d+)$|^#?(\\d+)$")
+                    .matcher(filtreClient);
+            if (idClient.matches()) {
+                String digits = idClient.group(1) != null ? idClient.group(1) : idClient.group(2);
+                try {
+                    clientId = Long.valueOf(digits);
+                    filtreClient = null;
+                } catch (NumberFormatException ignored) {
+                    // Le texte reste un filtre de nom si l'identifiant dépasse la plage d'un Long.
+                }
+            }
+        }
+        Pageable pageable = PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 100),
+                Sort.by(Sort.Direction.DESC, "dateCreation"));
+        String motCle = keyword == null || keyword.isBlank() ? null : keyword.trim().toLowerCase();
+        String nomClient = filtreClient == null || filtreClient.isBlank() ? null : filtreClient.toLowerCase();
+        Long clientIdFilter = clientId;
+
+        Specification<Facture> specification = (root, query, cb) -> {
+            java.util.List<jakarta.persistence.criteria.Predicate> predicates = new java.util.ArrayList<>();
+            var clientDirect = root.join("client", jakarta.persistence.criteria.JoinType.LEFT);
+            var vehiculeDirect = root.join("vehicule", jakarta.persistence.criteria.JoinType.LEFT);
+            var ordre = root.join("ordreReparation", jakarta.persistence.criteria.JoinType.LEFT);
+            var clientOrdre = ordre.join("client", jakarta.persistence.criteria.JoinType.LEFT);
+            var vehiculeOrdre = ordre.join("vehicule", jakarta.persistence.criteria.JoinType.LEFT);
+            var clientVehiculeOrdre = vehiculeOrdre.join("client", jakarta.persistence.criteria.JoinType.LEFT);
+
+            jakarta.persistence.criteria.Expression<String> immatriculation = coalesceText(cb,
+                    vehiculeDirect.<String>get("immatriculation"), vehiculeOrdre.<String>get("immatriculation"));
+            jakarta.persistence.criteria.Expression<String> marque = coalesceText(cb,
+                    vehiculeDirect.<String>get("marque"), vehiculeOrdre.<String>get("marque"));
+            jakarta.persistence.criteria.Expression<String> modele = coalesceText(cb,
+                    vehiculeDirect.<String>get("modele"), vehiculeOrdre.<String>get("modele"));
+            jakarta.persistence.criteria.Expression<String> prenom = coalesceText(cb,
+                    clientDirect.<String>get("firstName"), clientOrdre.<String>get("firstName"),
+                    clientVehiculeOrdre.<String>get("firstName"));
+            jakarta.persistence.criteria.Expression<String> nom = coalesceText(cb,
+                    clientDirect.<String>get("lastName"), clientOrdre.<String>get("lastName"),
+                    clientVehiculeOrdre.<String>get("lastName"));
+
+            if (motCle != null) {
+                String pattern = "%" + motCle + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(cb.coalesce(root.<String>get("numero"), "")), pattern),
+                        cb.like(cb.lower(cb.coalesce(root.<String>get("remarque"), "")), pattern),
+                        cb.like(cb.lower(cb.coalesce(root.<String>get("numeroBonDeCommande"), "")), pattern),
+                        cb.like(cb.lower(cb.coalesce(ordre.<String>get("numero"), "")), pattern),
+                        cb.like(cb.lower(immatriculation), pattern),
+                        cb.like(cb.lower(marque), pattern),
+                        cb.like(cb.lower(modele), pattern),
+                        cb.like(cb.lower(prenom), pattern),
+                        cb.like(cb.lower(nom), pattern),
+                        cb.like(cb.lower(cb.concat(cb.concat(prenom, " "), nom)), pattern)));
+            }
+            if (statutFiltre != null) {
+                if ("PAYE".equals(statutFiltre)) {
+                    predicates.add(cb.equal(root.get("statutPaiement"), StatutPaiement.PAYE));
+                } else {
+                    predicates.add(cb.or(root.get("statutPaiement").isNull(),
+                            cb.notEqual(root.get("statutPaiement"), StatutPaiement.PAYE)));
+                }
+            }
+            if (debut != null) predicates.add(cb.greaterThanOrEqualTo(root.get("dateCreation"), debut));
+            if (finExclusive != null) predicates.add(cb.lessThan(root.get("dateCreation"), finExclusive));
+            if (clientIdFilter != null) {
+                var idClientEffectif = cb.coalesce(clientDirect.<Long>get("id"), clientOrdre.<Long>get("id"));
+                predicates.add(cb.equal(cb.coalesce(idClientEffectif, clientVehiculeOrdre.<Long>get("id")), clientIdFilter));
+            }
+            if (ordreReparationId != null) predicates.add(cb.equal(ordre.<Long>get("id"), ordreReparationId));
+            if (nomClient != null) {
+                String pattern = "%" + nomClient + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(prenom), pattern),
+                        cb.like(cb.lower(nom), pattern),
+                        cb.like(cb.lower(cb.concat(cb.concat(prenom, " "), nom)), pattern)));
+            }
+            return cb.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
+        };
+        return factureRepository.findAll(specification, pageable);
+    }
+
+    @SafeVarargs
+    private static jakarta.persistence.criteria.Expression<String> coalesceText(
+            jakarta.persistence.criteria.CriteriaBuilder cb,
+            jakarta.persistence.criteria.Expression<String>... expressions) {
+        jakarta.persistence.criteria.Expression<String> result = cb.coalesce(expressions[0], "");
+        for (int i = 1; i < expressions.length; i++) result = cb.coalesce(result, expressions[i]);
+        return result;
     }
 
     @Override
@@ -527,7 +631,9 @@ public class FactureServiceImpl implements FactureService {
                 java.util.Map.entry("montantAutre", templateValue(f.getMontantAutre())), java.util.Map.entry("montantTotal", templateValue(f.getMontantTotal())),
                 java.util.Map.entry("montantTTC", templateValue(f.getMontantTTC())), java.util.Map.entry("montantPaye", templateValue(f.getMontantPaye())),
                 java.util.Map.entry("resteAPayer", templateValue(f.getResteAPayer())), java.util.Map.entry("remarque", templateValue(f.getRemarque())));
-        var tableData = java.util.Map.of("LIGNES_PIECES", f.getLignesFacturationPieces().stream().map(ligne -> {
+        var tableData = java.util.Map.of("LIGNES_PIECES", sn.oas.facturation.shared.OrdreAffichageLignes.plusRecentesEnPremier(
+                f.getLignesFacturationPieces(), sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece::getId)
+                .stream().map(ligne -> {
                     BigDecimal brut = BigDecimal.valueOf((long) ligne.getQuantite() * ligne.getPrix());
                     BigDecimal net = montantNet(brut, ligne.getTauxRemise());
                     return java.util.Map.of("reference", ligne.getPiece() == null ? "" : templateValue(ligne.getPiece().getReference()),
@@ -605,7 +711,8 @@ public class FactureServiceImpl implements FactureService {
                     tablePieces.addCell(cell);
                 }
 
-                for (LigneFacturationPiece ligne : f.getLignesFacturationPieces()) {
+                for (LigneFacturationPiece ligne : sn.oas.facturation.shared.OrdreAffichageLignes.plusRecentesEnPremier(
+                        f.getLignesFacturationPieces(), LigneFacturationPiece::getId)) {
                     String ref = ligne.getPiece() != null ? ligne.getPiece().getDesignation() : "N/A";
                     BigDecimal brut = BigDecimal.valueOf((long) ligne.getQuantite() * ligne.getPrix());
                     BigDecimal net = montantNet(brut, ligne.getTauxRemise());

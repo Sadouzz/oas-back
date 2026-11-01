@@ -18,6 +18,7 @@ public record FactureListResponse(
         Boolean tvaApplicable,
         BigDecimal montantTTC,
         BigDecimal montantTimbre,
+        BigDecimal timbreFiscalRate,
         BigDecimal montantAutre,
         BigDecimal montantTotal,
         BigDecimal tauxRemiseClient,
@@ -44,6 +45,11 @@ public record FactureListResponse(
 ) {
     public static FactureListResponse from(Facture f) {
         if (f == null) return null;
+        var ordre = f.getOrdreReparation();
+        var vehicule = f.getVehicule() != null ? f.getVehicule() : ordre != null ? ordre.getVehicule() : null;
+        var client = f.getClient() != null ? f.getClient()
+                : ordre != null && ordre.getClient() != null ? ordre.getClient()
+                : vehicule != null ? vehicule.getClient() : null;
         return FactureListResponse.builder()
                 .id(f.getId())
                 .numero(f.getNumero())
@@ -54,6 +60,7 @@ public record FactureListResponse(
                 .tvaApplicable(f.getTvaApplicable())
                 .montantTTC(f.getMontantTTC())
                 .montantTimbre(f.getMontantTimbre())
+                .timbreFiscalRate(f.getTimbreFiscalRate())
                 .montantAutre(f.getMontantAutre())
                 .montantTotal(f.getMontantTotal())
                 .tauxRemiseClient(f.getTauxRemiseClient())
@@ -66,14 +73,14 @@ public record FactureListResponse(
                 .agentNom(f.getAgent() != null ? (f.getAgent().getFirstName() + " " + f.getAgent().getLastName()).trim() : null)
                 .remarque(f.getRemarque())
                 .kilometrage(f.getKilometrage())
-                .clientId(f.getClient() != null ? f.getClient().getId() : null)
-                .clientNom(f.getClient() != null ? (f.getClient().getFirstName() + " " + f.getClient().getLastName()).trim() : null)
+                .clientId(client != null ? client.getId() : null)
+                .clientNom(client != null ? (client.getFirstName() + " " + client.getLastName()).trim() : null)
                 // .vehiculeId(f.getVehicule() != null ? f.getVehicule().getId() : null)
-                .immatriculation(f.getVehicule() != null ? f.getVehicule().getImmatriculation() : null)
+                .immatriculation(vehicule != null ? vehicule.getImmatriculation() : null)
                 // .numeroChassis(f.getVehicule() != null ? f.getVehicule().getNumeroChassis() : null)
-                .marque(f.getVehicule() != null ? f.getVehicule().getMarque() : null)
-                .modele(f.getVehicule() != null ? f.getVehicule().getModele() : null)
-                .annee(f.getVehicule() != null ? f.getVehicule().getAnnee() : null)
+                .marque(vehicule != null ? vehicule.getMarque() : null)
+                .modele(vehicule != null ? vehicule.getModele() : null)
+                .annee(vehicule != null ? vehicule.getAnnee() : null)
                 // .numeroBonDeCommande(f.getNumeroBonDeCommande())
                 // .ordreReparationId(f.getOrdreReparation() != null ? f.getOrdreReparation().getId() : null)
                 // .numeroOrdreReparation(f.getOrdreReparation() != null ? f.getOrdreReparation().getNumero() : null)

@@ -1,4 +1,4 @@
-Auteur : Codex | Date : 2026-10-29 | Action : documenter le flux BL, facture et restitution ainsi que les lignes PDG
+Auteur : Codex | Date : 2026-10-29 | Action : documenter le flux BL, facture, restitution et consultation des factures
 
 # Bon de livraison client
 
@@ -13,6 +13,7 @@ Le bon de livraison client est distinct du bon de réception fournisseur. `/api/
 - Les lignes consolidées et leurs dates source sont copiées lors de la conversion du BL en facture ou en note de prix.
 - Un BL peut produire une note de prix et une facture, chacune au plus une fois. La facture peut être créée après la note de prix; une seule facture par OR est autorisée.
 - Un OR ne peut être facturé que depuis son BL. La conversion de proforma et la création manuelle de facture depuis un OR ne contournent pas cette règle. L'action de l'étape Paiement crée le BL depuis tous les BS validés, le convertit en facture dans la même opération serveur, puis recharge l'écran avec la facture. L'action est idempotente : elle réutilise le BL et la facture déjà associés au même OR.
+- Depuis la rubrique Facture TTC, la création d'une facture renvoie vers les bons de livraison; la facture est émise en convertissant un BL. La liste de factures sert à consulter, rechercher, filtrer, encaisser et télécharger les factures.
 - Un véhicule peut passer à l'état « prêt à livrer » sans paiement. La restitution effective exige un BL et sa facture; la facture peut rester impayée. La conversion en note de prix ne satisfait pas la condition de restitution.
 
 ## API
@@ -20,6 +21,8 @@ Le bon de livraison client est distinct du bon de réception fournisseur. `/api/
 - `GET /api/bons-de-livraison?page=0&size=10&keyword=...` : liste paginée, recherche facultative par référence BL, OR, nom du client ou immatriculation.
 - `GET /api/bons-de-livraison/{id}` : détail du BL.
 - `GET /api/bons-de-livraison/{id}/pdf` : impression du BL.
+- `GET /api/factures` : liste paginée avec filtres facultatifs `keyword`, `statut` (`PAYE` ou `EN_COURS`), `dateDebut`, `dateFin`, `client` (nom ou identifiant) et `ordreReparationId`. Le filtrage précède la pagination et l'ordre est du plus récent au plus ancien.
+- `GET /api/factures/{id}` : détail complet utilisé à l'ouverture d'une facture; les lignes et les reçus ne sont pas préchargés dans la liste.
 - `GET /api/bons-de-livraison/ordres-reparation/{ordreId}/bons-de-sortie` : BS validés disponibles pour l'OR.
 - `GET /api/bons-de-livraison/ordres-reparation/{ordreId}/contexte` : contexte de création consolidé (BS validés, valeur TVA par défaut, BL et documents associés éventuels).
 - `POST /api/bons-de-livraison` : création à partir de `ordreReparationId`, `appliquerTVA` facultatif et `remarque` facultative; tous les BS validés de l'OR sont inclus par le serveur.

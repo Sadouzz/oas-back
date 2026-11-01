@@ -79,19 +79,20 @@ public class BonDeReceptionResponse {
     private static List<LigneFacturationPieceResponse> mapLignesPieces(
             sn.oas.facturation.features.bonDeReception.data.entity.BonDeReception bon) {
         var commande = bon.getBonDeCommande();
-        var lignesReception = bon.getLignesFacturationPieces() == null ? List.<sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece>of()
+        var lignesReception = bon.getLignesFacturationPieces() == null
+                ? List.<sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece>of()
                 : bon.getLignesFacturationPieces();
         if (commande == null || commande.getLignes() == null || commande.getLignes().isEmpty()) {
-            return lignesReception.stream().map(ligne -> LigneFacturationPieceResponse.builder()
+            return sn.oas.facturation.shared.OrdreAffichageLignes.plusRecentesEnPremier(lignesReception.stream().map(ligne -> LigneFacturationPieceResponse.builder()
                     .id(ligne.getId())
                     .pieceId(ligne.getPiece() != null ? ligne.getPiece().getId() : null)
                     .designationPiece(ligne.getPiece() != null ? ligne.getPiece().getDesignation() : ligne.getDesignationPds())
                     .referencePiece(ligne.getPiece() != null ? ligne.getPiece().getReference() : null)
                     .depotNom(ligne.getPiece() != null && ligne.getPiece().getDepot() != null ? ligne.getPiece().getDepot().getNom() : null)
                     .quantite(ligne.getQuantite()).prix(ligne.getPrix())
-                    .montantTotal(ligne.getQuantite() * ligne.getPrix()).build()).toList();
+                    .montantTotal(ligne.getQuantite() * ligne.getPrix()).build()).toList(), LigneFacturationPieceResponse::getId);
         }
-        return commande.getLignes().stream().map(ligneCommande -> {
+        return sn.oas.facturation.shared.OrdreAffichageLignes.plusRecentesEnPremier(commande.getLignes().stream().map(ligneCommande -> {
             var ligneReception = lignesReception.stream().filter(l -> l.getPiece() != null && ligneCommande.getPieceDetachee() != null
                     && l.getPiece().getId().equals(ligneCommande.getPieceDetachee().getId())).findFirst().orElse(null);
             int commandee = ligneCommande.getQuantite() == null ? 0 : ligneCommande.getQuantite();
@@ -108,6 +109,6 @@ public class BonDeReceptionResponse {
                     .quantite(recueDansCeBon).prix(prix).montantTotal(recueDansCeBon * prix)
                     .quantiteCommandee(commandee).quantiteRecueTotale(recue)
                     .quantiteRestante(Math.max(0, commandee - recue)).build();
-        }).toList();
+        }).toList(), LigneFacturationPieceResponse::getId);
     }
 }

@@ -24,10 +24,10 @@ public class FiscalConfigurationService {
     @Transactional
     public FiscalConfiguration update(FiscalConfigurationRequest request) {
         validateRate(request.tvaRate(), "TVA");
-        validateAmount(request.timbreFiscal(), "Timbre fiscal");
+        validateRate(request.timbreFiscalRate(), "Timbre fiscal espèces");
         FiscalConfiguration current = getCurrent();
         current.setTvaRate(request.tvaRate().setScale(4, RoundingMode.HALF_UP));
-        current.setTimbreFiscal(request.timbreFiscal().setScale(2, RoundingMode.HALF_UP));
+        current.setTimbreFiscalRate(request.timbreFiscalRate().setScale(4, RoundingMode.HALF_UP));
         return repository.save(current);
     }
 
@@ -40,8 +40,4 @@ public class FiscalConfigurationService {
             throw new BadRequestException(label + " doit être compris entre 0 et 100 %.");
     }
 
-    private void validateAmount(BigDecimal value, String label) {
-        if (value == null || value.signum() < 0 || value.compareTo(new BigDecimal("100000000")) > 0)
-            throw new BadRequestException(label + " doit être positif et inférieur ou égal à 100 000 000.");
-    }
 }

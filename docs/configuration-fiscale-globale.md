@@ -1,13 +1,13 @@
-Auteur : Codex | Date : 2026-10-21 | Action : préciser la convention TTC des proformas
+Auteur : Codex | Date : 2026-10-29 | Action : documenter le timbre appliqué aux règlements en espèces
 
 # Configuration fiscale globale
 
-La configuration fiscale est unique au niveau du système et n'est associée à aucun garage. La table `fiscal_configuration` utilise la ligne d'identifiant `1`; si elle n'existe pas encore, le backend crée les valeurs initiales suivantes à la première lecture : TVA 18 % et timbre fiscal 100 FCFA.
+La configuration fiscale est unique au niveau du système et n'est associée à aucun garage. La table `fiscal_configuration` utilise la ligne d'identifiant `1`; si elle n'existe pas encore, le backend crée les valeurs initiales suivantes à la première lecture : TVA 18 % et taux de timbre fiscal espèces 1 %.
 
-La consultation de la configuration requiert une session authentifiée. Seul le rôle `ROLE_SUPER_AGENT` peut la modifier. Les valeurs sont validées côté backend : taux compris entre 0 et 100 %, montants positifs dans une limite de 100 000 000 FCFA.
+La consultation de la configuration requiert une session authentifiée. Seul le rôle `ROLE_SUPER_AGENT` peut la modifier. Les taux de TVA et de timbre espèces sont validés côté backend entre 0 et 100 %.
 
-Les nouvelles factures, proformas, bons de commande et avoirs TTC lisent cette configuration au moment de leur création. La réception d'un bon de commande conserve le taux calculé sur ce bon de commande. Les montants des documents existants ne sont pas recalculés lors de la modification de la configuration; pour les bons de commande modifiés, le taux existant est déduit des montants enregistrés avant recalcul des lignes.
+Les proformas mémorisent le taux de timbre en vigueur à leur émission; les factures issues d'un proforma en reprennent le taux. Une facture sans proforma mémorise le taux courant à sa création. Une note de prix calcule le timbre au moment de chaque règlement. Les modifications ultérieures de configuration ne recalculent ni les documents ni les reçus déjà créés.
 
-La configuration comprend uniquement le taux de TVA et le montant du timbre fiscal. Les règles propres à chaque document déterminent si la TVA ou le timbre s'appliquent à ce type de document.
+Le timbre ne majore plus le total des documents. Lors d'un règlement, le backend ajoute un timbre égal au taux configuré appliqué à la seule part payée en espèces. Pour une facture, ce montant est enregistré sur le reçu; pour une note de prix, le cumul est conservé sur la note. Les paiements par chèque, virement, carte, mobile money ou solde prépayé ne sont pas timbrés. Le montant imputé au document et son reste à payer excluent ce timbre.
 
-Pour les proformas comme pour les factures, le TTC affiché inclut la TVA et le timbre : `montantTTC = montantHT + montantTVA + montantTimbre`. `montantTotal` reste le montant final à payer et peut également inclure d'autres montants. Pour les proformas historiques dont `montantTTC` avait été enregistré sans le timbre, les réponses API et les PDF recomposent le TTC à partir des montants HT, TVA et timbre déjà enregistrés ; ils ne relisent pas la configuration fiscale courante.
+Pour les nouveaux proformas et factures, le TTC du document est `montantHT + montantTVA`; le timbre espèces est présenté séparément au règlement et n'est pas inclus dans ce TTC. Les montants historiques de documents déjà émis sont conservés. La migration manuelle `src/main/resources/db/manual/20261029_timbre_fiscal_especes.sql` ajoute les colonnes de taux et de suivi nécessaires sans recalculer les anciens totaux.

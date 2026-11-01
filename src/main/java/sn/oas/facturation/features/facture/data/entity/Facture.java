@@ -27,6 +27,9 @@ import java.math.BigDecimal;
 @EqualsAndHashCode(callSuper = true)
 public class Facture extends FactureTTC {
 
+    @Column(name = "timbre_fiscal_rate", precision = 7, scale = 4)
+    private BigDecimal timbreFiscalRate;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "bon_de_livraison_id", unique = true)
     @JsonIgnore

@@ -110,7 +110,9 @@ public class ClientPortalServiceImpl implements ClientPortalService {
         }
 
         List<FicheEnCoursSummaryDTO.LignePieceSummaryDTO> pieces = (derniere.getLignesOrdreReparationPieces() == null) ? List.of()
-                : derniere.getLignesOrdreReparationPieces().stream()
+                : sn.oas.facturation.shared.OrdreAffichageLignes.plusRecentesEnPremier(
+                        derniere.getLignesOrdreReparationPieces(), sn.oas.facturation.features.ordreReparation.data.entity.LigneOrdreReparationPiece::getId)
+                        .stream()
                 .map(p -> new FicheEnCoursSummaryDTO.LignePieceSummaryDTO(
                         p.getId(),
                         p.getQuantite(),

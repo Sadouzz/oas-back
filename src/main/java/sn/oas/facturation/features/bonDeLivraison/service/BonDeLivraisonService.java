@@ -117,7 +117,8 @@ public class BonDeLivraisonService {
             for (String label : List.of("Désignation", "Qté", "Prix unitaire", "Montant")) {
                 PdfPCell cell = new PdfPCell(new Phrase(label, head)); cell.setBackgroundColor(new Color(38, 58, 82)); cell.setPadding(7); table.addCell(cell);
             }
-            for (var l : bl.getLignesFacturationPieces()) {
+            for (var l : sn.oas.facturation.shared.OrdreAffichageLignes.plusRecentesEnPremier(
+                    bl.getLignesFacturationPieces(), sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece::getId)) {
                 PdfPCell designationCell = new PdfPCell(new Phrase(l.getDesignationPds() != null ? l.getDesignationPds() : l.getPiece() == null ? "Pièce" : l.getPiece().getDesignation(), body));
                 var datesSaisie = l.getDatesHeuresSaisieSource();
                 if (datesSaisie != null && !datesSaisie.isEmpty()) {
@@ -274,6 +275,10 @@ public class BonDeLivraisonService {
         if (factureRepository.findFirstByOrdreReparationId(bl.getOrdreReparation().getId()).isPresent()) throw new BadRequestException("Une facture existe déjà pour cet ordre de réparation.");
         Facture facture = Facture.builder().numero(numberGenerator.generateNextNumber(DocumentType.FC)).garage(bl.getGarage())
                 .client(bl.getClient()).vehicule(bl.getVehicule()).ordreReparation(bl.getOrdreReparation()).bonDeLivraison(bl)
+                .proforma(bl.getOrdreReparation() == null ? null : bl.getOrdreReparation().getProforma())
+                .timbreFiscalRate(bl.getOrdreReparation() != null && bl.getOrdreReparation().getProforma() != null
+                        && bl.getOrdreReparation().getProforma().getTimbreFiscalRate() != null
+                        ? bl.getOrdreReparation().getProforma().getTimbreFiscalRate() : fiscalService.getCurrent().getTimbreFiscalRate())
                 .agent(currentAgent()).kilometrage(bl.getKilometrage()).remarque(bl.getRemarque()).statut(StatutFacturation.EN_ATTENTE)
                 .tvaApplicable(bl.getTvaApplicable()).montantHT(bl.getMontantHT()).montantTVA(bl.getMontantTVA())
                 .montantTTC(bl.getMontantTTC()).montantTotal(bl.getMontantTTC()).montantTimbre(BigDecimal.ZERO)

@@ -274,9 +274,11 @@ public class ProformaServiceImpl implements ProformaService {
         BigDecimal tva = appliquerTVA
                 ? fiscalConfigurationService.calculateRate(montantHT, fiscal.getTvaRate()) : BigDecimal.ZERO;
         proforma.setMontantTVA(tva);
-        BigDecimal timbre = fiscal.getTimbreFiscal();
+        BigDecimal timbreFiscalRate = fiscal.getTimbreFiscalRate();
+        proforma.setTimbreFiscalRate(timbreFiscalRate);
+        BigDecimal timbre = BigDecimal.ZERO;
         proforma.setMontantTimbre(timbre);
-        BigDecimal montantTTC = montantHT.add(tva).add(timbre);
+        BigDecimal montantTTC = montantHT.add(tva);
         proforma.setMontantTTC(montantTTC);
         proforma.setMontantTotal(montantTTC);
 
@@ -458,11 +460,14 @@ public class ProformaServiceImpl implements ProformaService {
         BigDecimal tva = appliquerTVA ? montantHT.multiply(rateBD).setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO;
         proforma.setMontantTVA(tva);
 
-        if (request.getMontantTimbre() != null) proforma.setMontantTimbre(request.getMontantTimbre());
+        if (proforma.getTimbreFiscalRate() == null) {
+            proforma.setTimbreFiscalRate(fiscalConfigurationService.getCurrent().getTimbreFiscalRate());
+        }
+        proforma.setMontantTimbre(BigDecimal.ZERO);
         // if (request.getMontantAutre() != null) proforma.setMontantAutre(request.getMontantAutre());
 
         BigDecimal autre = request.getMontantAutre() != null ? request.getMontantAutre() : BigDecimal.ZERO;
-        BigDecimal montantTTC = montantHT.add(tva).add(proforma.getMontantTimbre());
+        BigDecimal montantTTC = montantHT.add(tva);
         proforma.setMontantTTC(montantTTC);
         proforma.setMontantTotal(montantTTC.add(autre));
         proforma.setAvertissementsFinanciers(politiqueFinanciereClientService.avertissementsProforma(
