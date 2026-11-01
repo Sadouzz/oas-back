@@ -25,9 +25,11 @@ import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationResponseDT
 import sn.oas.facturation.features.ordreReparation.repository.OrdreReparationRepository;
 import sn.oas.facturation.features.ordreReparation.service.OrdreReparationService;
 
+import lombok.extern.slf4j.Slf4j;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/ordres-reparation")
 @RequiredArgsConstructor
@@ -367,11 +369,9 @@ public class OrdreReparationController {
             ordreReparationService.assignTechnicien(ficheId, technicienId);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
-            e.printStackTrace();
-            java.io.StringWriter sw = new java.io.StringWriter();
-            e.printStackTrace(new java.io.PrintWriter(sw));
+            log.error("Erreur lors de l'assignation du technicien {} à la fiche {}: {}", technicienId, ficheId, e.getMessage(), e);
             return ResponseEntity.badRequest().body(java.util.Map.of("message",
-                    e.getMessage() != null ? e.getMessage() : "null", "trace", sw.toString()));
+                    e.getMessage() != null ? e.getMessage() : "Erreur lors de l'assignation du technicien"));
         }
     }
 
