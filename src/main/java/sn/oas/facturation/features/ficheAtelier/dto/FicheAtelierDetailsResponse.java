@@ -55,6 +55,8 @@ public class FicheAtelierDetailsResponse {
     private String signatureReceptionnaireBase64;
     private String signatureBase64;
     private String signatureSortieBase64;
+    private Boolean conditionsAcceptees;
+    private LocalDateTime conditionsAccepteesAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -109,6 +111,8 @@ public class FicheAtelierDetailsResponse {
                 .signatureReceptionnaireBase64(fiche.getSignatureReceptionnaireBase64())
                 .signatureBase64(fiche.getSignatureBase64())
                 .signatureSortieBase64(fiche.getSignatureSortieBase64())
+                .conditionsAcceptees(fiche.getConditionsAcceptees())
+                .conditionsAccepteesAt(fiche.getConditionsAccepteesAt())
                 .createdAt(fiche.getCreatedAt())
                 .updatedAt(fiche.getUpdatedAt())
                 .hasOrdreReparation(fiche.getOrdreReparation() != null)

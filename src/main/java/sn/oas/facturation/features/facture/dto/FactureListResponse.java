@@ -19,6 +19,7 @@ public record FactureListResponse(
         BigDecimal montantTTC,
         BigDecimal montantTimbre,
         BigDecimal timbreFiscalRate,
+        String modePaiement,
         BigDecimal montantAutre,
         BigDecimal montantTotal,
         BigDecimal tauxRemiseClient,
@@ -61,6 +62,7 @@ public record FactureListResponse(
                 .montantTTC(f.getMontantTTC())
                 .montantTimbre(f.getMontantTimbre())
                 .timbreFiscalRate(f.getTimbreFiscalRate())
+                .modePaiement(f.getModePaiement())
                 .montantAutre(f.getMontantAutre())
                 .montantTotal(f.getMontantTotal())
                 .tauxRemiseClient(f.getTauxRemiseClient())

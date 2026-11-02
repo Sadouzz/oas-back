@@ -133,11 +133,16 @@ public class FactureServiceImpl implements FactureService {
 
         String numero = documentNumberGeneratorService.generateNextNumber(DocumentType.FC);
         Proforma proformaSource = ordreReparation.getProforma();
-        boolean appliquerTVA = request.getAppliquerTVA() != null ? request.getAppliquerTVA()
+        String modePaiement = request.getModePaiement() == null ? null
+                : FacturePaymentMode.normalize(request.getModePaiement());
+        boolean appliquerTVA = modePaiement != null
+                ? FacturePaymentMode.appliquerTva(modePaiement)
+                : request.getAppliquerTVA() != null ? request.getAppliquerTVA()
                 : proformaSource != null
                     ? (proformaSource.getTvaApplicable() != null ? proformaSource.getTvaApplicable()
                         : proformaSource.getMontantTVA() != null && proformaSource.getMontantTVA().signum() > 0)
                     : true;
+        if (modePaiement == null) modePaiement = appliquerTVA ? FacturePaymentMode.ESPECE_TTC : FacturePaymentMode.ESPECE_HT;
         var invoiceTemplate = request.getPdfTemplateId() == null ? loadDefaultInvoiceTemplate(request.getPdfLayoutKey()) : loadInvoiceTemplate(request.getPdfTemplateId(), request.getPdfLayoutKey());
 
         Facture facture = Facture.builder()
@@ -153,6 +158,7 @@ public class FactureServiceImpl implements FactureService {
                 .remarque(request.getRemarque())
                 .pdfTemplate(invoiceTemplate)
                 .pdfLayoutKey(normalizeInvoiceLayout(request.getPdfLayoutKey()))
+                .modePaiement(modePaiement)
                 .tvaApplicable(appliquerTVA)
                 .build();
 
@@ -198,17 +204,20 @@ public class FactureServiceImpl implements FactureService {
             tva = fiscalConfigurationService.calculateRate(ht, fiscal.getTvaRate());
         }
 
-        BigDecimal timbre = BigDecimal.ZERO;
+        BigDecimal tauxTimbre = facture.getTimbreFiscalRate() != null
+                ? facture.getTimbreFiscalRate() : fiscal.getTimbreFiscalRate();
+        BigDecimal timbre = appliquerTVA ? BigDecimal.ZERO : fiscalConfigurationService.calculateRate(ht, tauxTimbre);
 
-        BigDecimal ttc = ht.add(tva).add(timbre);
+        BigDecimal ttc = ht.add(tva);
+        BigDecimal totalFacture = ttc.add(timbre);
 
         facture.setMontantHT(ht);
         facture.setMontantTVA(tva);
         facture.setMontantTimbre(timbre);
         facture.setMontantTTC(ttc);
-        facture.setMontantTotal(ttc);
+        facture.setMontantTotal(totalFacture);
         facture.setMontantPaye(BigDecimal.ZERO);
-        facture.setResteAPayer(ttc);
+        facture.setResteAPayer(totalFacture);
         facture.setStatutPaiement(StatutPaiement.NON_PAYE);
 
         facture = factureRepository.save(facture);
@@ -303,6 +312,7 @@ public class FactureServiceImpl implements FactureService {
         boolean appliquerTVA = proformaSource == null || (proformaSource.getTvaApplicable() != null
                 ? proformaSource.getTvaApplicable()
                 : proformaSource.getMontantTVA() != null && proformaSource.getMontantTVA().signum() > 0);
+        String modePaiement = appliquerTVA ? FacturePaymentMode.ESPECE_TTC : FacturePaymentMode.ESPECE_HT;
 
         Facture facture = Facture.builder()
                 .numero(numero)
@@ -318,6 +328,7 @@ public class FactureServiceImpl implements FactureService {
                 .remarque("Facture générée automatiquement depuis la Fiche Atelier " + ordreReparation.getNumero())
                 .pdfTemplate(invoiceTemplate)
                 .pdfLayoutKey("AVEC_ENTETE")
+                .modePaiement(modePaiement)
                 .tvaApplicable(appliquerTVA)
                 .build();
 
@@ -373,8 +384,11 @@ public class FactureServiceImpl implements FactureService {
         if (client != null && client.getEcheance() != null && client.getEcheance() > 0) facture.setDateEcheance(java.time.LocalDateTime.now().plusDays(client.getEcheance()));
         var fiscal = fiscalConfigurationService.getCurrent();
         BigDecimal tva = appliquerTVA ? fiscalConfigurationService.calculateRate(montantHT, fiscal.getTvaRate()) : BigDecimal.ZERO;
-        BigDecimal timbre = BigDecimal.ZERO;
-        BigDecimal ttc = montantHT.add(tva).add(timbre);
+        BigDecimal tauxTimbre = facture.getTimbreFiscalRate() != null
+                ? facture.getTimbreFiscalRate() : fiscal.getTimbreFiscalRate();
+        BigDecimal timbre = appliquerTVA ? BigDecimal.ZERO : fiscalConfigurationService.calculateRate(montantHT, tauxTimbre);
+        BigDecimal ttc = montantHT.add(tva);
+        BigDecimal totalFacture = ttc.add(timbre);
 
         facture.setLignesFacturationPieces(lignesPieces);
         facture.setLignesFacturationMainDoeuvres(lignesMainDoeuvre);
@@ -382,9 +396,9 @@ public class FactureServiceImpl implements FactureService {
         facture.setMontantTVA(tva);
         facture.setMontantTimbre(timbre);
         facture.setMontantTTC(ttc);
-        facture.setMontantTotal(ttc);
+        facture.setMontantTotal(totalFacture);
         facture.setMontantPaye(BigDecimal.ZERO);
-        facture.setResteAPayer(ttc);
+        facture.setResteAPayer(totalFacture);
         facture.setStatutPaiement(StatutPaiement.NON_PAYE);
         facture = factureRepository.save(facture);
 
@@ -621,6 +635,7 @@ public class FactureServiceImpl implements FactureService {
                 java.util.Map.entry("marque", vehicle == null ? "" : templateValue(vehicle.getMarque())), java.util.Map.entry("modele", vehicle == null ? "" : templateValue(vehicle.getModele())),
                 java.util.Map.entry("annee", vehicle == null ? "" : templateValue(vehicle.getAnnee())), java.util.Map.entry("chassis", vehicle == null ? "" : templateValue(vehicle.getNumeroChassis())),
                 java.util.Map.entry("numeroBonDeCommande", templateValue(f.getNumeroBonDeCommande())),
+                java.util.Map.entry("modePaiement", templateValue(f.getModePaiement())),
                 java.util.Map.entry("tauxRemiseClient", templateValue(f.getTauxRemiseClient())),
                 java.util.Map.entry("montantRemiseClient", templateValue(f.getMontantRemiseClient())),
                 java.util.Map.entry("montantRemiseGenerale", templateValue(montantRemiseGenerale)),

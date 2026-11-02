@@ -58,9 +58,8 @@ public class OrdreReparation implements TenantAware  {
     @Column(columnDefinition = "TEXT")
     private String descriptionTravaux;
 
-    // Travaux demandés — liste de lignes {nom, verrouille}. La ligne issue de
-    // FicheAtelier.designationTravaux (via createFromFicheAtelier) est verrouillée,
-    // non modifiable/supprimable côté UI ; le chef d'atelier peut en ajouter d'autres.
+    // Travaux demandés — liste de lignes {nom, verrouille}, définie à la création
+    // de l'ordre. Les lignes ne sont pas modifiables une fois l'ordre créé.
     @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     @Column(name = "lignes_travaux", columnDefinition = "jsonb")
     private List<LigneTravailOrdre> lignesTravaux;

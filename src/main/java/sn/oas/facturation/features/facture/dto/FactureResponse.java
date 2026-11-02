@@ -24,6 +24,7 @@ public class FactureResponse {
     private BigDecimal montantTTC;
     private BigDecimal montantTimbre;
     private BigDecimal timbreFiscalRate;
+    private String modePaiement;
     private BigDecimal montantAutre;
     private BigDecimal montantTotal;
     private BigDecimal tauxRemiseClient;
@@ -75,6 +76,7 @@ public class FactureResponse {
                 .montantTTC(f.getMontantTTC())
                 .montantTimbre(f.getMontantTimbre())
                 .timbreFiscalRate(f.getTimbreFiscalRate())
+                .modePaiement(f.getModePaiement())
                 .montantAutre(f.getMontantAutre())
                 .montantTotal(f.getMontantTotal())
                 .tauxRemiseClient(f.getTauxRemiseClient())

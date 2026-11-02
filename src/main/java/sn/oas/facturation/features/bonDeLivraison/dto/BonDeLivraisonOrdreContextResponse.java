@@ -15,6 +15,7 @@ public record BonDeLivraisonOrdreContextResponse(
             Long id,
             String numero,
             BigDecimal montantTTC,
+            Boolean tvaApplicable,
             Long factureId,
             String factureNumero,
             Long noteDePrixId,

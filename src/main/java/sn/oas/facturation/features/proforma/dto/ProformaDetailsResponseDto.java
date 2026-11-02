@@ -61,6 +61,7 @@ public record ProformaDetailsResponseDto(
             Boolean isCustom,         // true si PDS
             Integer quantite,
             Double prix,              // Prix unitaire
+            Double prixCatalogue,     // Prix catalogue courant; null si aucun prix n'est défini
             Double montantTotal,
             Double tauxRemise
     ) {}
@@ -142,6 +143,8 @@ public record ProformaDetailsResponseDto(
                             .isCustom(lp.getIsCustom())
                             .quantite(qte)
                             .prix(prix)
+                            .prixCatalogue(lp.getPiece() != null && lp.getPiece().getPrixUnitaire() != null
+                                    ? lp.getPiece().getPrixUnitaire().doubleValue() : null)
                             .montantTotal(montantLigne)
                             .tauxRemise(tauxRemise)
                             .build();

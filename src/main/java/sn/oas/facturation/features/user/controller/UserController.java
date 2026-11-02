@@ -7,6 +7,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import sn.oas.facturation.features.auth.dto.request.ChangePasswordRequest;
@@ -14,6 +15,9 @@ import sn.oas.facturation.features.auth.dto.request.RegisterRequest;
 import sn.oas.facturation.features.auth.service.AuthService;
 import sn.oas.facturation.features.user.data.enums.Role;
 import sn.oas.facturation.features.user.data.enums.TypeUser;
+import sn.oas.facturation.features.user.data.entity.Agent;
+import sn.oas.facturation.features.user.repository.UserRepository;
+import sn.oas.facturation.features.user.service.AgentSignatureService;
 import sn.oas.facturation.features.user.service.UserService;
 import sn.oas.facturation.shared.exception.ResourceNotFoundException;
 import sn.oas.facturation.features.user.data.entity.User;
@@ -32,6 +36,8 @@ public class UserController {
 
     private final UserService userService;
     private final AuthService authService;
+    private final UserRepository userRepository;
+    private final AgentSignatureService agentSignatureService;
 
     @GetMapping("/me")
     @Operation(summary = "Récupérer le profil de l'utilisateur connecté")
@@ -43,6 +49,43 @@ public class UserController {
     @Operation(summary = "Mettre à jour le profil de l'utilisateur connecté")
     public ResponseEntity<UserListResponse> updateCurrentUser(@RequestBody @jakarta.validation.Valid UserUpdateRequest request) {
         return ResponseEntity.ok(UserListResponse.from(userService.updateCurrentUser(request)));
+    }
+
+    @GetMapping("/me/signature-fiche-atelier")
+    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
+    @Operation(summary = "Récupérer la signature Fiche Atelier de l'agent connecté")
+    public ResponseEntity<Map<String, Object>> getMyWorkshopSignature() {
+        Agent agent = currentAgent();
+        String signature = agentSignatureService.read(agent);
+        return ResponseEntity.ok(Map.of("configured", signature != null, "signatureBase64", signature == null ? "" : signature));
+    }
+
+    @PutMapping("/me/signature-fiche-atelier")
+    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
+    @Operation(summary = "Enregistrer la signature Fiche Atelier chiffrée de l'agent connecté")
+    public ResponseEntity<Map<String, Object>> saveMyWorkshopSignature(@RequestBody Map<String, String> request) {
+        Agent agent = currentAgent();
+        agentSignatureService.save(agent, request.get("signatureBase64"));
+        userRepository.save(agent);
+        return ResponseEntity.ok(Map.of("configured", true, "message", "Signature enregistrée."));
+    }
+
+    @DeleteMapping("/me/signature-fiche-atelier")
+    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
+    @Operation(summary = "Supprimer la signature Fiche Atelier de l'agent connecté")
+    public ResponseEntity<Void> deleteMyWorkshopSignature() {
+        Agent agent = currentAgent();
+        agentSignatureService.clear(agent);
+        userRepository.save(agent);
+        return ResponseEntity.noContent().build();
+    }
+
+    private Agent currentAgent() {
+        User current = userService.getCurrentUser();
+        if (!(current instanceof Agent agent)) {
+            throw new org.springframework.security.access.AccessDeniedException("Cette fonction est réservée aux agents.");
+        }
+        return agent;
     }
 
     @PostMapping("/me/change-password")

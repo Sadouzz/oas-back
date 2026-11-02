@@ -24,7 +24,7 @@ public class FiscalConfigurationService {
     @Transactional
     public FiscalConfiguration update(FiscalConfigurationRequest request) {
         validateRate(request.tvaRate(), "TVA");
-        validateRate(request.timbreFiscalRate(), "Timbre fiscal espèces");
+        validateRate(request.timbreFiscalRate(), "Timbre fiscal");
         FiscalConfiguration current = getCurrent();
         current.setTvaRate(request.tvaRate().setScale(4, RoundingMode.HALF_UP));
         current.setTimbreFiscalRate(request.timbreFiscalRate().setScale(4, RoundingMode.HALF_UP));

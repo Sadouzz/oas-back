@@ -10,6 +10,7 @@ import sn.oas.facturation.features.client.service.PortefeuilleClientService;
 import sn.oas.facturation.features.facture.data.entity.Facture;
 import sn.oas.facturation.features.facture.data.enums.StatutPaiement;
 import sn.oas.facturation.features.facture.repository.FactureRepository;
+import sn.oas.facturation.features.facture.service.FacturePaymentMode;
 import sn.oas.facturation.features.fiscal.service.FiscalConfigurationService;
 import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation;
@@ -79,7 +80,10 @@ public class RecuServiceImpl implements RecuService {
                     && facture.getOrdreReparation().getProforma().getTimbreFiscalRate() != null
                     ? facture.getOrdreReparation().getProforma().getTimbreFiscalRate()
                     : fiscalConfigurationService.getCurrent().getTimbreFiscalRate();
-        BigDecimal montantTimbre = paiementEnEspeces
+        boolean timbreDejaInclusDansFactureHT = FacturePaymentMode.isHt(facture.getModePaiement())
+                || (Boolean.FALSE.equals(facture.getTvaApplicable())
+                    && facture.getMontantTimbre() != null && facture.getMontantTimbre().signum() > 0);
+        BigDecimal montantTimbre = paiementEnEspeces && !timbreDejaInclusDansFactureHT
                 ? fiscalConfigurationService.calculateRate(request.getMontant(), tauxTimbreEspeces)
                 : BigDecimal.ZERO;
 

@@ -1,6 +1,7 @@
 package sn.oas.facturation.features.user.data.entity;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.springframework.security.core.GrantedAuthority;
@@ -35,6 +36,13 @@ public class Agent extends User{
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "garage_id")
     private Garage garage;
+
+    /** Signature réutilisable, chiffrée côté application et jamais incluse dans les DTO utilisateur. */
+    @JsonIgnore
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @Column(name = "signature_fiche_atelier_chiffree", columnDefinition = "TEXT")
+    private String signatureFicheAtelierChiffree;
 
 
     @Override

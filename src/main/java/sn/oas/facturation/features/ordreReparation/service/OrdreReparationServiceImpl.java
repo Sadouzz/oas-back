@@ -48,6 +48,7 @@ import sn.oas.facturation.features.notification.service.NotificationService;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 import sn.oas.facturation.features.proforma.service.ProformaService;
@@ -186,7 +187,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 .build();
 
         if (request.getLignesPieces() != null) {
-            for (LigneOrdreReparationPieceRequest ligneReq : request.getLignesPieces()) {
+            for (LigneOrdreReparationPieceRequest ligneReq : consoliderPdsIdentiques(request.getLignesPieces())) {
                 PieceDetache piece = null;
                 Integer prix = ligneReq.prix();
                 
@@ -514,16 +515,16 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     public OrdreReparation updateOrdreReparation(Long id, OrdreReparationRequest request) {
         OrdreReparation ordreReparation = ordreReparationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        if (estAuMoinsOrdreTravail(ordreReparation)) {
+            throw new IllegalArgumentException("L'OR ne peut plus être modifié après son passage à l'Ordre de Travail. Modifiez le proforma depuis son étape dédiée.");
+        }
         if (ordreReparation.getVehicule() != null && !ordreReparation.getVehicule().isActif()) {
             throw new IllegalArgumentException("Ce véhicule est en attente d'activation par un agent.");
         }
 
         if (request.getNumero() != null)
             ordreReparation.setNumero(request.getNumero());
-        if (request.getDescriptionTravaux() != null)
-            ordreReparation.setDescriptionTravaux(request.getDescriptionTravaux());
-        if (request.getLignesTravaux() != null)
-            ordreReparation.setLignesTravaux(request.getLignesTravaux());
+        verifierTravauxDemandesImmuables(ordreReparation, request.getDescriptionTravaux(), request.getLignesTravaux());
         if (request.getLignesReception() != null)
             throw new IllegalArgumentException("L'état des lieux de réception ne peut plus être modifié après la création de l'ordre.");
         if (request.getListeDefauts() != null)
@@ -533,8 +534,15 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         if (ordreReparation.getStatut() == StatutOrdreReparation.LIVRE
                 && request.getStatut() != null && request.getStatut() != StatutOrdreReparation.LIVRE)
             throw new IllegalArgumentException("Un ordre livré ne peut pas revenir à une étape précédente.");
-        if (request.getStatut() != null)
+        if (request.getStatut() != null) {
+            verifierTransitionStatut(ordreReparation.getStatut(), request.getStatut());
+            if (request.getStatut() == StatutOrdreReparation.ORDRE_DE_TRAVAIL
+                    && (ordreReparation.getStatut() == null
+                    || ordreReparation.getStatut().getEtape() < StatutOrdreReparation.ORDRE_DE_TRAVAIL.getEtape())) {
+                verifierProformaAcceptePourPassageOT(ordreReparation);
+            }
             ordreReparation.setStatut(request.getStatut());
+        }
 
         if (request.getVehiculeId() != null) {
             Vehicule vehicule = vehiculeRepository.findById(request.getVehiculeId())
@@ -547,7 +555,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
 
         if (request.getLignesPieces() != null) {
             ordreReparation.getLignesOrdreReparationPieces().clear();
-            for (LigneOrdreReparationPieceRequest ligneReq : request.getLignesPieces()) {
+            for (LigneOrdreReparationPieceRequest ligneReq : consoliderPdsIdentiques(request.getLignesPieces())) {
                 PieceDetache piece = null;
                 Integer prix = ligneReq.prix();
                 
@@ -762,6 +770,11 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             throw new IllegalArgumentException("Un ordre livré ne peut pas revenir à une étape précédente.");
         }
         StatutOrdreReparation ancienStatut = fiche.getStatut();
+        verifierTransitionStatut(ancienStatut, newStatut);
+        if (newStatut == StatutOrdreReparation.ORDRE_DE_TRAVAIL
+                && (ancienStatut == null || ancienStatut.getEtape() < StatutOrdreReparation.ORDRE_DE_TRAVAIL.getEtape())) {
+            verifierProformaAcceptePourPassageOT(fiche);
+        }
 
         // Un technicien doit être affecté au diagnostic avant de pouvoir démarrer le diagnostic.
         /*
@@ -1181,14 +1194,19 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
 
     private void updateBaseStepFields(OrdreReparation ordre, BaseStepDto dto) {
         sn.oas.facturation.features.vehicule.service.VehiculeActivationPolicy.requireActive(ordre.getVehicule());
+        verifierTravauxDemandesImmuables(ordre, dto.getDescriptionTravaux(), null);
         if (dto.getStatut() == StatutOrdreReparation.LIVRE) {
             throw new IllegalArgumentException("La livraison doit passer par la restitution du véhicule.");
         }
         if (ordre.getStatut() == StatutOrdreReparation.LIVRE && dto.getStatut() != null) {
             throw new IllegalArgumentException("Un ordre livré ne peut pas revenir à une étape précédente.");
         }
+        if (dto.getStatut() != null) verifierTransitionStatut(ordre.getStatut(), dto.getStatut());
+        if (dto.getStatut() == StatutOrdreReparation.ORDRE_DE_TRAVAIL
+                && (ordre.getStatut() == null || ordre.getStatut().getEtape() < StatutOrdreReparation.ORDRE_DE_TRAVAIL.getEtape())) {
+            verifierProformaAcceptePourPassageOT(ordre);
+        }
         if (dto.getNumero() != null) ordre.setNumero(dto.getNumero());
-        if (dto.getDescriptionTravaux() != null) ordre.setDescriptionTravaux(dto.getDescriptionTravaux());
         if (dto.getStatut() != null) ordre.setStatut(dto.getStatut());
         if (dto.getVehiculeId() != null) {
             Vehicule vehicule = vehiculeRepository.findById(dto.getVehiculeId()).orElseThrow(() -> new RuntimeException("Véhicule non trouvé"));
@@ -1196,6 +1214,41 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             ordre.setVehicule(vehicule);
         }
         ordre.setUpdatedAt(LocalDateTime.now());
+    }
+
+    private boolean estAuMoinsOrdreTravail(OrdreReparation ordre) {
+        return ordre.getStatut() != null && ordre.getStatut().getEtape() >= StatutOrdreReparation.ORDRE_DE_TRAVAIL.getEtape();
+    }
+
+    private void verifierTransitionStatut(StatutOrdreReparation ancien, StatutOrdreReparation nouveau) {
+        if (ancien != null && ancien.getEtape() >= StatutOrdreReparation.ORDRE_DE_TRAVAIL.getEtape()
+                && nouveau.getEtape() < StatutOrdreReparation.ORDRE_DE_TRAVAIL.getEtape()) {
+            throw new IllegalArgumentException("Après le passage à l'Ordre de Travail, le retour aux étapes précédentes est interdit. Le proforma reste accessible séparément.");
+        }
+    }
+
+    private void verifierEtapeAvantOrdreTravail(OrdreReparation ordre) {
+        if (estAuMoinsOrdreTravail(ordre)) {
+            throw new IllegalArgumentException("Cette étape est verrouillée après le passage à l'Ordre de Travail. Seule la modification du proforma reste autorisée.");
+        }
+    }
+
+    private void verifierProformaAcceptePourPassageOT(OrdreReparation ordre) {
+        Proforma proforma = proformaRepository.findByOrdreReparationId(ordre.getId()).orElse(null);
+        if (proforma == null || proforma.getStatut() != StatutFacturation.ACCEPTE) {
+            throw new IllegalArgumentException("Une proforma doit être validée avant le passage de l'OR à l'Ordre de Travail.");
+        }
+    }
+
+    private void verifierTravauxDemandesImmuables(OrdreReparation ordre, String description, List<LigneTravailOrdre> lignes) {
+        if (description != null && !java.util.Objects.equals(description, ordre.getDescriptionTravaux())) {
+            throw new sn.oas.facturation.shared.exception.BadRequestException(
+                    "Les travaux demandés ne peuvent plus être modifiés après la création de l'ordre.");
+        }
+        if (lignes != null && !java.util.Objects.equals(lignes, ordre.getLignesTravaux())) {
+            throw new sn.oas.facturation.shared.exception.BadRequestException(
+                    "Les lignes de travaux demandés ne peuvent plus être modifiées après la création de l'ordre.");
+        }
     }
 
     @Override
@@ -1802,6 +1855,9 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             fDto.setMontantRestant(facture.getResteAPayer() != null ? facture.getResteAPayer().doubleValue()
                     : facture.getMontantTotal() != null ? facture.getMontantTotal().doubleValue() : null);
             fDto.setTimbreFiscalRate(facture.getTimbreFiscalRate() == null ? null : facture.getTimbreFiscalRate().doubleValue());
+            fDto.setMontantTimbre(facture.getMontantTimbre() == null ? 0.0 : facture.getMontantTimbre().doubleValue());
+            fDto.setTvaApplicable(facture.getTvaApplicable());
+            fDto.setModePaiement(facture.getModePaiement());
             dto.setFacture(fDto);
         }
 
@@ -1833,21 +1889,20 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     }
 
     @Override
-    @Transactional
+    @Transactional(readOnly = true)
     public StepReceptionDto updateStepReception(Long id, StepReceptionDto dto) {
         OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Ordre de réparation non trouvé"));
-        if (dto.getDescriptionTravaux() != null) {
-            ordre.setDescriptionTravaux(dto.getDescriptionTravaux());
-        }
-        ordre.setUpdatedAt(LocalDateTime.now());
-        ordreReparationRepository.save(ordre);
-        return dto;
+        verifierTravauxDemandesImmuables(ordre, dto == null ? null : dto.getDescriptionTravaux(), null);
+        StepReceptionDto response = new StepReceptionDto();
+        response.setDescriptionTravaux(ordre.getDescriptionTravaux());
+        return response;
     }
 
     @Override
     @Transactional
     public StepDiagnosticDto updateStepDiagnostic(Long id, StepDiagnosticDto dto) {
         OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        verifierEtapeAvantOrdreTravail(ordre);
         updateBaseStepFields(ordre, dto);
         if (dto.getTechnicienId() != null) {
             Technicien technicien = technicienRepository.findById(dto.getTechnicienId()).orElseThrow(() -> new RuntimeException("Technicien non trouvé"));
@@ -1867,6 +1922,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     @Transactional
     public StepPiecesMoDto updateStepPiecesMo(Long id, StepPiecesMoDto dto) {
         OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
+        verifierEtapeAvantOrdreTravail(ordre);
         updateBaseStepFields(ordre, dto);
         ordreReparationRepository.save(ordre);
 
@@ -2002,5 +2058,41 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             throw new IllegalArgumentException("Le taux de remise doit être compris entre 0 et 100 %");
         }
         return java.math.BigDecimal.valueOf(valeur);
+    }
+
+    private record PdsRequestKey(String designation, Integer prix, java.math.BigDecimal tauxRemise) {}
+
+    private List<LigneOrdreReparationPieceRequest> consoliderPdsIdentiques(List<LigneOrdreReparationPieceRequest> lignes) {
+        List<LigneOrdreReparationPieceRequest> resultat = new ArrayList<>();
+        java.util.Map<PdsRequestKey, Integer> indexParCle = new LinkedHashMap<>();
+        for (LigneOrdreReparationPieceRequest ligne : lignes) {
+            if (!Boolean.TRUE.equals(ligne.isCustom()) || ligne.designationPds() == null || ligne.designationPds().isBlank()) {
+                resultat.add(ligne);
+                continue;
+            }
+            if (ligne.quantite() == null || ligne.quantite() <= 0) {
+                throw new IllegalArgumentException("La quantité de chaque pièce doit être supérieure à zéro.");
+            }
+            String designation = ligne.designationPds().trim().replaceAll("\\s+", " ");
+            PdsRequestKey cle = new PdsRequestKey(designation.toLowerCase(java.util.Locale.ROOT),
+                    prixPds(ligne), java.math.BigDecimal.valueOf(ligne.tauxRemise() == null ? 0 : ligne.tauxRemise()).stripTrailingZeros());
+            Integer index = indexParCle.get(cle);
+            if (index == null) {
+                indexParCle.put(cle, resultat.size());
+                resultat.add(new LigneOrdreReparationPieceRequest(ligne.pieceId(), ligne.quantite(), prixPds(ligne),
+                        ligne.isCustom(), designation, ligne.tauxRemise()));
+            } else {
+                LigneOrdreReparationPieceRequest existante = resultat.get(index);
+                resultat.set(index, new LigneOrdreReparationPieceRequest(existante.pieceId(),
+                        (existante.quantite() == null ? 0 : existante.quantite()) + (ligne.quantite() == null ? 0 : ligne.quantite()),
+                        existante.prix(), existante.isCustom(),
+                        existante.designationPds(), existante.tauxRemise()));
+            }
+        }
+        return resultat;
+    }
+
+    private Integer prixPds(LigneOrdreReparationPieceRequest ligne) {
+        return ligne.prix() == null ? 0 : ligne.prix();
     }
 }

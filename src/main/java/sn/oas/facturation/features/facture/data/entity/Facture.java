@@ -30,6 +30,10 @@ public class Facture extends FactureTTC {
     @Column(name = "timbre_fiscal_rate", precision = 7, scale = 4)
     private BigDecimal timbreFiscalRate;
 
+    /** Payment preset selected when the invoice was issued (for example ESPECE_HT). */
+    @Column(name = "mode_paiement", length = 40)
+    private String modePaiement;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "bon_de_livraison_id", unique = true)
     @JsonIgnore

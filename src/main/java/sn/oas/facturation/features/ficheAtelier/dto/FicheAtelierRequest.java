@@ -45,6 +45,7 @@ public class FicheAtelierRequest {
     private String nb;
     private String signatureReceptionnaireBase64;
     private String signatureBase64;
+    private Boolean conditionsAcceptees;
 
     @JsonSetter("defautsConstates")
     public void setDefautsConstates(List<LigneDefaut> defautsConstates) {

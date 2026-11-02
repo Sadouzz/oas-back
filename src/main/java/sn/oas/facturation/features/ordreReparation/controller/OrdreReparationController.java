@@ -242,7 +242,7 @@ public class OrdreReparationController {
     }
 
     @PutMapping("/{id}/step-reception")
-    @Operation(summary = "Mettre à jour l'étape Réception")
+    @Operation(summary = "Vérifier la valeur des travaux demandés en lecture seule")
     public ResponseEntity<?> updateStepReception(@PathVariable Long id, @RequestBody sn.oas.facturation.features.ordreReparation.dto.steps.StepReceptionDto request) {
         try {
             return ResponseEntity.ok(ordreReparationService.updateStepReception(id, request));

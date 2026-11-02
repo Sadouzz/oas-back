@@ -1,4 +1,4 @@
-Auteur : Codex | Date : 2026-10-29 | Action : documenter le flux BL, facture, restitution et consultation des factures
+Auteur : Codex | Date : 2026-11-01 | Action : documenter le regroupement des PDS identiques au BL
 
 # Bon de livraison client
 
@@ -9,7 +9,7 @@ Le bon de livraison client est distinct du bon de réception fournisseur. `/api/
 - Un OR peut avoir au plus un BL. Le lien est également protégé par une contrainte unique en base.
 - Un BL est créé à partir de tous les BS validés liés à l'OR. La sélection est automatique et le serveur vérifie que chaque BS appartient au même OR, au même client et au même véhicule. Sans BS validé, la création est refusée avec un message explicite.
 - Les lignes et prix du BL sont des instantanés calculés à partir des lignes des BS inclus; les remises de ligne sont conservées. La TVA choisie est figée sur le BL. Par défaut, elle reprend le réglage explicite du proforma; si l'ancien proforma n'a pas ce réglage, sa TVA calculée sert d'indicateur. Sans proforma, la TVA est activée par défaut. L'écran permet de modifier ce choix avant création.
-- Les ajouts répétés d'un PDG restent des lignes distinctes dans l'OR, le proforma et le BS. Au BL, seules les lignes du même PDG avec le même prix unitaire et la même remise sont réunies; les quantités sont additionnées et les dates/heures de saisie des lignes BS sont conservées sur la ligne BL. Les PDG à prix ou remise différents restent séparés. Les PDP et PDS restent des lignes distinctes.
+- Les ajouts répétés d'un PDG restent des lignes distinctes dans l'OR, le proforma et le BS. Au BL, seules les lignes du même PDG avec le même prix unitaire et la même remise sont réunies. Les PDS de même désignation, prix unitaire et remise sont regroupées à l'ajout et au BL. Les quantités sont additionnées et les dates/heures de saisie des lignes BS sont conservées sur la ligne BL; des données différentes restent séparées.
 - Les lignes consolidées et leurs dates source sont copiées lors de la conversion du BL en facture ou en note de prix.
 - Un BL peut produire une note de prix et une facture, chacune au plus une fois. La facture peut être créée après la note de prix; une seule facture par OR est autorisée.
 - Un OR ne peut être facturé que depuis son BL. La conversion de proforma et la création manuelle de facture depuis un OR ne contournent pas cette règle. L'action de l'étape Paiement crée le BL depuis tous les BS validés, le convertit en facture dans la même opération serveur, puis recharge l'écran avec la facture. L'action est idempotente : elle réutilise le BL et la facture déjà associés au même OR.

@@ -12,6 +12,7 @@ import sn.oas.facturation.features.pdfGenerator.service.HtmlToPdfService;
 import sn.oas.facturation.shared.exception.ResourceNotFoundException;
 
 import java.time.format.DateTimeFormatter;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -80,6 +81,63 @@ public class FicheAtelierPdfService {
                 .append("</td></tr></table></div></body></html>");
         return pdfService.genererHtmlEnPdf(html.toString());
     }
+
+    @Transactional(readOnly = true)
+    public byte[] genererFicheEmail(Long id) {
+        FicheAtelier fiche = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Fiche atelier introuvable"));
+        StringBuilder html = emailDocumentStart();
+        html.append("<h1>Fiche Atelier</h1><p class='meta'><b>N° </b>").append(escape(fiche.getNumero())).append(" - ")
+                .append(fiche.getCreatedAt() == null ? "" : fiche.getCreatedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")))
+                .append("</p><table>");
+        row(html, "Client", fiche.getClient() == null ? "" : fiche.getClient().getFirstName() + " " + fiche.getClient().getLastName());
+        row(html, "Véhicule", fiche.getVehicule() == null ? "" : fiche.getVehicule().getImmatriculation());
+        row(html, "Chauffeur", fiche.getNomChauffeur());
+        row(html, "Téléphone chauffeur", fiche.getTelephoneChauffeur());
+        row(html, "Kilométrage", fiche.getKilometrage() == null ? "" : fiche.getKilometrage().toString());
+        row(html, "Niveau de carburant", fiche.getNiveauEssence());
+        row(html, "Travaux demandés", fiche.getDesignationTravaux());
+        row(html, "Remarques", fiche.getNb());
+        html.append("</table><h2>État de réception</h2><table><tr><th>Élément</th><th>État</th></tr>");
+        if (fiche.getLignesReception() != null) for (LigneReception ligne : fiche.getLignesReception()) {
+            html.append("<tr><td>").append(escape(ligne.getNom())).append("</td><td>")
+                    .append(ligne.getEtat() == null ? "Non renseigné" : ligne.getEtat() ? "Oui" : "Non").append("</td></tr>");
+        }
+        html.append("</table><h2>Défauts constatés</h2><table><tr><th>Élément</th><th>Détail</th></tr>");
+        if (fiche.getLignesDefauts() != null) for (LigneDefaut ligne : fiche.getLignesDefauts()) {
+            html.append("<tr><td>").append(escape(ligne.getNom())).append("</td><td>").append(escape(ligne.getDesignation())).append("</td></tr>");
+        }
+        html.append("</table><h2>Signatures à la réception</h2><table class='signatures'><tr><td>Réceptionnaire")
+                .append(image(fiche.getSignatureReceptionnaireBase64())).append("</td><td>Client")
+                .append(image(fiche.getSignatureBase64())).append("</td></tr></table>").append(emailDocumentEnd());
+        return pdfService.genererHtmlEnPdf(html.toString());
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] genererConditionsEmail(Long id) {
+        FicheAtelier fiche = repository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Fiche atelier introuvable"));
+        StringBuilder html = emailDocumentStart();
+        html.append("<h1>Conditions générales de réparation</h1><p class='meta'>Fiche Atelier n° ")
+                .append(escape(fiche.getNumero())).append("</p>").append(CONDITIONS)
+                .append("<h2>Acceptation du client</h2><p>Le client déclare avoir lu et accepté les présentes conditions générales de réparation.")
+                .append(fiche.getConditionsAccepteesAt() == null ? "" : " Acceptation enregistrée le " + escape(fiche.getConditionsAccepteesAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy à HH:mm"))) + ".")
+                .append("</p><table class='signatures'><tr><td>Signature du client").append(image(fiche.getSignatureBase64()))
+                .append("</td></tr></table>").append(emailDocumentEnd());
+        return pdfService.genererHtmlEnPdf(html.toString());
+    }
+
+    private static StringBuilder emailDocumentStart() {
+        return new StringBuilder("""
+                <html><head><meta charset="UTF-8"/><style>
+                @page{size:A4 portrait;margin:14mm 15mm}body{font-family:Arial,sans-serif;font-size:10pt;line-height:1.35;color:#1c2b39;margin:0}
+                h1{font-size:18pt;color:#12304a;margin:0 0 8pt}h2{font-size:12pt;color:#12304a;margin:14pt 0 6pt}h3{font-size:10pt;color:#12304a;margin:10pt 0 4pt}
+                p{margin:5pt 0}table{width:100%;border-collapse:collapse;margin:7pt 0}td,th{border:1px solid #aab4bc;padding:6pt;text-align:left;vertical-align:top}th{background:#f0f3f6}.meta{color:#44576a;margin-bottom:12pt}.signatures{page-break-inside:avoid;margin-top:16pt}.signatures td{height:105pt;width:50%;vertical-align:top;padding:9pt}.signature-image{display:block;width:180px;height:65px;object-fit:contain;margin:12pt auto 0}
+                </style></head><body>
+                """);
+    }
+
+    private static String emailDocumentEnd() { return "</body></html>"; }
 
     private static void row(StringBuilder html, String name, String value) {
         html.append("<tr><th>").append(escape(name)).append("</th><td>").append(escape(value)).append("</td></tr>");
