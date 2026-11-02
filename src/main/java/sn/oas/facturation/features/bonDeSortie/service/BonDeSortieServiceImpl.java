@@ -47,7 +47,11 @@ import sn.oas.facturation.features.ordreTravail.repository.OrdreTravailRepositor
 
 import java.time.LocalDateTime;
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -125,7 +129,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                 .build();
 
         if (request.lignesPieces() != null) {
-            for (LignePieceRequest ligneReq : request.lignesPieces()) {
+            for (LignePieceRequest ligneReq : consoliderPdsIdentiques(request.lignesPieces())) {
                 if (ligneReq.quantite() == null || ligneReq.quantite() <= 0) {
                     throw new IllegalArgumentException("La quantité doit être supérieure à zéro");
                 }
@@ -890,6 +894,40 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
             throw new IllegalStateException("Cette opération requiert un compte Agent");
         }
         return agent;
+    }
+
+    private record PdsRequestKey(String designation, Integer prix, BigDecimal tauxRemise, Long proformaLineId) {}
+
+    private List<LignePieceRequest> consoliderPdsIdentiques(List<LignePieceRequest> lignes) {
+        List<LignePieceRequest> resultat = new ArrayList<>();
+        Map<PdsRequestKey, Integer> indexParCle = new LinkedHashMap<>();
+        for (LignePieceRequest ligne : lignes) {
+            if (ligne.pieceId() != null || ligne.mainDoeuvreId() != null
+                    || !"PDS".equalsIgnoreCase(ligne.type() == null ? "" : ligne.type().trim())
+                    || ligne.designation() == null || ligne.designation().isBlank()) {
+                resultat.add(ligne);
+                continue;
+            }
+            if (ligne.quantite() == null || ligne.quantite() <= 0) {
+                throw new IllegalArgumentException("La quantité doit être supérieure à zéro");
+            }
+            String designation = ligne.designation().trim().replaceAll("\\s+", " ");
+            int prix = (int) Math.round(ligne.getEffectivePrix() == null ? 0 : ligne.getEffectivePrix());
+            BigDecimal remise = BigDecimal.valueOf(ligne.getEffectiveTauxRemise()).stripTrailingZeros();
+            PdsRequestKey cle = new PdsRequestKey(designation.toLowerCase(Locale.ROOT), prix, remise, ligne.proformaLineId());
+            Integer index = indexParCle.get(cle);
+            if (index == null) {
+                indexParCle.put(cle, resultat.size());
+                resultat.add(new LignePieceRequest(null, ligne.quantite(), (double) prix, (double) prix,
+                        "PDS", null, designation, ligne.getEffectiveTauxRemise(), ligne.proformaLineId()));
+            } else {
+                LignePieceRequest existante = resultat.get(index);
+                resultat.set(index, new LignePieceRequest(null, (existante.quantite() == null ? 0 : existante.quantite()) + ligne.quantite(),
+                        existante.getEffectivePrix(), existante.prixUnitaire(), "PDS", null,
+                        existante.designation(), existante.getEffectiveTauxRemise(), existante.proformaLineId()));
+            }
+        }
+        return resultat;
     }
 
 }

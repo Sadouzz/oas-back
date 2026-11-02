@@ -25,9 +25,11 @@ import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationResponseDT
 import sn.oas.facturation.features.ordreReparation.repository.OrdreReparationRepository;
 import sn.oas.facturation.features.ordreReparation.service.OrdreReparationService;
 
+import lombok.extern.slf4j.Slf4j;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/ordres-reparation")
 @RequiredArgsConstructor
@@ -240,7 +242,7 @@ public class OrdreReparationController {
     }
 
     @PutMapping("/{id}/step-reception")
-    @Operation(summary = "Mettre à jour l'étape Réception")
+    @Operation(summary = "Vérifier la valeur des travaux demandés en lecture seule")
     public ResponseEntity<?> updateStepReception(@PathVariable Long id, @RequestBody sn.oas.facturation.features.ordreReparation.dto.steps.StepReceptionDto request) {
         try {
             return ResponseEntity.ok(ordreReparationService.updateStepReception(id, request));
@@ -367,11 +369,9 @@ public class OrdreReparationController {
             ordreReparationService.assignTechnicien(ficheId, technicienId);
             return ResponseEntity.ok().build();
         } catch (RuntimeException e) {
-            e.printStackTrace();
-            java.io.StringWriter sw = new java.io.StringWriter();
-            e.printStackTrace(new java.io.PrintWriter(sw));
+            log.error("Erreur lors de l'assignation du technicien {} à la fiche {}: {}", technicienId, ficheId, e.getMessage(), e);
             return ResponseEntity.badRequest().body(java.util.Map.of("message",
-                    e.getMessage() != null ? e.getMessage() : "null", "trace", sw.toString()));
+                    e.getMessage() != null ? e.getMessage() : "Erreur lors de l'assignation du technicien"));
         }
     }
 

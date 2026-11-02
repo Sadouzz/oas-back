@@ -36,6 +36,7 @@ public record ProformaDetailsResponseDto(
         Double tvaRate,
         Boolean tvaApplicable,
         Double montantTimbre,
+        Double timbreFiscalRate,
         Double montantAutre,
         Double montantHT,
         Double montantTVA,
@@ -60,6 +61,7 @@ public record ProformaDetailsResponseDto(
             Boolean isCustom,         // true si PDS
             Integer quantite,
             Double prix,              // Prix unitaire
+            Double prixCatalogue,     // Prix catalogue courant; null si aucun prix n'est défini
             Double montantTotal,
             Double tauxRemise
     ) {}
@@ -118,8 +120,9 @@ public record ProformaDetailsResponseDto(
         double total = p.getMontantTotal() != null ? p.getMontantTotal().doubleValue() : ttc;
         double tvaRate = (ht > 0) ? Math.round((tva / ht * 100.0) * 100.0) / 100.0 : 18.0;
 
-        List<LignePieceResponseDto> pieces = p.getLignesFacturationPieces() == null ? List.of() :
-                p.getLignesFacturationPieces().stream().map(lp -> {
+        List<LignePieceResponseDto> pieces = sn.oas.facturation.shared.OrdreAffichageLignes.plusRecentesEnPremier(
+                p.getLignesFacturationPieces(), sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece::getId)
+                .stream().map(lp -> {
                     Long pieceId = lp.getPiece() != null ? lp.getPiece().getId() : null;
                     String type = Boolean.TRUE.equals(lp.getIsCustom()) ? "PDS" :
                             (lp.getPiece() != null && lp.getPiece().getType() != null ? lp.getPiece().getType().name() : "PDP");
@@ -140,6 +143,8 @@ public record ProformaDetailsResponseDto(
                             .isCustom(lp.getIsCustom())
                             .quantite(qte)
                             .prix(prix)
+                            .prixCatalogue(lp.getPiece() != null && lp.getPiece().getPrixUnitaire() != null
+                                    ? lp.getPiece().getPrixUnitaire().doubleValue() : null)
                             .montantTotal(montantLigne)
                             .tauxRemise(tauxRemise)
                             .build();
@@ -195,6 +200,7 @@ public record ProformaDetailsResponseDto(
                 .tvaRate(tvaRate)
                 .tvaApplicable(p.getTvaApplicable())
                 .montantTimbre(timbre)
+                .timbreFiscalRate(p.getTimbreFiscalRate() == null ? null : p.getTimbreFiscalRate().doubleValue())
                 .montantAutre(0.0)
                 .montantHT(ht)
                 .montantTVA(tva)

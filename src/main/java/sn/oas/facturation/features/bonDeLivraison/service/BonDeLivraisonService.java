@@ -22,6 +22,7 @@ import sn.oas.facturation.features.facturation.data.entity.LigneFacturationMainD
 import sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece;
 import sn.oas.facturation.features.facturation.data.enums.StatutFacturation;
 import sn.oas.facturation.features.facture.data.entity.Facture;
+import sn.oas.facturation.features.facture.service.FacturePaymentMode;
 import sn.oas.facturation.features.facture.data.enums.StatutPaiement;
 import sn.oas.facturation.features.facture.repository.FactureRepository;
 import sn.oas.facturation.features.noteDePrix.data.entity.NoteDePrix;
@@ -117,7 +118,8 @@ public class BonDeLivraisonService {
             for (String label : List.of("Désignation", "Qté", "Prix unitaire", "Montant")) {
                 PdfPCell cell = new PdfPCell(new Phrase(label, head)); cell.setBackgroundColor(new Color(38, 58, 82)); cell.setPadding(7); table.addCell(cell);
             }
-            for (var l : bl.getLignesFacturationPieces()) {
+            for (var l : sn.oas.facturation.shared.OrdreAffichageLignes.plusRecentesEnPremier(
+                    bl.getLignesFacturationPieces(), sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece::getId)) {
                 PdfPCell designationCell = new PdfPCell(new Phrase(l.getDesignationPds() != null ? l.getDesignationPds() : l.getPiece() == null ? "Pièce" : l.getPiece().getDesignation(), body));
                 var datesSaisie = l.getDatesHeuresSaisieSource();
                 if (datesSaisie != null && !datesSaisie.isEmpty()) {
@@ -135,9 +137,10 @@ public class BonDeLivraisonService {
                 table.addCell(new Phrase(net(BigDecimal.valueOf((long) l.getTarifHoraire() * l.getNbreHeure()), nz(l.getTauxRemise())).toPlainString(), body));
             }
             doc.add(table); doc.add(new Paragraph(" "));
-            doc.add(new Paragraph("Total HT : " + bl.getMontantHT(), body));
+            if (Boolean.TRUE.equals(bl.getTvaApplicable())) doc.add(new Paragraph("Total HT : " + bl.getMontantHT(), body));
             doc.add(new Paragraph("TVA : " + (Boolean.TRUE.equals(bl.getTvaApplicable()) ? bl.getMontantTVA() : "Désactivée"), body));
-            Paragraph total = new Paragraph("Total TTC : " + bl.getMontantTTC(), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12)); total.setAlignment(Element.ALIGN_RIGHT); doc.add(total);
+            String totalLabel = Boolean.TRUE.equals(bl.getTvaApplicable()) ? "Total TTC" : "Total HT";
+            Paragraph total = new Paragraph(totalLabel + " : " + bl.getMontantTTC(), FontFactory.getFont(FontFactory.HELVETICA_BOLD, 12)); total.setAlignment(Element.ALIGN_RIGHT); doc.add(total);
             doc.close(); return output.toByteArray();
         } catch (Exception e) { throw new IllegalStateException("Impossible de générer le PDF du bon de livraison.", e); }
     }
@@ -155,7 +158,7 @@ public class BonDeLivraisonService {
         var bons = bsRepository.trouverDisponiblesParOrdreEtStatut(ordreId, StatutBon.VALIDE);
         var bon = repository.findByOrdreReparationId(ordreId).orElse(null);
         var summary = bon == null ? null : new BonDeLivraisonOrdreContextResponse.BonDeLivraisonSummary(
-                bon.getId(), bon.getNumero(), bon.getMontantTTC(),
+                bon.getId(), bon.getNumero(), bon.getMontantTTC(), bon.getTvaApplicable(),
                 bon.getFacture() == null ? null : bon.getFacture().getId(),
                 bon.getFacture() == null ? null : bon.getFacture().getNumero(),
                 bon.getNoteDePrix() == null ? null : bon.getNoteDePrix().getId(),
@@ -187,6 +190,7 @@ public class BonDeLivraisonService {
                 .lignesFacturationPieces(new ArrayList<>()).lignesFacturationMainDoeuvres(new ArrayList<>()).tvaApplicable(tva).build();
         BigDecimal ht = BigDecimal.ZERO;
         Map<PdgAggregationKey, LigneFacturationPiece> lignesPdgConsolidees = new LinkedHashMap<>();
+        Map<PdsAggregationKey, LigneFacturationPiece> lignesPdsConsolidees = new LinkedHashMap<>();
         for (BonDeSortie bs : bons) {
             for (LigneBonDeSortiePiece l : bs.getLignesBonDeSortiePieces()) {
                 if (l.getQuantite() == null || l.getQuantite() <= 0) continue;
@@ -211,6 +215,18 @@ public class BonDeLivraisonService {
                         row.setQuantite(row.getQuantite() + l.getQuantite());
                     }
                     if (l.getDateHeureSaisie() != null) row.getDatesHeuresSaisieSource().add(l.getDateHeureSaisie());
+                } else if (l.getPiece() == null && l.getDesignation() != null && !l.getDesignation().isBlank()) {
+                    PdsAggregationKey key = new PdsAggregationKey(normaliserDesignation(l.getDesignation()),
+                            l.getPrix(), remise.stripTrailingZeros());
+                    LigneFacturationPiece row = lignesPdsConsolidees.get(key);
+                    if (row == null) {
+                        row = nouvelleLigneFacturation(bl, null, l.getDesignation(), l.getQuantite(), l.getPrix(), remise);
+                        lignesPdsConsolidees.put(key, row);
+                        bl.getLignesFacturationPieces().add(row);
+                    } else {
+                        row.setQuantite(row.getQuantite() + l.getQuantite());
+                    }
+                    if (l.getDateHeureSaisie() != null) row.getDatesHeuresSaisieSource().add(l.getDateHeureSaisie());
                 } else {
                     bl.getLignesFacturationPieces().add(nouvelleLigneFacturation(
                             bl, l.getPiece(), l.getDesignation(), l.getQuantite(), l.getPrix(), remise));
@@ -224,6 +240,9 @@ public class BonDeLivraisonService {
             }
         }
         for (LigneFacturationPiece ligne : lignesPdgConsolidees.values()) {
+            ligne.getDatesHeuresSaisieSource().sort(Comparator.naturalOrder());
+        }
+        for (LigneFacturationPiece ligne : lignesPdsConsolidees.values()) {
             ligne.getDatesHeuresSaisieSource().sort(Comparator.naturalOrder());
         }
         for (LigneFacturationPiece ligne : bl.getLignesFacturationPieces()) {
@@ -241,6 +260,7 @@ public class BonDeLivraisonService {
 
     @Transactional
     public Facture creerFactureDepuisOrdre(Long ordreId, BonDeLivraisonFactureRequest request) {
+        String modePaiement = FacturePaymentMode.normalize(request == null ? null : request.getModePaiement());
         OrdreReparation ordre = orRepository.findByIdForFacturation(ordreId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ordre de réparation introuvable."));
         BonDeLivraison bl = repository.findByOrdreReparationId(ordre.getId()).orElse(null);
@@ -256,28 +276,47 @@ public class BonDeLivraisonService {
         if (bl == null) {
             BonDeLivraisonCreateRequest createRequest = new BonDeLivraisonCreateRequest();
             createRequest.setOrdreReparationId(ordre.getId());
+            createRequest.setAppliquerTVA(FacturePaymentMode.appliquerTva(modePaiement));
             if (request != null) {
-                createRequest.setAppliquerTVA(request.getAppliquerTVA());
                 createRequest.setRemarque(request.getRemarque());
             }
             BonDeLivraisonResponse created = create(createRequest);
             bl = repository.findById(created.getId())
                     .orElseThrow(() -> new ResourceNotFoundException("Le bon de livraison créé est introuvable."));
         }
-        return convertirEnFacture(bl.getId());
+        return convertirEnFacture(bl.getId(), request);
     }
 
     @Transactional
     public Facture convertirEnFacture(Long id) {
+        return convertirEnFacture(id, null);
+    }
+
+    @Transactional
+    public Facture convertirEnFacture(Long id, BonDeLivraisonFactureRequest request) {
         BonDeLivraison bl = repository.findByIdForConversion(id).orElseThrow(() -> new ResourceNotFoundException("Bon de livraison introuvable."));
         if (bl.getFacture() != null) return bl.getFacture();
         if (factureRepository.findFirstByOrdreReparationId(bl.getOrdreReparation().getId()).isPresent()) throw new BadRequestException("Une facture existe déjà pour cet ordre de réparation.");
+        String modePaiement = FacturePaymentMode.normalize(request == null ? null : request.getModePaiement());
+        boolean appliquerTVA = FacturePaymentMode.appliquerTva(modePaiement);
+        BigDecimal tauxTimbre = bl.getOrdreReparation() != null && bl.getOrdreReparation().getProforma() != null
+                && bl.getOrdreReparation().getProforma().getTimbreFiscalRate() != null
+                ? bl.getOrdreReparation().getProforma().getTimbreFiscalRate() : fiscalService.getCurrent().getTimbreFiscalRate();
+        var configurationFiscale = fiscalService.getCurrent();
+        BigDecimal tva = appliquerTVA ? fiscalService.calculateRate(bl.getMontantHT(), configurationFiscale.getTvaRate()) : BigDecimal.ZERO;
+        BigDecimal timbre = FacturePaymentMode.isHt(modePaiement)
+                ? fiscalService.calculateRate(bl.getMontantHT(), tauxTimbre) : BigDecimal.ZERO;
+        BigDecimal montantTtc = bl.getMontantHT().add(tva);
+        BigDecimal montantTotal = montantTtc.add(timbre);
         Facture facture = Facture.builder().numero(numberGenerator.generateNextNumber(DocumentType.FC)).garage(bl.getGarage())
                 .client(bl.getClient()).vehicule(bl.getVehicule()).ordreReparation(bl.getOrdreReparation()).bonDeLivraison(bl)
+                .proforma(bl.getOrdreReparation() == null ? null : bl.getOrdreReparation().getProforma())
+                .timbreFiscalRate(tauxTimbre)
+                .modePaiement(modePaiement)
                 .agent(currentAgent()).kilometrage(bl.getKilometrage()).remarque(bl.getRemarque()).statut(StatutFacturation.EN_ATTENTE)
-                .tvaApplicable(bl.getTvaApplicable()).montantHT(bl.getMontantHT()).montantTVA(bl.getMontantTVA())
-                .montantTTC(bl.getMontantTTC()).montantTotal(bl.getMontantTTC()).montantTimbre(BigDecimal.ZERO)
-                .montantPaye(BigDecimal.ZERO).resteAPayer(bl.getMontantTTC()).statutPaiement(StatutPaiement.NON_PAYE)
+                .tvaApplicable(appliquerTVA).montantHT(bl.getMontantHT()).montantTVA(tva)
+                .montantTTC(montantTtc).montantTotal(montantTotal).montantTimbre(timbre)
+                .montantPaye(BigDecimal.ZERO).resteAPayer(montantTotal).statutPaiement(StatutPaiement.NON_PAYE)
                 .lignesFacturationPieces(new ArrayList<>()).lignesFacturationMainDoeuvres(new ArrayList<>()).build();
         if (bl.getClient().getEcheance() != null && bl.getClient().getEcheance() > 0)
             facture.setDateEcheance(java.time.LocalDateTime.now().plusDays(bl.getClient().getEcheance()));
@@ -332,6 +371,10 @@ public class BonDeLivraisonService {
     }
 
     private record PdgAggregationKey(Long pieceId, Integer prix, BigDecimal tauxRemise) {}
+    private record PdsAggregationKey(String designation, Integer prix, BigDecimal tauxRemise) {}
+    private String normaliserDesignation(String designation) {
+        return designation == null ? "" : designation.trim().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
+    }
     private List<LigneFacturationMainDoeuvre> copyMo(BonDeLivraison source, sn.oas.facturation.features.facturation.data.entity.Facturation target) {
         return source.getLignesFacturationMainDoeuvres().stream().map(l -> LigneFacturationMainDoeuvre.builder().mainDoeuvre(l.getMainDoeuvre())
                 .facturation(target).nbreHeure(l.getNbreHeure()).tarifHoraire(l.getTarifHoraire()).tauxRemise(nz(l.getTauxRemise())).build()).toList();

@@ -128,7 +128,8 @@ public record BonDeSortieListResponse(
         List<LigneMainDoeuvreSummary> lignesMo = new ArrayList<>();
 
         if (b.getLignesBonDeSortiePieces() != null) {
-            for (var l : b.getLignesBonDeSortiePieces()) {
+            for (var l : sn.oas.facturation.shared.OrdreAffichageLignes.plusRecentesEnPremier(
+                    b.getLignesBonDeSortiePieces(), sn.oas.facturation.features.bonDeSortie.data.entity.LigneBonDeSortiePiece::getId)) {
                 double tauxRemise = l.getTauxRemise() != null ? l.getTauxRemise().doubleValue() : 0.0;
                 int qte = l.getQuantite() != null ? l.getQuantite() : 1;
 

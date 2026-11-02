@@ -10,6 +10,8 @@ import sn.oas.facturation.features.client.service.PortefeuilleClientService;
 import sn.oas.facturation.features.facture.data.entity.Facture;
 import sn.oas.facturation.features.facture.data.enums.StatutPaiement;
 import sn.oas.facturation.features.facture.repository.FactureRepository;
+import sn.oas.facturation.features.facture.service.FacturePaymentMode;
+import sn.oas.facturation.features.fiscal.service.FiscalConfigurationService;
 import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation;
 import sn.oas.facturation.features.ordreReparation.repository.OrdreReparationRepository;
@@ -39,6 +41,7 @@ public class RecuServiceImpl implements RecuService {
     private final NotificationService notificationService;
     private final AgentNotificationService agentNotificationService;
     private final PortefeuilleClientService portefeuilleClientService;
+    private final FiscalConfigurationService fiscalConfigurationService;
 
     @Override
     @Transactional
@@ -62,15 +65,34 @@ public class RecuServiceImpl implements RecuService {
 
         boolean paiementParSolde = PortefeuilleClientService.MODE_PAIEMENT.equalsIgnoreCase(
                 request.getModePaiement() == null ? "" : request.getModePaiement().trim());
+        String modePaiement = request.getModePaiement() == null || request.getModePaiement().isBlank()
+                ? "ESPECE" : request.getModePaiement().trim().toUpperCase(java.util.Locale.ROOT);
+        boolean paiementEnEspeces = "ESPECE".equals(modePaiement);
         if (paiementParSolde && request.getMontant().scale() > 2) {
             throw new BadRequestException("Le montant du paiement doit comporter au maximum deux décimales.");
         }
+
+        BigDecimal tauxTimbreEspeces = facture.getTimbreFiscalRate() != null
+                ? facture.getTimbreFiscalRate()
+                : facture.getProforma() != null && facture.getProforma().getTimbreFiscalRate() != null
+                ? facture.getProforma().getTimbreFiscalRate()
+                : facture.getOrdreReparation() != null && facture.getOrdreReparation().getProforma() != null
+                    && facture.getOrdreReparation().getProforma().getTimbreFiscalRate() != null
+                    ? facture.getOrdreReparation().getProforma().getTimbreFiscalRate()
+                    : fiscalConfigurationService.getCurrent().getTimbreFiscalRate();
+        boolean timbreDejaInclusDansFactureHT = FacturePaymentMode.isHt(facture.getModePaiement())
+                || (Boolean.FALSE.equals(facture.getTvaApplicable())
+                    && facture.getMontantTimbre() != null && facture.getMontantTimbre().signum() > 0);
+        BigDecimal montantTimbre = paiementEnEspeces && !timbreDejaInclusDansFactureHT
+                ? fiscalConfigurationService.calculateRate(request.getMontant(), tauxTimbreEspeces)
+                : BigDecimal.ZERO;
 
         Recu recu = Recu.builder()
                 .numero(numero)
                 .facture(facture)
                 .montant(request.getMontant())
-                .modePaiement(paiementParSolde ? PortefeuilleClientService.MODE_PAIEMENT : request.getModePaiement())
+                .montantTimbre(montantTimbre)
+                .modePaiement(paiementParSolde ? PortefeuilleClientService.MODE_PAIEMENT : modePaiement)
                 .remarque(request.getRemarque())
                 .build();
 
@@ -108,7 +130,8 @@ public class RecuServiceImpl implements RecuService {
 
         String statutLibelle = facture.getStatutPaiement() == StatutPaiement.PAYE ? "payée intégralement" : "partiellement payée";
         notificationService.sendNotification(facture.getClient(), "Paiement enregistré",
-                "Le reçu " + recu.getNumero() + " de " + request.getMontant()
+                "Le reçu " + recu.getNumero() + " de " + request.getMontant() + " (timbre : " + montantTimbre
+                        + ", total encaissé : " + request.getMontant().add(montantTimbre) + ")"
                         + " a été enregistré. La facture " + facture.getNumero() + " est " + statutLibelle + ".");
         agentNotificationService.notifyRoleInGarage(Role.AGENT, facture.getGarage(),
                 facture.getStatutPaiement() == StatutPaiement.PAYE ? "Facture payée" : "Paiement partiel reçu",

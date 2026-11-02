@@ -49,8 +49,10 @@ import java.text.DecimalFormatSymbols;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -148,13 +150,15 @@ public class ProformaServiceImpl implements ProformaService {
         // Contrôle présence d'au moins une ligne
         boolean hasPieces = request.getLignesPieces() != null && !request.getLignesPieces().isEmpty();
         boolean hasMainDoeuvres = request.getLignesMainDoeuvres() != null && !request.getLignesMainDoeuvres().isEmpty();
+        List<LigneFacturationPieceRequest> lignesPiecesDemandees = request.getLignesPieces() == null
+                ? List.of() : consoliderPdsIdentiques(request.getLignesPieces());
         if (!hasPieces && !hasMainDoeuvres) {
             throw new IllegalArgumentException("Le proforma doit contenir au moins une pièce détachée ou une main d'œuvre.");
         }
 
         // Contrôle des lignes
         if (hasPieces) {
-            for (LigneFacturationPieceRequest p : request.getLignesPieces()) {
+            for (LigneFacturationPieceRequest p : lignesPiecesDemandees) {
                 if (p.getQuantite() == null || p.getQuantite() <= 0) {
                     throw new IllegalArgumentException("La quantité de chaque pièce doit être supérieure à 0.");
                 }
@@ -216,7 +220,7 @@ public class ProformaServiceImpl implements ProformaService {
                 .build();
 
         if (hasPieces) {
-            for (LigneFacturationPieceRequest p : request.getLignesPieces()) {
+            for (LigneFacturationPieceRequest p : lignesPiecesDemandees) {
                 PieceDetache pieceUnproxied = null;
                 Integer prix = p.getPrix();
 
@@ -274,9 +278,11 @@ public class ProformaServiceImpl implements ProformaService {
         BigDecimal tva = appliquerTVA
                 ? fiscalConfigurationService.calculateRate(montantHT, fiscal.getTvaRate()) : BigDecimal.ZERO;
         proforma.setMontantTVA(tva);
-        BigDecimal timbre = fiscal.getTimbreFiscal();
+        BigDecimal timbreFiscalRate = fiscal.getTimbreFiscalRate();
+        proforma.setTimbreFiscalRate(timbreFiscalRate);
+        BigDecimal timbre = BigDecimal.ZERO;
         proforma.setMontantTimbre(timbre);
-        BigDecimal montantTTC = montantHT.add(tva).add(timbre);
+        BigDecimal montantTTC = montantHT.add(tva);
         proforma.setMontantTTC(montantTTC);
         proforma.setMontantTotal(montantTTC);
 
@@ -305,6 +311,11 @@ public class ProformaServiceImpl implements ProformaService {
         if (proforma.getStatut() == StatutFacturation.CONVERTIE) {
             throw new sn.oas.facturation.shared.exception.ResourceAlreadyExistsException(
                     "Un proforma converti en facture ne peut plus être modifié.");
+        }
+        if (proforma.getStatut() == StatutFacturation.PAYEE
+                || proforma.getStatut() == StatutFacturation.PARTIELLEMENT_PAYEE) {
+            throw new sn.oas.facturation.shared.exception.ResourceAlreadyExistsException(
+                    "Un proforma déjà réglé ne peut plus être modifié.");
         }
 
         Vehicule vehicule = null;
@@ -368,7 +379,9 @@ public class ProformaServiceImpl implements ProformaService {
                     }
                 }
                 proforma.getLignesFacturationPieces().clear();
-                for (LigneFacturationPieceRequest lReq : request.getLignesPieces()) {
+                List<LigneFacturationPieceRequest> lignesPiecesDemandees = conserverPrixHistorique
+                        ? request.getLignesPieces() : consoliderPdsIdentiques(request.getLignesPieces());
+                for (LigneFacturationPieceRequest lReq : lignesPiecesDemandees) {
                     if (lReq.getQuantite() == null || lReq.getQuantite() <= 0) {
                         throw new IllegalArgumentException("La quantité de chaque pièce doit être supérieure à 0.");
                     }
@@ -458,16 +471,21 @@ public class ProformaServiceImpl implements ProformaService {
         BigDecimal tva = appliquerTVA ? montantHT.multiply(rateBD).setScale(2, RoundingMode.HALF_UP) : BigDecimal.ZERO;
         proforma.setMontantTVA(tva);
 
-        if (request.getMontantTimbre() != null) proforma.setMontantTimbre(request.getMontantTimbre());
+        if (proforma.getTimbreFiscalRate() == null) {
+            proforma.setTimbreFiscalRate(fiscalConfigurationService.getCurrent().getTimbreFiscalRate());
+        }
+        proforma.setMontantTimbre(BigDecimal.ZERO);
         // if (request.getMontantAutre() != null) proforma.setMontantAutre(request.getMontantAutre());
 
         BigDecimal autre = request.getMontantAutre() != null ? request.getMontantAutre() : BigDecimal.ZERO;
-        BigDecimal montantTTC = montantHT.add(tva).add(proforma.getMontantTimbre());
+        BigDecimal montantTTC = montantHT.add(tva);
         proforma.setMontantTTC(montantTTC);
         proforma.setMontantTotal(montantTTC.add(autre));
         proforma.setAvertissementsFinanciers(politiqueFinanciereClientService.avertissementsProforma(
                 clientPourTarif, proforma.getMontantTotal()));
+        // Toute modification invalide l'accord précédent : le client doit recevoir et valider la nouvelle version.
         proforma.setStatut(StatutFacturation.EN_ATTENTE);
+        proforma.setVisibleClient(false);
         proforma.setDateModification(LocalDateTime.now());
 
         return proformaRepository.save(proforma);
@@ -834,7 +852,43 @@ public class ProformaServiceImpl implements ProformaService {
     }
 
     private String normaliserDesignation(String designation) {
-        return designation == null ? "" : designation.trim().toLowerCase(Locale.ROOT);
+        return designation == null ? "" : designation.trim().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
+    }
+
+    private record PdsRequestKey(String designation, Integer prix, BigDecimal tauxRemise) {}
+
+    private List<LigneFacturationPieceRequest> consoliderPdsIdentiques(List<LigneFacturationPieceRequest> lignes) {
+        List<LigneFacturationPieceRequest> resultat = new ArrayList<>();
+        Map<PdsRequestKey, Integer> indexParCle = new LinkedHashMap<>();
+        for (LigneFacturationPieceRequest ligne : lignes) {
+            if (!Boolean.TRUE.equals(ligne.getIsCustom()) || ligne.getDesignationPds() == null
+                    || ligne.getDesignationPds().isBlank()) {
+                resultat.add(ligne);
+                continue;
+            }
+            if (ligne.getQuantite() == null || ligne.getQuantite() <= 0) {
+                throw new IllegalArgumentException("La quantité de chaque pièce doit être supérieure à 0.");
+            }
+            PdsRequestKey cle = new PdsRequestKey(normaliserDesignation(ligne.getDesignationPds()),
+                    ligne.getPrix() == null ? 0 : ligne.getPrix(), tauxRemise(ligne.getTauxRemise()).stripTrailingZeros());
+            Integer index = indexParCle.get(cle);
+            if (index == null) {
+                indexParCle.put(cle, resultat.size());
+                LigneFacturationPieceRequest copie = new LigneFacturationPieceRequest();
+                copie.setPieceId(ligne.getPieceId());
+                copie.setQuantite(ligne.getQuantite());
+                copie.setPrix(cle.prix());
+                copie.setIsCustom(ligne.getIsCustom());
+                copie.setDesignationPds(ligne.getDesignationPds().trim().replaceAll("\\s+", " "));
+                copie.setTauxRemise(ligne.getTauxRemise());
+                resultat.add(copie);
+            } else {
+                LigneFacturationPieceRequest existante = resultat.get(index);
+                existante.setQuantite((existante.getQuantite() == null ? 0 : existante.getQuantite())
+                        + (ligne.getQuantite() == null ? 0 : ligne.getQuantite()));
+            }
+        }
+        return resultat;
     }
 
     private BigDecimal tauxRemise(Double taux) {

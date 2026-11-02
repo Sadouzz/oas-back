@@ -20,6 +20,8 @@ public class NoteDePrixResponse {
     private Boolean tvaApplicable;
     private BigDecimal montantTotal;
     private BigDecimal montantPaye;
+    private BigDecimal montantTimbrePaye;
+    private BigDecimal montantEncaisse;
     private BigDecimal resteAPayer;
     private String statutPaiement;
     private String modePaiement;
@@ -95,8 +97,9 @@ public class NoteDePrixResponse {
         Long ordreReparationId = note.getOrdreReparation() != null ? note.getOrdreReparation().getId() : null;
         String numeroOrdreReparation = note.getOrdreReparation() != null ? note.getOrdreReparation().getNumero() : null;
 
-        List<LigneFacturationPieceResponse> piecesResp = (note.getLignesFacturationPieces() == null) ? List.of()
-                : note.getLignesFacturationPieces().stream()
+        List<LigneFacturationPieceResponse> piecesResp = sn.oas.facturation.shared.OrdreAffichageLignes.plusRecentesEnPremier(
+                note.getLignesFacturationPieces(), sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece::getId)
+                .stream()
                         .map(lp -> {
                             int q = lp.getQuantite() != null ? lp.getQuantite() : 0;
                             int p = lp.getPrix() != null ? lp.getPrix() : 0;
@@ -142,6 +145,9 @@ public class NoteDePrixResponse {
                 .tvaApplicable(note.getTvaApplicable())
                 .montantTotal(note.getMontantTotal() != null ? note.getMontantTotal() : BigDecimal.ZERO)
                 .montantPaye(note.getMontantPaye() != null ? note.getMontantPaye() : BigDecimal.ZERO)
+                .montantTimbrePaye(note.getMontantTimbrePaye() != null ? note.getMontantTimbrePaye() : BigDecimal.ZERO)
+                .montantEncaisse((note.getMontantPaye() != null ? note.getMontantPaye() : BigDecimal.ZERO)
+                        .add(note.getMontantTimbrePaye() != null ? note.getMontantTimbrePaye() : BigDecimal.ZERO))
                 .resteAPayer(note.getResteAPayer() != null ? note.getResteAPayer() : (note.getMontantTotal() != null ? note.getMontantTotal() : BigDecimal.ZERO))
                 .statutPaiement(note.getStatutPaiement() != null ? note.getStatutPaiement().name() : "NON_PAYE")
                 .modePaiement(note.getModePaiement())

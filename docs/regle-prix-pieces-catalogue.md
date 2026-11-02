@@ -1,4 +1,4 @@
-Auteur : Codex | Date : 2026-10-29 | Action : documenter la règle de prix des pièces au catalogue
+Auteur : Codex | Date : 2026-11-01 | Action : préciser le prix catalogue exposé aux formulaires proforma
 
 # Prix des pièces du catalogue dans les documents
 
@@ -11,3 +11,5 @@ Auteur : Codex | Date : 2026-10-29 | Action : documenter la règle de prix des p
 - **Hors périmètre de cette règle** : prix d'achat des bons de commande, PDS et main-d'œuvre.
 
 Le backend applique la règle même si un client envoie un autre prix pour une PDP ou une PDG dont le prix catalogue existe. Le front affiche le prix appliqué et ne propose la saisie que pour une PDG sans prix catalogue.
+
+Le détail d'un proforma expose aussi `prixCatalogue` sur chaque ligne pour que le formulaire distingue le prix de ligne mémorisé du prix catalogue courant, même si la liste paginée du catalogue ne contient pas cette pièce.

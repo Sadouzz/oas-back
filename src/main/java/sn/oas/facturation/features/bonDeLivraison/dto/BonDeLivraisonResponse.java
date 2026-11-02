@@ -40,7 +40,8 @@ public class BonDeLivraisonResponse {
                 .noteDePrixId(bl.getNoteDePrix() == null ? null : bl.getNoteDePrix().getId())
                 .noteDePrixNumero(bl.getNoteDePrix() == null ? null : bl.getNoteDePrix().getNumero());
         if (inclureLignes) {
-            builder.lignesPieces(bl.getLignesFacturationPieces() == null ? List.of() : bl.getLignesFacturationPieces().stream()
+            builder.lignesPieces(sn.oas.facturation.shared.OrdreAffichageLignes.plusRecentesEnPremier(
+                    bl.getLignesFacturationPieces(), sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece::getId).stream()
                     .map(l -> new LignePieceBL(l.getId(), l.getPiece() == null ? null : l.getPiece().getId(),
                             l.getPiece() == null || l.getPiece().getType() == null ? "PDS" : l.getPiece().getType().name(),
                             l.getPiece() == null ? l.getDesignationPds() : l.getPiece().getDesignation(),

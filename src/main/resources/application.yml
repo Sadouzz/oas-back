@@ -14,5 +14,13 @@ app:
     vapid-public-key: ${OAS_PUSH_VAPID_PUBLIC_KEY:}
     vapid-private-key: ${OAS_PUSH_VAPID_PRIVATE_KEY:}
     subject: ${OAS_PUSH_VAPID_SUBJECT:mailto:admin@orientautoservice.sn}
+  security:
+    agent-signature-encryption-key: ${AGENT_SIGNATURE_ENCRYPTION_KEY:}
 server:
   forward-headers-strategy: framework
+management:
+  health:
+    redis:
+      enabled: false
+    mail:
+      enabled: false

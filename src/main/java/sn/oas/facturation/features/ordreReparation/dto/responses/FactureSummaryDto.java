@@ -12,4 +12,8 @@ public class FactureSummaryDto {
     private Double montantAPayer;
     private Double montantPaye;
     private Double montantRestant;
+    private Double timbreFiscalRate;
+    private Double montantTimbre;
+    private Boolean tvaApplicable;
+    private String modePaiement;
 }

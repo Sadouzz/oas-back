@@ -56,7 +56,10 @@ public class BonDeLivraisonController {
         return new FactureDepuisOrdreResponse(facture.getId(), facture.getNumero());
     }
     @PostMapping("/{id}/convertir-en-facture")
-    public FactureResponse convertirEnFacture(@PathVariable Long id) { return FactureResponse.from(service.convertirEnFacture(id)); }
+    public FactureResponse convertirEnFacture(@PathVariable Long id,
+            @RequestBody(required = false) BonDeLivraisonFactureRequest request) {
+        return FactureResponse.from(service.convertirEnFacture(id, request));
+    }
     @PostMapping("/{id}/convertir-en-note-de-prix")
     public NoteDePrixResponse convertirEnNote(@PathVariable Long id) { return NoteDePrixResponse.from(service.convertirEnNoteDePrix(id)); }
 }

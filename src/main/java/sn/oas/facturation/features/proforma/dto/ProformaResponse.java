@@ -21,6 +21,7 @@ public class ProformaResponse {
     private Boolean tvaApplicable;
     private BigDecimal montantTTC;
     private BigDecimal montantTimbre;
+    private BigDecimal timbreFiscalRate;
     private BigDecimal montantAutre;
     private BigDecimal montantTotal;
     private Long agentId;
@@ -91,6 +92,7 @@ public class ProformaResponse {
                 .tvaApplicable(p.getTvaApplicable())
                 .montantTTC(p.calculerMontantTtcAvecTimbre())
                 .montantTimbre(p.getMontantTimbre())
+                .timbreFiscalRate(p.getTimbreFiscalRate())
                 .montantAutre(BigDecimal.ZERO)
                 .montantTotal(p.getMontantTotal())
                 .tauxRemiseClient(p.getTauxRemiseClient())
@@ -114,7 +116,8 @@ public class ProformaResponse {
                 .ordreReparationId(p.getOrdreReparation() != null ? p.getOrdreReparation().getId() : null)
                 .bsId(p.getBs() != null ? p.getBs().getId() : null)
                 .bsReference(p.getBs() != null ? p.getBs().getReference() : null)
-                .lignesPieces(p.getLignesFacturationPieces() == null ? List.of() : p.getLignesFacturationPieces().stream()
+                .lignesPieces(sn.oas.facturation.shared.OrdreAffichageLignes.plusRecentesEnPremier(
+                        p.getLignesFacturationPieces(), sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece::getId).stream()
                         .map(lp -> {
                             Long pieceId = lp.getPiece() != null ? lp.getPiece().getId() : null;
                             String type = Boolean.TRUE.equals(lp.getIsCustom()) ? "PDS" :

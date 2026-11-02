@@ -3,7 +3,7 @@ spring:
     name: facturation
   datasource:
     url: ${DATABASE_URL}
-    username: ${DATABASE_USERNAME:}
+    username: ${DATABASE_USERNAME:${DATABASE_HOSTNAME:}}
     password: ${DATABASE_PASSWORD:}
     driver-class-name: org.postgresql.Driver
   jpa:
@@ -11,6 +11,17 @@ spring:
       ddl-auto: update
     show-sql: false
     database-platform: org.hibernate.dialect.PostgreSQLDialect
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
 app:
   cookie:
@@ -21,7 +32,7 @@ app:
     expiration: 21600000
     refresh-expiration: 604800000
   cors:
-    allowed-origins: ${CORS_ORIGINS:https://oas-front.vercel.app}
+    allowed-origins: ${CORS_ORIGINS:https://oas-senegal.com,https://www.oas-senegal.com,https://api.oas-senegal.com}
   cloudinary:
     cloud-name: ${CLOUDINARY_CLOUD_NAME}
     api-key: ${CLOUDINARY_API_KEY}
@@ -40,6 +51,11 @@ management:
   endpoint:
     health:
       show-details: when-authorized
+  health:
+    redis:
+      enabled: false
+    mail:
+      enabled: false
   metrics:
     tags:
       application: facturation

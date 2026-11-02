@@ -1,15 +1,19 @@
 package sn.oas.facturation.features.facture.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import sn.oas.facturation.features.facture.data.entity.Facture;
+import sn.oas.facturation.features.facture.data.enums.StatutPaiement;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
 @Repository
-public interface FactureRepository extends JpaRepository<Facture, Long> {
+public interface FactureRepository extends JpaRepository<Facture, Long>, JpaSpecificationExecutor<Facture> {
 
     @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT f FROM Facture f WHERE f.id = :id")

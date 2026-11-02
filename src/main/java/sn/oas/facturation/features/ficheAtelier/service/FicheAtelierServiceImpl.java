@@ -54,6 +54,9 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
     @Transactional
     @Override
     public FicheAtelier create(FicheAtelierRequest request) {
+        if (!Boolean.TRUE.equals(request.getConditionsAcceptees())) {
+            throw new BadRequestException("L'acceptation des conditions générales est obligatoire.");
+        }
         verifierSignature(request.getSignatureReceptionnaireBase64());
         verifierSignature(request.getSignatureBase64());
         Client client = clientRepository.findById(request.getClientId())
@@ -127,6 +130,8 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
                 .nb(request.getNb())
                 .signatureReceptionnaireBase64(request.getSignatureReceptionnaireBase64())
                 .signatureBase64(request.getSignatureBase64())
+                .conditionsAcceptees(true)
+                .conditionsAccepteesAt(java.time.LocalDateTime.now(java.time.ZoneId.of("Africa/Dakar")))
                 .build();
 
         FicheAtelier saved = ficheAtelierRepository.save(fiche);
@@ -143,8 +148,7 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
                 "Nouvelle Fiche Atelier",
                 "Une nouvelle fiche atelier (" + saved.getNumero() + ") a été créée.");
         notificationService.sendInAppNotification(client, "Fiche atelier créée",
-                "Votre fiche atelier " + saved.getNumero()
-                        + " a été enregistrée. Le récapitulatif signé et les conditions de réparation vous sont transmis par e-mail à l'adresse enregistrée.");
+                "Votre fiche atelier " + saved.getNumero() + " a été enregistrée.");
         eventPublisher.publishEvent(new FicheAtelierCreee(saved.getId()));
                 
         return saved;

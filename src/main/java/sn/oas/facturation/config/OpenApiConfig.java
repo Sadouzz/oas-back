@@ -20,6 +20,10 @@ import org.springframework.context.annotation.Configuration;
         ),
         servers = {
                 @Server(
+                        description = "Production ENV",
+                        url = "https://api.oas-senegal.com"
+                ),
+                @Server(
                         description = "Local ENV",
                         url = "http://localhost:9090"
                 )

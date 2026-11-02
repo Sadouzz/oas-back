@@ -16,6 +16,8 @@ public record NoteDePrixListResponse(
         Boolean tvaApplicable,
         BigDecimal montantTotal,
         BigDecimal montantPaye,
+        BigDecimal montantTimbrePaye,
+        BigDecimal montantEncaisse,
         BigDecimal resteAPayer,
         String statutPaiement,
         String modePaiement,
@@ -87,6 +89,9 @@ public record NoteDePrixListResponse(
                 .tvaApplicable(note.getTvaApplicable())
                 .montantTotal(note.getMontantTotal())
                 .montantPaye(note.getMontantPaye())
+                .montantTimbrePaye(note.getMontantTimbrePaye() != null ? note.getMontantTimbrePaye() : BigDecimal.ZERO)
+                .montantEncaisse((note.getMontantPaye() != null ? note.getMontantPaye() : BigDecimal.ZERO)
+                        .add(note.getMontantTimbrePaye() != null ? note.getMontantTimbrePaye() : BigDecimal.ZERO))
                 .resteAPayer(note.getResteAPayer())
                 .statutPaiement(note.getStatutPaiement() != null ? note.getStatutPaiement().name() : null)
                 .modePaiement(note.getModePaiement())

@@ -9,10 +9,9 @@ import lombok.NoArgsConstructor;
 import java.io.Serializable;
 
 /**
- * Ligne de la section "Travaux demandés" d'un {@link OrdreReparation}. La ligne issue de la
- * désignation des travaux de la fiche atelier d'origine est marquée {@code verrouille = true} :
- * non modifiable/supprimable côté UI. Le chef d'atelier peut ajouter d'autres lignes
- * (verrouille = false) via le bouton "Ajouter une ligne".
+ * Ligne de la section "Travaux demandés" d'un {@link OrdreReparation}. Les lignes sont fixées
+ * lors de la création de l'ordre et ne peuvent plus être modifiées ensuite. {@code verrouille}
+ * distingue les travaux importés de la fiche atelier dans l'écran de création.
  */
 @Data
 @Builder

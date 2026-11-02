@@ -121,6 +121,12 @@ public class FicheAtelier implements TenantAware {
     @Column(name = "signature_sortie_base64", columnDefinition = "TEXT")
     private String signatureSortieBase64;
 
+    @Column(name = "conditions_acceptees")
+    private Boolean conditionsAcceptees;
+
+    @Column(name = "conditions_acceptees_at")
+    private LocalDateTime conditionsAccepteesAt;
+
 
     @Column(name = "created_at", nullable = false, updatable = false)
     @CreationTimestamp

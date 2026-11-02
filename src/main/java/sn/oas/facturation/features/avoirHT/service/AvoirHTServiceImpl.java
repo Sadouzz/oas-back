@@ -372,7 +372,8 @@ public class AvoirHTServiceImpl implements AvoirHTService {
                     tablePieces.addCell(cell);
                 }
 
-                for (LigneFacturationPiece ligne : a.getLignesFacturationPieces()) {
+                for (LigneFacturationPiece ligne : sn.oas.facturation.shared.OrdreAffichageLignes.plusRecentesEnPremier(
+                        a.getLignesFacturationPieces(), LigneFacturationPiece::getId)) {
                     String ref = ligne.getPiece() != null ? ligne.getPiece().getDesignation()
                             : (ligne.getDesignationPds() != null ? ligne.getDesignationPds() : "N/A");
                     tablePieces.addCell(new Phrase(ref, fontTexte));

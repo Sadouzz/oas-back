@@ -12,6 +12,8 @@ import java.util.List;
 public interface FactureService {
     Facture getById(Long id);
     Page<Facture> getAll(int page, int size);
+    Page<Facture> getAllFiltered(String keyword, String statut, java.time.LocalDate dateDebut,
+            java.time.LocalDate dateFin, String clientKeyword, Long ordreReparationId, int page, int size);
     List<Facture> getAll();
     List<Facture> search(String keyword);
     Page<Facture> search(String keyword, int page, int size);
