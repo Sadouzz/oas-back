@@ -33,6 +33,9 @@ public class Fournisseur extends BaseEntity implements TenantAware {
     @Column(name = "numero", nullable = false)
     private String numero;
 
+    @Column(name = "code", nullable = true)
+    private String code;
+
     @Column(name = "phone", nullable = true)
     private String phone;
 

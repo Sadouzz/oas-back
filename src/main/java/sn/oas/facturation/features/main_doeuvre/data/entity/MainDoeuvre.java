@@ -19,6 +19,9 @@ public class MainDoeuvre extends BaseEntity {
     @Column(name = "numero")
     private String numero;
 
+    @Column(name = "numero_serie")
+    private String numeroSerie;
+
     @Column(nullable = false)
     private Double prix;
 

@@ -56,6 +56,7 @@ public class DiagnosticServiceImpl implements DiagnosticService {
     private final RemarqueDiagnosticRepository remarqueDiagnosticRepository;
     private final sn.oas.facturation.features.pdfGenerator.service.HtmlToPdfService htmlToPdfService;
     private final EmailService emailService;
+    private final sn.oas.facturation.features.notification.service.MailDeliveryAsyncService mailDeliveryAsyncService;
     private final NotificationService notificationService;
 
     @Override
@@ -138,17 +139,16 @@ public class DiagnosticServiceImpl implements DiagnosticService {
 
         if (ordreReparation.getVehicule() != null && ordreReparation.getVehicule().getClient() != null) {
             String clientEmail = ordreReparation.getVehicule().getClient().getEmail();
-            if (clientEmail != null && !clientEmail.isEmpty()) {
-                byte[] pdfBytes = generatePdf(saved.getId());
-                emailService.sendEmailWithAttachment(
-                        clientEmail,
-                        "Fiche de Diagnostic - " + ordreReparation.getVehicule().getImmatriculation(),
-                        "Bonjour, \n\nVeuillez trouver ci-joint la fiche de diagnostic de votre véhicule.",
-                        "Diagnostic_" + saved.getId() + ".pdf",
-                        pdfBytes,
-                        "application/pdf"
-                );
-            }
+            String immat = ordreReparation.getVehicule().getImmatriculation();
+            Long diagId = saved.getId();
+            mailDeliveryAsyncService.sendEmailWithPdfAttachmentAsync(
+                    clientEmail,
+                    "Fiche de Diagnostic - " + (immat != null ? immat : ""),
+                    "Bonjour, \n\nVeuillez trouver ci-joint la fiche de diagnostic de votre véhicule.",
+                    "Diagnostic_" + diagId + ".pdf",
+                    () -> generatePdf(diagId),
+                    false
+            );
         }
 
         return toDiagnosticResponse(saved);
@@ -331,17 +331,16 @@ public class DiagnosticServiceImpl implements DiagnosticService {
 
         if (ordreReparation.getVehicule() != null && ordreReparation.getVehicule().getClient() != null) {
             String clientEmail = ordreReparation.getVehicule().getClient().getEmail();
-            if (clientEmail != null && !clientEmail.isEmpty()) {
-                byte[] pdfBytes = generatePdf(saved.getId());
-                emailService.sendEmailWithAttachment(
-                        clientEmail,
-                        "Fiche de Diagnostic - " + ordreReparation.getVehicule().getImmatriculation(),
-                        "Bonjour, \n\nVeuillez trouver ci-joint la fiche de diagnostic de votre véhicule.",
-                        "Diagnostic_" + saved.getId() + ".pdf",
-                        pdfBytes,
-                        "application/pdf"
-                );
-            }
+            String immat = ordreReparation.getVehicule().getImmatriculation();
+            Long diagId = saved.getId();
+            mailDeliveryAsyncService.sendEmailWithPdfAttachmentAsync(
+                    clientEmail,
+                    "Fiche de Diagnostic - " + (immat != null ? immat : ""),
+                    "Bonjour, \n\nVeuillez trouver ci-joint la fiche de diagnostic de votre véhicule.",
+                    "Diagnostic_" + diagId + ".pdf",
+                    () -> generatePdf(diagId),
+                    false
+            );
         }
 
         return toDiagnosticResponse(saved);

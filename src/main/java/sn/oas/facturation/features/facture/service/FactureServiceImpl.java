@@ -76,6 +76,7 @@ public class FactureServiceImpl implements FactureService {
     private final PieceDetacheRepository pieceDetacheRepository;
     private final PieceMouvementRepository pieceMouvementRepository;
     private final sn.oas.facturation.features.notification.service.EmailService emailService;
+    private final sn.oas.facturation.features.notification.service.MailDeliveryAsyncService mailDeliveryAsyncService;
     private final sn.oas.facturation.features.notification.service.NotificationService notificationService;
     private final sn.oas.facturation.features.pdfGenerator.service.HtmlToPdfService htmlToPdfService;
     private final sn.oas.facturation.features.pdfTemplate.repository.PdfTemplateRepository pdfTemplateRepository;
@@ -267,14 +268,16 @@ public class FactureServiceImpl implements FactureService {
                 "La facture " + facture.getNumero() + " est disponible dans votre espace client.");
 
         if (client.getEmail() != null && !client.getEmail().isEmpty()) {
-            byte[] pdfBytes = generatePdf(facture.getId());
-            emailService.sendHtmlEmailWithAttachment(
-                    client.getEmail(),
+            String clientEmail = client.getEmail();
+            Long factureId = facture.getId();
+            String numFacture = facture.getNumero();
+            mailDeliveryAsyncService.sendEmailWithPdfAttachmentAsync(
+                    clientEmail,
                     "Votre facture et lien de paiement",
-                    "<p>Bonjour,</p><p>Votre facture <b>" + facture.getNumero() + "</b> a été générée. Vous pouvez la trouver en pièce jointe.</p><p>Veuillez procéder au paiement depuis votre espace client pour récupérer votre véhicule.</p><p>Cordialement.</p>",
-                    "facture_" + facture.getNumero() + ".pdf",
-                    pdfBytes,
-                    "application/pdf"
+                    "<p>Bonjour,</p><p>Votre facture <b>" + numFacture + "</b> a été générée. Vous pouvez la trouver en pièce jointe.</p><p>Veuillez procéder au paiement depuis votre espace client pour récupérer votre véhicule.</p><p>Cordialement.</p>",
+                    "facture_" + numFacture + ".pdf",
+                    () -> generatePdf(factureId),
+                    true
             );
         }
 
@@ -443,14 +446,16 @@ public class FactureServiceImpl implements FactureService {
                     "La facture " + facture.getNumero() + " est disponible dans votre espace client.");
         }
         if (client != null && client.getEmail() != null && !client.getEmail().isEmpty()) {
-            byte[] pdfBytes = generatePdf(facture.getId());
-            emailService.sendHtmlEmailWithAttachment(
-                    client.getEmail(),
+            String clientEmail = client.getEmail();
+            Long factureId = facture.getId();
+            String numFacture = facture.getNumero();
+            mailDeliveryAsyncService.sendEmailWithPdfAttachmentAsync(
+                    clientEmail,
                     "Votre facture et lien de paiement",
-                    "<p>Bonjour,</p><p>Votre facture <b>" + facture.getNumero() + "</b> a été générée. Vous pouvez la trouver en pièce jointe.</p><p>Veuillez procéder au paiement depuis votre espace client pour récupérer votre véhicule.</p><p>Cordialement.</p>",
-                    "facture_" + facture.getNumero() + ".pdf",
-                    pdfBytes,
-                    "application/pdf"
+                    "<p>Bonjour,</p><p>Votre facture <b>" + numFacture + "</b> a été générée. Vous pouvez la trouver en pièce jointe.</p><p>Veuillez procéder au paiement depuis votre espace client pour récupérer votre véhicule.</p><p>Cordialement.</p>",
+                    "facture_" + numFacture + ".pdf",
+                    () -> generatePdf(factureId),
+                    true
             );
         }
 

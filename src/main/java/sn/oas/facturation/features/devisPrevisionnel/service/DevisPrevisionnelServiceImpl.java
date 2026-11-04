@@ -52,6 +52,7 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
     private final UserService userService;
     private final DocumentNumberGeneratorService documentNumberGeneratorService;
     private final EmailService emailService;
+    private final sn.oas.facturation.features.notification.service.MailDeliveryAsyncService mailDeliveryAsyncService;
     private final AgentNotificationService agentNotificationService;
     private final DevisPrevisionnelGenerator devisPrevisionnelGenerator;
 
@@ -150,14 +151,17 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
         }
 
         if (client.getEmail() != null && !client.getEmail().isEmpty()) {
-            byte[] pdfBytes = generatePdf(saved.getId());
-            emailService.sendEmailWithAttachment(
-                    client.getEmail(),
+            String clientEmail = client.getEmail();
+            Long devisId = saved.getId();
+            String numeroDevis = saved.getNumero();
+            String immatVehicule = vehicule.getImmatriculation();
+            mailDeliveryAsyncService.sendEmailWithPdfAttachmentAsync(
+                    clientEmail,
                     "Votre devis prévisionnel",
-                    "<p>Bonjour,</p><p>Veuillez trouver ci-joint le devis prévisionnel <b>" + saved.getNumero() + "</b> pour votre véhicule " + vehicule.getImmatriculation() + ".</p><p>Cordialement.</p>",
-                    "devis_" + saved.getNumero() + ".pdf",
-                    pdfBytes,
-                    "application/pdf"
+                    "<p>Bonjour,</p><p>Veuillez trouver ci-joint le devis prévisionnel <b>" + numeroDevis + "</b> pour votre véhicule " + immatVehicule + ".</p><p>Cordialement.</p>",
+                    "devis_" + numeroDevis + ".pdf",
+                    () -> generatePdf(devisId),
+                    false
             );
         }
 

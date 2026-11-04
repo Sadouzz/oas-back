@@ -74,6 +74,7 @@ public class ProformaServiceImpl implements ProformaService {
     private final AgentNotificationService agentNotificationService;
     private final DocumentNumberGeneratorService documentNumberGeneratorService;
     private final EmailService emailService;
+    private final sn.oas.facturation.features.notification.service.MailDeliveryAsyncService mailDeliveryAsyncService;
     private final sn.oas.facturation.features.notification.service.NotificationService notificationService;
     private final ProformaGenerator proformaGenerator;
     private final sn.oas.facturation.features.fiscal.service.FiscalConfigurationService fiscalConfigurationService;
@@ -597,14 +598,15 @@ public class ProformaServiceImpl implements ProformaService {
                     "Le proforma " + saved.getNumero() + " est disponible dans votre espace client pour consultation et validation.");
             String email = ownerAtWork.getEmail();
             if (email != null && !email.isEmpty()) {
-                byte[] pdfBytes = generatePdf(saved.getId());
-                emailService.sendHtmlEmailWithAttachment(
+                Long proformaId = saved.getId();
+                String proformaNumero = saved.getNumero();
+                mailDeliveryAsyncService.sendEmailWithPdfAttachmentAsync(
                         email,
                         "Validation de votre proforma",
-                        "<p>Bonjour,</p><p>Votre proforma <b>" + saved.getNumero() + "</b> a été créé. Veuillez le trouver en pièce jointe et le valider depuis votre espace.</p><p>Cordialement.</p>",
-                        "proforma_" + saved.getNumero() + ".pdf",
-                        pdfBytes,
-                        "application/pdf"
+                        "<p>Bonjour,</p><p>Votre proforma <b>" + proformaNumero + "</b> a été créé. Veuillez le trouver en pièce jointe et le valider depuis votre espace.</p><p>Cordialement.</p>",
+                        "proforma_" + proformaNumero + ".pdf",
+                        () -> generatePdf(proformaId),
+                        true
                 );
             }
         }
@@ -713,12 +715,19 @@ public class ProformaServiceImpl implements ProformaService {
             notificationService.sendInAppNotification(clientFacture, "Votre facture est disponible", message);
             String email = clientFacture.getEmail();
             if (email != null && !email.isBlank()) {
-                byte[] pdfBytes = factureService.generatePdf(savedFacture.getId());
-                emailService.sendHtmlEmailWithAttachment(email, "Votre facture " + savedFacture.getNumero(),
-                        "<p>Bonjour,</p><p>Le proforma <b>" + proforma.getNumero()
-                                + "</b> a été converti en facture <b>" + savedFacture.getNumero()
+                Long factureId = savedFacture.getId();
+                String factureNum = savedFacture.getNumero();
+                String proformaNum = proforma.getNumero();
+                mailDeliveryAsyncService.sendEmailWithPdfAttachmentAsync(
+                        email,
+                        "Votre facture " + factureNum,
+                        "<p>Bonjour,</p><p>Le proforma <b>" + proformaNum
+                                + "</b> a été converti en facture <b>" + factureNum
                                 + "</b>. Vous trouverez la facture en pièce jointe.</p><p>Cordialement.</p>",
-                        "Facture_" + savedFacture.getNumero() + ".pdf", pdfBytes, "application/pdf");
+                        "Facture_" + factureNum + ".pdf",
+                        () -> factureService.generatePdf(factureId),
+                        true
+                );
             }
         }
         if (savedFacture.getGarage() != null) {
