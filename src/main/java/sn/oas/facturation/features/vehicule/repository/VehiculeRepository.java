@@ -15,6 +15,7 @@ public interface VehiculeRepository extends JpaRepository<Vehicule, Long> {
     @Query("select v from Vehicule v join fetch v.client where v.id = :id")
     Optional<Vehicule> findByIdForOwnershipChange(@Param("id") Long id);
     Optional<Vehicule> findByImmatriculation(String immatriculation);
+    Optional<Vehicule> findByNumeroChassis(String numeroChassis);
     boolean existsByImmatriculation(String immatriculation);
     boolean existsByImmatriculationIgnoreCase(String immatriculation);
     boolean existsByNumeroChassis(String numeroChassis);

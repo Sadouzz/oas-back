@@ -186,6 +186,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
+    @ExceptionHandler({
+            org.springframework.web.context.request.async.AsyncRequestNotUsableException.class,
+            org.apache.catalina.connector.ClientAbortException.class
+    })
+    public void handleClientAbortException(Exception ex, HttpServletRequest request) {
+        log.debug("Connexion client interrompue (ClientAbort/ClosedChannel) sur {} : {}", request.getRequestURI(), ex.getMessage());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGlobalException(Exception ex, HttpServletRequest request) {
         log.error("Erreur interne inattendue sur {}: ", request.getRequestURI(), ex);

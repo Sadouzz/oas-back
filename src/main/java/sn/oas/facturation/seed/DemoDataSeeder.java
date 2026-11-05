@@ -331,7 +331,9 @@ public class DemoDataSeeder implements CommandLineRunner {
         List<Vehicule> result = new java.util.ArrayList<>();
         boolean createdAny = false;
         for (VSpec s : specs) {
-            Vehicule vehicule = vehiculeRepository.findByImmatriculation(s.immat()).orElse(null);
+            Vehicule vehicule = vehiculeRepository.findByImmatriculation(s.immat())
+                    .or(() -> vehiculeRepository.findByNumeroChassis(s.chassis()))
+                    .orElse(null);
             if (vehicule == null) {
                 vehicule = vehiculeRepository.save(Vehicule.builder()
                         .immatriculation(s.immat())
