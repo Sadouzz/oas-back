@@ -20,6 +20,7 @@ import sn.oas.facturation.shared.tenant.TenantListener;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Entity
@@ -70,11 +71,10 @@ public class OrdreTravail implements TenantAware {
     @Builder.Default
     private List<BonDeCommande> bonsDeCommande = new ArrayList<>();
 
-    @OneToMany(mappedBy = "ordreTravail", fetch = FetchType.LAZY)
-    @Builder.Default
+    @OneToOne(mappedBy = "ordreTravail", fetch = FetchType.LAZY)
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
-    private List<BonDeSortie> bonsDeSortie = new ArrayList<>();
+    private BonDeSortie bonDeSortie;
 
     @OneToMany(mappedBy = "ordreTravail", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
@@ -132,20 +132,29 @@ public class OrdreTravail implements TenantAware {
         this.garage = garage;
     }
 
-    public void addBonDeSortie(BonDeSortie bonDeSortie) {
+    public BonDeSortie getBonDeSortie() {
+        return this.bonDeSortie;
+    }
+
+    public void setBonDeSortie(BonDeSortie bonDeSortie) {
+        this.bonDeSortie = bonDeSortie;
         if (bonDeSortie != null) {
-            if (this.bonsDeSortie == null) {
-                this.bonsDeSortie = new ArrayList<>();
-            }
-            this.bonsDeSortie.add(bonDeSortie);
             bonDeSortie.setOrdreTravail(this);
         }
     }
 
+    public List<BonDeSortie> getBonsDeSortie() {
+        return this.bonDeSortie != null ? List.of(this.bonDeSortie) : Collections.emptyList();
+    }
+
+    public void addBonDeSortie(BonDeSortie bonDeSortie) {
+        setBonDeSortie(bonDeSortie);
+    }
+
     public void removeBonDeSortie(BonDeSortie bonDeSortie) {
-        if (bonDeSortie != null && this.bonsDeSortie != null) {
-            this.bonsDeSortie.remove(bonDeSortie);
-            bonDeSortie.setOrdreTravail(null);
+        if (this.bonDeSortie != null && this.bonDeSortie.equals(bonDeSortie)) {
+            this.bonDeSortie.setOrdreTravail(null);
+            this.bonDeSortie = null;
         }
     }
 

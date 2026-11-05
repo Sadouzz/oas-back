@@ -164,7 +164,6 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
                 .ordreReparation(ordreReparation)
                 .statut(request.getStatut() != null ? request.getStatut() : StatutOrdreTravail.RECAPITULATIF)
                 .bonsDeCommande(new ArrayList<>())
-                .bonsDeSortie(new ArrayList<>())
                 .lignesTechniciens(new ArrayList<>())
                 .build();
 
@@ -186,15 +185,14 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
             ordreTravail.getBonsDeCommande().addAll(bcs);
         }
 
-        // Ajout des bons de sortie
+        // Ajout du bon de sortie (un seul BS par OT)
         if (request.getBonDeSortieIds() != null && !request.getBonDeSortieIds().isEmpty()) {
-            List<BonDeSortie> bss = bonDeSortieRepository.findAllById(request.getBonDeSortieIds());
-            for (BonDeSortie bs : bss) {
-                ordreTravail.addBonDeSortie(bs);
+            if (request.getBonDeSortieIds().size() > 1) {
+                throw new BadRequestException("Un ordre de travail ne peut être associé qu'à un seul bon de sortie.");
             }
+            bonDeSortieRepository.findById(request.getBonDeSortieIds().get(0)).ifPresent(ordreTravail::addBonDeSortie);
         } else if (request.getBonDeSortieId() != null) {
             bonDeSortieRepository.findById(request.getBonDeSortieId()).ifPresent(ordreTravail::addBonDeSortie);
-
         }
 
         OrdreTravail saved = ordreTravailRepository.save(ordreTravail);
@@ -414,15 +412,14 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
         }
 
         if (request.getBonDeSortieIds() != null) {
+            if (request.getBonDeSortieIds().size() > 1) {
+                throw new BadRequestException("Un ordre de travail ne peut être associé qu'à un seul bon de sortie.");
+            }
             for (BonDeSortie oldBs : new ArrayList<>(ordreTravail.getBonsDeSortie())) {
                 ordreTravail.removeBonDeSortie(oldBs);
-
             }
             if (!request.getBonDeSortieIds().isEmpty()) {
-                List<BonDeSortie> bss = bonDeSortieRepository.findAllById(request.getBonDeSortieIds());
-                for (BonDeSortie bs : bss) {
-                    ordreTravail.addBonDeSortie(bs);
-                }
+                bonDeSortieRepository.findById(request.getBonDeSortieIds().get(0)).ifPresent(ordreTravail::addBonDeSortie);
             }
         } else if (request.getBonDeSortieId() != null) {
             for (BonDeSortie oldBs : new ArrayList<>(ordreTravail.getBonsDeSortie())) {

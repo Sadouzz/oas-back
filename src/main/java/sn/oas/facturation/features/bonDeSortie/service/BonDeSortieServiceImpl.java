@@ -112,6 +112,13 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
             throw new IllegalArgumentException("L'ordre de travail ne correspond pas au client, au véhicule ou à l'ordre de réparation sélectionné");
         }
 
+        if (fiche != null && bonDeSortieRepository.existsByOrdreReparationId(fiche.getId())) {
+            throw new IllegalArgumentException("Un bon de sortie existe déjà pour cet ordre de réparation (" + fiche.getNumero() + "). Un OR ne peut avoir qu'un seul bon de sortie.");
+        }
+        if (ot != null && bonDeSortieRepository.existsByOrdreTravailId(ot.getId())) {
+            throw new IllegalArgumentException("Un bon de sortie existe déjà pour cet ordre de travail (" + ot.getNumero() + "). Un OT ne peut avoir qu'un seul bon de sortie.");
+        }
+
         Proforma proformaAssocie = ot != null && ot.getProforma() != null ? ot.getProforma()
                 : (fiche != null ? fiche.getProforma() : null);
 

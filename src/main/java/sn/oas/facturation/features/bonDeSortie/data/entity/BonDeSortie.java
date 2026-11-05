@@ -90,17 +90,16 @@ public class BonDeSortie implements TenantAware  {
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Agent agentValidateur;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ordre_reparation_id", nullable = true)
-    @JsonIgnoreProperties({"bonsDeSortie", "hibernateLazyInitializer", "handler"})
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ordre_reparation_id", nullable = true, unique = true)
+    @JsonIgnoreProperties({"bonDeSortie", "bonsDeSortie", "hibernateLazyInitializer", "handler"})
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
-
     private OrdreReparation ordreReparation;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ordre_travail_id")
-    @JsonIgnoreProperties({"bonsDeSortie", "hibernateLazyInitializer", "handler"})
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ordre_travail_id", nullable = true, unique = true)
+    @JsonIgnoreProperties({"bonDeSortie", "bonsDeSortie", "hibernateLazyInitializer", "handler"})
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private OrdreTravail ordreTravail;

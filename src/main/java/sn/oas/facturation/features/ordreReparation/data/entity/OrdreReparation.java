@@ -23,6 +23,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.hibernate.annotations.CreationTimestamp;
@@ -129,13 +130,11 @@ public class OrdreReparation implements TenantAware  {
     @JsonIgnoreProperties({ "ordresReparation", "password", "authorities", "garage" })
     private List<Technicien> techniciensReparation = new ArrayList<>();
 
-    @OneToMany(mappedBy = "ordreReparation", fetch = FetchType.LAZY)
+    @OneToOne(mappedBy = "ordreReparation", fetch = FetchType.LAZY)
     @JsonIgnoreProperties("ordreReparation")
-    @Builder.Default
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
-
-    private List<BonDeSortie> bonsDeSortie = new ArrayList<>();
+    private BonDeSortie bonDeSortie;
 
     @OneToOne(mappedBy = "ordreReparation", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnoreProperties("ordreReparation")
@@ -194,37 +193,28 @@ public class OrdreReparation implements TenantAware  {
     }
 
     public BonDeSortie getBonDeSortie() {
-        return (this.bonsDeSortie != null && !this.bonsDeSortie.isEmpty()) ? this.bonsDeSortie.get(0) : null;
+        return this.bonDeSortie;
     }
 
     public void setBonDeSortie(BonDeSortie bonDeSortie) {
-        if (this.bonsDeSortie == null) {
-            this.bonsDeSortie = new ArrayList<>();
-        }
+        this.bonDeSortie = bonDeSortie;
         if (bonDeSortie != null) {
-            if (!this.bonsDeSortie.contains(bonDeSortie)) {
-                this.bonsDeSortie.add(bonDeSortie);
-            }
             bonDeSortie.setOrdreReparation(this);
         }
+    }
+
+    public List<BonDeSortie> getBonsDeSortie() {
+        return this.bonDeSortie != null ? List.of(this.bonDeSortie) : Collections.emptyList();
     }
 
     public void addBonDeSortie(BonDeSortie bonDeSortie) {
-        if (bonDeSortie != null) {
-            if (this.bonsDeSortie == null) {
-                this.bonsDeSortie = new ArrayList<>();
-            }
-            if (!this.bonsDeSortie.contains(bonDeSortie)) {
-                this.bonsDeSortie.add(bonDeSortie);
-            }
-            bonDeSortie.setOrdreReparation(this);
-        }
+        setBonDeSortie(bonDeSortie);
     }
 
     public void removeBonDeSortie(BonDeSortie bonDeSortie) {
-        if (bonDeSortie != null && this.bonsDeSortie != null) {
-            this.bonsDeSortie.remove(bonDeSortie);
-            bonDeSortie.setOrdreReparation(null);
+        if (this.bonDeSortie != null && this.bonDeSortie.equals(bonDeSortie)) {
+            this.bonDeSortie.setOrdreReparation(null);
+            this.bonDeSortie = null;
         }
     }
 }

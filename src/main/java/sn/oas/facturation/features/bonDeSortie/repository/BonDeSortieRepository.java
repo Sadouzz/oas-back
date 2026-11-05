@@ -18,6 +18,11 @@ import java.util.Optional;
 @Repository
 public interface BonDeSortieRepository extends JpaRepository<BonDeSortie, Long> {
 
+    boolean existsByOrdreReparationId(Long ordreReparationId);
+    boolean existsByOrdreTravailId(Long ordreTravailId);
+    Optional<BonDeSortie> findFirstByOrdreReparationIdOrderByIdDesc(Long ordreReparationId);
+    Optional<BonDeSortie> findFirstByOrdreTravailIdOrderByIdDesc(Long ordreTravailId);
+
     Optional<BonDeSortie> findByReference(String reference);
     List<BonDeSortie> findByProformaId(Long proformaId);
     Optional<BonDeSortie> findTopByProformaIdOrderByIdDesc(Long proformaId);
