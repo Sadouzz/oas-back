@@ -3,6 +3,8 @@ package sn.oas.facturation.seed;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import sn.oas.facturation.features.blog.data.entity.BlogPost;
 import sn.oas.facturation.features.blog.repository.BlogPostRepository;
@@ -12,8 +14,10 @@ import java.util.Arrays;
 import java.util.List;
 
 @Component
+@Profile("dev")
 @RequiredArgsConstructor
 @Slf4j
+@Order(2)
 public class BlogDataSeeder implements CommandLineRunner {
 
     private final BlogPostRepository blogPostRepository;

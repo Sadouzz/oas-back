@@ -276,7 +276,7 @@ public class FactureServiceImpl implements FactureService {
                     "Votre facture et lien de paiement",
                     "<p>Bonjour,</p><p>Votre facture <b>" + numFacture + "</b> a été générée. Vous pouvez la trouver en pièce jointe.</p><p>Veuillez procéder au paiement depuis votre espace client pour récupérer votre véhicule.</p><p>Cordialement.</p>",
                     "facture_" + numFacture + ".pdf",
-                    () -> generatePdf(factureId),
+                    () -> generatePdf(factureId, "AVEC_ENTETE"),
                     true
             );
         }
@@ -454,7 +454,7 @@ public class FactureServiceImpl implements FactureService {
                     "Votre facture et lien de paiement",
                     "<p>Bonjour,</p><p>Votre facture <b>" + numFacture + "</b> a été générée. Vous pouvez la trouver en pièce jointe.</p><p>Veuillez procéder au paiement depuis votre espace client pour récupérer votre véhicule.</p><p>Cordialement.</p>",
                     "facture_" + numFacture + ".pdf",
-                    () -> generatePdf(factureId),
+                    () -> generatePdf(factureId, "AVEC_ENTETE"),
                     true
             );
         }

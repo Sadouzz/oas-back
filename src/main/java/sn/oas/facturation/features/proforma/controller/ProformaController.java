@@ -155,11 +155,12 @@ public class ProformaController {
 
     @GetMapping("/me/{id}/pdf")
     @Operation(summary = "Télécharger le PDF d'un proforma visible du client connecté")
-    public ResponseEntity<byte[]> downloadMyProformaPdf(@PathVariable Long id) {
+    public ResponseEntity<byte[]> downloadMyProformaPdf(@PathVariable Long id,
+            @RequestParam(defaultValue = "AVEC_ENTETE") String layoutKey) {
         Client client = clientService.getClientConnecte();
         var proforma = proformaService.getById(id);
         assertClientCanAccess(client, proforma);
-        byte[] pdfBytes = proformaService.generatePdf(id);
+        byte[] pdfBytes = proformaService.generatePdf(id, layoutKey);
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_PDF)
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"Proforma-" + proforma.getNumero() + ".pdf\"")
                 .body(pdfBytes);

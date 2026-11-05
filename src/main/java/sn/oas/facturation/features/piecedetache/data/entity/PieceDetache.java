@@ -32,7 +32,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
     @UniqueConstraint(name = "uk_pieces_garage_reference", columnNames = {"garage_id", "numero_serie"})
 })
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
-@DiscriminatorColumn(name = "type", discriminatorType = DiscriminatorType.STRING)
+@DiscriminatorColumn(name = "type_piece", discriminatorType = DiscriminatorType.STRING)
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 @Data
 @SuperBuilder
@@ -53,8 +53,7 @@ public abstract class PieceDetache implements TenantAware {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "type", insertable = false, updatable = false)
+    @Transient
     private TypePiece type;
 
     @Column(name = "numero")

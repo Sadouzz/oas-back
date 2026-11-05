@@ -175,11 +175,12 @@ public class DevisPrevisionnelController {
 
     @GetMapping("/me/{id}/pdf")
     @Operation(summary = "Télécharger le PDF d'un devis prévisionnel du client connecté")
-    public ResponseEntity<byte[]> downloadMyDevisPdf(@PathVariable Long id) {
+    public ResponseEntity<byte[]> downloadMyDevisPdf(@PathVariable Long id,
+            @RequestParam(defaultValue = "AVEC_ENTETE") String layoutKey) {
         Client client = clientService.getClientConnecte();
         DevisPrevisionnel devis = devisPrevisionnelService.getById(id);
         assertClientOwns(client, devis);
-        byte[] pdfBytes = devisPrevisionnelService.generatePdf(id);
+        byte[] pdfBytes = devisPrevisionnelService.generatePdf(id, layoutKey);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
         headers.set(HttpHeaders.CONTENT_DISPOSITION,

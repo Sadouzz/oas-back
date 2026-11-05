@@ -5,6 +5,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.stereotype.Repository;
 import sn.oas.facturation.features.ordreTravail.data.entity.OrdreTravail;
 
@@ -13,6 +15,10 @@ import java.util.Optional;
 
 @Repository
 public interface OrdreTravailRepository extends JpaRepository<OrdreTravail, Long> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT ot FROM OrdreTravail ot WHERE ot.id = :id")
+    Optional<OrdreTravail> findByIdForUpdate(@Param("id") Long id);
 
     Optional<OrdreTravail> findByNumero(String numero);
 

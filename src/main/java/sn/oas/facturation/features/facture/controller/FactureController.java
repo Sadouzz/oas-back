@@ -108,13 +108,14 @@ public class FactureController {
 
     @GetMapping("/me/{id}/pdf")
     @Operation(summary = "Télécharger le PDF d'une facture du client connecté")
-    public ResponseEntity<byte[]> downloadMyFacturePdf(@PathVariable Long id) {
+    public ResponseEntity<byte[]> downloadMyFacturePdf(@PathVariable Long id,
+            @RequestParam(defaultValue = "AVEC_ENTETE") String layoutKey) {
         Client client = clientService.getClientConnecte();
         var facture = factureService.getById(id);
         if (facture.getClient() == null || !facture.getClient().getId().equals(client.getId())) {
             throw new ForbiddenException("Accès non autorisé à cette facture");
         }
-        return pdfResponse(id, null);
+        return pdfResponse(id, layoutKey);
     }
 
     private ResponseEntity<byte[]> pdfResponse(Long id, String layoutKey) {
