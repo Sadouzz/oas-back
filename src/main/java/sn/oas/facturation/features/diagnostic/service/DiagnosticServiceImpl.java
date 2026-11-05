@@ -39,6 +39,7 @@ import com.lowagie.text.FontFactory;
 import com.lowagie.text.Paragraph;
 
 import com.lowagie.text.pdf.PdfWriter;
+import sn.oas.facturation.features.pdfGenerator.service.OasBrandedPdfPageEvent;
 import sn.oas.facturation.features.notification.service.EmailService;
 import sn.oas.facturation.features.notification.service.NotificationService;
 import lombok.extern.slf4j.Slf4j;
@@ -434,7 +435,8 @@ public class DiagnosticServiceImpl implements DiagnosticService {
         Document document = new Document();
 
         try {
-            PdfWriter.getInstance(document, baos);
+            PdfWriter writer = PdfWriter.getInstance(document, baos);
+            writer.setPageEvent(new OasBrandedPdfPageEvent());
             document.open();
 
             Font fontTitre = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18);

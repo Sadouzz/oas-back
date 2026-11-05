@@ -108,6 +108,10 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
         if (request == null) {
             throw new BadRequestException("Les données de l'ordre de travail sont obligatoires");
         }
+        if ((request.getBonDeSortieIds() != null && !request.getBonDeSortieIds().isEmpty())
+                || request.getBonDeSortieId() != null) {
+            throw new IllegalArgumentException("Le bon de sortie est créé depuis son OT et ne peut pas être pré-rattaché.");
+        }
 
         Agent agent = null;
         try {
@@ -374,6 +378,17 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
     public OrdreTravailResponseDto modifier(Long id, OrdreTravailRequest request) {
         OrdreTravail ordreTravail = getEntityById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Ordre de travail introuvable avec l'id : " + id));
+
+        if (request.getBonDeSortieIds() != null || request.getBonDeSortieId() != null) {
+            List<Long> bonsDemandes = request.getBonDeSortieIds() != null
+                    ? request.getBonDeSortieIds()
+                    : List.of(request.getBonDeSortieId());
+            List<Long> bonsActuels = ordreTravail.getBonsDeSortie() == null ? List.of()
+                    : ordreTravail.getBonsDeSortie().stream().map(BonDeSortie::getId).distinct().toList();
+            if (bonsDemandes.size() > 1 || !new java.util.HashSet<>(bonsDemandes).equals(new java.util.HashSet<>(bonsActuels))) {
+                throw new IllegalArgumentException("Le bon de sortie est géré depuis l'ordre de travail et ne peut pas être remplacé ou détaché.");
+            }
+        }
 
         if (request.getClientId() != null) {
             Client client = userService.getClientById(request.getClientId());

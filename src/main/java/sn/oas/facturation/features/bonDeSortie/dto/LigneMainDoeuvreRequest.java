@@ -8,7 +8,6 @@ public record LigneMainDoeuvreRequest(
         Integer nbreHeure,
         @JsonAlias({"prix", "price", "prixUnitaire", "tarif", "tauxHoraire"})
         Double tarifHoraire,
-        Double tauxRemise,
         String designation
 ) {
     public Integer getEffectiveHeures() {

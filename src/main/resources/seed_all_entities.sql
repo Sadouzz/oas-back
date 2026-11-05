@@ -1,34 +1,37 @@
 -- ============================================================================
 -- SCRIPT DE PEUPLEMENT COHERENT DE TOUTES LES ENTITES - OAS FACTURATION
 -- ============================================================================
--- Ce script peuple de maniere idempotente et interconnectee les 39 entites
--- restantes de la base de donnees OAS (portant le total a 50 entites).
--- Les relations font reference aux Garages (1, 2), Utilisateurs/Agents (1-7),
--- Clients (8-13), Techniciens (14-18), Vehicules (1-9), Fiches Atelier (1-2),
--- et Articles de Blog (1-8).
+-- Ce script peuple les modules métier liés de manière idempotente.
+-- Il complète les garages, utilisateurs, clients, techniciens, véhicules,
+-- fiches d'atelier et articles créés auparavant par les seeders Java.
+BEGIN;
 
 INSERT INTO depots (id, nom, description, garage_id)
 VALUES 
   (1, 'Magasin Central Dakar', 'Magasin principal de stockage des pièces neuves et consommables - OAS Dakar', 1),
   (2, 'Atelier Rapide Dakar', 'Stock tampon de l''atelier mécanique pour entretien courant et pièces de rotation', 1),
-  (3, 'Magasin Thiès', 'Dépôt régional - OAS Thiès pour pièces détachées et pneumatiques', 2),
+  (3, 'Magasin Saly', 'Dépôt régional - OAS Saly pour pièces détachées et pneumatiques', 2),
   (4, 'PDG', 'Dépôt automatique pour pièces déjà générées (PDG) - OAS Dakar', 1),
   (5, 'PDG', 'Dépôt automatique pour pièces déjà générées (PDG) - OAS Saly', 2)
 ON CONFLICT (id) DO NOTHING;
 SELECT setval(pg_get_serial_sequence('depots', 'id'), GREATEST((SELECT MAX(id) FROM depots), 10));
 
 -- 2. CATEGORIES DE PIECES
-INSERT INTO categories (id, nom, depot_id, garage_id)
+INSERT INTO categories (id, nom, garage_id)
 VALUES
-  (1, 'Freinage', 1, 1),
-  (2, 'Filtration & Huiles', 1, 1),
-  (3, 'Embrayage & Transmission', 1, 1),
-  (4, 'Suspension & Direction', 1, 1),
-  (5, 'Électricité & Batterie', 1, 1),
-  (6, 'Carrosserie & Éclairage', 2, 1),
-  (7, 'Pneumatiques', 3, 2)
+  (1, 'Freinage', 1),
+  (2, 'Filtration & Huiles', 1),
+  (3, 'Embrayage & Transmission', 1),
+  (4, 'Suspension & Direction', 1),
+  (5, 'Électricité & Batterie', 1),
+  (6, 'Carrosserie & Éclairage', 1),
+  (7, 'Pneumatiques', 2)
 ON CONFLICT (id) DO NOTHING;
 SELECT setval(pg_get_serial_sequence('categories', 'id'), GREATEST((SELECT MAX(id) FROM categories), 10));
+
+INSERT INTO depot_categories (categorie_id, depot_id)
+VALUES (1, 1), (2, 1), (3, 1), (4, 1), (5, 1), (6, 2), (7, 3)
+ON CONFLICT DO NOTHING;
 
 -- 3. PIECES DETACHEES (PDP, PDG, PDS)
 -- numero_serie = reference unique catalogue
@@ -78,8 +81,8 @@ VALUES
   (8, 1, 8, 8, 'Rayon D-01 (Batteries)', NOW() - INTERVAL '4 days'),
   (9, 1, 9, 6, 'Rayon D-03 (Suspension)', NOW() - INTERVAL '2 days'),
   (10, 1, 10, 5, 'Zone Gros-01 (Palettes)', NOW() - INTERVAL '1 day'),
-  (11, 2, 11, 2, 'Rayon T-02 (Injection Thiès)', NOW() - INTERVAL '1 day'),
-  (12, 2, 12, 14, 'Rack Pneus-01 (Thiès)', NOW() - INTERVAL '3 days')
+  (11, 2, 11, 2, 'Rayon T-02 (Injection Saly)', NOW() - INTERVAL '1 day'),
+  (12, 2, 12, 14, 'Rack Pneus-01 (Saly)', NOW() - INTERVAL '3 days')
 ON CONFLICT (id) DO NOTHING;
 SELECT setval(pg_get_serial_sequence('stock_garage', 'id'), GREATEST((SELECT MAX(id) FROM stock_garage), 20));
 
@@ -143,7 +146,7 @@ VALUES
   (1, 'FO-2026-0001', 'CFAO Motors Sénégal', 'Diouf', 'Ousmane', 1, false, NOW() - INTERVAL '60 days', NOW()),
   (2, 'FO-2026-0002', 'SenPièces Auto Dakar', 'Ndiaye', 'Babacar', 1, false, NOW() - INTERVAL '60 days', NOW()),
   (3, 'FO-2026-0003', 'TotalEnergies Sénégal', 'Fall', 'Seydou', 1, false, NOW() - INTERVAL '60 days', NOW()),
-  (4, 'FO-2026-0004', 'Comptoir Général de Thiès', 'Sow', 'Moustapha', 2, false, NOW() - INTERVAL '60 days', NOW())
+  (4, 'FO-2026-0004', 'Comptoir Général de Saly', 'Sow', 'Moustapha', 2, false, NOW() - INTERVAL '60 days', NOW())
 ON CONFLICT (id) DO NOTHING;
 SELECT setval(pg_get_serial_sequence('fournisseur', 'id'), GREATEST((SELECT MAX(id) FROM fournisseur), 10));
 
@@ -175,7 +178,7 @@ INSERT INTO bons_de_commande (
   (2, NOW() - INTERVAL '22 days', NOW() - INTERVAL '20 days', 305000.0, 54900.0, 359900.0, 
    'BC-2026-0002', 'Pièces spécifiques embrayage Sportage et volant moteur', true, 'RECU', true, 5, 2, 1, 6),
   (3, NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days', 130000.0, 23400.0, 153400.0, 
-   'BC-2026-0003', 'Commande injecteurs reconditionnés Thiès', false, 'ENVOYE', true, 6, 4, 2, 5)
+   'BC-2026-0003', 'Commande injecteurs reconditionnés Saly', false, 'ENVOYE', true, 6, 4, 2, 5)
 ON CONFLICT (id) DO NOTHING;
 SELECT setval(pg_get_serial_sequence('bons_de_commande', 'id'), GREATEST((SELECT MAX(id) FROM bons_de_commande), 10));
 
@@ -217,6 +220,17 @@ INSERT INTO ordres_reparation (
 ON CONFLICT (id) DO NOTHING;
 SELECT setval(pg_get_serial_sequence('ordres_reparation', 'id'), GREATEST((SELECT MAX(id) FROM ordres_reparation), 10));
 
+-- Diagnostics structurés rattachés aux trois ordres de réparation
+INSERT INTO diagnostics (
+  id, garage_id, ordre_reparation_id, technicien_id, observations, pannes_detectees,
+  recommandations, kilometrage, statut, date_debut, date_fin, created_at, updated_at
+) VALUES
+  (1, 1, 1, 14, 'Contrôle du système de freinage effectué sur banc.', 'Plaquettes avant proches de la limite d’usure.', 'Remplacer les plaquettes et purger le circuit.', 21000, 'TERMINE', NOW() - INTERVAL '2 days', NOW() - INTERVAL '1 day', NOW() - INTERVAL '2 days', NOW() - INTERVAL '1 day'),
+  (2, 1, 2, 15, 'Contrôle de l’embrayage et du volant moteur.', 'Patinage en charge et jeu anormal de la butée.', 'Remplacer le kit d’embrayage et le volant moteur.', 95000, 'VALIDE', NOW() - INTERVAL '10 days', NOW() - INTERVAL '9 days', NOW() - INTERVAL '10 days', NOW() - INTERVAL '9 days'),
+  (3, 2, 3, 18, 'Lecture des codes défaut et contrôle des injecteurs.', 'Codes défaut P0201 et P0203 relevés.', 'Contrôler les injecteurs concernés avant remplacement.', 9800, 'EN_COURS', NOW() - INTERVAL '1 day', NULL, NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day')
+ON CONFLICT (id) DO NOTHING;
+SELECT setval(pg_get_serial_sequence('diagnostics', 'id'), GREATEST((SELECT MAX(id) FROM diagnostics), 3));
+
 -- 14. FICHE MECANICIENS & REPARATION
 INSERT INTO fiche_mecaniciens (fiche_id, mecanicien_id)
 SELECT v.fiche_id, v.mecanicien_id FROM (VALUES (1, 14), (2, 14), (2, 15), (3, 18)) AS v(fiche_id, mecanicien_id)
@@ -254,21 +268,21 @@ ON CONFLICT (id) DO NOTHING;
 SELECT setval(pg_get_serial_sequence('lignes_ordre_reparation_main_doeuvre', 'id'), GREATEST((SELECT MAX(id) FROM lignes_ordre_reparation_main_doeuvre), 10));
 
 -- 17. REMARQUES DIAGNOSTIC
-INSERT INTO remarques_diagnostic (id, ordre_reparation_id, technicien_id, contenu, created_at)
+INSERT INTO remarques_diagnostic (id, diagnostic_id, ordre_reparation_id, technicien_id, contenu, created_at)
 VALUES
-  (1, 1, 14, 'Plaquettes arrivées au témoin d''usure. Disques avant encore en bon état (épaisseur 24.2mm, minimum 22mm). Purge recommandée.', NOW() - INTERVAL '1 day'),
-  (2, 2, 14, 'Butée d''embrayage complètement grippée ayant endommagé le diaphragme. Jeu axial important constaté sur le volant bi-masse.', NOW() - INTERVAL '9 days'),
-  (3, 3, 18, 'Codes défauts DTC P0201 et P0203 relevés : anomalies débit injecteurs cylindres 1 et 3.', NOW() - INTERVAL '1 day')
-ON CONFLICT (id) DO NOTHING;
+  (1, 1, 1, 14, 'Plaquettes arrivées au témoin d''usure. Disques avant encore en bon état (épaisseur 24.2mm, minimum 22mm). Purge recommandée.', NOW() - INTERVAL '1 day'),
+  (2, 2, 2, 14, 'Butée d''embrayage complètement grippée ayant endommagé le diaphragme. Jeu axial important constaté sur le volant bi-masse.', NOW() - INTERVAL '9 days'),
+  (3, 3, 3, 18, 'Codes défauts DTC P0201 et P0203 relevés : anomalies débit injecteurs cylindres 1 et 3.', NOW() - INTERVAL '1 day')
+ON CONFLICT (id) DO UPDATE SET diagnostic_id = EXCLUDED.diagnostic_id;
 SELECT setval(pg_get_serial_sequence('remarques_diagnostic', 'id'), GREATEST((SELECT MAX(id) FROM remarques_diagnostic), 10));
 
 -- 18. PIECES JOINTES DIAGNOSTIC
-INSERT INTO pieces_jointes_diagnostic (id, ordre_reparation_id, technicien_id, type, url, remarque, created_at)
+INSERT INTO pieces_jointes_diagnostic (id, diagnostic_id, ordre_reparation_id, technicien_id, type, url, remarque, created_at)
 VALUES
-  (1, 1, 14, 'PHOTO', 'https://res.cloudinary.com/oas/diag/plaquettes_usees_corolla.jpg', 'Garniture usée plaquette intérieure gauche', NOW() - INTERVAL '1 day'),
-  (2, 2, 14, 'PHOTO', 'https://res.cloudinary.com/oas/diag/butee_embrayage_grippee.jpg', 'Disque d''embrayage usé jusqu''aux rivets', NOW() - INTERVAL '9 days'),
-  (3, 3, 18, 'PDF', 'https://res.cloudinary.com/oas/diag/rapport_valise_tucson.pdf', 'Rapport de scan complet calculateur Delphi', NOW() - INTERVAL '1 day')
-ON CONFLICT (id) DO NOTHING;
+  (1, 1, 1, 14, 'PHOTO', 'https://res.cloudinary.com/oas/diag/plaquettes_usees_corolla.jpg', 'Garniture usée plaquette intérieure gauche', NOW() - INTERVAL '1 day'),
+  (2, 2, 2, 14, 'PHOTO', 'https://res.cloudinary.com/oas/diag/butee_embrayage_grippee.jpg', 'Disque d''embrayage usé jusqu''aux rivets', NOW() - INTERVAL '9 days'),
+  (3, 3, 3, 18, 'PDF', 'https://res.cloudinary.com/oas/diag/rapport_valise_tucson.pdf', 'Rapport de scan complet calculateur Delphi', NOW() - INTERVAL '1 day')
+ON CONFLICT (id) DO UPDATE SET diagnostic_id = EXCLUDED.diagnostic_id;
 SELECT setval(pg_get_serial_sequence('pieces_jointes_diagnostic', 'id'), GREATEST((SELECT MAX(id) FROM pieces_jointes_diagnostic), 10));
 
 -- 19. BONS DE SORTIE
@@ -323,6 +337,28 @@ INSERT INTO proformas (
    'Proforma révision injecteurs Tucson', 210000.0, 37800.0, 0.0, 247800.0, 247800.0, true, 6, 2, 3, NULL)
 ON CONFLICT (id) DO NOTHING;
 
+-- 22. ORDRES DE TRAVAIL : continuité entre les proformas, OR et BS
+INSERT INTO ordres_travail (
+  id, numero, garage_id, client_id, vehicule_id, proforma_id, ordre_reparation_id,
+  statut, rapport_reparation, date_fin_reparation, date_sortie, kilometrage_sortie,
+  remarques_preparation, remarques_client, created_at, updated_at
+) VALUES
+  (1, 'OT-2026-0001', 1, 9, 2, 101, 1, 'TERMINE',
+   'Remplacement des plaquettes avant et purge du circuit de freinage.',
+   NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day', 21000,
+   'Pièces contrôlées avant intervention.', 'Véhicule remis après essai routier.', NOW() - INTERVAL '2 days', NOW() - INTERVAL '1 day'),
+  (2, 'OT-2026-0002', 1, 12, 6, 102, 2, 'TERMINE',
+   'Remplacement du kit embrayage et du volant moteur.',
+   NOW() - INTERVAL '8 days', NOW() - INTERVAL '8 days', 95000,
+   'Réparation contrôlée par le chef d’atelier.', 'Essai routier effectué avant remise.', NOW() - INTERVAL '10 days', NOW() - INTERVAL '8 days')
+ON CONFLICT (id) DO NOTHING;
+SELECT setval(pg_get_serial_sequence('ordres_travail', 'id'), GREATEST((SELECT MAX(id) FROM ordres_travail), 2));
+
+INSERT INTO lignes_technicien_ordre_travail (id, ordre_travail_id, technicien_id)
+VALUES (1, 1, 14), (2, 2, 15)
+ON CONFLICT (id) DO NOTHING;
+SELECT setval(pg_get_serial_sequence('lignes_technicien_ordre_travail', 'id'), GREATEST((SELECT MAX(id) FROM lignes_technicien_ordre_travail), 2));
+
 -- B. BONS DE RECEPTION
 INSERT INTO bons_de_reception (
   id, numero, statut, date_creation, date_modification, kilometrage, remarque, 
@@ -335,19 +371,38 @@ INSERT INTO bons_de_reception (
    'Réception kit embrayage et volant moteur SenPièces', 305000.0, 54900.0, 0.0, 359900.0, 359900.0, 5, 1, 2, 2)
 ON CONFLICT (id) DO NOTHING;
 
--- C. FACTURES
+-- C. BONS DE LIVRAISON : chaque livraison reprend l'OR, le BS et les montants du document facturé
+INSERT INTO bons_de_livraison (
+  id, numero, statut, date_creation, date_modification, kilometrage, remarque,
+  montant_ht, montant_tva, montant_timbre, montant_ttc, montant_total,
+  agent_id, garage_id, ordre_reparation_id, client_id, vehicule_id,
+  tva_applicable, taux_remise_client, montant_remise_client
+) VALUES
+  (111, 'BL-2026-0001', 'CONVERTIE', NOW() - INTERVAL '8 days', NOW() - INTERVAL '8 days', 95000,
+   'Livraison après remplacement du kit embrayage et du volant moteur.',
+   550000, 99000, 0, 649000, 649000, 4, 1, 2, 12, 6, true, 0, 0),
+  (112, 'BL-2026-0002', 'CONVERTIE', NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day', 21000,
+   'Livraison après remplacement des plaquettes avant.',
+   52000, 9360, 0, 61360, 61360, 4, 1, 1, 9, 2, true, 0, 0)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO bons_de_livraison_bons_de_sortie (bon_de_livraison_id, bon_de_sortie_id)
+VALUES (111, 2), (112, 1)
+ON CONFLICT DO NOTHING;
+
+-- D. FACTURES
 INSERT INTO factures (
   id, numero, statut, statut_paiement, date_creation, date_modification, kilometrage, remarque, 
   montant_ht, montant_tva, montant_timbre, montant_ttc, montant_total, montant_autre, 
   montant_paye, reste_a_payer, numero_bon_de_commande, agent_id, garage_id, 
-  ordre_reparation_id, bon_de_commande_id, client_id, vehicule_id
+  ordre_reparation_id, bon_de_commande_id, client_id, vehicule_id, proforma_id, bon_de_livraison_id
 ) VALUES
   (106, 'FC-2026-0001', 'PAYEE', 'PAYE', NOW() - INTERVAL '8 days', NOW() - INTERVAL '8 days', 95000.0, 
    'Facture soldée par chèque de banque', 550000.0, 99000.0, 0.0, 649000.0, 649000.0, 0.0, 
-   649000.0, 0.0, 'BC-2026-0002', 4, 1, 2, NULL, 12, 6),
+   649000.0, 0.0, 'BC-2026-0002', 4, 1, 2, NULL, 12, 6, 102, 111),
   (107, 'FC-2026-0002', 'PARTIELLEMENT_PAYEE', 'PARTIEL', NOW() - INTERVAL '1 day', NOW() - INTERVAL '1 day', 21000.0, 
    'Acompte versé en espèces, solde à la livraison', 52000.0, 9360.0, 0.0, 61360.0, 61360.0, 0.0, 
-   30000.0, 31360.0, NULL, 4, 1, 1, NULL, 9, 2)
+   30000.0, 31360.0, NULL, 4, 1, 1, NULL, 9, 2, 101, 112)
 ON CONFLICT (id) DO NOTHING;
 
 -- D. NOTES DE PRIX
@@ -423,7 +478,31 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 SELECT setval(pg_get_serial_sequence('recus', 'id'), GREATEST((SELECT MAX(id) FROM recus), 10));
 
--- 26. DEVIS PREVISIONNELS
+-- 26. CONFIGURATION FISCALE ET PORTEFEUILLES PRÉPAYÉS DE DÉMONSTRATION
+INSERT INTO fiscal_configuration (
+  id, other_tax_fixed_amount, other_tax_rate, timbre_fiscal, tva_rate, timbre_fiscal_rate
+)
+VALUES (1, 0.00, 0.0000, 0.00, 18.0000, 1.0000)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO portefeuilles_clients (
+  id, client_id, garage_id, solde, version, date_creation, date_modification
+) VALUES
+  (1, 8, 1, 25000.00, 0, NOW() - INTERVAL '3 days', NOW() - INTERVAL '3 days'),
+  (2, 9, 1, 40000.00, 0, NOW() - INTERVAL '2 days', NOW() - INTERVAL '2 days')
+ON CONFLICT (id) DO NOTHING;
+SELECT setval(pg_get_serial_sequence('portefeuilles_clients', 'id'), GREATEST((SELECT MAX(id) FROM portefeuilles_clients), 2));
+
+INSERT INTO mouvements_portefeuille_client (
+  id, portefeuille_id, type, montant, mode_paiement, commentaire, acteur_id,
+  facture_id, recu_id, date_creation
+) VALUES
+  (1, 1, 'ALIMENTATION', 25000.00, 'WAVE', 'Recharge de démonstration enregistrée à Dakar.', 1, NULL, NULL, NOW() - INTERVAL '3 days'),
+  (2, 2, 'ALIMENTATION', 40000.00, 'ESPECE', 'Recharge de démonstration enregistrée au comptoir.', 1, NULL, NULL, NOW() - INTERVAL '2 days')
+ON CONFLICT (id) DO NOTHING;
+SELECT setval(pg_get_serial_sequence('mouvements_portefeuille_client', 'id'), GREATEST((SELECT MAX(id) FROM mouvements_portefeuille_client), 2));
+
+-- 27. DEVIS PREVISIONNELS
 -- StatutFacturation ordinal : 0=EN_ATTENTE, 1=ACCEPTE, 2=REJETE, 3=PAYEE, 4=PARTIELLEMENT_PAYEE, 5=ANNULEE
 INSERT INTO devis_previsionnels (
   id, numero, date_creation, kilometrage_vehicule, montant_total, notes_reparation, 
@@ -438,7 +517,7 @@ INSERT INTO devis_previsionnels (
 ON CONFLICT (id) DO NOTHING;
 SELECT setval(pg_get_serial_sequence('devis_previsionnels', 'id'), GREATEST((SELECT MAX(id) FROM devis_previsionnels), 10));
 
--- 27. MARKETPLACE PRODUITS
+-- 28. MARKETPLACE PRODUITS
 INSERT INTO marketplace_produits (id, nom, description, prix, disponible, archive, media_url)
 VALUES
   (1, 'Pack Entretien Moteur Total Quartz 5W30 + Filtre Bosch', 
@@ -456,7 +535,7 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 SELECT setval(pg_get_serial_sequence('marketplace_produits', 'id'), GREATEST((SELECT MAX(id) FROM marketplace_produits), 10));
 
--- 28. MARKETPLACE DEMANDES
+-- 29. MARKETPLACE DEMANDES
 -- StatutDemandeProduit ordinal : 0=EN_ATTENTE, 1=ACCEPTEE, 2=REFUSEE, 3=COMMANDEE, 4=ANNULEE, 5=LIVREE
 INSERT INTO marketplace_demandes (
   id, numero, client_id, produit_id, garage_id, quantite, statut, message, date_creation
@@ -467,38 +546,38 @@ INSERT INTO marketplace_demandes (
 ON CONFLICT (id) DO NOTHING;
 SELECT setval(pg_get_serial_sequence('marketplace_demandes', 'id'), GREATEST((SELECT MAX(id) FROM marketplace_demandes), 10));
 
--- 29. NOTIFICATIONS CLIENTS
+-- 30. NOTIFICATIONS CLIENTS
 INSERT INTO notifications (id, client_id, titre, message, lu, date_creation)
 VALUES
   (1, 9, 'Diagnostic terminé', 'Le diagnostic de votre Toyota Corolla DK-4471-CD est terminé. Veuillez consulter le devis proforma PF-2026-0001.', true, NOW() - INTERVAL '1 day'),
   (2, 12, 'Véhicule prêt pour livraison', 'Les travaux sur votre Kia Sportage DK-7745-KL sont terminés avec succès. Votre facture FC-2026-0001 est disponible.', true, NOW() - INTERVAL '8 days'),
   (3, 8, 'Demande produit validée', 'Votre commande pour 2 Pack Entretien Moteur a été validée par OAS Dakar.', false, NOW() - INTERVAL '3 days'),
-  (4, 11, 'Rendez-vous confirmé', 'Votre rendez-vous du vendredi pour le contrôle voyant moteur à Thiès a été confirmé.', false, NOW() - INTERVAL '1 day')
+  (4, 11, 'Rendez-vous confirmé', 'Votre rendez-vous du vendredi pour le contrôle voyant moteur à Saly a été confirmé.', false, NOW() - INTERVAL '1 day')
 ON CONFLICT (id) DO NOTHING;
 SELECT setval(pg_get_serial_sequence('notifications', 'id'), GREATEST((SELECT MAX(id) FROM notifications), 10));
 
--- 30. NOTIFICATIONS AGENTS
+-- 31. NOTIFICATIONS AGENTS
 INSERT INTO agent_notifications (id, agent_id, titre, message, lu, date_creation)
 VALUES
   (1, 3, 'Nouvelle Fiche Atelier', 'Fiche Atelier créée pour la Toyota Corolla DK-4471-CD (Khadija Sarr). Diagnostic requis.', true, NOW() - INTERVAL '2 days'),
   (2, 1, 'Bon de Sortie en attente', 'Le bon de sortie BS-2026-0001 attend votre validation pour sortie de stock.', true, NOW() - INTERVAL '1 day'),
   (3, 5, 'Alerte Seuil Minimum Stock', 'Le stock de Volant moteur bi-masse (LUK-DMF-41502) a atteint 3 unités (seuil : 2).', false, NOW() - INTERVAL '2 days'),
-  (4, 7, 'Nouveau diagnostic programmé', 'Véhicule Hyundai Tucson TH-1123-IJ assigné au technicien Lamine Gueye.', false, NOW() - INTERVAL '1 day')
+  (4, 7, 'Nouveau diagnostic programmé', 'Véhicule Hyundai Tucson SA-1123-IJ assigné au technicien Lamine Gueye.', false, NOW() - INTERVAL '1 day')
 ON CONFLICT (id) DO NOTHING;
 SELECT setval(pg_get_serial_sequence('agent_notifications', 'id'), GREATEST((SELECT MAX(id) FROM agent_notifications), 10));
 
--- 31. COMMENTAIRES DE BLOG
+-- 32. COMMENTAIRES DE BLOG
 INSERT INTO blog_comments (id, post_id, author_name, author_email, content, date_creation, likes, dislikes, admin, parent_id)
 VALUES
   (1, 1, 'Mamadou Diagne', 'mamadou.diagne@gmail.com', 'Excellent article ! J''ai fait la vérification avant mon voyage à Saint-Louis le week-end dernier.', NOW() - INTERVAL '1 day', 4, 0, false, NULL),
   (2, 1, 'Amadou Diallo', 'amadou.diallo@orientautoservice.sn', 'Merci pour votre retour M. Diagne ! Toute l''équipe OAS reste à votre entière disposition.', NOW() - INTERVAL '1 day', 2, 0, true, 1),
   (3, 2, 'Khadija Sarr', 'khadija.sarr@gmail.com', 'Très instructif, c''est exactement le petit grincement que j''entendais sur ma Corolla.', NOW() - INTERVAL '7 days', 3, 0, false, NULL),
   (4, 3, 'Ousmane Fall', 'ousmane.fall@gmail.com', 'Je ne savais pas qu''il fallait allumer la clim au moins 10 minutes en période fraîche. Bon à savoir à Dakar !', NOW() - INTERVAL '12 days', 5, 1, false, NULL),
-  (5, 5, 'Bineta Cissé', 'bineta.cisse@gmail.com', 'Mon voyant moteur s''est allumé hier, je viens justement de prendre rendez-vous chez vous à Thiès.', NOW() - INTERVAL '2 days', 1, 0, false, NULL)
+  (5, 5, 'Bineta Cissé', 'bineta.cisse@gmail.com', 'Mon voyant moteur s''est allumé hier, je viens justement de prendre rendez-vous chez vous à Saly.', NOW() - INTERVAL '2 days', 1, 0, false, NULL)
 ON CONFLICT (id) DO NOTHING;
 SELECT setval(pg_get_serial_sequence('blog_comments', 'id'), GREATEST((SELECT MAX(id) FROM blog_comments), 10));
 
--- 32. HISTORIQUE DE CONNEXIONS
+-- 33. HISTORIQUE DE CONNEXIONS
 INSERT INTO connection_history (id, username, ip_address, status, timestamp)
 VALUES
   (1, 'admin', '192.168.1.50', 'SUCCESS', NOW() - INTERVAL '2 hours'),
@@ -512,7 +591,7 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 SELECT setval(pg_get_serial_sequence('connection_history', 'id'), GREATEST((SELECT MAX(id) FROM connection_history), 20));
 
--- 33. SEQUENCES DE DOCUMENTS (INITIALISATION DES TYPES MANQUANTS)
+-- 34. SEQUENCES DE DOCUMENTS (INITIALISATION DES TYPES MANQUANTS)
 INSERT INTO document_sequences (document_type, next_value, year, garage_id)
 VALUES
   ('FA', 3, 2026, 1),
@@ -548,3 +627,5 @@ VALUES
   ('DMD', 4, 2026, 1),
   ('DMD', 1, 2026, 2)
 ON CONFLICT (garage_id, document_type, year) DO NOTHING;
+
+COMMIT;

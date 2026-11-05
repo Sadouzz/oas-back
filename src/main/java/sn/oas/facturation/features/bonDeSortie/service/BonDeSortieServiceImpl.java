@@ -5,6 +5,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
+import jakarta.persistence.PersistenceContext;
 
 import sn.oas.facturation.features.user.repository.UserRepository;
 import sn.oas.facturation.features.bonDeSortie.data.entity.BonDeSortie;
@@ -61,6 +64,9 @@ import org.springframework.data.domain.Sort;
 @RequiredArgsConstructor
 public class BonDeSortieServiceImpl implements BonDeSortieService {
 
+    @PersistenceContext
+    private EntityManager entityManager;
+
     private final BonDeSortieRepository bonDeSortieRepository;
     private final PieceDetacheRepository pieceDetacheRepository;
     private final PieceMouvementRepository pieceMouvementRepository;
@@ -74,7 +80,6 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
     private final BonDeSortieHistoriqueRepository bonDeSortieHistoriqueRepository;
     private final MainDoeuvreRepository mainDoeuvreRepository;
     private final OrdreTravailRepository ordreTravailRepository;
-    private final sn.oas.facturation.features.fiscal.service.FiscalConfigurationService fiscalConfigurationService;
     private final CataloguePiecePricingPolicy cataloguePiecePricingPolicy;
 
 
@@ -92,7 +97,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
             throw new IllegalArgumentException("Le véhicule ne correspond pas au client");
         }
 
-        OrdreTravail ot = request.ordreTravailId() == null ? null : ordreTravailRepository.findById(request.ordreTravailId())
+        OrdreTravail ot = request.ordreTravailId() == null ? null : ordreTravailRepository.findByIdForUpdate(request.ordreTravailId())
                 .orElseThrow(() -> new IllegalArgumentException("Ordre de travail introuvable"));
         OrdreReparation fiche = request.ordreReparationId() != null
                 ? ordreReparationRepository.findById(request.ordreReparationId())
@@ -100,6 +105,12 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                 : ot != null ? ot.getOrdreReparation() : ordreReparationRepository
                     .findFirstByVehiculeIdAndStatutNotIn(vehicule.getId(), List.of(StatutOrdreReparation.LIVRE))
                     .orElseThrow(() -> new IllegalArgumentException("Un ordre de réparation actif est obligatoire pour créer un bon de sortie"));
+        if (ot == null && fiche != null) {
+            ot = ordreTravailRepository.findByOrdreReparationId(fiche.getId())
+                    .map(ordre -> ordreTravailRepository.findByIdForUpdate(ordre.getId())
+                            .orElseThrow(() -> new IllegalArgumentException("Ordre de travail introuvable")))
+                    .orElse(null);
+        }
         if (fiche == null || fiche.getVehicule() == null || !fiche.getVehicule().getId().equals(vehicule.getId())) {
             throw new IllegalArgumentException("L'ordre de réparation ne correspond pas au véhicule sélectionné");
         }
@@ -122,18 +133,62 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
         Proforma proformaAssocie = ot != null && ot.getProforma() != null ? ot.getProforma()
                 : (fiche != null ? fiche.getProforma() : null);
 
-        BonDeSortie bon = BonDeSortie.builder()
-                .reference(genererReference())
-                .client(client)
-                .vehicule(vehicule)
-                .agentEmetteur(agentEmetteur)
-                .garage(agentEmetteur != null ? agentEmetteur.getGarage() : null)
-                .remarque(request.remarque())
-                .tvaApplicable(Boolean.TRUE.equals(request.appliquerTVA()))
-                .ordreReparation(fiche)
-                .ordreTravail(ot)
-                .proforma(proformaAssocie)
-                .build();
+        BonDeSortie bon = null;
+        if (ot != null) {
+            List<BonDeSortie> existants = bonDeSortieRepository.findByOrdreTravailIdOrderByDateDesc(ot.getId());
+            if (existants.stream().anyMatch(b -> b.getStatut() == StatutBon.VALIDE)) {
+                throw new IllegalStateException("Le bon de sortie de cet ordre de travail est déjà validé et ne peut plus être modifié.");
+            }
+            bon = existants.stream().filter(b -> b.getStatut() == StatutBon.EN_ATTENTE).findFirst().orElse(null);
+            if (bon == null && existants.isEmpty() && fiche != null) {
+                List<BonDeSortie> bonsNonLies = bonDeSortieRepository.findByOrdreReparationIdOrderByDateDesc(fiche.getId()).stream()
+                        .filter(b -> b.getOrdreTravail() == null)
+                        .toList();
+                if (bonsNonLies.stream().anyMatch(b -> b.getStatut() == StatutBon.VALIDE)) {
+                    throw new IllegalStateException("Un bon de sortie validé existe déjà pour cet ordre de réparation; il ne peut plus être modifié.");
+                }
+                BonDeSortie candidatNonLie = bonsNonLies.stream()
+                        .filter(b -> b.getStatut() == StatutBon.EN_ATTENTE)
+                        .findFirst().orElse(null);
+                if (candidatNonLie != null) {
+                    bon = bonDeSortieRepository.findByIdForUpdate(candidatNonLie.getId()).orElse(null);
+                    if (bon != null) {
+                        entityManager.refresh(bon, LockModeType.PESSIMISTIC_WRITE);
+                        if (bon.getStatut() == StatutBon.VALIDE) {
+                            throw new IllegalStateException("Un bon de sortie validé existe déjà pour cet ordre de réparation; il ne peut plus être modifié.");
+                        }
+                        if (bon.getOrdreTravail() != null || bon.getStatut() != StatutBon.EN_ATTENTE) bon = null;
+                    }
+                    if (bon != null) bon.setOrdreTravail(ot);
+                }
+            }
+            if (bon == null && !existants.isEmpty()) {
+                throw new IllegalStateException("Le bon de sortie de cet ordre de travail est déjà validé et ne peut plus être modifié.");
+            }
+            if (bon != null && (bon.getClient() == null || !bon.getClient().getId().equals(client.getId())
+                    || bon.getVehicule() == null || !bon.getVehicule().getId().equals(vehicule.getId()))) {
+                throw new IllegalStateException("Le bon de sortie existant ne correspond pas au client ou au véhicule de cet ordre.");
+            }
+        }
+        boolean nouveauBon = bon == null;
+        if (nouveauBon) {
+            bon = BonDeSortie.builder()
+                    .reference(genererReference())
+                    .client(client)
+                    .vehicule(vehicule)
+                    .agentEmetteur(agentEmetteur)
+                    .garage(agentEmetteur != null ? agentEmetteur.getGarage() : null)
+                    .remarque(request.remarque())
+                    .tvaApplicable(false)
+                    .montantTVA(BigDecimal.ZERO)
+                    .montantTTC(BigDecimal.ZERO)
+                    .ordreReparation(fiche)
+                    .ordreTravail(ot)
+                    .proforma(proformaAssocie)
+                    .build();
+        }
+        List<LigneBonDeSortiePiece> nouvellesLignesPieces = new ArrayList<>();
+        List<LigneBonDeSortieMainDoeuvre> nouvellesLignesMainDoeuvres = new ArrayList<>();
 
         if (request.lignesPieces() != null) {
             for (LignePieceRequest ligneReq : consoliderPdsIdentiques(request.lignesPieces())) {
@@ -154,55 +209,63 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                     if (prix == null || prix < 0) throw new IllegalArgumentException("Le prix unitaire ne peut pas être négatif");
                     String desc = ligneReq.designation() != null && !ligneReq.designation().isBlank()
                             ? ligneReq.designation().trim() : mainDoeuvre.getDescription();
-                    BigDecimal tauxRemise = ligneReq.tauxRemise() != null
-                            ? BigDecimal.valueOf(ligneReq.tauxRemise())
-                            : trouverTauxRemiseMoProforma(bon, moId);
+                    BigDecimal tauxRemise = BigDecimal.ZERO;
 
-                    bon.getLignesBonDeSortieMainDoeuvres().add(LigneBonDeSortieMainDoeuvre.builder()
+                    LigneBonDeSortieMainDoeuvre ligneMo = LigneBonDeSortieMainDoeuvre.builder()
                             .bonDeSortie(bon)
                             .mainDoeuvre(mainDoeuvre)
                             .description(desc)
                             .nbreHeure(ligneReq.quantite())
                             .tarifHoraire((int) Math.round(prix))
                             .tauxRemise(tauxRemise)
-                            .build());
+                            .build();
+                    bon.addLigneMainDoeuvre(ligneMo);
+                    nouvellesLignesMainDoeuvres.add(ligneMo);
                     continue;
                 }
 
                 PieceDetache piece = null;
                 String designation;
                 Double prix;
+                Long ligneSourceId;
                 if (ligneReq.pieceId() == null) {
                     if (ligneReq.designation() == null || ligneReq.designation().isBlank()) {
                         throw new IllegalArgumentException("Une pièce du catalogue ou une désignation PDS est obligatoire");
                     }
                     designation = ligneReq.designation().trim();
-                    prix = ligneReq.getEffectivePrix() != null ? ligneReq.getEffectivePrix() : 0.0;
+                    ligneSourceId = resoudreLigneProformaSource(bon, null, designation, ligneReq.proformaLineId());
+                    if (ligneSourceId != null) {
+                        validerLigneProformaSource(bon, null, designation, ligneSourceId);
+                        prix = trouverPrixUnitaireProforma(bon, null, designation, ligneSourceId);
+                    } else {
+                        prix = ligneReq.getEffectivePrix() != null ? ligneReq.getEffectivePrix() : 0.0;
+                    }
                 } else {
                     piece = pieceDetacheRepository.findById(ligneReq.pieceId())
                             .orElseThrow(() -> new IllegalArgumentException("Pièce introuvable avec l'id : " + ligneReq.pieceId()));
                     piece = (PieceDetache) org.hibernate.Hibernate.unproxy(piece);
-                    validerLigneProformaSource(bon, piece, ligneReq.proformaLineId());
-                    Double prixHistoriqueProforma = trouverPrixUnitaireProforma(bon, piece, ligneReq.proformaLineId());
+                    designation = (ligneReq.designation() != null && !ligneReq.designation().isBlank())
+                            ? ligneReq.designation().trim() : piece.getDesignation();
+                    ligneSourceId = resoudreLigneProformaSource(bon, piece, designation, ligneReq.proformaLineId());
+                    validerLigneProformaSource(bon, piece, designation, ligneSourceId);
+                    Double prixHistoriqueProforma = trouverPrixUnitaireProforma(bon, piece, designation, ligneSourceId);
                     prix = prixHistoriqueProforma != null
                             ? prixHistoriqueProforma
                             : cataloguePiecePricingPolicy.resolveForDocument(piece, ligneReq.getEffectivePrix());
-                    designation = (ligneReq.designation() != null && !ligneReq.designation().isBlank())
-                            ? ligneReq.designation().trim() : piece.getDesignation();
                 }
                 if (prix == null || prix < 0) throw new IllegalArgumentException("Le prix unitaire ne peut pas être négatif");
 
-                BigDecimal tauxRemise = ligneReq.tauxRemise() != null
-                        ? BigDecimal.valueOf(ligneReq.tauxRemise())
-                        : trouverTauxRemisePieceProforma(bon, piece, designation, ligneReq.proformaLineId());
+                BigDecimal tauxRemise = ligneSourceId == null ? BigDecimal.ZERO
+                        : trouverTauxRemisePieceProforma(bon, piece, designation, ligneSourceId);
 
                 LigneBonDeSortiePiece ligne = LigneBonDeSortiePiece.builder().bonDeSortie(bon)
                         .piece(piece).type(TypeLigneBonDeSortie.PIECE).designation(designation)
                         .quantite(ligneReq.quantite()).prix((int) Math.round(prix))
                         .tauxRemise(tauxRemise)
-                        .proformaLineId(ligneReq.proformaLineId())
+                        .proformaLineId(ligneSourceId)
                         .build();
-                bon.getLignesBonDeSortiePieces().add(ligne);
+                bon.addLignePiece(ligne);
+                nouvellesLignesPieces.add(ligne);
             }
         }
 
@@ -216,6 +279,13 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                 if (Boolean.TRUE.equals(mo.getIsArchived())) {
                     throw new IllegalArgumentException("Cette main-d'œuvre est archivée");
                 }
+                if (ot != null && proformaAssocie != null
+                        && proformaAssocie.getLignesFacturationMainDoeuvres() != null
+                        && proformaAssocie.getLignesFacturationMainDoeuvres().stream()
+                                .anyMatch(source -> source.getMainDoeuvre() != null
+                                        && mo.getId().equals(source.getMainDoeuvre().getId()))) {
+                    continue;
+                }
                 int nbreHeure = moReq.getEffectiveHeures();
                 Double prixCatalogue = mo.getPrix() != null ? mo.getPrix() : 0.0;
                 Double tarif = moReq.getEffectiveTarif() != null ? moReq.getEffectiveTarif() : prixCatalogue;
@@ -224,9 +294,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                 }
                 String designation = moReq.designation() != null && !moReq.designation().isBlank()
                         ? moReq.designation().trim() : mo.getDescription();
-                BigDecimal tauxRemise = moReq.tauxRemise() != null
-                        ? BigDecimal.valueOf(moReq.tauxRemise())
-                        : trouverTauxRemiseMoProforma(bon, mo.getId());
+                BigDecimal tauxRemise = BigDecimal.ZERO;
 
                 LigneBonDeSortieMainDoeuvre ligneMo = LigneBonDeSortieMainDoeuvre.builder()
                         .bonDeSortie(bon)
@@ -236,18 +304,70 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                         .tarifHoraire((int) Math.round(tarif))
                         .tauxRemise(tauxRemise)
                         .build();
-                bon.getLignesBonDeSortieMainDoeuvres().add(ligneMo);
+                bon.addLigneMainDoeuvre(ligneMo);
+                nouvellesLignesMainDoeuvres.add(ligneMo);
             }
+        }
+
+        if (ot != null && proformaAssocie != null
+                && proformaAssocie.getLignesFacturationMainDoeuvres() != null) {
+            java.util.Set<Long> mainDoeuvresDejaAjoutees = new java.util.HashSet<>();
+            for (LigneBonDeSortieMainDoeuvre ligne : bon.getLignesBonDeSortieMainDoeuvres()) {
+                if (ligne.getMainDoeuvre() != null) mainDoeuvresDejaAjoutees.add(ligne.getMainDoeuvre().getId());
+            }
+            for (LigneBonDeSortieMainDoeuvre ligne : nouvellesLignesMainDoeuvres) {
+                if (ligne.getMainDoeuvre() != null) mainDoeuvresDejaAjoutees.add(ligne.getMainDoeuvre().getId());
+            }
+            for (var source : proformaAssocie.getLignesFacturationMainDoeuvres()) {
+                MainDoeuvre mainDoeuvre = source.getMainDoeuvre();
+                if (mainDoeuvre == null || mainDoeuvre.getId() == null
+                        || mainDoeuvresDejaAjoutees.contains(mainDoeuvre.getId())) continue;
+                if (Boolean.TRUE.equals(mainDoeuvre.getIsArchived())) {
+                    throw new IllegalArgumentException("Une main-d'œuvre du proforma est archivée et ne peut pas être ajoutée au bon de sortie.");
+                }
+                LigneBonDeSortieMainDoeuvre ligneMo = LigneBonDeSortieMainDoeuvre.builder()
+                        .bonDeSortie(bon)
+                        .mainDoeuvre(mainDoeuvre)
+                        .description(mainDoeuvre.getDescription())
+                        .nbreHeure(source.getNbreHeure() != null && source.getNbreHeure() > 0 ? source.getNbreHeure() : 1)
+                        .tarifHoraire(source.getTarifHoraire() != null ? source.getTarifHoraire() : 0)
+                        .tauxRemise(BigDecimal.ZERO)
+                        .build();
+                bon.addLigneMainDoeuvre(ligneMo);
+                nouvellesLignesMainDoeuvres.add(ligneMo);
+                mainDoeuvresDejaAjoutees.add(mainDoeuvre.getId());
+            }
+        }
+
+        if (nouvellesLignesPieces.isEmpty() && nouvellesLignesMainDoeuvres.isEmpty()) {
+            throw new IllegalArgumentException("Le bon de sortie doit contenir au moins une nouvelle pièce ou main-d'œuvre.");
+        }
+
+        for (LigneBonDeSortiePiece ligne : bon.getLignesBonDeSortiePieces()) {
+            BigDecimal tauxAutorise = ligne.getProformaLineId() == null ? BigDecimal.ZERO
+                    : trouverTauxRemisePieceProforma(bon, ligne.getPiece(), ligne.getDesignation(), ligne.getProformaLineId());
+            ligne.setTauxRemise(tauxAutorise);
+        }
+        for (LigneBonDeSortieMainDoeuvre ligne : bon.getLignesBonDeSortieMainDoeuvres()) {
+            ligne.setTauxRemise(BigDecimal.ZERO);
         }
 
         recalculerTotaux(bon);
 
         // Mouvement de stock à la création du BS : UNIQUEMENT les pièces PDP sortent du magasin vers l'atelier.
         // Les PDG, PDS et prestations de main-d'œuvre ne génèrent aucun mouvement de stock magasin.
-        if (bon.getLignesBonDeSortiePieces() != null) {
-            for (LigneBonDeSortiePiece ligne : bon.getLignesBonDeSortiePieces()) {
+        java.util.Set<Long> pdpVerrouillees = new java.util.HashSet<>();
+        if (!nouvellesLignesPieces.isEmpty()) {
+            for (LigneBonDeSortiePiece ligne : nouvellesLignesPieces) {
                 PDP pdp = resolvePDP(ligne.getPiece());
                 if (pdp != null) {
+                    if (pdpVerrouillees.add(pdp.getId())) {
+                        Long pdpId = pdp.getId();
+                        PieceDetache pieceVerrouillee = pieceDetacheRepository.findByIdForUpdate(pdpId)
+                                .orElseThrow(() -> new IllegalArgumentException("Pièce introuvable avec l'id : " + pdpId));
+                        entityManager.refresh(pieceVerrouillee, LockModeType.PESSIMISTIC_WRITE);
+                        pdp = resolvePDP(pieceVerrouillee);
+                    }
                     double quantite = (double) ligne.getQuantite();
 
                     Double stockMagasinDisponible = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0.0;
@@ -292,9 +412,9 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
 
         // Enregistre l'historique du BS pour chaque pièce et chaque main-d'œuvre
         boolean hasLines = false;
-        if (saved.getLignesBonDeSortiePieces() != null && !saved.getLignesBonDeSortiePieces().isEmpty()) {
+        if (!nouvellesLignesPieces.isEmpty()) {
             hasLines = true;
-            for (LigneBonDeSortiePiece ligne : saved.getLignesBonDeSortiePieces()) {
+            for (LigneBonDeSortiePiece ligne : nouvellesLignesPieces) {
                 PDP pdp = resolvePDP(ligne.getPiece());
                 PieceDetache piece = ligne.getPiece() == null ? null : (PieceDetache) org.hibernate.Hibernate.unproxy(ligne.getPiece());
                 String designation = ligne.getDesignation() != null ? ligne.getDesignation()
@@ -324,9 +444,9 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
             }
         }
 
-        if (saved.getLignesBonDeSortieMainDoeuvres() != null && !saved.getLignesBonDeSortieMainDoeuvres().isEmpty()) {
+        if (!nouvellesLignesMainDoeuvres.isEmpty()) {
             hasLines = true;
-            for (LigneBonDeSortieMainDoeuvre lmo : saved.getLignesBonDeSortieMainDoeuvres()) {
+            for (LigneBonDeSortieMainDoeuvre lmo : nouvellesLignesMainDoeuvres) {
                 String desc = lmo.getDescription() != null ? lmo.getDescription()
                         : (lmo.getMainDoeuvre() != null ? lmo.getMainDoeuvre().getDescription() : "Main d'œuvre");
                 bonDeSortieHistoriqueRepository.save(BonDeSortieHistorique
@@ -365,7 +485,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                     .build());
         }
 
-        if (saved.getOrdreReparation() != null) {
+        if (nouveauBon && saved.getOrdreReparation() != null) {
             fiche.addBonDeSortie(saved);
             ordreReparationRepository.save(fiche);
             agentNotificationService.notifyRoleInGarage(Role.AGENT_MAGASIN, saved.getGarage(),
@@ -373,7 +493,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                     "Le bon de sortie " + saved.getReference() + " est en attente de validation pour la fiche "
                             + fiche.getNumero());
         }
-        if (saved.getOrdreTravail() != null) {
+        if (saved.getOrdreTravail() != null && (nouveauBon || !saved.getOrdreTravail().getBonsDeSortie().contains(saved))) {
             OrdreTravail ordreTravail = saved.getOrdreTravail();
             ordreTravail.addBonDeSortie(saved);
             ordreTravailRepository.save(ordreTravail);
@@ -385,6 +505,13 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
     @Override
     public BonDeSortie valider(Long id) {
         BonDeSortie bon = getById(id);
+        if (bon.getOrdreTravail() != null) {
+            ordreTravailRepository.findByIdForUpdate(bon.getOrdreTravail().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("Ordre de travail introuvable"));
+        }
+        bon = bonDeSortieRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new IllegalArgumentException("Bon de sortie introuvable"));
+        entityManager.refresh(bon, LockModeType.PESSIMISTIC_WRITE);
         Agent agentValidateur = getAgentConnecte();
 
         if (bon.getStatut() == StatutBon.VALIDE) {
@@ -408,14 +535,26 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
 
         // A la validation du BS : stockAtelier diminue (la pièce va sur le véhicule),
         // qteReelle reste le même
+        java.util.Set<Long> pdpVerrouillees = new java.util.HashSet<>();
         for (LigneBonDeSortiePiece ligne : bon.getLignesBonDeSortiePieces()) {
             if (ligne.getPiece() == null) continue;
             PDP pdp = resolvePDP(ligne.getPiece());
             if (pdp != null) {
+                if (pdpVerrouillees.add(pdp.getId())) {
+                    Long pdpId = pdp.getId();
+                    PieceDetache pieceVerrouillee = pieceDetacheRepository.findByIdForUpdate(pdpId)
+                            .orElseThrow(() -> new IllegalArgumentException("Pièce introuvable avec l'id : " + pdpId));
+                    entityManager.refresh(pieceVerrouillee, LockModeType.PESSIMISTIC_WRITE);
+                    pdp = resolvePDP(pieceVerrouillee);
+                }
                 double quantite = (double) ligne.getQuantite();
 
                 Double magasinAvant = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0.0;
                 Double atelierAvant = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0.0;
+                if (atelierAvant < quantite) {
+                    throw new IllegalStateException("Stock atelier insuffisant pour la pièce " + pdp.getDesignation()
+                            + ". Disponible : " + atelierAvant + ", demandé : " + quantite);
+                }
 
                 pdp.setStockAtelier(Math.max(0.0, atelierAvant - quantite));
                 pieceDetacheRepository.save(pdp);
@@ -507,6 +646,15 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
     @Override
     public BonDeSortie retournerPiece(Long id, Long pieceId) {
         BonDeSortie bon = getById(id);
+        // Garder le même ordre de verrouillage que la création et la validation
+        // (OT puis BS) empêche un retour concurrent de passer après validation.
+        if (bon.getOrdreTravail() != null) {
+            ordreTravailRepository.findByIdForUpdate(bon.getOrdreTravail().getId())
+                    .orElseThrow(() -> new IllegalArgumentException("Ordre de travail introuvable"));
+        }
+        bon = bonDeSortieRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new IllegalArgumentException("Bon de sortie introuvable avec l'id : " + id));
+        entityManager.refresh(bon, LockModeType.PESSIMISTIC_WRITE);
         Agent agentConnecte = getAgentConnecte();
 
         if (bon.getStatut() == StatutBon.VALIDE) {
@@ -530,10 +678,20 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
         double quantite = (double) ligneARetirer.getQuantite();
 
         if (pdp != null) {
+            Long pdpId = pdp.getId();
+            PieceDetache pieceVerrouillee = pieceDetacheRepository.findByIdForUpdate(pdpId)
+                    .orElseThrow(() -> new IllegalArgumentException("Pièce introuvable avec l'id : " + pdpId));
+            entityManager.refresh(pieceVerrouillee, LockModeType.PESSIMISTIC_WRITE);
+            pdp = resolvePDP(pieceVerrouillee);
+            piece = pdp;
             Double magasinAvant = pdp.getStockMagasin() != null ? pdp.getStockMagasin() : 0.0;
             Double atelierAvant = pdp.getStockAtelier() != null ? pdp.getStockAtelier() : 0.0;
 
             // Re-crédite le stock magasin et déduit le stock atelier
+            if (atelierAvant < quantite) {
+                throw new IllegalStateException("Stock atelier insuffisant pour retourner la pièce " + pdp.getDesignation()
+                        + ". Disponible : " + atelierAvant + ", demandé : " + quantite);
+            }
             pdp.setStockMagasin(magasinAvant + quantite);
             pdp.setStockAtelier(Math.max(0.0, atelierAvant - quantite));
             pieceDetacheRepository.save(pdp);
@@ -700,16 +858,20 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
     }
 
     private void validerRequest(BonDeSortieRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Les données du bon de sortie sont obligatoires");
+        }
         if (request.clientId() == null) {
             throw new IllegalArgumentException("Le client est obligatoire");
         }
         if (request.vehiculeId() == null) {
             throw new IllegalArgumentException("Le véhicule est obligatoire");
         }
-        boolean hasPieces = request.lignesPieces() != null && !request.lignesPieces().isEmpty();
-        boolean hasMo = request.lignesMainDoeuvres() != null && !request.lignesMainDoeuvres().isEmpty();
-        if (!hasPieces && !hasMo) {
-            throw new IllegalArgumentException("Le bon de sortie doit contenir au moins une ligne (pièce ou main-d'œuvre)");
+        if (request.lignesPieces() != null && request.lignesPieces().stream().anyMatch(java.util.Objects::isNull)) {
+            throw new IllegalArgumentException("Une ligne pièce ne peut pas être vide");
+        }
+        if (request.lignesMainDoeuvres() != null && request.lignesMainDoeuvres().stream().anyMatch(java.util.Objects::isNull)) {
+            throw new IllegalArgumentException("Une ligne de main-d'œuvre ne peut pas être vide");
         }
     }
 
@@ -758,12 +920,33 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
         bon.setMontantTotalPieces(totalPieces);
         bon.setMontantTotalMainDoeuvre(totalMo);
         BigDecimal montantHT = totalPieces.add(totalMo);
-        BigDecimal montantTVA = Boolean.TRUE.equals(bon.getTvaApplicable())
-                ? fiscalConfigurationService.calculateRate(montantHT, fiscalConfigurationService.getCurrent().getTvaRate())
-                : BigDecimal.ZERO;
         bon.setMontantTotal(montantHT);
-        bon.setMontantTVA(montantTVA);
-        bon.setMontantTTC(montantHT.add(montantTVA));
+        bon.setTvaApplicable(false);
+        bon.setMontantTVA(BigDecimal.ZERO);
+        bon.setMontantTTC(montantHT);
+    }
+
+    private Long resoudreLigneProformaSource(BonDeSortie bon, PieceDetache piece, String designation, Long proformaLineId) {
+        if (proformaLineId != null) return proformaLineId;
+        Proforma proforma = proformaLiee(bon);
+        if (proforma == null || proforma.getLignesFacturationPieces() == null) return null;
+        List<Long> sources = proforma.getLignesFacturationPieces().stream()
+                .filter(ligne -> piece != null
+                        ? ligne.getPiece() != null && piece.getId().equals(ligne.getPiece().getId())
+                        : designation != null && ligne.getDesignationPds() != null
+                            && normaliserDesignation(designation).equals(normaliserDesignation(ligne.getDesignationPds())))
+                .map(ligne -> ligne.getId())
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .toList();
+        if (sources.size() > 1) {
+            throw new IllegalArgumentException("Plusieurs lignes source correspondent à cette pièce. Sélectionnez les lignes de l'ordre une par une.");
+        }
+        return sources.isEmpty() ? null : sources.get(0);
+    }
+
+    private String normaliserDesignation(String designation) {
+        return designation.trim().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
     }
 
     private BigDecimal trouverTauxRemisePieceProforma(BonDeSortie bon, PieceDetache piece, String designation, Long proformaLineId) {
@@ -790,20 +973,23 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
         return BigDecimal.ZERO;
     }
 
-    private Double trouverPrixUnitaireProforma(BonDeSortie bon, PieceDetache piece, Long proformaLineId) {
+    private Double trouverPrixUnitaireProforma(BonDeSortie bon, PieceDetache piece, String designation, Long proformaLineId) {
         Proforma proforma = proformaLiee(bon);
-        if (proforma == null || proforma.getStatut() == null
-                || !(proforma.getStatut() == sn.oas.facturation.features.facturation.data.enums.StatutFacturation.ACCEPTE
-                || proforma.getStatut() == sn.oas.facturation.features.facturation.data.enums.StatutFacturation.PAYEE
-                || proforma.getStatut() == sn.oas.facturation.features.facturation.data.enums.StatutFacturation.PARTIELLEMENT_PAYEE
-                || proforma.getStatut() == sn.oas.facturation.features.facturation.data.enums.StatutFacturation.CONVERTIE)
-                || proforma.getLignesFacturationPieces() == null) {
-            return null;
-        }
+        if (proforma == null || proforma.getLignesFacturationPieces() == null) return null;
         if (proformaLineId != null) {
-            for (var ligne : proforma.getLignesFacturationPieces()) {
-                if (proformaLineId.equals(ligne.getId()) && ligne.getPrix() != null) return ligne.getPrix().doubleValue();
-            }
+            return proforma.getLignesFacturationPieces().stream()
+                    .filter(ligne -> proformaLineId.equals(ligne.getId())
+                            && ligne.getPrix() != null
+                            && (piece != null
+                                ? ligne.getPiece() != null && piece.getId().equals(ligne.getPiece().getId())
+                                : designation != null && ligne.getDesignationPds() != null
+                                    && designation.trim().equalsIgnoreCase(ligne.getDesignationPds().trim())))
+                    .map(ligne -> ligne.getPrix().doubleValue())
+                    .findFirst()
+                    .orElseThrow(() -> new IllegalArgumentException("La ligne pièce sélectionnée ne correspond pas à l'ordre de travail."));
+        }
+        if (!proformaValideePourBS(proforma) || proforma.getLignesFacturationPieces() == null) {
+            return null;
         }
         for (var ligne : proforma.getLignesFacturationPieces()) {
             if (piece != null && ligne.getPiece() != null
@@ -815,13 +1001,24 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
         return null;
     }
 
-    private void validerLigneProformaSource(BonDeSortie bon, PieceDetache piece, Long proformaLineId) {
+    private void validerLigneProformaSource(BonDeSortie bon, PieceDetache piece, String designation, Long proformaLineId) {
         if (proformaLineId == null) return;
         Proforma proforma = proformaLiee(bon);
-        boolean sourceValide = proforma != null && proforma.getLignesFacturationPieces() != null
+        boolean sourceValide = proformaValideePourBS(proforma) && proforma.getLignesFacturationPieces() != null
                 && proforma.getLignesFacturationPieces().stream().anyMatch(l -> proformaLineId.equals(l.getId())
-                        && l.getPiece() != null && piece.getId().equals(l.getPiece().getId()));
-        if (!sourceValide) throw new IllegalArgumentException("La ligne PDG source ne correspond pas au proforma de cet ordre.");
+                        && (piece != null
+                            ? l.getPiece() != null && piece.getId().equals(l.getPiece().getId())
+                            : designation != null && l.getDesignationPds() != null
+                                && designation.trim().equalsIgnoreCase(l.getDesignationPds().trim())));
+        if (!sourceValide) throw new IllegalArgumentException("La ligne pièce source ne correspond pas au proforma de cet ordre.");
+    }
+
+    private boolean proformaValideePourBS(Proforma proforma) {
+        if (proforma == null || proforma.getStatut() == null) return false;
+        return proforma.getStatut() == sn.oas.facturation.features.facturation.data.enums.StatutFacturation.ACCEPTE
+                || proforma.getStatut() == sn.oas.facturation.features.facturation.data.enums.StatutFacturation.PAYEE
+                || proforma.getStatut() == sn.oas.facturation.features.facturation.data.enums.StatutFacturation.PARTIELLEMENT_PAYEE
+                || proforma.getStatut() == sn.oas.facturation.features.facturation.data.enums.StatutFacturation.CONVERTIE;
     }
 
     private Proforma proformaLiee(BonDeSortie bon) {
@@ -829,26 +1026,6 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
         if (bon.getOrdreReparation() != null && bon.getOrdreReparation().getProforma() != null) return bon.getOrdreReparation().getProforma();
         if (bon.getOrdreTravail() != null) return bon.getOrdreTravail().getProforma();
         return null;
-    }
-
-    private BigDecimal trouverTauxRemiseMoProforma(BonDeSortie bon, Long moId) {
-        sn.oas.facturation.features.proforma.data.entity.Proforma proforma = bon.getProforma();
-        if (proforma == null && bon.getOrdreReparation() != null) {
-            proforma = bon.getOrdreReparation().getProforma();
-        }
-        if (proforma == null && bon.getOrdreTravail() != null) {
-            proforma = bon.getOrdreTravail().getProforma();
-        }
-        if (proforma != null && proforma.getLignesFacturationMainDoeuvres() != null) {
-            for (var lm : proforma.getLignesFacturationMainDoeuvres()) {
-                if (lm.getMainDoeuvre() != null && lm.getMainDoeuvre().getId() != null && lm.getMainDoeuvre().getId().equals(moId)) {
-                    if (lm.getTauxRemise() != null) {
-                        return lm.getTauxRemise();
-                    }
-                }
-            }
-        }
-        return BigDecimal.ZERO;
     }
 
     private PDP resolvePDP(PieceDetache piece) {
@@ -903,7 +1080,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
         return agent;
     }
 
-    private record PdsRequestKey(String designation, Integer prix, BigDecimal tauxRemise, Long proformaLineId) {}
+    private record PdsRequestKey(String designation, Integer prix, Long proformaLineId) {}
 
     private List<LignePieceRequest> consoliderPdsIdentiques(List<LignePieceRequest> lignes) {
         List<LignePieceRequest> resultat = new ArrayList<>();
@@ -920,18 +1097,17 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
             }
             String designation = ligne.designation().trim().replaceAll("\\s+", " ");
             int prix = (int) Math.round(ligne.getEffectivePrix() == null ? 0 : ligne.getEffectivePrix());
-            BigDecimal remise = BigDecimal.valueOf(ligne.getEffectiveTauxRemise()).stripTrailingZeros();
-            PdsRequestKey cle = new PdsRequestKey(designation.toLowerCase(Locale.ROOT), prix, remise, ligne.proformaLineId());
+            PdsRequestKey cle = new PdsRequestKey(designation.toLowerCase(Locale.ROOT), prix, ligne.proformaLineId());
             Integer index = indexParCle.get(cle);
             if (index == null) {
                 indexParCle.put(cle, resultat.size());
                 resultat.add(new LignePieceRequest(null, ligne.quantite(), (double) prix, (double) prix,
-                        "PDS", null, designation, ligne.getEffectiveTauxRemise(), ligne.proformaLineId()));
+                        "PDS", null, designation, ligne.proformaLineId()));
             } else {
                 LignePieceRequest existante = resultat.get(index);
                 resultat.set(index, new LignePieceRequest(null, (existante.quantite() == null ? 0 : existante.quantite()) + ligne.quantite(),
                         existante.getEffectivePrix(), existante.prixUnitaire(), "PDS", null,
-                        existante.designation(), existante.getEffectiveTauxRemise(), existante.proformaLineId()));
+                        existante.designation(), existante.proformaLineId()));
             }
         }
         return resultat;

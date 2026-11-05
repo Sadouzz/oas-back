@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.core.annotation.Order;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -35,8 +36,6 @@ import sn.oas.facturation.shared.documentNumber.DocumentType;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.features.vehicule.repository.VehiculeRepository;
 
-import sn.oas.facturation.features.depot_pieces.data.entity.Depot;
-import sn.oas.facturation.features.depot_pieces.repository.DepotRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -49,6 +48,7 @@ import java.util.List;
  * seedé ici (propriété exclusive de l'équipe qui le développe).
  */
 @Component
+@Profile("dev")
 @RequiredArgsConstructor
 @Slf4j
 @Order(1)
@@ -57,7 +57,6 @@ public class DemoDataSeeder implements CommandLineRunner {
     private static final String DEMO_PASSWORD = "passer";
 
     private final GarageRepository garageRepository;
-    private final DepotRepository depotRepository;
     private final AgentRepository agentRepository;
     private final ClientRepository clientRepository;
     private final UserRepository userRepository;
@@ -79,8 +78,6 @@ public class DemoDataSeeder implements CommandLineRunner {
         Garage dakar = garages.get(0);
         Garage saly = garages.get(1);
 
-        seedPdgDepots(garages);
-
         List<Agent> agents = seedAgents(dakar, saly);
 
         List<Client> clients = seedClients();
@@ -95,24 +92,6 @@ public class DemoDataSeeder implements CommandLineRunner {
         seedMessages(dakar, clients, agents);
 
         log.info("=== Données de démonstration prêtes (mot de passe commun : {}) ===", DEMO_PASSWORD);
-    }
-
-    private void seedPdgDepots(List<Garage> garages) {
-        for (Garage garage : garages) {
-            boolean exists = depotRepository.findAll().stream()
-                    .anyMatch(d -> d.getGarage() != null
-                            && d.getGarage().getId().equals(garage.getId())
-                            && "PDG".equalsIgnoreCase(d.getNom()));
-            if (!exists) {
-                Depot pdg = Depot.builder()
-                        .nom("PDG")
-                        .description("Dépôt automatique pour pièces déjà générées (PDG) - " + garage.getNom())
-                        .garage(garage)
-                        .build();
-                depotRepository.save(pdg);
-                log.info("Dépôt PDG créé pour le garage {}", garage.getNom());
-            }
-        }
     }
 
     private void dropOutdatedConstraints() {
@@ -215,7 +194,11 @@ public class DemoDataSeeder implements CommandLineRunner {
                         Role.CHEF_ATELIER, dakar),
                 new ASpec("Agent", "Agent", "agent", "+221771111104", "agent@orientautoservice.sn", Role.AGENT, dakar),
                 new ASpec("Agent", "Magasin", "agent_magasin", "+221771111105", "agent_magasin@orientautoservice.sn",
-                        Role.AGENT_MAGASIN, dakar));
+                        Role.AGENT_MAGASIN, dakar),
+                new ASpec("Agent", "Saly", "agent_saly", "+221771111106", "agent_saly@orientautoservice.sn",
+                        Role.AGENT, saly),
+                new ASpec("Magasin", "Saly", "agent_magasin_saly", "+221771111107",
+                        "agent_magasin_saly@orientautoservice.sn", Role.AGENT_MAGASIN, saly));
 
         List<Agent> result = new java.util.ArrayList<>();
         boolean createdAny = false;
@@ -339,9 +322,9 @@ public class DemoDataSeeder implements CommandLineRunner {
                 new VSpec("DK-4471-CD", "Toyota", "Corolla", 2021, 21000.0, "JT1BR32E9Y0123002", 1),
                 new VSpec("DK-5589-EF", "Peugeot", "308", 2018, 78000.0, "VF3LCYHZPHS123003", 1),
                 new VSpec("DK-6612-GH", "Renault", "Duster", 2020, 35500.0, "VF1HSRA0X64123004", 2),
-                new VSpec("TH-1123-IJ", "Hyundai", "Tucson", 2022, 9800.0, "KMHJ381DGGU123005", 3),
+                new VSpec("SA-1123-IJ", "Hyundai", "Tucson", 2022, 9800.0, "KMHJ381DGGU123005", 3),
                 new VSpec("DK-7745-KL", "Kia", "Sportage", 2017, 95000.0, "KNAPC81BGH7123006", 4),
-                new VSpec("TH-3387-MN", "Mercedes-Benz", "Sprinter", 2016, 142000.0, "WD3PE7CD5GP123007", 5),
+                new VSpec("SA-3387-MN", "Mercedes-Benz", "Sprinter", 2016, 142000.0, "WD3PE7CD5GP123007", 5),
                 new VSpec("DK-8890-OP", "Nissan", "Qashqai", 2020, 41200.0, "SJNFAAJ11U1123008", 5),
                 new VSpec("DK-9932-QR", "Toyota", "Land Cruiser", 2015, 168000.0, "JTMHV05J904123009", 0));
 

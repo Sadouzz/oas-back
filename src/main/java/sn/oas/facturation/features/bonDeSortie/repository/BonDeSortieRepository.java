@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 
 import sn.oas.facturation.features.bonDeSortie.data.entity.BonDeSortie;
 import sn.oas.facturation.features.bonDeSortie.data.enums.StatutBon;
@@ -24,6 +26,9 @@ public interface BonDeSortieRepository extends JpaRepository<BonDeSortie, Long> 
     Optional<BonDeSortie> findFirstByOrdreTravailIdOrderByIdDesc(Long ordreTravailId);
 
     Optional<BonDeSortie> findByReference(String reference);
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT b FROM BonDeSortie b WHERE b.id = :id")
+    Optional<BonDeSortie> findByIdForUpdate(@Param("id") Long id);
     List<BonDeSortie> findByProformaId(Long proformaId);
     Optional<BonDeSortie> findTopByProformaIdOrderByIdDesc(Long proformaId);
     List<BonDeSortie> findByOrdreReparationIdOrderByDateDesc(Long ordreReparationId);

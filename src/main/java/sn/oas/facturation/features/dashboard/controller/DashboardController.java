@@ -23,9 +23,9 @@ public class DashboardController {
 
     private final DashboardService dashboardService;
 
-    @Operation(summary = "Tableau de bord Super Agent", description = "Retourne les KPIs, états des ordres, ordres récents, clients récents et alertes de stock.")
+    @Operation(summary = "Tableau de bord Super Agent et Master", description = "Retourne les KPIs, états des ordres, ordres récents, clients récents et alertes de stock.")
     @ApiResponse(responseCode = "200", description = "Données du tableau de bord retournées avec succès")
-    @PreAuthorize("hasRole('SUPER_AGENT')")
+    @PreAuthorize("hasAnyRole('SUPER_AGENT', 'MASTER')")
     @GetMapping("/super-agent")
     public ResponseEntity<DashboardSuperAgentResponseDTO> getSuperAgentDashboard() {
         return ResponseEntity.ok(dashboardService.getSuperAgentDashboard());

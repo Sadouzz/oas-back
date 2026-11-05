@@ -725,7 +725,7 @@ public class ProformaServiceImpl implements ProformaService {
                                 + "</b> a été converti en facture <b>" + factureNum
                                 + "</b>. Vous trouverez la facture en pièce jointe.</p><p>Cordialement.</p>",
                         "Facture_" + factureNum + ".pdf",
-                        () -> factureService.generatePdf(factureId),
+                        () -> factureService.generatePdf(factureId, "AVEC_ENTETE"),
                         true
                 );
             }

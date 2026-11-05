@@ -3,10 +3,12 @@ package sn.oas.facturation.features.piecedetache.repository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import jakarta.persistence.LockModeType;
 import sn.oas.facturation.features.piecedetache.data.entity.PieceDetache;
 import sn.oas.facturation.features.piecedetache.data.enums.TypePiece;
 
@@ -14,6 +16,10 @@ import java.util.List;
 
 @Repository
 public interface PieceDetacheRepository extends JpaRepository<PieceDetache, Long>, JpaSpecificationExecutor<PieceDetache> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT p FROM PieceDetache p WHERE p.id = :id")
+    java.util.Optional<PieceDetache> findByIdForUpdate(@Param("id") Long id);
 
     boolean existsByGarageIdAndReferenceIgnoreCase(Long garageId, String reference);
     boolean existsByReferenceIgnoreCase(String reference);

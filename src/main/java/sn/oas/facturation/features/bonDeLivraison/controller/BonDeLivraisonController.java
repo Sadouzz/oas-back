@@ -41,9 +41,10 @@ public class BonDeLivraisonController {
     @GetMapping("/{id}")
     public BonDeLivraisonResponse get(@PathVariable Long id) { return service.get(id); }
     @GetMapping("/{id}/pdf")
-    public ResponseEntity<byte[]> pdf(@PathVariable Long id) {
+    public ResponseEntity<byte[]> pdf(@PathVariable Long id,
+            @RequestParam(defaultValue = "AVEC_ENTETE") String layoutKey) {
         return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=BL_" + id + ".pdf")
-                .contentType(MediaType.APPLICATION_PDF).body(service.generatePdf(id));
+                .contentType(MediaType.APPLICATION_PDF).body(service.generatePdf(id, layoutKey));
     }
     @GetMapping("/ordres-reparation/{ordreId}/bons-de-sortie")
     public List<BonDeSortieDisponibleResponse> bonsDeSortie(@PathVariable Long ordreId) { return service.bonsDeSortieDisponibles(ordreId); }

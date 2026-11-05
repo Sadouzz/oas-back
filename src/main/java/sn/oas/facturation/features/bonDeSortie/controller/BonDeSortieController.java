@@ -28,9 +28,9 @@ public class BonDeSortieController {
 
     private final BonDeSortieService bonDeSortieService;
 
-    @Operation(summary = "Créer un bon de sortie", description = "Crée un bon en statut EN_ATTENTE et déplace uniquement les PDP du magasin vers l'atelier. Les PDG, PDS et mains-d'œuvre ne génèrent pas de mouvement de stock.")
+    @Operation(summary = "Créer ou compléter un bon de sortie", description = "Un OT ne possède qu'un BS. La requête complète son BS en attente s'il existe; un BS validé est immuable. Les PDP ajoutées sont déplacées du magasin vers l'atelier, les PDG, PDS et mains-d'œuvre ne génèrent pas de mouvement de stock.")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Bon créé avec succès"),
+            @ApiResponse(responseCode = "200", description = "Bon créé ou complété avec succès"),
             @ApiResponse(responseCode = "400", description = "Client, véhicule ou pièces invalides")
     })
     @PostMapping("/creer")

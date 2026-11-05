@@ -63,6 +63,8 @@ import com.lowagie.text.pdf.PdfWriter;
 import java.io.ByteArrayOutputStream;
 import java.awt.Color;
 import java.time.format.DateTimeFormatter;
+import sn.oas.facturation.features.pdfGenerator.service.OasBrandedPdfPageEvent;
+import sn.oas.facturation.features.pdfGenerator.service.PdfLayout;
 
 @Service @RequiredArgsConstructor
 public class BonDeLivraisonService {
@@ -97,11 +99,21 @@ public class BonDeLivraisonService {
 
     @Transactional(readOnly = true)
     public byte[] generatePdf(Long id) {
+        return generatePdf(id, PdfLayout.AVEC_ENTETE);
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] generatePdf(Long id, String layoutKey) {
+        boolean branded = PdfLayout.AVEC_ENTETE.equals(PdfLayout.normalize(layoutKey));
         BonDeLivraison bl = find(id);
         var output = new ByteArrayOutputStream();
-        var doc = new Document(com.lowagie.text.PageSize.A4, 36, 36, 44, 44);
+        var doc = branded
+                ? new Document(com.lowagie.text.PageSize.A4, 36, 36, 105, 78)
+                : new Document(com.lowagie.text.PageSize.A4, 36, 36, 44, 44);
         try {
-            PdfWriter.getInstance(doc, output); doc.open();
+            PdfWriter writer = PdfWriter.getInstance(doc, output);
+            if (branded) writer.setPageEvent(new OasBrandedPdfPageEvent());
+            doc.open();
             Font title = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 17, new Color(24, 43, 68));
             Font body = FontFactory.getFont(FontFactory.HELVETICA, 9);
             Font head = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, Color.WHITE);

@@ -79,7 +79,9 @@ public class FicheAtelierPdfService {
                 .append(image(fiche.getSignatureReceptionnaireBase64()))
                 .append("</td><td>Client").append(image(fiche.getSignatureBase64()))
                 .append("</td></tr></table></div></body></html>");
-        return pdfService.genererHtmlEnPdf(html.toString());
+        return pdfService.genererHtmlEnPdf(html.toString(), "FICHE_ATELIER", java.util.Map.of(
+                "numero", escape(fiche.getNumero()),
+                "clientNom", fiche.getClient() == null ? "" : escape(fiche.getClient().getFirstName() + " " + fiche.getClient().getLastName())));
     }
 
     @Transactional(readOnly = true)
@@ -110,7 +112,9 @@ public class FicheAtelierPdfService {
         html.append("</table><h2>Signatures à la réception</h2><table class='signatures'><tr><td>Réceptionnaire")
                 .append(image(fiche.getSignatureReceptionnaireBase64())).append("</td><td>Client")
                 .append(image(fiche.getSignatureBase64())).append("</td></tr></table>").append(emailDocumentEnd());
-        return pdfService.genererHtmlEnPdf(html.toString());
+        return pdfService.genererHtmlEnPdf(html.toString(), "FICHE_ATELIER", java.util.Map.of(
+                "numero", escape(fiche.getNumero()),
+                "clientNom", fiche.getClient() == null ? "" : escape(fiche.getClient().getFirstName() + " " + fiche.getClient().getLastName())));
     }
 
     @Transactional(readOnly = true)
@@ -124,7 +128,9 @@ public class FicheAtelierPdfService {
                 .append(fiche.getConditionsAccepteesAt() == null ? "" : " Acceptation enregistrée le " + escape(fiche.getConditionsAccepteesAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy à HH:mm"))) + ".")
                 .append("</p><table class='signatures'><tr><td>Signature du client").append(image(fiche.getSignatureBase64()))
                 .append("</td></tr></table>").append(emailDocumentEnd());
-        return pdfService.genererHtmlEnPdf(html.toString());
+        return pdfService.genererHtmlEnPdf(html.toString(), "FICHE_ATELIER", java.util.Map.of(
+                "numero", escape(fiche.getNumero()),
+                "clientNom", fiche.getClient() == null ? "" : escape(fiche.getClient().getFirstName() + " " + fiche.getClient().getLastName())));
     }
 
     private static StringBuilder emailDocumentStart() {

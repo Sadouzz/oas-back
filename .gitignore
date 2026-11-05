@@ -16,6 +16,10 @@ replay_pid*
 *.bak
 *.swp
 *~
+*.patch
+
+# Generated OpenAPI snapshot written by OpenApiSpecGeneratorTest
+/swagger.json
 
 /.cache/
 *.hprof
