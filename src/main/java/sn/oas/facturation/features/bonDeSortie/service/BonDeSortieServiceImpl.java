@@ -209,7 +209,9 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                     if (prix == null || prix < 0) throw new IllegalArgumentException("Le prix unitaire ne peut pas être négatif");
                     String desc = ligneReq.designation() != null && !ligneReq.designation().isBlank()
                             ? ligneReq.designation().trim() : mainDoeuvre.getDescription();
-                    BigDecimal tauxRemise = BigDecimal.ZERO;
+                    BigDecimal tauxRemise = ligneReq.tauxRemise() != null
+                        ? BigDecimal.valueOf(ligneReq.tauxRemise())
+                        : BigDecimal.ZERO;
 
                     LigneBonDeSortieMainDoeuvre ligneMo = LigneBonDeSortieMainDoeuvre.builder()
                             .bonDeSortie(bon)
@@ -255,8 +257,12 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                 }
                 if (prix == null || prix < 0) throw new IllegalArgumentException("Le prix unitaire ne peut pas être négatif");
 
-                BigDecimal tauxRemise = ligneSourceId == null ? BigDecimal.ZERO
-                        : trouverTauxRemisePieceProforma(bon, piece, designation, ligneSourceId);
+                BigDecimal tauxRemise = BigDecimal.ZERO;
+                if (ligneSourceId != null) {
+                    tauxRemise = trouverTauxRemisePieceProforma(bon, piece, designation, ligneSourceId);
+                } else if (ligneReq.tauxRemise() != null) {
+                    tauxRemise = BigDecimal.valueOf(ligneReq.tauxRemise());
+                }
 
                 LigneBonDeSortiePiece ligne = LigneBonDeSortiePiece.builder().bonDeSortie(bon)
                         .piece(piece).type(TypeLigneBonDeSortie.PIECE).designation(designation)
@@ -294,7 +300,9 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                 }
                 String designation = moReq.designation() != null && !moReq.designation().isBlank()
                         ? moReq.designation().trim() : mo.getDescription();
-                BigDecimal tauxRemise = BigDecimal.ZERO;
+                BigDecimal tauxRemise = moReq.tauxRemise() != null
+                        ? BigDecimal.valueOf(moReq.tauxRemise())
+                        : BigDecimal.ZERO;
 
                 LigneBonDeSortieMainDoeuvre ligneMo = LigneBonDeSortieMainDoeuvre.builder()
                         .bonDeSortie(bon)
