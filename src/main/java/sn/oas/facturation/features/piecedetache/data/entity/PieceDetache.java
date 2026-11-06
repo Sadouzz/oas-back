@@ -24,16 +24,15 @@ import sn.oas.facturation.features.piecedetache.data.enums.TypePiece;
 import sn.oas.facturation.features.categorie_pieces.data.entity.Categorie;
 import sn.oas.facturation.features.depot_pieces.data.entity.Depot;
 
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @Entity
 @Table(name = "pieces_detachees", uniqueConstraints = {
-    @UniqueConstraint(name = "uk_pieces_garage_reference", columnNames = {"garage_id", "numero_serie"})
+        @UniqueConstraint(name = "uk_pieces_garage_reference", columnNames = { "garage_id", "numero_serie" })
 })
 @Inheritance(strategy = InheritanceType.SINGLE_TABLE)
-@DiscriminatorColumn(name = "type_piece", discriminatorType = DiscriminatorType.STRING)
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+@DiscriminatorColumn(name = "type", discriminatorType = DiscriminatorType.STRING)
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" })
 @Data
 @SuperBuilder
 @NoArgsConstructor
@@ -41,8 +40,11 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 @EntityListeners(TenantListener.class)
 @FilterDef(name = "garageFilter", parameters = @ParamDef(name = "garageId", type = Long.class))
 @Filter(name = "garageFilter", condition = "garage_id = :garageId")
-/*@SQLDelete(sql = "UPDATE pieces_detachees SET deleted = true WHERE id=?")
-@SQLRestriction("deleted = false")*/
+/*
+ * @SQLDelete(sql = "UPDATE pieces_detachees SET deleted = true WHERE id=?")
+ * 
+ * @SQLRestriction("deleted = false")
+ */
 public abstract class PieceDetache implements TenantAware {
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -53,7 +55,8 @@ public abstract class PieceDetache implements TenantAware {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Transient
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", insertable = false, updatable = false)
     private TypePiece type;
 
     @Column(name = "numero")
@@ -72,17 +75,17 @@ public abstract class PieceDetache implements TenantAware {
 
     @Column(columnDefinition = "varchar(255) default 'N/A'", nullable = false)
     private String designation;
-    
+
     @Column(name = "prix_gros")
     private Double prixGros;
 
     @Column(name = "prix_unitaire")
     private Double prixUnitaire;
-    
+
     @Column(name = "stock_magasin")
     @lombok.Builder.Default
     private Double stockMagasin = 0.0;
-    
+
     @Column(name = "stock_atelier")
     @lombok.Builder.Default
     private Double stockAtelier = 0.0;
