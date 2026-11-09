@@ -117,6 +117,16 @@ public class DiagnosticController {
         }
     }
 
+    @PutMapping("/step/complete")
+    @Operation(summary = "Enregistrer et clôturer le diagnostic lors du passage à l'étape suivante")
+    public ResponseEntity<?> terminerDepuisEtape(@RequestBody DiagnosticStepDto stepDto) {
+        try {
+            return ResponseEntity.ok(diagnosticService.terminerDepuisEtape(stepDto));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
     // ─── Pièces jointes ───────────────────────────────────────────────────
 
     @PostMapping("/{id}/pieces-jointes")

@@ -277,17 +277,22 @@ public class TechnicienPortalServiceImpl implements TechnicienPortalService {
      * garage, requis avant toute lecture/écriture sur un endpoint du portail technicien.
      */
     private void verifierTechnicienAssigne(OrdreReparation ordreReparation, Technicien technicien) {
-        boolean assigne = (ordreReparation.getDiagnostic() != null && ordreReparation.getDiagnostic().getTechnicien() != null
-                && ordreReparation.getDiagnostic().getTechnicien().getId().equals(technicien.getId()))
+        boolean assigne = estAffecteAuDiagnostic(ordreReparation.getDiagnostic(), technicien.getId())
                 || (ordreReparation.getTechniciensReparation() != null && ordreReparation.getTechniciensReparation().stream()
                 .anyMatch(t -> t.getId().equals(technicien.getId())));
         if (!assigne) {
             Diagnostic diag = diagnosticRepository.findByOrdreReparationId(ordreReparation.getId()).orElse(null);
-            if (diag != null && diag.getTechnicien() != null && diag.getTechnicien().getId().equals(technicien.getId())) {
+            if (estAffecteAuDiagnostic(diag, technicien.getId())) {
                 return;
             }
             throw new AccessDeniedException("Vous n'êtes pas assigné à cet ordre de réparation");
         }
+    }
+
+    private boolean estAffecteAuDiagnostic(Diagnostic diagnostic, Long technicienId) {
+        return diagnostic != null && ((diagnostic.getTechniciens() != null
+                && diagnostic.getTechniciens().stream().anyMatch(t -> t.getId().equals(technicienId)))
+                || (diagnostic.getTechnicien() != null && diagnostic.getTechnicien().getId().equals(technicienId)));
     }
 
     private PieceJointeDiagnosticResponse toPieceJointeResponse(PieceJointeDiagnostic p) {

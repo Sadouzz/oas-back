@@ -78,7 +78,8 @@ public record BonDeSortieListResponse(
             Integer nbreHeure,
             Integer tarifHoraire,
             Double tauxRemise,
-            Double montantTotal
+            Double montantTotal,
+            java.time.LocalDateTime dateHeureSaisie
     ) {}
 
     public static BonDeSortieListResponse from(BonDeSortie b) {
@@ -187,7 +188,8 @@ public record BonDeSortieListResponse(
                         heures,
                         tarif,
                         tauxRemise,
-                        montant
+                        montant,
+                        lmo.getDateHeureSaisie()
                 ));
             }
         }

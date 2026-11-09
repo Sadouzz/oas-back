@@ -141,6 +141,7 @@ public class ProformaResponse {
                                     .prix(prix)
                                     .montantTotal(montantLigne)
                                     .tauxRemise(tauxRemise)
+                                    .dateHeureSaisie(lp.getDateHeureSaisie())
                                     .build();
                         })
                         .toList())
@@ -162,6 +163,7 @@ public class ProformaResponse {
                                     .tarifHoraire(tarif)
                                     .montantTotal(montantLigne)
                                     .tauxRemise(tauxRemise)
+                                    .dateHeureSaisie(lm.getDateHeureSaisie())
                                     .build();
                         })
                         .toList())

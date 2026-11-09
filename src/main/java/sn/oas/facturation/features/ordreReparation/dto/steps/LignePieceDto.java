@@ -4,6 +4,7 @@ import lombok.Data;
 
 @Data
 public class LignePieceDto {
+    private Long id;
     private Long pieceId;
     private Integer quantite;
     private Double prix;

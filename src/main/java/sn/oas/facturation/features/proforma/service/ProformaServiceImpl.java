@@ -292,6 +292,7 @@ public class ProformaServiceImpl implements ProformaService {
         Proforma saved = proformaRepository.save(proforma);
 
         if (ordreReparation != null) {
+            verifierDiagnosticTermineAvantProgression(ordreReparation);
             ordreReparation.setStatut(StatutOrdreReparation.PROFORMA);
             ordreReparationRepository.save(ordreReparation);
         }
@@ -366,6 +367,9 @@ public class ProformaServiceImpl implements ProformaService {
             }
 
             if (request.getLignesPieces() != null) {
+                java.util.Map<Long, LocalDateTime> datesPiecesExistantes = new java.util.HashMap<>();
+                proforma.getLignesFacturationPieces().stream().filter(l -> l.getId() != null)
+                        .forEach(l -> datesPiecesExistantes.put(l.getId(), l.getDateHeureSaisie()));
                 java.util.Set<Long> lignesPieceOrConsommees = new java.util.HashSet<>();
                 boolean conserverPrixHistorique = proforma.getStatut() == StatutFacturation.ACCEPTE
                         || proforma.getStatut() == StatutFacturation.PAYEE
@@ -415,11 +419,15 @@ public class ProformaServiceImpl implements ProformaService {
                             .quantite(lReq.getQuantite())
                             .prix(prix)
                             .tauxRemise(tauxRemisePieceDepuisOrdre(proforma.getOrdreReparation(), lReq, lignesPieceOrConsommees))
+                            .dateHeureSaisie(lReq.getId() != null ? datesPiecesExistantes.get(lReq.getId()) : null)
                             .build());
                 }
             }
 
             if (request.getLignesMainDoeuvres() != null) {
+                java.util.Map<Long, LocalDateTime> datesMoExistantes = new java.util.HashMap<>();
+                proforma.getLignesFacturationMainDoeuvres().stream().filter(l -> l.getId() != null)
+                        .forEach(l -> datesMoExistantes.put(l.getId(), l.getDateHeureSaisie()));
                 java.util.Set<Long> lignesMoOrConsommees = new java.util.HashSet<>();
                 proforma.getLignesFacturationMainDoeuvres().clear();
                 for (LigneFacturationMainDoeuvreRequest lReq : request.getLignesMainDoeuvres()) {
@@ -437,6 +445,7 @@ public class ProformaServiceImpl implements ProformaService {
                             .nbreHeure(lReq.getNbreHeure())
                             .tarifHoraire(lReq.getTarifHoraire())
                             .tauxRemise(tauxRemiseMoDepuisOrdre(proforma.getOrdreReparation(), lReq, lignesMoOrConsommees))
+                            .dateHeureSaisie(lReq.getId() != null ? datesMoExistantes.get(lReq.getId()) : null)
                             .build());
                 }
             }
@@ -569,6 +578,7 @@ public class ProformaServiceImpl implements ProformaService {
         proforma.setStatut(StatutFacturation.ACCEPTE);
         
         if (ordreReparation != null) {
+            verifierDiagnosticTermineAvantProgression(ordreReparation);
             ordreReparation.setStatut(StatutOrdreReparation.ORDRE_DE_TRAVAIL);
             ordreReparationRepository.save(ordreReparation);
         }
@@ -600,10 +610,12 @@ public class ProformaServiceImpl implements ProformaService {
             if (email != null && !email.isEmpty()) {
                 Long proformaId = saved.getId();
                 String proformaNumero = saved.getNumero();
+                String noticeTimbreEspeces = noticeTimbreEspecesEmail(saved);
                 mailDeliveryAsyncService.sendEmailWithPdfAttachmentAsync(
                         email,
                         "Validation de votre proforma",
-                        "<p>Bonjour,</p><p>Votre proforma <b>" + proformaNumero + "</b> a été créé. Veuillez le trouver en pièce jointe et le valider depuis votre espace.</p><p>Cordialement.</p>",
+                        "<p>Bonjour,</p><p>Votre proforma <b>" + proformaNumero + "</b> a été créé. Veuillez le trouver en pièce jointe et le valider depuis votre espace.</p>"
+                                + noticeTimbreEspeces + "<p>Cordialement.</p>",
                         "proforma_" + proformaNumero + ".pdf",
                         () -> generatePdf(proformaId),
                         true
@@ -694,6 +706,7 @@ public class ProformaServiceImpl implements ProformaService {
                     .quantite(lp.getQuantite())
                     .prix(lp.getPrix())
                     .tauxRemise(lp.getTauxRemise())
+                    .dateHeureSaisie(lp.getDateHeureSaisie())
                     .build());
         }
 
@@ -704,6 +717,7 @@ public class ProformaServiceImpl implements ProformaService {
                     .nbreHeure(lm.getNbreHeure())
                     .tarifHoraire(lm.getTarifHoraire())
                     .tauxRemise(lm.getTauxRemise())
+                    .dateHeureSaisie(lm.getDateHeureSaisie())
                     .build());
         }
 
@@ -774,6 +788,7 @@ public class ProformaServiceImpl implements ProformaService {
         proforma.setStatut(StatutFacturation.ACCEPTE);
 
         if (ordreReparation != null) {
+            verifierDiagnosticTermineAvantProgression(ordreReparation);
             ordreReparation.setStatut(StatutOrdreReparation.ORDRE_DE_TRAVAIL);
             ordreReparationRepository.save(ordreReparation);
         }
@@ -884,6 +899,7 @@ public class ProformaServiceImpl implements ProformaService {
             if (index == null) {
                 indexParCle.put(cle, resultat.size());
                 LigneFacturationPieceRequest copie = new LigneFacturationPieceRequest();
+                copie.setId(ligne.getId());
                 copie.setPieceId(ligne.getPieceId());
                 copie.setQuantite(ligne.getQuantite());
                 copie.setPrix(cle.prix());
@@ -912,5 +928,36 @@ public class ProformaServiceImpl implements ProformaService {
         BigDecimal tauxEffectif = taux == null ? BigDecimal.ZERO : taux;
         return montantBrut.multiply(BigDecimal.valueOf(100).subtract(tauxEffectif))
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+    }
+
+    private String noticeTimbreEspecesEmail(Proforma proforma) {
+        BigDecimal rate = proforma.getTimbreFiscalRate();
+        if (rate == null) rate = fiscalConfigurationService.getCurrent().getTimbreFiscalRate();
+        if (rate == null) rate = BigDecimal.ONE;
+        String message = "Pour tout règlement en espèces, un timbre fiscal de "
+                + rate.stripTrailingZeros().toPlainString()
+                + " % s'applique uniquement à la part réglée en espèces.";
+        if (proforma.getMontantTimbre() != null && proforma.getMontantTimbre().signum() > 0) {
+            message += " Le timbre déjà enregistré sur ce proforma est conservé dans son total.";
+        } else {
+            message += " Ce timbre n'est pas inclus dans le total du proforma.";
+        }
+        return "<p><strong>Information sur le timbre fiscal :</strong> " + message + "</p>";
+    }
+
+    private void verifierDiagnosticTermineAvantProgression(OrdreReparation ordre) {
+        StatutOrdreReparation statut = ordre.getStatut();
+        if (statut != null && statut.getEtape() >= StatutOrdreReparation.PIECES_MO.getEtape()) return;
+        var diagnostic = ordre.getDiagnostic();
+        boolean technicienAffecte = diagnostic != null
+                && ((diagnostic.getTechniciens() != null && !diagnostic.getTechniciens().isEmpty())
+                || diagnostic.getTechnicien() != null);
+        if (!technicienAffecte) {
+            throw new IllegalArgumentException("Affectez au moins un technicien et terminez le diagnostic avant de créer ou valider le proforma.");
+        }
+        if (diagnostic.getStatut() != sn.oas.facturation.features.diagnostic.data.enums.StatutDiagnostic.TERMINE
+                && diagnostic.getStatut() != sn.oas.facturation.features.diagnostic.data.enums.StatutDiagnostic.VALIDE) {
+            throw new IllegalArgumentException("Le diagnostic doit être terminé avant de créer ou valider le proforma.");
+        }
     }
 }

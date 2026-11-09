@@ -12,6 +12,7 @@ public class ProformaSummaryDto {
     private Double montantTVA;
     private Double montantTTC;
     private Double montantTimbre;
+    private Double timbreFiscalRate;
     private Double montantTotal;
     private Double tauxRemiseClient;
     private Double montantRemiseClient;

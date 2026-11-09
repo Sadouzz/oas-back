@@ -94,6 +94,7 @@ public class OrdreReparationResponseDTO {
         private Integer quantite;
         private Double prix;
         private Double tauxRemise;
+        private java.time.LocalDateTime dateHeureSaisie;
     }
 
     @Data
@@ -120,6 +121,7 @@ public class OrdreReparationResponseDTO {
         private Integer nbreHeure;
         private Double prix;
         private Double tauxRemise;
+        private java.time.LocalDateTime dateHeureSaisie;
     }
 
     @Data

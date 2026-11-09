@@ -174,13 +174,14 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
         // Ajout des techniciens
         if (request.getTechnicienIds() != null && !request.getTechnicienIds().isEmpty()) {
             synchroniserTechniciens(ordreTravail, request.getTechnicienIds());
-        } else if (ordreReparation != null && ordreReparation.getDiagnostic() != null && ordreReparation.getDiagnostic().getTechnicien() != null) {
-            Technicien tech = ordreReparation.getDiagnostic().getTechnicien();
-            LigneTechnicienOrdreTravail ligne = LigneTechnicienOrdreTravail.builder()
-                    .ordreTravail(ordreTravail)
-                    .technicien(tech)
-                    .build();
-            ordreTravail.getLignesTechniciens().add(ligne);
+        } else if (ordreReparation != null) {
+            for (Technicien tech : techniciensDiagnostic(ordreReparation)) {
+                LigneTechnicienOrdreTravail ligne = LigneTechnicienOrdreTravail.builder()
+                        .ordreTravail(ordreTravail)
+                        .technicien(tech)
+                        .build();
+                ordreTravail.getLignesTechniciens().add(ligne);
+            }
         }
 
         // Ajout des bons de commande
@@ -222,9 +223,7 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
         }
 
         List<Long> techIds = new ArrayList<>();
-        if (or.getDiagnostic() != null && or.getDiagnostic().getTechnicien() != null) {
-            techIds.add(or.getDiagnostic().getTechnicien().getId());
-        }
+        techIds.addAll(techniciensDiagnostic(or).stream().map(Technicien::getId).toList());
         if (or.getTechniciensReparation() != null) {
             for (Technicien t : or.getTechniciensReparation()) {
                 if (!techIds.contains(t.getId())) {
@@ -949,15 +948,16 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
                 }
             }
         }
-        if (techDtos.isEmpty() && ot.getOrdreReparation() != null && ot.getOrdreReparation().getDiagnostic() != null && ot.getOrdreReparation().getDiagnostic().getTechnicien() != null) {
-            Technicien tech = ot.getOrdreReparation().getDiagnostic().getTechnicien();
-            techDtos.add(TechnicienSummaryDto.builder()
-                    .id(tech.getId())
-                    .nom(tech.getLastName())
-                    .prenom(tech.getFirstName())
-                    .specialite(tech.getSpecialite() != null ? tech.getSpecialite().name() : null)
-                    .telephone(tech.getPhone())
-                    .build());
+        if (techDtos.isEmpty() && ot.getOrdreReparation() != null) {
+            for (Technicien tech : techniciensDiagnostic(ot.getOrdreReparation())) {
+                techDtos.add(TechnicienSummaryDto.builder()
+                        .id(tech.getId())
+                        .nom(tech.getLastName())
+                        .prenom(tech.getFirstName())
+                        .specialite(tech.getSpecialite() != null ? tech.getSpecialite().name() : null)
+                        .telephone(tech.getPhone())
+                        .build());
+            }
         }
         dto.setTechniciens(techDtos);
         return dto;
@@ -996,15 +996,16 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
                 }
             }
         }
-        if (techDtos.isEmpty() && ot.getOrdreReparation() != null && ot.getOrdreReparation().getDiagnostic() != null && ot.getOrdreReparation().getDiagnostic().getTechnicien() != null) {
-            Technicien tech = ot.getOrdreReparation().getDiagnostic().getTechnicien();
-            techDtos.add(TechnicienSummaryDto.builder()
-                    .id(tech.getId())
-                    .nom(tech.getLastName())
-                    .prenom(tech.getFirstName())
-                    .specialite(tech.getSpecialite() != null ? tech.getSpecialite().name() : null)
-                    .telephone(tech.getPhone())
-                    .build());
+        if (techDtos.isEmpty() && ot.getOrdreReparation() != null) {
+            for (Technicien tech : techniciensDiagnostic(ot.getOrdreReparation())) {
+                techDtos.add(TechnicienSummaryDto.builder()
+                        .id(tech.getId())
+                        .nom(tech.getLastName())
+                        .prenom(tech.getFirstName())
+                        .specialite(tech.getSpecialite() != null ? tech.getSpecialite().name() : null)
+                        .telephone(tech.getPhone())
+                        .build());
+            }
         }
         dto.setTechniciensReparation(techDtos);
         List<DocumentOrdreTravail> docs = documentOrdreTravailRepository.findByOrdreTravailIdOrderByCreatedAtDesc(ot.getId());
@@ -1123,6 +1124,15 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
      * Cet écart est informatif et ne bloque pas la fin de réparation.
      * Les quantités sont agrégées en base au lieu de charger les collections d'entités.
      */
+    private List<Technicien> techniciensDiagnostic(OrdreReparation ordre) {
+        if (ordre == null || ordre.getDiagnostic() == null) return List.of();
+        var diagnostic = ordre.getDiagnostic();
+        if (diagnostic.getTechniciens() != null && !diagnostic.getTechniciens().isEmpty()) {
+            return new ArrayList<>(diagnostic.getTechniciens());
+        }
+        return diagnostic.getTechnicien() != null ? List.of(diagnostic.getTechnicien()) : List.of();
+    }
+
     private List<String> calculerAvertissementsCouvertureBonsDeSortie(OrdreTravail ordreTravail, StatutOrdreTravail nouveauStatut) {
         if (nouveauStatut != StatutOrdreTravail.TERMINE
                 || ordreTravail.getOrdreReparation() == null

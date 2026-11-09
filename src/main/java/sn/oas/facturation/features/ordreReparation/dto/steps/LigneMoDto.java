@@ -4,6 +4,7 @@ import lombok.Data;
 
 @Data
 public class LigneMoDto {
+    private Long id;
     private Long mainDoeuvreId;
     private Integer nbreHeure;
     private Double prix;

@@ -3,9 +3,9 @@ package sn.oas.facturation.features.ordreReparation.dto.responses;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import java.util.List;
 import lombok.NoArgsConstructor;
 import sn.oas.facturation.features.ordreReparation.dto.responses.AdditionalStubs.*;
-import java.util.List;
 
 @Data
 @Builder
@@ -20,6 +20,7 @@ public class DiagnosticSummaryDto {
     private Integer kilometrage;
     private Long technicienId;
     private String technicienNom;
+    private List<Long> technicienIds;
     private String dateDebut;
     private String dateFin;
     private List<RemarqueDiagnosticDto> remarques;

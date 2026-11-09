@@ -1,6 +1,7 @@
 package sn.oas.facturation.features.ordreReparation.dto.responses;
 
 import lombok.Data;
+import java.time.LocalDateTime;
 
 @Data
 public class LignePieceOrdreDto {
@@ -10,6 +11,7 @@ public class LignePieceOrdreDto {
     private Double tauxRemise;
     private Boolean isCustom;
     private String designationPds;
+    private LocalDateTime dateHeureSaisie;
     private Long pieceId; 
     private PieceSummaryDto piece; 
 }

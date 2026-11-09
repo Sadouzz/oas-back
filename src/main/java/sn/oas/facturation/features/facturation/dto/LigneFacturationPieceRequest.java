@@ -6,6 +6,7 @@ import lombok.Data;
 
 @Data
 public class LigneFacturationPieceRequest {
+    private Long id;
     private Long pieceId;
     private Integer quantite;
     private Integer prix;

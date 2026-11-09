@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import sn.oas.facturation.features.ordreTravail.data.entity.OrdreTravail;
+import sn.oas.facturation.features.technicien.data.entity.Technicien;
 import sn.oas.facturation.features.ordreTravail.data.enums.StatutOrdreTravail;
 import sn.oas.facturation.features.ordreTravail.dto.responses.DocumentOrdreTravailResponseDto;
 
@@ -115,14 +116,20 @@ public class OrdreTravailResponseDto {
                                 .build())
                         .collect(Collectors.toList());
 
-        if (techniciens.isEmpty() && ot.getOrdreReparation() != null && ot.getOrdreReparation().getDiagnostic() != null && ot.getOrdreReparation().getDiagnostic().getTechnicien() != null) {
-            var dt = ot.getOrdreReparation().getDiagnostic().getTechnicien();
-            techniciens = List.of(TechnicienDto.builder()
+        if (techniciens.isEmpty() && ot.getOrdreReparation() != null && ot.getOrdreReparation().getDiagnostic() != null) {
+            var diagnostic = ot.getOrdreReparation().getDiagnostic();
+            List<Technicien> affectes = new ArrayList<>();
+            if (diagnostic.getTechniciens() != null && !diagnostic.getTechniciens().isEmpty()) {
+                affectes.addAll(diagnostic.getTechniciens());
+            } else if (diagnostic.getTechnicien() != null) {
+                affectes.add(diagnostic.getTechnicien());
+            }
+            techniciens = affectes.stream().map(dt -> TechnicienDto.builder()
                     .id(dt.getId())
                     .nom(dt.getLastName())
                     .prenom(dt.getFirstName())
                     .specialite(dt.getSpecialite() != null ? dt.getSpecialite().name() : null)
-                    .build());
+                    .build()).collect(Collectors.toList());
         }
 
         List<DocumentDto> bcs = ot.getBonsDeCommande() == null ? Collections.emptyList() : ot.getBonsDeCommande().stream()
