@@ -65,6 +65,7 @@ public class BonDeReceptionResponse {
                 .lignesMainDoeuvres(bl.getLignesFacturationMainDoeuvres() == null ? List.of() : bl.getLignesFacturationMainDoeuvres().stream()
                         .map(ligne -> LigneFacturationMainDoeuvreResponse.builder()
                                 .id(ligne.getId())
+                                        .dateHeureSaisie(ligne.getDateHeureSaisie())
                                 .mainDoeuvreId(ligne.getMainDoeuvre() != null ? ligne.getMainDoeuvre().getId() : null)
                                 .descriptionMainDoeuvre(ligne.getMainDoeuvre() != null && ligne.getMainDoeuvre().getCategorie() != null ? ligne.getMainDoeuvre().getCategorie().getNom() : null)
                                 .nbreHeure(ligne.getNbreHeure())
@@ -84,6 +85,7 @@ public class BonDeReceptionResponse {
         if (commande == null || commande.getLignes() == null || commande.getLignes().isEmpty()) {
             return sn.oas.facturation.shared.OrdreAffichageLignes.plusRecentesEnPremier(lignesReception.stream().map(ligne -> LigneFacturationPieceResponse.builder()
                     .id(ligne.getId())
+                                        .dateHeureSaisie(ligne.getDateHeureSaisie())
                     .pieceId(ligne.getPiece() != null ? ligne.getPiece().getId() : null)
                     .designationPiece(ligne.getPiece() != null ? ligne.getPiece().getDesignation() : ligne.getDesignationPds())
                     .referencePiece(ligne.getPiece() != null ? ligne.getPiece().getReference() : null)

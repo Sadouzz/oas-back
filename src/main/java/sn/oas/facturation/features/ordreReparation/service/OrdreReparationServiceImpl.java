@@ -51,6 +51,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
+import java.util.Objects;
 import sn.oas.facturation.features.proforma.service.ProformaService;
 import sn.oas.facturation.features.proforma.data.entity.Proforma;
 import sn.oas.facturation.features.proforma.dto.ProformaCreateRequest;
@@ -158,6 +159,9 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     public OrdreReparation createOrdreReparation(OrdreReparationRequest request) {
         if (request.getStatut() == StatutOrdreReparation.LIVRE) {
             throw new IllegalArgumentException("La livraison doit passer par la restitution du véhicule.");
+        }
+        if (request.getStatut() != null && request.getStatut() != StatutOrdreReparation.RECEPTION) {
+            throw new IllegalArgumentException("Un nouvel ordre de réparation doit commencer à l'étape Réception.");
         }
         Vehicule vehicule = null;
         if (request.getVehiculeId() != null) {
@@ -390,13 +394,16 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
 
         // Techniciens (diagnostic)
         List<OrdreReparationResponseDTO.TechnicienDto> techniciens = null;
-        if (o.getDiagnostic() != null && o.getDiagnostic().getTechnicien() != null) {
-            techniciens = List.of(OrdreReparationResponseDTO.TechnicienDto.builder()
-                    .id(o.getDiagnostic().getTechnicien().getId())
-                    .firstName(o.getDiagnostic().getTechnicien().getFirstName())
-                    .lastName(o.getDiagnostic().getTechnicien().getLastName())
-                    .specialite(o.getDiagnostic().getTechnicien().getSpecialite() != null ? o.getDiagnostic().getTechnicien().getSpecialite().name() : null)
-                    .build());
+        if (o.getDiagnostic() != null) {
+            List<Technicien> diagnosticiens = o.getDiagnostic().getTechniciens() != null && !o.getDiagnostic().getTechniciens().isEmpty()
+                    ? new ArrayList<>(o.getDiagnostic().getTechniciens())
+                    : (o.getDiagnostic().getTechnicien() != null ? List.of(o.getDiagnostic().getTechnicien()) : List.of());
+            techniciens = diagnosticiens.stream().map(t -> OrdreReparationResponseDTO.TechnicienDto.builder()
+                    .id(t.getId())
+                    .firstName(t.getFirstName())
+                    .lastName(t.getLastName())
+                    .specialite(t.getSpecialite() != null ? t.getSpecialite().name() : null)
+                    .build()).toList();
         }
 
         // Techniciens réparation
@@ -448,6 +455,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                         .quantite(lp.getQuantite())
                         .prix(lp.getPrix() != null ? lp.getPrix().doubleValue() : null)
                         .tauxRemise(lp.getTauxRemise() != null ? lp.getTauxRemise().doubleValue() : 0.0)
+                        .dateHeureSaisie(lp.getDateHeureSaisie())
                         .build();
             }).collect(Collectors.toList());
         }
@@ -478,6 +486,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                         .nbreHeure(lm.getNbreHeure())
                         .prix(lm.getPrix() != null ? lm.getPrix().doubleValue() : null)
                         .tauxRemise(lm.getTauxRemise() != null ? lm.getTauxRemise().doubleValue() : 0.0)
+                        .dateHeureSaisie(lm.getDateHeureSaisie())
                         .build();
             }).collect(Collectors.toList());
         }
@@ -527,6 +536,10 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         verifierTravauxDemandesImmuables(ordreReparation, request.getDescriptionTravaux(), request.getLignesTravaux());
         if (request.getLignesReception() != null)
             throw new IllegalArgumentException("L'état des lieux de réception ne peut plus être modifié après la création de l'ordre.");
+        if (request.getListeDefauts() != null && ordreReparation.getStatut() != null
+                && ordreReparation.getStatut().getEtape() >= StatutOrdreReparation.PIECES_MO.getEtape()) {
+            throw new IllegalArgumentException("Les défauts du diagnostic ne peuvent plus être modifiés après sa clôture.");
+        }
         if (request.getListeDefauts() != null)
             ordreReparation.setListeDefauts(request.getListeDefauts());
         if (request.getStatut() == StatutOrdreReparation.LIVRE)
@@ -536,12 +549,20 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             throw new IllegalArgumentException("Un ordre livré ne peut pas revenir à une étape précédente.");
         if (request.getStatut() != null) {
             verifierTransitionStatut(ordreReparation.getStatut(), request.getStatut());
+            verifierDiagnosticTermineAvantProgression(ordreReparation, request.getStatut());
             if (request.getStatut() == StatutOrdreReparation.ORDRE_DE_TRAVAIL
                     && (ordreReparation.getStatut() == null
                     || ordreReparation.getStatut().getEtape() < StatutOrdreReparation.ORDRE_DE_TRAVAIL.getEtape())) {
                 verifierProformaAcceptePourPassageOT(ordreReparation);
             }
             ordreReparation.setStatut(request.getStatut());
+        }
+        if (request.getLignesPieces() != null || request.getLignesMainDoeuvres() != null) {
+            if (request.getStatut() == null || request.getStatut().getEtape() < StatutOrdreReparation.PIECES_MO.getEtape()) {
+                verifierEtapePiecesMoAccessible(ordreReparation);
+            } else {
+                verifierDiagnosticTermineAvantProgression(ordreReparation, request.getStatut());
+            }
         }
 
         if (request.getVehiculeId() != null) {
@@ -554,6 +575,9 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         }
 
         if (request.getLignesPieces() != null) {
+            java.util.Map<Long, LigneOrdreReparationPiece> anciennesLignesParId = ordreReparation.getLignesOrdreReparationPieces().stream()
+                    .filter(ligne -> ligne.getId() != null)
+                    .collect(Collectors.toMap(LigneOrdreReparationPiece::getId, ligne -> ligne));
             ordreReparation.getLignesOrdreReparationPieces().clear();
             for (LigneOrdreReparationPieceRequest ligneReq : consoliderPdsIdentiques(request.getLignesPieces())) {
                 PieceDetache piece = null;
@@ -570,6 +594,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                             piece, prix == null ? null : prix.doubleValue()));
                 }
 
+                LigneOrdreReparationPiece ancienneLigne = ligneReq.id() != null ? anciennesLignesParId.get(ligneReq.id()) : null;
                 ordreReparation.getLignesOrdreReparationPieces().add(LigneOrdreReparationPiece.builder()
                         .ordreReparation(ordreReparation)
                         .piece(piece)
@@ -578,15 +603,20 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                         .quantite(ligneReq.quantite())
                         .prix(prix)
                         .tauxRemise(tauxRemise(ligneReq.tauxRemise()))
+                        .dateHeureSaisie(ancienneLigne != null ? ancienneLigne.getDateHeureSaisie() : null)
                         .build());
             }
         }
 
         if (request.getLignesMainDoeuvres() != null) {
+            java.util.Map<Long, LigneOrdreReparationMainDoeuvre> anciennesLignesParId = ordreReparation.getLignesOrdreReparationMainDoeuvres().stream()
+                    .filter(ligne -> ligne.getId() != null)
+                    .collect(Collectors.toMap(LigneOrdreReparationMainDoeuvre::getId, ligne -> ligne));
             ordreReparation.getLignesOrdreReparationMainDoeuvres().clear();
             for (LigneOrdreReparationMainDoeuvreRequest ligneReq : request.getLignesMainDoeuvres()) {
                 MainDoeuvre md = mainDoeuvreRepository.findById(ligneReq.mainDoeuvreId())
                         .orElseThrow(() -> new RuntimeException("Main d'œuvre non trouvée"));
+                LigneOrdreReparationMainDoeuvre ancienneLigne = ligneReq.id() != null ? anciennesLignesParId.get(ligneReq.id()) : null;
                 ordreReparation.getLignesOrdreReparationMainDoeuvres().add(LigneOrdreReparationMainDoeuvre.builder()
                         .ordreReparation(ordreReparation)
                         .mainDoeuvre(md)
@@ -594,6 +624,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                         .prix(ligneReq.prix() != null ? ligneReq.prix()
                                 : (md.getPrix() != null ? md.getPrix().intValue() : 0))
                         .tauxRemise(tauxRemise(ligneReq.tauxRemise()))
+                        .dateHeureSaisie(ancienneLigne != null ? ancienneLigne.getDateHeureSaisie() : null)
                         .build());
             }
         }
@@ -674,6 +705,11 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         Technicien technicien = technicienRepository.findById(technicienId)
                 .orElseThrow(() -> new RuntimeException("Technicien non trouvé"));
 
+        verifierTechnicienDuGarage(technicien, fiche);
+        if (fiche.getStatut() != null && fiche.getStatut().getEtape() >= StatutOrdreReparation.PIECES_MO.getEtape()) {
+            throw new IllegalArgumentException("Les techniciens du diagnostic ne peuvent plus être modifiés après sa clôture.");
+        }
+
         Diagnostic diag = fiche.getDiagnostic();
         if (diag == null) {
             diag = Diagnostic.builder()
@@ -683,8 +719,14 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                     .statut(StatutDiagnostic.EN_ATTENTE)
                     .build();
             fiche.setDiagnostic(diag);
-        } else {
-            diag.setTechnicien(technicien);
+        }
+        diag.ajouterTechnicien(technicien);
+        if (diag.getStatut() == null || diag.getStatut() == StatutDiagnostic.EN_ATTENTE) {
+            diag.setStatut(StatutDiagnostic.EN_COURS);
+            if (diag.getDateDebut() == null) diag.setDateDebut(LocalDateTime.now());
+        }
+        if (fiche.getStatut() == null || fiche.getStatut() == StatutOrdreReparation.RECEPTION) {
+            fiche.setStatut(StatutOrdreReparation.DIAGNOSTIC);
         }
         fiche.setUpdatedAt(LocalDateTime.now());
         ordreReparationRepository.save(fiche);
@@ -700,9 +742,16 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     public void removeTechnicien(Long ficheId, Long technicienId) {
         OrdreReparation fiche = ordreReparationRepository.findById(ficheId)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
-        if (fiche.getDiagnostic() != null && fiche.getDiagnostic().getTechnicien() != null
-                && fiche.getDiagnostic().getTechnicien().getId().equals(technicienId)) {
-            fiche.getDiagnostic().setTechnicien(null);
+        if (fiche.getStatut() != null && fiche.getStatut().getEtape() >= StatutOrdreReparation.PIECES_MO.getEtape()) {
+            throw new IllegalArgumentException("Les techniciens du diagnostic ne peuvent plus être modifiés après sa clôture.");
+        }
+        if (fiche.getDiagnostic() != null) {
+            fiche.getDiagnostic().retirerTechnicien(technicienId);
+            if (fiche.getDiagnostic().getTechniciens().isEmpty()
+                    && fiche.getDiagnostic().getStatut() == StatutDiagnostic.EN_COURS) {
+                fiche.getDiagnostic().setStatut(StatutDiagnostic.EN_ATTENTE);
+                fiche.getDiagnostic().setDateDebut(null);
+            }
             fiche.setUpdatedAt(LocalDateTime.now());
             ordreReparationRepository.save(fiche);
         }
@@ -771,18 +820,11 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         }
         StatutOrdreReparation ancienStatut = fiche.getStatut();
         verifierTransitionStatut(ancienStatut, newStatut);
+        verifierDiagnosticTermineAvantProgression(fiche, newStatut);
         if (newStatut == StatutOrdreReparation.ORDRE_DE_TRAVAIL
                 && (ancienStatut == null || ancienStatut.getEtape() < StatutOrdreReparation.ORDRE_DE_TRAVAIL.getEtape())) {
             verifierProformaAcceptePourPassageOT(fiche);
         }
-
-        // Un technicien doit être affecté au diagnostic avant de pouvoir démarrer le diagnostic.
-        /*
-        if (newStatut == StatutOrdreReparation.DIAGNOSTIC
-                && (fiche.getDiagnostic() == null || fiche.getDiagnostic().getTechnicien() == null)) {
-            throw new RuntimeException("Veuillez affecter au moins un technicien au diagnostic avant de démarrer le diagnostic.");
-        }
-        */
 
         fiche.setStatut(newStatut);
         fiche.setUpdatedAt(LocalDateTime.now());
@@ -1202,6 +1244,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             throw new IllegalArgumentException("Un ordre livré ne peut pas revenir à une étape précédente.");
         }
         if (dto.getStatut() != null) verifierTransitionStatut(ordre.getStatut(), dto.getStatut());
+        if (dto.getStatut() != null) verifierDiagnosticTermineAvantProgression(ordre, dto.getStatut());
         if (dto.getStatut() == StatutOrdreReparation.ORDRE_DE_TRAVAIL
                 && (ordre.getStatut() == null || ordre.getStatut().getEtape() < StatutOrdreReparation.ORDRE_DE_TRAVAIL.getEtape())) {
             verifierProformaAcceptePourPassageOT(ordre);
@@ -1221,15 +1264,48 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     }
 
     private void verifierTransitionStatut(StatutOrdreReparation ancien, StatutOrdreReparation nouveau) {
+        if (ancien != null && ancien.getEtape() >= StatutOrdreReparation.PIECES_MO.getEtape()
+                && nouveau.getEtape() < StatutOrdreReparation.PIECES_MO.getEtape()) {
+            throw new IllegalArgumentException("Après la clôture du diagnostic, le retour à une étape antérieure est interdit.");
+        }
         if (ancien != null && ancien.getEtape() >= StatutOrdreReparation.ORDRE_DE_TRAVAIL.getEtape()
                 && nouveau.getEtape() < StatutOrdreReparation.ORDRE_DE_TRAVAIL.getEtape()) {
             throw new IllegalArgumentException("Après le passage à l'Ordre de Travail, le retour aux étapes précédentes est interdit. Le proforma reste accessible séparément.");
         }
     }
 
+    private void verifierDiagnosticTermineAvantProgression(OrdreReparation ordre, StatutOrdreReparation nouveauStatut) {
+        StatutOrdreReparation ancien = ordre.getStatut();
+        if (nouveauStatut.getEtape() < StatutOrdreReparation.PIECES_MO.getEtape()
+                || (ancien != null && ancien.getEtape() >= StatutOrdreReparation.PIECES_MO.getEtape())) return;
+        Diagnostic diagnostic = ordre.getDiagnostic();
+        boolean hasTechnician = diagnostic != null && ((diagnostic.getTechniciens() != null && !diagnostic.getTechniciens().isEmpty())
+                || diagnostic.getTechnicien() != null);
+        if (!hasTechnician) {
+            throw new IllegalArgumentException("Affectez au moins un technicien au diagnostic avant de passer à l'étape suivante.");
+        }
+        if (diagnostic.getStatut() != StatutDiagnostic.TERMINE && diagnostic.getStatut() != StatutDiagnostic.VALIDE) {
+            throw new IllegalArgumentException("Le diagnostic doit être terminé avant de passer à l'étape suivante.");
+        }
+    }
+
+    private void verifierTechnicienDuGarage(Technicien technicien, OrdreReparation ordre) {
+        Long garageTechId = technicien.getGarage() != null ? technicien.getGarage().getId() : null;
+        Long garageOrdreId = ordre.getGarage() != null ? ordre.getGarage().getId() : null;
+        if (!Objects.equals(garageTechId, garageOrdreId)) {
+            throw new IllegalArgumentException("Le technicien doit appartenir au même garage que l'ordre de réparation.");
+        }
+    }
+
     private void verifierEtapeAvantOrdreTravail(OrdreReparation ordre) {
         if (estAuMoinsOrdreTravail(ordre)) {
             throw new IllegalArgumentException("Cette étape est verrouillée après le passage à l'Ordre de Travail. Seule la modification du proforma reste autorisée.");
+        }
+    }
+
+    private void verifierEtapePiecesMoAccessible(OrdreReparation ordre) {
+        if (ordre.getStatut() == null || ordre.getStatut().getEtape() < StatutOrdreReparation.PIECES_MO.getEtape()) {
+            throw new IllegalArgumentException("Terminez le diagnostic depuis son étape avant de modifier les pièces et la main-d'œuvre.");
         }
     }
 
@@ -1321,8 +1397,12 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 diagDto.setDateFin(diagnostic.getDateFin().toString());
             }
 
-            if (diagnostic.getTechnicien() != null) {
-                Technicien t = diagnostic.getTechnicien();
+            List<Technicien> techniciensDiagnostic = diagnostic.getTechniciens() != null && !diagnostic.getTechniciens().isEmpty()
+                    ? new ArrayList<>(diagnostic.getTechniciens())
+                    : (diagnostic.getTechnicien() != null ? List.of(diagnostic.getTechnicien()) : List.of());
+            diagDto.setTechnicienIds(techniciensDiagnostic.stream().map(Technicien::getId).toList());
+            if (!techniciensDiagnostic.isEmpty()) {
+                Technicien t = techniciensDiagnostic.get(0);
                 diagDto.setTechnicienId(t.getId());
                 String prenom = t.getFirstName() != null ? t.getFirstName() : "";
                 String nom = t.getLastName() != null ? t.getLastName() : "";
@@ -1385,8 +1465,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             dto.setDiagnostic(diagDto);
 
             List<TechnicienDto> techDtos = new ArrayList<>();
-            if (diagnostic.getTechnicien() != null) {
-                Technicien t = diagnostic.getTechnicien();
+            for (Technicien t : techniciensDiagnostic) {
                 TechnicienDto tDto = new TechnicienDto();
                 tDto.setId(t.getId());
                 tDto.setNom(t.getLastName());
@@ -1423,6 +1502,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             ligneDto.setId(ligne.getId());
             ligneDto.setQuantite(ligne.getQuantite());
             ligneDto.setPrix(ligne.getPrix());
+            ligneDto.setDateHeureSaisie(ligne.getDateHeureSaisie());
             ligneDto.setTauxRemise(ligne.getTauxRemise() != null ? ligne.getTauxRemise().doubleValue() : 0.0);
             ligneDto.setIsCustom(ligne.getIsCustom());
             ligneDto.setDesignationPds(ligne.getDesignationPds());
@@ -1446,6 +1526,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             ligneDto.setHeures(ligne.getNbreHeure());
             ligneDto.setPrix(ligne.getPrix());
             ligneDto.setTauxRemise(ligne.getTauxRemise() != null ? ligne.getTauxRemise().doubleValue() : 0.0);
+            ligneDto.setDateHeureSaisie(ligne.getDateHeureSaisie());
             if (ligne.getMainDoeuvre() != null) {
                 ligneDto.setDescription(ligne.getMainDoeuvre().getDescription());
             }
@@ -1899,15 +1980,22 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     public StepDiagnosticDto updateStepDiagnostic(Long id, StepDiagnosticDto dto) {
         OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
         verifierEtapeAvantOrdreTravail(ordre);
+        if (ordre.getStatut() != null && ordre.getStatut().getEtape() >= StatutOrdreReparation.PIECES_MO.getEtape()) {
+            throw new IllegalArgumentException("Le diagnostic est terminé et ne peut plus être modifié.");
+        }
         updateBaseStepFields(ordre, dto);
         if (dto.getTechnicienId() != null) {
             Technicien technicien = technicienRepository.findById(dto.getTechnicienId()).orElseThrow(() -> new RuntimeException("Technicien non trouvé"));
             Diagnostic diag = ordre.getDiagnostic();
             if (diag == null) {
-                diag = Diagnostic.builder().ordreReparation(ordre).technicien(technicien).build();
+                diag = Diagnostic.builder().ordreReparation(ordre).garage(ordre.getGarage()).build();
                 ordre.setDiagnostic(diag);
-            } else {
-                diag.setTechnicien(technicien);
+            }
+            verifierTechnicienDuGarage(technicien, ordre);
+            diag.ajouterTechnicien(technicien);
+            if (diag.getStatut() == null || diag.getStatut() == StatutDiagnostic.EN_ATTENTE) {
+                diag.setStatut(StatutDiagnostic.EN_COURS);
+                if (diag.getDateDebut() == null) diag.setDateDebut(LocalDateTime.now());
             }
         }
         ordreReparationRepository.save(ordre);
@@ -1919,18 +2007,19 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     public StepPiecesMoDto updateStepPiecesMo(Long id, StepPiecesMoDto dto) {
         OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
         verifierEtapeAvantOrdreTravail(ordre);
+        verifierEtapePiecesMoAccessible(ordre);
         updateBaseStepFields(ordre, dto);
         ordreReparationRepository.save(ordre);
 
         OrdreReparationRequest req = new OrdreReparationRequest();
         if (dto.getLignesPieces() != null) {
             req.setLignesPieces(dto.getLignesPieces().stream().map(l -> 
-                new LigneOrdreReparationPieceRequest(l.getPieceId(), l.getQuantite(), (l.getPrix() != null ? l.getPrix().intValue() : 0), l.getIsCustom(), l.getDesignationPds(), l.getTauxRemise())
+                new LigneOrdreReparationPieceRequest(l.getPieceId(), l.getQuantite(), (l.getPrix() != null ? l.getPrix().intValue() : 0), l.getIsCustom(), l.getDesignationPds(), l.getTauxRemise(), l.getId())
             ).collect(Collectors.toList()));
         }
         if (dto.getLignesMainDoeuvres() != null) {
             req.setLignesMainDoeuvres(dto.getLignesMainDoeuvres().stream().map(l -> 
-                new LigneOrdreReparationMainDoeuvreRequest(l.getMainDoeuvreId(), l.getNbreHeure(), (l.getPrix() != null ? l.getPrix().intValue() : 0), l.getTauxRemise())
+                new LigneOrdreReparationMainDoeuvreRequest(l.getMainDoeuvreId(), l.getNbreHeure(), (l.getPrix() != null ? l.getPrix().intValue() : 0), l.getTauxRemise(), l.getId())
             ).collect(Collectors.toList()));
         }
         boolean proformaExistedBefore = proformaRepository.findByOrdreReparationId(id).isPresent();
@@ -2076,13 +2165,13 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             if (index == null) {
                 indexParCle.put(cle, resultat.size());
                 resultat.add(new LigneOrdreReparationPieceRequest(ligne.pieceId(), ligne.quantite(), prixPds(ligne),
-                        ligne.isCustom(), designation, ligne.tauxRemise()));
+                        ligne.isCustom(), designation, ligne.tauxRemise(), ligne.id()));
             } else {
                 LigneOrdreReparationPieceRequest existante = resultat.get(index);
                 resultat.set(index, new LigneOrdreReparationPieceRequest(existante.pieceId(),
                         (existante.quantite() == null ? 0 : existante.quantite()) + (ligne.quantite() == null ? 0 : ligne.quantite()),
                         existante.prix(), existante.isCustom(),
-                        existante.designationPds(), existante.tauxRemise()));
+                        existante.designationPds(), existante.tauxRemise(), existante.id()));
             }
         }
         return resultat;

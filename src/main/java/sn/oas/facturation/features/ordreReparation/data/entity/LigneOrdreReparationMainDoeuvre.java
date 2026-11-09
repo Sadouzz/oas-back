@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import sn.oas.facturation.features.main_doeuvre.data.entity.MainDoeuvre;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "lignes_ordre_reparation_main_doeuvre")
@@ -39,4 +40,12 @@ public class LigneOrdreReparationMainDoeuvre {
     @Builder.Default
     @Column(name = "taux_remise", nullable = false, precision = 5, scale = 2)
     private BigDecimal tauxRemise = BigDecimal.ZERO;
+
+    @Column(name = "date_heure_saisie", updatable = false)
+    private LocalDateTime dateHeureSaisie;
+
+    @PrePersist
+    protected void onCreate() {
+        if (dateHeureSaisie == null) dateHeureSaisie = LocalDateTime.now();
+    }
 }

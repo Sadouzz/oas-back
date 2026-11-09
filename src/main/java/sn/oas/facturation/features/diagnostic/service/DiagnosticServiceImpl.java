@@ -28,7 +28,10 @@ import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.io.ByteArrayOutputStream;
 
@@ -70,17 +73,19 @@ public class DiagnosticServiceImpl implements DiagnosticService {
         OrdreReparation ordreReparation = ordreReparationRepository.findById(request.getOrdreReparationId())
                 .orElseThrow(() -> new RuntimeException("Ordre de réparation non trouvé avec l'id : " + request.getOrdreReparationId()));
 
+        verifierDiagnosticModifiable(ordreReparation);
+
         if (diagnosticRepository.existsByOrdreReparationId(ordreReparation.getId())) {
             throw new IllegalStateException("Un diagnostic existe déjà pour cet ordre de réparation");
         }
 
-        Technicien technicien = null;
-        if (request.getTechnicienId() != null) {
-            technicien = technicienRepository.findById(request.getTechnicienId())
-                    .orElseThrow(() -> new RuntimeException("Technicien non trouvé"));
-        } else if (request.getTechnicienIds() != null && !request.getTechnicienIds().isEmpty()) {
-            technicien = technicienRepository.findById(request.getTechnicienIds().get(0)).orElse(null);
+        List<Technicien> techniciens = resolveTechniciens(
+                request.getTechnicienIds(), request.getTechnicienId(), ordreReparation);
+        if (request.getStatut() == StatutDiagnostic.TERMINE || request.getStatut() == StatutDiagnostic.VALIDE
+                || (request.getStatut() == StatutDiagnostic.EN_COURS && techniciens.isEmpty())) {
+            throw new IllegalArgumentException("Le diagnostic passe en cours avec une affectation et se termine au passage à l'étape suivante.");
         }
+        Technicien technicien = techniciens.stream().findFirst().orElse(null);
 
         Diagnostic diagnostic = Diagnostic.builder()
                 .ordreReparation(ordreReparation)
@@ -90,8 +95,10 @@ public class DiagnosticServiceImpl implements DiagnosticService {
                 .pannesDetectees(request.getPannesDetectees())
                 .recommandations(request.getRecommandations())
                 .kilometrage(request.getKilometrage())
-                .statut(request.getStatut() != null ? request.getStatut() : StatutDiagnostic.EN_COURS)
-                .dateDebut(request.getDateDebut() != null ? request.getDateDebut() : LocalDateTime.now())
+                .techniciens(new LinkedHashSet<>(techniciens))
+                .statut(techniciens.isEmpty() ? StatutDiagnostic.EN_ATTENTE : StatutDiagnostic.EN_COURS)
+                .dateDebut(request.getDateDebut() != null ? request.getDateDebut()
+                        : (techniciens.isEmpty() ? null : LocalDateTime.now()))
                 .dateFin(request.getDateFin())
                 .build();
 
@@ -101,6 +108,11 @@ public class DiagnosticServiceImpl implements DiagnosticService {
         }
 
         Diagnostic saved = diagnosticRepository.save(diagnostic);
+        if (!techniciens.isEmpty() && (ordreReparation.getStatut() == null
+                || ordreReparation.getStatut() == sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation.RECEPTION)) {
+            ordreReparation.setStatut(sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation.DIAGNOSTIC);
+            ordreReparationRepository.save(ordreReparation);
+        }
 
         // Pièces jointes initiales
         if (request.getPiecesJointes() != null) {
@@ -161,13 +173,27 @@ public class DiagnosticServiceImpl implements DiagnosticService {
         Diagnostic diagnostic = diagnosticRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Diagnostic non trouvé avec l'id : " + id));
 
-        if (request.getTechnicienId() != null) {
-            Technicien technicien = technicienRepository.findById(request.getTechnicienId())
-                    .orElseThrow(() -> new RuntimeException("Technicien non trouvé"));
-            diagnostic.setTechnicien(technicien);
-        } else if (request.getTechnicienIds() != null && !request.getTechnicienIds().isEmpty()) {
-            Technicien technicien = technicienRepository.findById(request.getTechnicienIds().get(0)).orElse(null);
-            diagnostic.setTechnicien(technicien);
+        verifierDiagnosticModifiable(diagnostic.getOrdreReparation());
+        if (request.getStatut() == StatutDiagnostic.TERMINE || request.getStatut() == StatutDiagnostic.VALIDE) {
+            throw new IllegalArgumentException("Le diagnostic se termine en passant à l'étape suivante de l'ordre de réparation.");
+        }
+
+        if (request.getTechnicienId() != null || request.getTechnicienIds() != null) {
+            diagnostic.remplacerTechniciens(resolveTechniciens(
+                    request.getTechnicienIds(), request.getTechnicienId(), diagnostic.getOrdreReparation()));
+            if (!diagnostic.getTechniciens().isEmpty()
+                    && (diagnostic.getStatut() == null || diagnostic.getStatut() == StatutDiagnostic.EN_ATTENTE)) {
+                diagnostic.setStatut(StatutDiagnostic.EN_COURS);
+                if (diagnostic.getDateDebut() == null) diagnostic.setDateDebut(LocalDateTime.now());
+            } else if (diagnostic.getTechniciens().isEmpty() && diagnostic.getStatut() == StatutDiagnostic.EN_COURS) {
+                diagnostic.setStatut(StatutDiagnostic.EN_ATTENTE);
+            }
+            OrdreReparation ordre = diagnostic.getOrdreReparation();
+            if (!techniciensAffectes(diagnostic).isEmpty() && ordre != null
+                    && (ordre.getStatut() == null
+                    || ordre.getStatut() == sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation.RECEPTION)) {
+                ordre.setStatut(sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation.DIAGNOSTIC);
+            }
         }
 
         if (request.getObservations() != null) {
@@ -187,6 +213,12 @@ public class DiagnosticServiceImpl implements DiagnosticService {
             diagnostic.setKilometrage(request.getKilometrage());
         }
         if (request.getStatut() != null) {
+            if (request.getStatut() == StatutDiagnostic.EN_COURS && techniciensAffectes(diagnostic).isEmpty()) {
+                throw new IllegalArgumentException("Affectez au moins un technicien avant de démarrer le diagnostic.");
+            }
+            if (request.getStatut() == StatutDiagnostic.EN_ATTENTE && !techniciensAffectes(diagnostic).isEmpty()) {
+                throw new IllegalArgumentException("Retirez tous les techniciens avant de remettre le diagnostic en attente.");
+            }
             diagnostic.setStatut(request.getStatut());
         }
         if (request.getDateDebut() != null) {
@@ -233,20 +265,23 @@ public class DiagnosticServiceImpl implements DiagnosticService {
     public DiagnosticResponse updateStatut(Long id, StatutDiagnostic statut) {
         Diagnostic diagnostic = diagnosticRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Diagnostic non trouvé avec l'id : " + id));
-        StatutDiagnostic ancienStatut = diagnostic.getStatut();
+        if (diagnostic.getOrdreReparation() != null && diagnostic.getOrdreReparation().getStatut() != null
+                && diagnostic.getOrdreReparation().getStatut().getEtape()
+                >= sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation.PIECES_MO.getEtape()) {
+            throw new IllegalArgumentException("Le diagnostic est clôturé et son statut ne peut plus être modifié.");
+        }
+        if (statut == StatutDiagnostic.TERMINE || statut == StatutDiagnostic.VALIDE) {
+            throw new IllegalArgumentException("Le diagnostic se termine en passant à l'étape suivante de l'ordre de réparation.");
+        }
+        boolean hasTechnicians = !techniciensAffectes(diagnostic).isEmpty();
+        if (statut == StatutDiagnostic.EN_COURS && !hasTechnicians) {
+            throw new IllegalArgumentException("Affectez au moins un technicien avant de démarrer le diagnostic.");
+        }
+        if (statut == StatutDiagnostic.EN_ATTENTE && hasTechnicians) {
+            throw new IllegalArgumentException("Retirez tous les techniciens avant de remettre le diagnostic en attente.");
+        }
         diagnostic.setStatut(statut);
-        if (statut == StatutDiagnostic.TERMINE && diagnostic.getDateFin() == null) {
-            diagnostic.setDateFin(LocalDateTime.now());
-        }
         Diagnostic saved = diagnosticRepository.save(diagnostic);
-        if (statut == StatutDiagnostic.TERMINE && ancienStatut != StatutDiagnostic.TERMINE
-                && saved.getOrdreReparation() != null && saved.getOrdreReparation().getVehicule() != null
-                && saved.getOrdreReparation().getVehicule().getClient() != null) {
-            var vehicle = saved.getOrdreReparation().getVehicule();
-            notificationService.sendInAppNotification(vehicle.getClient(), "Diagnostic terminé",
-                    "Le diagnostic de votre véhicule " + vehicle.getImmatriculation()
-                            + " est terminé. Consultez votre espace client pour le compte rendu.");
-        }
         return toDiagnosticResponse(saved);
     }
 
@@ -255,6 +290,7 @@ public class DiagnosticServiceImpl implements DiagnosticService {
     public void delete(Long id) {
         Diagnostic diagnostic = diagnosticRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Diagnostic non trouvé avec l'id : " + id));
+        verifierDiagnosticModifiable(diagnostic.getOrdreReparation());
         diagnosticRepository.delete(diagnostic);
     }
 
@@ -268,26 +304,35 @@ public class DiagnosticServiceImpl implements DiagnosticService {
         OrdreReparation ordreReparation = ordreReparationRepository.findById(stepDto.getOrdreReparationId())
                 .orElseThrow(() -> new RuntimeException("Ordre de réparation non trouvé : " + stepDto.getOrdreReparationId()));
 
+        verifierDiagnosticModifiable(ordreReparation);
+
         if (stepDto.getListeDefauts() != null) {
             ordreReparation.setListeDefauts(stepDto.getListeDefauts());
             ordreReparationRepository.save(ordreReparation);
         }
 
-        Technicien technicien = null;
-        if (stepDto.getTechnicienIds() != null && !stepDto.getTechnicienIds().isEmpty()) {
-            technicien = technicienRepository.findById(stepDto.getTechnicienIds().get(0)).orElse(null);
-        }
+        List<Technicien> techniciens = stepDto.getTechnicienIds() == null ? null
+                : resolveTechniciens(stepDto.getTechnicienIds(), null, ordreReparation);
+        Technicien technicien = techniciens == null ? null : techniciens.stream().findFirst().orElse(null);
 
         Diagnostic diagnostic = diagnosticRepository.findByOrdreReparationId(ordreReparation.getId())
                 .orElseGet(() -> Diagnostic.builder()
                         .ordreReparation(ordreReparation)
                         .garage(ordreReparation.getGarage())
-                        .statut(StatutDiagnostic.EN_COURS)
-                        .dateDebut(LocalDateTime.now())
+                        .statut(techniciens != null && !techniciens.isEmpty() ? StatutDiagnostic.EN_COURS : StatutDiagnostic.EN_ATTENTE)
+                        .dateDebut(techniciens != null && !techniciens.isEmpty() ? LocalDateTime.now() : null)
                         .build());
 
-        if (technicien != null) {
-            diagnostic.setTechnicien(technicien);
+        if (techniciens != null) {
+            diagnostic.remplacerTechniciens(techniciens);
+            if (!techniciens.isEmpty()) {
+                if (diagnostic.getStatut() == null || diagnostic.getStatut() == StatutDiagnostic.EN_ATTENTE) {
+                    diagnostic.setStatut(StatutDiagnostic.EN_COURS);
+                }
+                if (diagnostic.getDateDebut() == null) diagnostic.setDateDebut(LocalDateTime.now());
+            } else if (diagnostic.getStatut() == StatutDiagnostic.EN_COURS) {
+                diagnostic.setStatut(StatutDiagnostic.EN_ATTENTE);
+            }
         }
         if (stepDto.getListeDefauts() != null) {
             diagnostic.setPannesDetectees(stepDto.getListeDefauts());
@@ -295,6 +340,13 @@ public class DiagnosticServiceImpl implements DiagnosticService {
         }
 
         Diagnostic saved = diagnosticRepository.save(diagnostic);
+
+        if (techniciens != null && !techniciens.isEmpty()
+                && (ordreReparation.getStatut() == null
+                || ordreReparation.getStatut() == sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation.RECEPTION)) {
+            ordreReparation.setStatut(sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation.DIAGNOSTIC);
+            ordreReparationRepository.save(ordreReparation);
+        }
 
         // Ajout des pièces jointes fournies
         if (stepDto.getPiecesJointes() != null) {
@@ -349,9 +401,66 @@ public class DiagnosticServiceImpl implements DiagnosticService {
 
     @Override
     @Transactional
+    public DiagnosticResponse terminerDepuisEtape(DiagnosticStepDto stepDto) {
+        if (stepDto == null || stepDto.getOrdreReparationId() == null) {
+            throw new IllegalArgumentException("L'ordreReparationId est requis");
+        }
+        OrdreReparation ordre = ordreReparationRepository.findById(stepDto.getOrdreReparationId())
+                .orElseThrow(() -> new RuntimeException("Ordre de réparation non trouvé : " + stepDto.getOrdreReparationId()));
+        Diagnostic existing = diagnosticRepository.findByOrdreReparationId(ordre.getId()).orElse(null);
+        if (ordre.getStatut() != null
+                && ordre.getStatut().getEtape() >= sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation.PIECES_MO.getEtape()) {
+            if (ordre.getStatut() == sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation.PIECES_MO
+                    && existing != null && existing.getStatut() == StatutDiagnostic.TERMINE) {
+                return toDiagnosticResponse(existing);
+            }
+            throw new IllegalArgumentException("L'ordre a déjà dépassé l'étape du diagnostic.");
+        }
+        if (ordre.getStatut() != sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation.DIAGNOSTIC) {
+            throw new IllegalArgumentException("L'ordre doit être à l'étape Diagnostic pour pouvoir la terminer.");
+        }
+        List<Technicien> techniciensDejaAffectes = existing != null ? techniciensAffectes(existing) : List.of();
+        if (techniciensDejaAffectes.isEmpty()) {
+            throw new IllegalArgumentException("Affectez au moins un technicien avant de terminer le diagnostic.");
+        }
+        List<Long> idsAffectes = techniciensDejaAffectes.stream().map(Technicien::getId).toList();
+        if (stepDto.getTechnicienIds() != null) {
+            Set<Long> idsDemandes = stepDto.getTechnicienIds().stream().filter(Objects::nonNull).collect(Collectors.toSet());
+            if (!idsDemandes.equals(new LinkedHashSet<>(idsAffectes))) {
+                throw new IllegalArgumentException("L'équipe du diagnostic a changé. Rechargez l'ordre avant de le terminer.");
+            }
+        }
+        // La clôture consomme l'équipe persistée côté serveur ; elle ne peut pas affecter ou retirer des techniciens.
+        stepDto.setTechnicienIds(idsAffectes);
+
+        DiagnosticResponse savedResponse = saveFromStep(stepDto);
+        Diagnostic diagnostic = diagnosticRepository.findById(savedResponse.getId())
+                .orElseThrow(() -> new RuntimeException("Diagnostic non trouvé après enregistrement"));
+        if (techniciensAffectes(diagnostic).isEmpty()) {
+            throw new IllegalArgumentException("Affectez au moins un technicien avant de terminer le diagnostic.");
+        }
+
+        diagnostic.setStatut(StatutDiagnostic.TERMINE);
+        diagnostic.setDateFin(LocalDateTime.now());
+        ordre.setStatut(sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation.PIECES_MO);
+        ordre.setUpdatedAt(LocalDateTime.now());
+        diagnosticRepository.save(diagnostic);
+        ordreReparationRepository.save(ordre);
+        if (ordre.getVehicule() != null && ordre.getVehicule().getClient() != null) {
+            notificationService.sendInAppNotification(ordre.getVehicule().getClient(), "Diagnostic terminé",
+                    "Le diagnostic de votre véhicule " + ordre.getVehicule().getImmatriculation()
+                            + " est terminé. Consultez votre espace client pour le compte rendu.");
+        }
+        return toDiagnosticResponse(diagnostic);
+    }
+
+    @Override
+    @Transactional
     public PieceJointeDiagnosticResponse addPieceJointe(Long diagnosticId, PieceJointeDiagnosticRequest request) {
         Diagnostic diagnostic = diagnosticRepository.findById(diagnosticId)
                 .orElseThrow(() -> new RuntimeException("Diagnostic non trouvé avec l'id : " + diagnosticId));
+
+        verifierDiagnosticModifiable(diagnostic.getOrdreReparation());
 
         if (request.getUrl() == null || request.getUrl().trim().isEmpty()) {
             throw new IllegalArgumentException("L'URL de la pièce jointe est obligatoire");
@@ -377,6 +486,7 @@ public class DiagnosticServiceImpl implements DiagnosticService {
     public void deletePieceJointe(Long pieceJointeId) {
         PieceJointeDiagnostic pj = pieceJointeDiagnosticRepository.findById(pieceJointeId)
                 .orElseThrow(() -> new RuntimeException("Pièce jointe non trouvée avec l'id : " + pieceJointeId));
+        verifierDiagnosticModifiable(pj.getDiagnostic() != null ? pj.getDiagnostic().getOrdreReparation() : null);
         pieceJointeDiagnosticRepository.delete(pj);
     }
 
@@ -385,6 +495,8 @@ public class DiagnosticServiceImpl implements DiagnosticService {
     public RemarqueDiagnosticResponse addRemarque(Long diagnosticId, String contenu, Long technicienId) {
         Diagnostic diagnostic = diagnosticRepository.findById(diagnosticId)
                 .orElseThrow(() -> new RuntimeException("Diagnostic non trouvé avec l'id : " + diagnosticId));
+
+        verifierDiagnosticModifiable(diagnostic.getOrdreReparation());
 
         if (contenu == null || contenu.isBlank()) {
             throw new IllegalArgumentException("Le contenu de la remarque est obligatoire");
@@ -412,6 +524,7 @@ public class DiagnosticServiceImpl implements DiagnosticService {
     public void deleteRemarque(Long remarqueId) {
         RemarqueDiagnostic rem = remarqueDiagnosticRepository.findById(remarqueId)
                 .orElseThrow(() -> new RuntimeException("Remarque non trouvée avec l'id : " + remarqueId));
+        verifierDiagnosticModifiable(rem.getDiagnostic() != null ? rem.getDiagnostic().getOrdreReparation() : null);
         remarqueDiagnosticRepository.delete(rem);
     }
 
@@ -456,8 +569,10 @@ public class DiagnosticServiceImpl implements DiagnosticService {
             document.add(new Paragraph("Kilométrage : " + (diagnostic.getKilometrage() != null ? diagnostic.getKilometrage() : "Non renseigné"), fontTexte));
             document.add(new Paragraph("Date : " + diagnostic.getDateDebut(), fontTexte));
             
-            if (diagnostic.getTechnicien() != null) {
-                document.add(new Paragraph("Technicien : " + formatTechnicienNom(diagnostic.getTechnicien()), fontTexte));
+            if (!techniciensAffectes(diagnostic).isEmpty()) {
+                String noms = techniciensAffectes(diagnostic).stream()
+                        .map(this::formatTechnicienNom).collect(Collectors.joining(", "));
+                document.add(new Paragraph("Techniciens : " + noms, fontTexte));
             }
 
             document.add(new Paragraph(" "));
@@ -518,10 +633,11 @@ public class DiagnosticServiceImpl implements DiagnosticService {
         String techNom = null;
         List<DiagnosticListResponse.TechnicienSummary> techniciensList = new ArrayList<>();
 
-        if (d.getTechnicien() != null) {
-            Technicien t = d.getTechnicien();
-            techId = t.getId();
-            techNom = formatTechnicienNom(t);
+        for (Technicien t : techniciensAffectes(d)) {
+            if (techId == null) {
+                techId = t.getId();
+                techNom = formatTechnicienNom(t);
+            }
             techniciensList.add(DiagnosticListResponse.TechnicienSummary.builder()
                     .id(t.getId())
                     .firstName(t.getFirstName())
@@ -606,11 +722,12 @@ public class DiagnosticServiceImpl implements DiagnosticService {
         List<Long> techIds = new ArrayList<>();
         List<DiagnosticListResponse.TechnicienSummary> techniciensList = new ArrayList<>();
 
-        if (d.getTechnicien() != null) {
-            Technicien t = d.getTechnicien();
-            techId = t.getId();
-            techIds.add(techId);
-            techNom = formatTechnicienNom(t);
+        for (Technicien t : techniciensAffectes(d)) {
+            if (techId == null) {
+                techId = t.getId();
+                techNom = formatTechnicienNom(t);
+            }
+            techIds.add(t.getId());
             techniciensList.add(DiagnosticListResponse.TechnicienSummary.builder()
                     .id(t.getId())
                     .firstName(t.getFirstName())
@@ -619,6 +736,8 @@ public class DiagnosticServiceImpl implements DiagnosticService {
                     .specialite(t.getSpecialite() != null ? t.getSpecialite().name() : null)
                     .build());
         }
+
+        List<Long> technicienIdsDiagnostic = new ArrayList<>(techIds);
 
         if (or != null && or.getTechniciensReparation() != null) {
             for (Technicien t : or.getTechniciensReparation()) {
@@ -642,7 +761,7 @@ public class DiagnosticServiceImpl implements DiagnosticService {
                 .vehicule(vehiculeSummary)
                 .technicienId(techId)
                 .technicienNom(techNom)
-                .technicienIds(techIds)
+                .technicienIds(technicienIdsDiagnostic)
                 .techniciens(techniciensList)
                 .observations(d.getObservations())
                 .pannesDetectees(d.getPannesDetectees())
@@ -663,6 +782,40 @@ public class DiagnosticServiceImpl implements DiagnosticService {
         String nom = t.getLastName() != null ? t.getLastName() : "";
         String full = (prenom + " " + nom).trim();
         return full.isEmpty() ? t.getUsername() : full;
+    }
+
+    private List<Technicien> techniciensAffectes(Diagnostic diagnostic) {
+        if (diagnostic.getTechniciens() != null && !diagnostic.getTechniciens().isEmpty()) {
+            return new ArrayList<>(diagnostic.getTechniciens());
+        }
+        return diagnostic.getTechnicien() != null ? List.of(diagnostic.getTechnicien()) : List.of();
+    }
+
+    private void verifierDiagnosticModifiable(OrdreReparation ordre) {
+        if (ordre != null && ordre.getStatut() != null
+                && ordre.getStatut().getEtape()
+                >= sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation.PIECES_MO.getEtape()) {
+            throw new IllegalArgumentException("Le diagnostic est clôturé et ne peut plus être modifié.");
+        }
+    }
+
+    private List<Technicien> resolveTechniciens(List<Long> ids, Long legacyId, OrdreReparation ordre) {
+        LinkedHashSet<Long> distinctIds = new LinkedHashSet<>();
+        if (ids != null) ids.stream().filter(Objects::nonNull).forEach(distinctIds::add);
+        if (legacyId != null) distinctIds.add(legacyId);
+
+        List<Technicien> techniciens = new ArrayList<>();
+        for (Long id : distinctIds) {
+            Technicien technicien = technicienRepository.findById(id)
+                    .orElseThrow(() -> new IllegalArgumentException("Technicien non trouvé : " + id));
+            Long garageTechnicienId = technicien.getGarage() != null ? technicien.getGarage().getId() : null;
+            Long garageOrdreId = ordre.getGarage() != null ? ordre.getGarage().getId() : null;
+            if (!Objects.equals(garageTechnicienId, garageOrdreId)) {
+                throw new IllegalArgumentException("Tous les techniciens doivent appartenir au même garage que l'ordre.");
+            }
+            techniciens.add(technicien);
+        }
+        return techniciens;
     }
 
     private PieceJointeDiagnosticResponse toPieceJointeResponse(PieceJointeDiagnostic p) {

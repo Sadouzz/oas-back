@@ -28,4 +28,5 @@ public class LigneFacturationPieceResponse {
     private Integer quantiteRecueTotale;
     private Integer quantiteRestante;
     private List<LocalDateTime> datesHeuresSaisieSource;
+    private LocalDateTime dateHeureSaisie;
 }

@@ -29,6 +29,8 @@ public interface DiagnosticService {
 
     DiagnosticResponse saveFromStep(DiagnosticStepDto stepDto);
 
+    DiagnosticResponse terminerDepuisEtape(DiagnosticStepDto stepDto);
+
     PieceJointeDiagnosticResponse addPieceJointe(Long diagnosticId, PieceJointeDiagnosticRequest request);
 
     void deletePieceJointe(Long pieceJointeId);

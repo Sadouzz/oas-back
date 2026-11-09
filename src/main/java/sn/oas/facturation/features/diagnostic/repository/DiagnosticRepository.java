@@ -33,7 +33,8 @@ public interface DiagnosticRepository extends JpaRepository<Diagnostic, Long> {
 
     boolean existsByOrdreReparationId(Long ordreReparationId);
 
-    List<Diagnostic> findByTechnicienId(Long technicienId);
+    @Query("SELECT DISTINCT d FROM Diagnostic d LEFT JOIN d.techniciens t WHERE t.id = :technicienId OR d.technicien.id = :technicienId")
+    List<Diagnostic> findByTechnicienId(@Param("technicienId") Long technicienId);
 
     @Query(value = "SELECT d FROM Diagnostic d " +
             "LEFT JOIN FETCH d.ordreReparation or_ " +

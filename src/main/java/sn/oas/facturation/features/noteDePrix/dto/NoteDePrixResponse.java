@@ -105,6 +105,7 @@ public class NoteDePrixResponse {
                             int p = lp.getPrix() != null ? lp.getPrix() : 0;
                             return LigneFacturationPieceResponse.builder()
                                     .id(lp.getId())
+                                        .dateHeureSaisie(lp.getDateHeureSaisie())
                                     .pieceId(lp.getPiece() != null ? lp.getPiece().getId() : null)
                                     .designationPiece(
                                             lp.getPiece() != null ? lp.getPiece().getDesignation() : "Pièce")
@@ -124,6 +125,7 @@ public class NoteDePrixResponse {
                             int t = lm.getTarifHoraire() != null ? lm.getTarifHoraire() : 0;
                             return LigneFacturationMainDoeuvreResponse.builder()
                                     .id(lm.getId())
+                                        .dateHeureSaisie(lm.getDateHeureSaisie())
                                     .mainDoeuvreId(lm.getMainDoeuvre() != null ? lm.getMainDoeuvre().getId() : null)
                                     .descriptionMainDoeuvre(
                                             lm.getMainDoeuvre() != null && lm.getMainDoeuvre().getCategorie() != null

@@ -4,9 +4,14 @@ public record LigneOrdreReparationMainDoeuvreRequest(
         Long mainDoeuvreId,
         Integer nbreHeure,
         Integer prix,
-        Double tauxRemise
+        Double tauxRemise,
+        Long id
 ) {
     public LigneOrdreReparationMainDoeuvreRequest(Long mainDoeuvreId, Integer nbreHeure, Integer prix) {
-        this(mainDoeuvreId, nbreHeure, prix, null);
+        this(mainDoeuvreId, nbreHeure, prix, null, null);
+    }
+
+    public LigneOrdreReparationMainDoeuvreRequest(Long mainDoeuvreId, Integer nbreHeure, Integer prix, Double tauxRemise) {
+        this(mainDoeuvreId, nbreHeure, prix, tauxRemise, null);
     }
 }

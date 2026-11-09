@@ -1,5 +1,7 @@
 package sn.oas.facturation.features.facturation.dto;
 
+import java.time.LocalDateTime;
+
 import lombok.Builder;
 import lombok.Data;
 
@@ -13,4 +15,5 @@ public class LigneFacturationMainDoeuvreResponse {
     private Integer tarifHoraire;
     private Integer montantTotal;
     private Double tauxRemise;
+    private LocalDateTime dateHeureSaisie;
 }

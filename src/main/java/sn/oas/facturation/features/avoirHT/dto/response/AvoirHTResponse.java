@@ -77,6 +77,7 @@ public class AvoirHTResponse {
                         .stream()
                                 .map(lp -> LigneFacturationPieceResponse.builder()
                                         .id(lp.getId())
+                                        .dateHeureSaisie(lp.getDateHeureSaisie())
                                         .pieceId(lp.getPiece() != null ? lp.getPiece().getId() : null)
                                         .designationPiece(lp.getPiece() != null ? lp.getPiece().getDesignation()
                                                 : lp.getDesignationPds())
@@ -89,6 +90,7 @@ public class AvoirHTResponse {
                         : a.getLignesFacturationMainDoeuvres().stream()
                                 .map(lm -> LigneFacturationMainDoeuvreResponse.builder()
                                         .id(lm.getId())
+                                        .dateHeureSaisie(lm.getDateHeureSaisie())
                                         .mainDoeuvreId(lm.getMainDoeuvre() != null ? lm.getMainDoeuvre().getId() : null)
                                         .descriptionMainDoeuvre(lm.getMainDoeuvre() != null
                                                 && lm.getMainDoeuvre().getCategorie() != null
