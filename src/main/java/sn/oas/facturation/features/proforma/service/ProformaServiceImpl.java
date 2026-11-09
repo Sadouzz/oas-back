@@ -610,10 +610,12 @@ public class ProformaServiceImpl implements ProformaService {
             if (email != null && !email.isEmpty()) {
                 Long proformaId = saved.getId();
                 String proformaNumero = saved.getNumero();
+                String noticeTimbreEspeces = noticeTimbreEspecesEmail(saved);
                 mailDeliveryAsyncService.sendEmailWithPdfAttachmentAsync(
                         email,
                         "Validation de votre proforma",
-                        "<p>Bonjour,</p><p>Votre proforma <b>" + proformaNumero + "</b> a été créé. Veuillez le trouver en pièce jointe et le valider depuis votre espace.</p><p>Cordialement.</p>",
+                        "<p>Bonjour,</p><p>Votre proforma <b>" + proformaNumero + "</b> a été créé. Veuillez le trouver en pièce jointe et le valider depuis votre espace.</p>"
+                                + noticeTimbreEspeces + "<p>Cordialement.</p>",
                         "proforma_" + proformaNumero + ".pdf",
                         () -> generatePdf(proformaId),
                         true
@@ -926,6 +928,21 @@ public class ProformaServiceImpl implements ProformaService {
         BigDecimal tauxEffectif = taux == null ? BigDecimal.ZERO : taux;
         return montantBrut.multiply(BigDecimal.valueOf(100).subtract(tauxEffectif))
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+    }
+
+    private String noticeTimbreEspecesEmail(Proforma proforma) {
+        BigDecimal rate = proforma.getTimbreFiscalRate();
+        if (rate == null) rate = fiscalConfigurationService.getCurrent().getTimbreFiscalRate();
+        if (rate == null) rate = BigDecimal.ONE;
+        String message = "Pour tout règlement en espèces, un timbre fiscal de "
+                + rate.stripTrailingZeros().toPlainString()
+                + " % s'applique uniquement à la part réglée en espèces.";
+        if (proforma.getMontantTimbre() != null && proforma.getMontantTimbre().signum() > 0) {
+            message += " Le timbre déjà enregistré sur ce proforma est conservé dans son total.";
+        } else {
+            message += " Ce timbre n'est pas inclus dans le total du proforma.";
+        }
+        return "<p><strong>Information sur le timbre fiscal :</strong> " + message + "</p>";
     }
 
     private void verifierDiagnosticTermineAvantProgression(OrdreReparation ordre) {

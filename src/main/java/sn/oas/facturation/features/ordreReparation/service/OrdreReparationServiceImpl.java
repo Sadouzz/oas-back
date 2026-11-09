@@ -1585,6 +1585,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             proformaDto.setMontantTVA(ordre.getProforma().getMontantTVA() != null ? ordre.getProforma().getMontantTVA().doubleValue() : 0.0);
             proformaDto.setMontantTTC(ordre.getProforma().calculerMontantTtcAvecTimbre().doubleValue());
             proformaDto.setMontantTimbre(ordre.getProforma().getMontantTimbre() != null ? ordre.getProforma().getMontantTimbre().doubleValue() : 0.0);
+            proformaDto.setTimbreFiscalRate(ordre.getProforma().getTimbreFiscalRate() != null ? ordre.getProforma().getTimbreFiscalRate().doubleValue() : null);
             proformaDto.setMontantTotal(ordre.getProforma().getMontantTotal() != null ? ordre.getProforma().getMontantTotal().doubleValue() : proformaDto.getMontantTTC());
             proformaDto.setTauxRemiseClient(ordre.getProforma().getTauxRemiseClient() != null ? ordre.getProforma().getTauxRemiseClient().doubleValue() : 0.0);
             proformaDto.setMontantRemiseClient(ordre.getProforma().getMontantRemiseClient() != null ? ordre.getProforma().getMontantRemiseClient().doubleValue() : 0.0);
@@ -1668,6 +1669,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             proformaDto.setMontantTVA(p.getMontantTVA() != null ? p.getMontantTVA().doubleValue() : 0.0);
             proformaDto.setMontantTTC(p.calculerMontantTtcAvecTimbre().doubleValue());
             proformaDto.setMontantTimbre(p.getMontantTimbre() != null ? p.getMontantTimbre().doubleValue() : 0.0);
+            proformaDto.setTimbreFiscalRate(p.getTimbreFiscalRate() != null ? p.getTimbreFiscalRate().doubleValue() : null);
             proformaDto.setMontantTotal(p.getMontantTotal() != null ? p.getMontantTotal().doubleValue() : proformaDto.getMontantTTC());
             dto.setProforma(proformaDto);
         }
