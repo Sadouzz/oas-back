@@ -76,6 +76,7 @@ public class FactureServiceImpl implements FactureService {
     private final PieceDetacheRepository pieceDetacheRepository;
     private final PieceMouvementRepository pieceMouvementRepository;
     private final sn.oas.facturation.features.notification.service.EmailService emailService;
+    private final sn.oas.facturation.features.notification.service.ClientEmailTemplateService clientEmailTemplateService;
     private final sn.oas.facturation.features.notification.service.MailDeliveryAsyncService mailDeliveryAsyncService;
     private final sn.oas.facturation.features.notification.service.NotificationService notificationService;
     private final sn.oas.facturation.features.pdfGenerator.service.HtmlToPdfService htmlToPdfService;
@@ -273,8 +274,8 @@ public class FactureServiceImpl implements FactureService {
             String numFacture = facture.getNumero();
             mailDeliveryAsyncService.sendEmailWithPdfAttachmentAsync(
                     clientEmail,
-                    "Votre facture et lien de paiement",
-                    "<p>Bonjour,</p><p>Votre facture <b>" + numFacture + "</b> a été générée. Vous pouvez la trouver en pièce jointe.</p><p>Veuillez procéder au paiement depuis votre espace client pour récupérer votre véhicule.</p><p>Cordialement.</p>",
+                    "Votre facture est disponible · " + numFacture,
+                    clientEmailTemplateService.facture(client.getFirstName(), numFacture),
                     "facture_" + numFacture + ".pdf",
                     () -> generatePdf(factureId, "AVEC_ENTETE"),
                     true
@@ -451,8 +452,8 @@ public class FactureServiceImpl implements FactureService {
             String numFacture = facture.getNumero();
             mailDeliveryAsyncService.sendEmailWithPdfAttachmentAsync(
                     clientEmail,
-                    "Votre facture et lien de paiement",
-                    "<p>Bonjour,</p><p>Votre facture <b>" + numFacture + "</b> a été générée. Vous pouvez la trouver en pièce jointe.</p><p>Veuillez procéder au paiement depuis votre espace client pour récupérer votre véhicule.</p><p>Cordialement.</p>",
+                    "Votre facture est disponible · " + numFacture,
+                    clientEmailTemplateService.facture(client.getFirstName(), numFacture),
                     "facture_" + numFacture + ".pdf",
                     () -> generatePdf(factureId, "AVEC_ENTETE"),
                     true

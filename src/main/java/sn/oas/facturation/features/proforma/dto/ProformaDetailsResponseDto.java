@@ -63,7 +63,8 @@ public record ProformaDetailsResponseDto(
             Double prix,              // Prix unitaire
             Double prixCatalogue,     // Prix catalogue courant; null si aucun prix n'est défini
             Double montantTotal,
-            Double tauxRemise
+            Double tauxRemise,
+            java.time.LocalDateTime dateHeureSaisie
     ) {}
 
     @Builder
@@ -74,7 +75,8 @@ public record ProformaDetailsResponseDto(
             Double nbreHeure,         // Quantité / Heures
             Double tarifHoraire,      // Tarif unitaire
             Double montantTotal,
-            Double tauxRemise
+            Double tauxRemise,
+            java.time.LocalDateTime dateHeureSaisie
     ) {}
 
     public static ProformaDetailsResponseDto from(Proforma p) {
@@ -147,6 +149,7 @@ public record ProformaDetailsResponseDto(
                                     ? lp.getPiece().getPrixUnitaire().doubleValue() : null)
                             .montantTotal(montantLigne)
                             .tauxRemise(tauxRemise)
+                            .dateHeureSaisie(lp.getDateHeureSaisie())
                             .build();
                 }).toList();
 
@@ -168,6 +171,7 @@ public record ProformaDetailsResponseDto(
                             .tarifHoraire(tarif)
                             .montantTotal(montantLigne)
                             .tauxRemise(tauxRemise)
+                            .dateHeureSaisie(lm.getDateHeureSaisie())
                             .build();
                 }).toList();
 

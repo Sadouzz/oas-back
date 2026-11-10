@@ -15,3 +15,6 @@ ALTER TABLE lignes_facturation_main_doeuvre
 
 ALTER TABLE lignes_bon_de_sortie_main_doeuvre
     ADD COLUMN IF NOT EXISTS date_heure_saisie TIMESTAMP;
+
+ALTER TABLE ligne_bon_de_commande
+    ADD COLUMN IF NOT EXISTS date_heure_saisie TIMESTAMP;

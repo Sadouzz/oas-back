@@ -1,5 +1,7 @@
 package sn.oas.facturation.features.bonDeCommande.dto;
 
+import java.time.LocalDateTime;
+
 import lombok.Builder;
 import lombok.Data;
 
@@ -24,4 +26,6 @@ public class LigneBonDeCommandeResponse {
     private Double prixUnitaire;
 
     private Double montant;
+
+    private LocalDateTime dateHeureSaisie;
 }

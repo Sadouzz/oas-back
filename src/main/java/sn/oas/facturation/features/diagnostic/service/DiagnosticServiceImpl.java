@@ -60,6 +60,7 @@ public class DiagnosticServiceImpl implements DiagnosticService {
     private final RemarqueDiagnosticRepository remarqueDiagnosticRepository;
     private final sn.oas.facturation.features.pdfGenerator.service.HtmlToPdfService htmlToPdfService;
     private final EmailService emailService;
+    private final sn.oas.facturation.features.notification.service.ClientEmailTemplateService clientEmailTemplateService;
     private final sn.oas.facturation.features.notification.service.MailDeliveryAsyncService mailDeliveryAsyncService;
     private final NotificationService notificationService;
 
@@ -151,16 +152,17 @@ public class DiagnosticServiceImpl implements DiagnosticService {
         }
 
         if (ordreReparation.getVehicule() != null && ordreReparation.getVehicule().getClient() != null) {
-            String clientEmail = ordreReparation.getVehicule().getClient().getEmail();
+            var client = ordreReparation.getVehicule().getClient();
+            String clientEmail = client.getEmail();
             String immat = ordreReparation.getVehicule().getImmatriculation();
             Long diagId = saved.getId();
             mailDeliveryAsyncService.sendEmailWithPdfAttachmentAsync(
                     clientEmail,
-                    "Fiche de Diagnostic - " + (immat != null ? immat : ""),
-                    "Bonjour, \n\nVeuillez trouver ci-joint la fiche de diagnostic de votre véhicule.",
+                    "Diagnostic de votre véhicule · " + (immat != null ? immat : "Dossier OAS"),
+                    clientEmailTemplateService.diagnostic(client.getFirstName(), immat),
                     "Diagnostic_" + diagId + ".pdf",
                     () -> generatePdf(diagId),
-                    false
+                    true
             );
         }
 
@@ -383,16 +385,17 @@ public class DiagnosticServiceImpl implements DiagnosticService {
         }
 
         if (ordreReparation.getVehicule() != null && ordreReparation.getVehicule().getClient() != null) {
-            String clientEmail = ordreReparation.getVehicule().getClient().getEmail();
+            var client = ordreReparation.getVehicule().getClient();
+            String clientEmail = client.getEmail();
             String immat = ordreReparation.getVehicule().getImmatriculation();
             Long diagId = saved.getId();
             mailDeliveryAsyncService.sendEmailWithPdfAttachmentAsync(
                     clientEmail,
-                    "Fiche de Diagnostic - " + (immat != null ? immat : ""),
-                    "Bonjour, \n\nVeuillez trouver ci-joint la fiche de diagnostic de votre véhicule.",
+                    "Diagnostic de votre véhicule · " + (immat != null ? immat : "Dossier OAS"),
+                    clientEmailTemplateService.diagnostic(client.getFirstName(), immat),
                     "Diagnostic_" + diagId + ".pdf",
                     () -> generatePdf(diagId),
-                    false
+                    true
             );
         }
 
