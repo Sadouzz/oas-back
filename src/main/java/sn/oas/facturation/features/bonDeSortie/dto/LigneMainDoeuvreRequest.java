@@ -14,6 +14,7 @@ public record LigneMainDoeuvreRequest(
         Double tarifHoraire,
         @JsonAlias({"price"})
         Double prix,
+        @JsonAlias({"remise", "discount"})
         Double tauxRemise,
         String designation,
         Long proformaLineId
@@ -34,5 +35,10 @@ public record LigneMainDoeuvreRequest(
         if (tarifHoraire != null) return tarifHoraire;
         if (prix != null) return prix;
         return null;
+    }
+
+    @JsonIgnore
+    public Double getEffectiveRemise() {
+        return tauxRemise != null ? tauxRemise : 0.0;
     }
 }

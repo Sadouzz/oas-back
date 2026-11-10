@@ -42,7 +42,6 @@ import sn.oas.facturation.features.piecedetache.data.enums.TypeMouvement;
 import sn.oas.facturation.features.piecedetache.repository.PieceDetacheRepository;
 import sn.oas.facturation.features.piecedetache.repository.PieceMouvementRepository;
 import sn.oas.facturation.features.main_doeuvre.repository.MainDoeuvreRepository;
-import sn.oas.facturation.features.bonDeSortie.data.enums.TypeLigneBonDeSortie;
 import sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService;
 import sn.oas.facturation.shared.documentNumber.DocumentType;
 import sn.oas.facturation.shared.exception.BadRequestException;
@@ -207,14 +206,6 @@ public class BonDeLivraisonService {
             for (LigneBonDeSortiePiece l : bs.getLignesBonDeSortiePieces()) {
                 if (l.getQuantite() == null || l.getQuantite() <= 0) continue;
                 BigDecimal remise = nz(l.getTauxRemise());
-                if (l.getType() == TypeLigneBonDeSortie.MAIN_DOEUVRE) {
-                    var mainDoeuvre = l.getMainDoeuvreId() == null ? null : mainDoeuvreRepository.findById(l.getMainDoeuvreId()).orElse(null);
-                    if (mainDoeuvre == null) throw new BadRequestException("Une ancienne ligne de main-d'œuvre du bon de sortie n'est plus disponible.");
-                    var row = LigneFacturationMainDoeuvre.builder().facturation(bl).mainDoeuvre(mainDoeuvre)
-                            .nbreHeure(l.getQuantite()).tarifHoraire(l.getPrix()).tauxRemise(remise).build();
-                    bl.getLignesFacturationMainDoeuvres().add(row);
-                    continue;
-                }
                 boolean isPdg = l.getPiece() != null && l.getPiece().getType() == TypePiece.PDG;
                 if (isPdg) {
                     PdgAggregationKey key = new PdgAggregationKey(l.getPiece().getId(), l.getPrix(), remise.stripTrailingZeros());
@@ -346,7 +337,7 @@ public class BonDeLivraisonService {
                         .prenom(bl.getClient().getFirstName()).nom(bl.getClient().getLastName()).build());
             }
         }
-        if (bl.getOrdreReparation().getStatut() == StatutOrdreReparation.ORDRE_DE_TRAVAIL || bl.getOrdreReparation().getStatut() == StatutOrdreReparation.PROFORMA) bl.getOrdreReparation().setStatut(StatutOrdreReparation.PAIEMENT);
+        if (bl.getOrdreReparation().getStatut() == StatutOrdreReparation.ORDRE_DE_TRAVAIL || bl.getOrdreReparation().getStatut() == StatutOrdreReparation.PROFORMA) bl.getOrdreReparation().setStatut(StatutOrdreReparation.BL);
         if (bl.getOrdreReparation().getProforma() != null)
             bl.getOrdreReparation().getProforma().setStatut(StatutFacturation.CONVERTIE);
         return factureRepository.save(facture);

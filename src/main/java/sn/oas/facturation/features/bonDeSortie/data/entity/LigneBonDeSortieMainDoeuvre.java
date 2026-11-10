@@ -56,6 +56,14 @@ public class LigneBonDeSortieMainDoeuvre {
     @Column(name = "date_heure_saisie", updatable = false)
     private LocalDateTime dateHeureSaisie;
 
+    /** Ligne de proforma à l'origine de cette main-d'œuvre. */
+    @Column(name = "proforma_ligne_id", updatable = false)
+    private Long proformaLineId;
+
+    public BigDecimal getTauxRemise() {
+        return tauxRemise != null ? tauxRemise : BigDecimal.ZERO;
+    }
+
     @PrePersist
     @PreUpdate
     protected void onPersist() {

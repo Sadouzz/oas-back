@@ -11,12 +11,13 @@ public enum StatutOrdreReparation {
     PIECES_MO(3, "Pièces & MO"),
     PROFORMA(4, "Proforma"),
     ORDRE_DE_TRAVAIL(5, "Ordre de Travail"),
-    PAIEMENT(6, "Paiement"),
+    BL(6, "BL"),
     PRET_A_LIVRER(7, "Prêt"),
     LIVRE(8, "Livré"),
 
     // Valeurs historiques conservées pour lire les OR avant l'application
     // de la migration 20261021_migrer_statuts_ordre_reparation_ot.sql.
+    @Deprecated PAIEMENT(6, "Ancien statut paiement"),
     @Deprecated BON_DE_COMMANDE(5, "Ancien statut approvisionnement"),
     @Deprecated BON_DE_SORTIE(5, "Ancien statut bon de sortie"),
     @Deprecated ASSIGN_TECHNICIEN(5, "Ancien statut affectation technicien"),

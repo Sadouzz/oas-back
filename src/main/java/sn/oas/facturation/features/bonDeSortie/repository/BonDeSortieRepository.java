@@ -11,7 +11,6 @@ import jakarta.persistence.LockModeType;
 
 import sn.oas.facturation.features.bonDeSortie.data.entity.BonDeSortie;
 import sn.oas.facturation.features.bonDeSortie.data.enums.StatutBon;
-import sn.oas.facturation.features.bonDeSortie.data.enums.TypeLigneBonDeSortie;
 import sn.oas.facturation.features.bonDeSortie.dto.BonDeSortieDisponibleResponse;
 
 import java.util.List;
@@ -48,20 +47,10 @@ public interface BonDeSortieRepository extends JpaRepository<BonDeSortie, Long> 
 
     @Query("SELECT ligne.piece.id AS pieceId, ligne.designation AS designation, SUM(ligne.quantite) AS quantiteTotale " +
             "FROM BonDeSortie bon JOIN bon.lignesBonDeSortiePieces ligne " +
-            "WHERE bon.ordreReparation.id = :ordreReparationId AND bon.statut = :statut AND ligne.type = :type " +
+            "WHERE bon.ordreReparation.id = :ordreReparationId AND bon.statut = :statut " +
             "GROUP BY ligne.piece.id, ligne.designation")
     List<PieceQuantiteProjection> sommerQuantitesPiecesValideesParOrdreReparation(
-            @Param("ordreReparationId") Long ordreReparationId, @Param("statut") StatutBon statut,
-            @Param("type") TypeLigneBonDeSortie type);
-
-    @Query("SELECT ligne.mainDoeuvreId AS mainDoeuvreId, ligne.designation AS designation, SUM(ligne.quantite) AS quantiteTotale " +
-            "FROM BonDeSortie bon JOIN bon.lignesBonDeSortiePieces ligne " +
-            "WHERE bon.ordreReparation.id = :ordreReparationId AND bon.statut = :statut " +
-            "AND ligne.type = :type AND ligne.mainDoeuvreId IS NOT NULL " +
-            "GROUP BY ligne.mainDoeuvreId, ligne.designation")
-    List<LegacyMainDoeuvreQuantiteProjection> sommerQuantitesMainDoeuvreLegacyValideesParOrdreReparation(
-            @Param("ordreReparationId") Long ordreReparationId, @Param("statut") StatutBon statut,
-            @Param("type") TypeLigneBonDeSortie type);
+            @Param("ordreReparationId") Long ordreReparationId, @Param("statut") StatutBon statut);
 
     @Query("SELECT ligne.mainDoeuvre.id AS mainDoeuvreId, ligne.description AS designation, SUM(ligne.nbreHeure) AS quantiteTotale " +
             "FROM BonDeSortie bon JOIN bon.lignesBonDeSortieMainDoeuvres ligne " +
@@ -77,12 +66,6 @@ public interface BonDeSortieRepository extends JpaRepository<BonDeSortie, Long> 
     }
 
     interface MainDoeuvreQuantiteProjection {
-        Long getMainDoeuvreId();
-        String getDesignation();
-        Long getQuantiteTotale();
-    }
-
-    interface LegacyMainDoeuvreQuantiteProjection {
         Long getMainDoeuvreId();
         String getDesignation();
         Long getQuantiteTotale();

@@ -1,16 +1,13 @@
 package sn.oas.facturation.features.bonDeSortie.data.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import sn.oas.facturation.features.piecedetache.data.entity.PieceDetache;
-import sn.oas.facturation.features.main_doeuvre.data.entity.MainDoeuvre;
-import sn.oas.facturation.features.bonDeSortie.data.enums.TypeLigneBonDeSortie;
-
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -37,19 +34,6 @@ public class LigneBonDeSortiePiece {
     @JoinColumn(name = "piece_id")
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private PieceDetache piece;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "type_ligne", nullable = false)
-    @Builder.Default
-    private TypeLigneBonDeSortie type = TypeLigneBonDeSortie.PIECE;
-
-    /** Identifiant conservé pour lire les anciennes lignes de main-d'œuvre stockées dans cette table. */
-    @Column(name = "main_doeuvre_id")
-    private Long mainDoeuvreId;
-
-    // @ManyToOne(fetch = FetchType.LAZY)
-    // @JoinColumn(name = "main_doeuvre_id")
-    // private MainDoeuvre mainDoeuvre;
 
     @Column(name = "designation_snapshot")
     private String designation;

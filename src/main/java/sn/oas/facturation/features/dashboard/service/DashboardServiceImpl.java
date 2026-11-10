@@ -173,7 +173,8 @@ public class DashboardServiceImpl implements DashboardService {
                 + ordreReparationRepository.countByStatut(StatutOrdreReparation.BON_DE_SORTIE)
                 + ordreReparationRepository.countByStatut(StatutOrdreReparation.ASSIGN_TECHNICIEN)
                 + ordreReparationRepository.countByStatut(StatutOrdreReparation.REPARATION);
-        long attentePaiement = ordreReparationRepository.countByStatut(StatutOrdreReparation.PAIEMENT);
+        long attentePaiement = ordreReparationRepository.countByStatut(StatutOrdreReparation.BL)
+                + ordreReparationRepository.countByStatut(StatutOrdreReparation.PAIEMENT);
         long termine = ordreReparationRepository.countByStatut(StatutOrdreReparation.PRET_A_LIVRER)
                 + ordreReparationRepository.countByStatut(StatutOrdreReparation.LIVRE);
         long totalActifs = ordreReparationRepository.countByStatutNotIn(List.of(StatutOrdreReparation.PRET_A_LIVRER, StatutOrdreReparation.LIVRE));

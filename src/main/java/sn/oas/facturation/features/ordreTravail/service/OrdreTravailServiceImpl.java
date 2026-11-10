@@ -23,11 +23,13 @@ import sn.oas.facturation.features.bonDeCommande.data.enums.StatutBonCommande;
 import sn.oas.facturation.features.bonDeCommande.repository.BonDeCommandeRepository;
 import sn.oas.facturation.features.bonDeSortie.data.entity.BonDeSortie;
 import sn.oas.facturation.features.bonDeSortie.data.entity.LigneBonDeSortiePiece;
+import sn.oas.facturation.features.bonDeSortie.data.entity.LigneBonDeSortieMainDoeuvre;
 import sn.oas.facturation.features.bonDeSortie.data.enums.StatutBon;
-import sn.oas.facturation.features.bonDeSortie.data.enums.TypeLigneBonDeSortie;
 import sn.oas.facturation.features.bonDeSortie.repository.BonDeSortieRepository;
 import sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece;
+import sn.oas.facturation.features.main_doeuvre.data.entity.MainDoeuvre;
 import sn.oas.facturation.features.piecedetache.data.entity.PDP;
+import sn.oas.facturation.features.piecedetache.data.entity.PDG;
 import sn.oas.facturation.features.piecedetache.data.entity.PieceDetache;
 import sn.oas.facturation.features.ordreReparation.dto.responses.StepApprovisionnementResponseDto.PieceApprovisionnementDto;
 import sn.oas.facturation.features.client.data.entity.Client;
@@ -42,6 +44,7 @@ import sn.oas.facturation.features.ordreTravail.dto.OrdreTravailRequest;
 import sn.oas.facturation.features.ordreTravail.dto.OrdreTravailResponseDto;
 import sn.oas.facturation.features.ordreTravail.repository.OrdreTravailRepository;
 import sn.oas.facturation.features.proforma.data.entity.Proforma;
+import sn.oas.facturation.features.proforma.dto.ProformaDetailsResponseDto;
 import sn.oas.facturation.features.proforma.repository.ProformaRepository;
 import sn.oas.facturation.features.technicien.data.entity.Technicien;
 import sn.oas.facturation.features.technicien.repository.TechnicienRepository;
@@ -804,115 +807,124 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
             }
         }
 
-        List<BonDeSortieSummaryDto> bssDtos = new ArrayList<>();
-        for (BonDeSortie bs : bsList) {
-            BonDeSortieSummaryDto bsDto = new BonDeSortieSummaryDto();
-            bsDto.setId(bs.getId());
-            bsDto.setStatut(bs.getStatut() != null ? bs.getStatut().name() : null);
-            bsDto.setDateSortiePrevue(bs.getDate() != null ? bs.getDate().toLocalDate() : null);
-            bssDtos.add(bsDto);
+        BonDeSortie bs = ot.getBonDeSortie();
+        if (bs == null && ordre != null) {
+            bs = ordre.getBonDeSortie();
         }
-        dto.setBonsDeSortie(bsList.stream().map(sn.oas.facturation.features.bonDeSortie.dto.BonDeSortieListResponse::from).toList());
-        int quantiteTotalePieces = 0;
-        double montantTotalBons = 0.0;
-        for (BonDeSortie bs : bsList) {
-            montantTotalBons += bs.getMontantTotal() != null ? bs.getMontantTotal().doubleValue() : 0.0;
-            if (bs.getLignesBonDeSortiePieces() != null) {
-                quantiteTotalePieces += bs.getLignesBonDeSortiePieces().stream()
-                        .filter(l -> l.getType() != sn.oas.facturation.features.bonDeSortie.data.enums.TypeLigneBonDeSortie.MAIN_DOEUVRE)
-                        .mapToInt(l -> l.getQuantite() != null ? l.getQuantite() : 0).sum();
+        if (bs == null && proforma != null && proforma.getBs() != null) {
+            bs = proforma.getBs();
+        }
+        if (bs == null && proforma != null && proforma.getId() != null) {
+            var bsFromRepo = bonDeSortieRepository.findByProformaId(proforma.getId());
+            if (!bsFromRepo.isEmpty()) {
+                bs = bsFromRepo.get(0);
             }
         }
-        dto.setQuantiteTotalePieces(quantiteTotalePieces);
-        dto.setMontantTotalBons(montantTotalBons);
-        dto.setHasBonDeSortie(!bssDtos.isEmpty());
+        if (bs == null && !bsList.isEmpty()) {
+            bs = bsList.get(0);
+        }
 
+        // 1. Toujours charger les lignes du Proforma (pièces et MO) de manière séparée et immuable
         if (proforma != null) {
             dto.setProformaId(proforma.getId());
             dto.setProformaNumero(proforma.getNumero());
 
-            List<StepBonSortieResponseDto.PieceBonDeSortieDto> piecesDto = new ArrayList<>();
-            if (proforma.getLignesFacturationPieces() != null) {
-                for (LigneFacturationPiece lp : proforma.getLignesFacturationPieces()) {
-                    boolean isCustom = Boolean.TRUE.equals(lp.getIsCustom()) || lp.getPiece() == null;
-                    if (isCustom || lp.getPiece() == null) {
-                        continue;
-                    }
-
-                    PieceDetache piece = lp.getPiece();
-                    String type = piece.getType() != null ? piece.getType().name() : (piece instanceof PDP ? "PDP" : "");
-                    if (!"PDP".equalsIgnoreCase(type) && !(piece instanceof PDP)) {
-                        continue;
-                    }
-
-                    int qteDemandee = lp.getQuantite() != null ? lp.getQuantite() : 0;
-                    double stockMagasin = piece.getStockMagasin() != null ? piece.getStockMagasin() : 0.0;
-                    double stockAtelier = piece.getStockAtelier() != null ? piece.getStockAtelier() : 0.0;
-
-                    // Calcul de la quantité déjà sortie via les bons de sortie
-                    double qteSortie = 0.0;
-                    if (!bsList.isEmpty()) {
-                        for (BonDeSortie bs : bsList) {
-                            if (bs.getLignesBonDeSortiePieces() != null) {
-                                for (LigneBonDeSortiePiece lbs : bs.getLignesBonDeSortiePieces()) {
-                                    boolean match = false;
-                                    if (lbs.getPiece() != null && piece.getId() != null && piece.getId().equals(lbs.getPiece().getId())) {
-                                        match = true;
-                                    } else if (piece.getReference() != null && lbs.getPiece() != null && piece.getReference().equalsIgnoreCase(lbs.getPiece().getReference())) {
-                                        match = true;
-                                    }
-                                    if (match && lbs.getQuantite() != null) {
-                                        qteSortie += lbs.getQuantite().doubleValue();
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    double quantiteASortir = Math.max(0.0, (double) qteDemandee - qteSortie);
-
-                    Double prixUnitaire = lp.getPrix() != null ? lp.getPrix().doubleValue()
-                            : (piece.getPrixUnitaire() != null ? piece.getPrixUnitaire() : 0.0);
-                    Double tauxRemise = lp.getTauxRemise() != null ? lp.getTauxRemise().doubleValue() : 0.0;
-
-                    piecesDto.add(StepBonSortieResponseDto.PieceBonDeSortieDto.builder()
-                            .ligneId(lp.getId())
-                            .pieceId(piece.getId())
-                            .reference(piece.getReference())
-                            .designation(piece.getDesignation() != null ? piece.getDesignation() : "Pièce")
-                            .quantiteDemandee(qteDemandee)
-                            .stockMagasin(stockMagasin)
-                            .stockAtelier(stockAtelier)
-                            .quantiteASortir(quantiteASortir)
-                            .quantiteSortie(qteSortie)
-                            .prixUnitaire(prixUnitaire)
-                            .tauxRemise(tauxRemise)
-                            .type(type)
-                            .build());
-                }
-            }
-            dto.setPiecesManquantesProforma(piecesDto);
-
-            if (proforma.getLignesFacturationMainDoeuvres() != null) {
-                List<StepBonSortieResponseDto.MainDoeuvreBonDeSortieDto> moDtos = new ArrayList<>();
-                for (var lm : proforma.getLignesFacturationMainDoeuvres()) {
-                    if (lm.getMainDoeuvre() == null) continue;
-                    var mo = lm.getMainDoeuvre();
-                    moDtos.add(StepBonSortieResponseDto.MainDoeuvreBonDeSortieDto.builder()
-                            .ligneId(lm.getId())
-                            .mainDoeuvreId(mo.getId())
-                            .code("MO-" + mo.getId())
-                            .designation(mo.getDescription() != null ? mo.getDescription() : "Main d'œuvre")
-                            .nbreHeure(lm.getNbreHeure() != null ? lm.getNbreHeure() : 1)
-                            .tarifHoraire(lm.getTarifHoraire() != null ? lm.getTarifHoraire().doubleValue()
-                                    : (mo.getPrix() != null ? mo.getPrix() : 0.0))
-                            .tauxRemise(lm.getTauxRemise() != null ? lm.getTauxRemise().doubleValue() : 0.0)
-                            .build());
-                }
-                dto.setMainDoeuvresProforma(moDtos);
+            ProformaDetailsResponseDto proformaDetails = ProformaDetailsResponseDto.from(proforma);
+            if (proformaDetails != null) {
+                dto.setLignesPiecesProforma(proformaDetails.lignesPieces() != null ? new ArrayList<>(proformaDetails.lignesPieces()) : new ArrayList<>());
+                dto.setLignesMainDoeuvresProforma(proformaDetails.lignesMainDoeuvres() != null ? new ArrayList<>(proformaDetails.lignesMainDoeuvres()) : new ArrayList<>());
             }
         } else {
             dto.setProformaId(ot.getProforma() != null ? ot.getProforma().getId() : null);
+        }
+
+        // 2. Charger les lignes du Bon de Sortie (pièces et MO) si un BS existe déjà
+        if (bs != null) {
+            BonDeSortieSummaryDto bsDto = new BonDeSortieSummaryDto();
+            bsDto.setId(bs.getId());
+            bsDto.setStatut(bs.getStatut() != null ? bs.getStatut().name() : null);
+            bsDto.setDateSortiePrevue(bs.getDate() != null ? bs.getDate().toLocalDate() : null);
+            dto.setBonDeSortie(bsDto);
+            dto.setHasBonDeSortie(true);
+
+            dto.setMontantTotalBons(bs.getMontantTotal() != null ? bs.getMontantTotal().doubleValue() : 0.0);
+            int quantiteTotalePieces = 0;
+            if (bs.getLignesBonDeSortiePieces() != null) {
+                quantiteTotalePieces = bs.getLignesBonDeSortiePieces().stream()
+                        .mapToInt(l -> l.getQuantite() != null ? l.getQuantite() : 0).sum();
+            }
+            dto.setQuantiteTotalePieces(quantiteTotalePieces);
+
+            // Charger les lignes directement depuis le bon de sortie existant
+            List<ProformaDetailsResponseDto.LignePieceResponseDto> piecesBsDto = new ArrayList<>();
+            if (bs.getLignesBonDeSortiePieces() != null) {
+                for (LigneBonDeSortiePiece lp : bs.getLignesBonDeSortiePieces()) {
+                    PieceDetache piece = lp.getPiece();
+                    String pieceType = piece != null && piece.getType() != null ? piece.getType().name()
+                            : (piece instanceof PDP ? "PDP" : (piece instanceof PDG ? "PDG" : "PDS"));
+                    boolean isCustom = "PDS".equalsIgnoreCase(pieceType) || piece == null;
+                    Double prixCatalogue = piece != null && piece.getPrixUnitaire() != null ? piece.getPrixUnitaire() : null;
+                    Double prixUnitaire = lp.getPrix() != null ? lp.getPrix().doubleValue() : (prixCatalogue != null ? prixCatalogue : 0.0);
+                    Double tauxRemise = lp.getTauxRemise() != null ? lp.getTauxRemise().doubleValue() : 0.0;
+                    int qte = lp.getQuantite() != null ? lp.getQuantite() : 1;
+                    double brut = prixUnitaire * qte;
+                    double total = lp.getMontantTotal() != null ? lp.getMontantTotal().doubleValue() : (brut * (1.0 - tauxRemise / 100.0));
+
+                    piecesBsDto.add(ProformaDetailsResponseDto.LignePieceResponseDto.builder()
+                            .id(lp.getId())
+                            .pieceId(piece != null ? piece.getId() : null)
+                            .type(pieceType)
+                            .referencePiece(piece != null ? piece.getReference() : null)
+                            .designationPiece(piece != null ? piece.getDesignation() : lp.getDesignation())
+                            .designationPds(isCustom ? lp.getDesignation() : null)
+                            .isCustom(isCustom)
+                            .quantite(qte)
+                            .prix(prixUnitaire)
+                            .prixCatalogue(prixCatalogue)
+                            .montantTotal(total)
+                            .tauxRemise(tauxRemise)
+                            .build());
+                }
+            }
+            dto.setLignesPiecesBS(piecesBsDto);
+            dto.setLignesPieces(piecesBsDto);
+
+            List<ProformaDetailsResponseDto.LigneMainDoeuvreResponseDto> moBsDto = new ArrayList<>();
+            if (bs.getLignesBonDeSortieMainDoeuvres() != null) {
+                for (LigneBonDeSortieMainDoeuvre lmo : bs.getLignesBonDeSortieMainDoeuvres()) {
+                    MainDoeuvre mo = lmo.getMainDoeuvre();
+                    String desc = lmo.getDescription() != null ? lmo.getDescription()
+                            : (mo != null ? mo.getDescription() : "Main d'œuvre");
+                    double tarif = lmo.getTarifHoraire() != null ? lmo.getTarifHoraire().doubleValue() : 0.0;
+                    double heures = lmo.getNbreHeure() != null ? lmo.getNbreHeure().doubleValue() : 1.0;
+                    double tauxRemise = lmo.getTauxRemise() != null ? lmo.getTauxRemise().doubleValue() : 0.0;
+                    double brut = tarif * heures;
+                    double total = lmo.getMontantTotal() != null ? lmo.getMontantTotal().doubleValue() : (brut * (1.0 - tauxRemise / 100.0));
+
+                    moBsDto.add(ProformaDetailsResponseDto.LigneMainDoeuvreResponseDto.builder()
+                            .id(lmo.getId())
+                            .mainDoeuvreId(mo != null ? mo.getId() : null)
+                            .descriptionMainDoeuvre(desc)
+                            .nbreHeure(heures)
+                            .tarifHoraire(tarif)
+                            .montantTotal(total)
+                            .tauxRemise(tauxRemise)
+                            .build());
+                }
+            }
+            dto.setLignesMainDoeuvresBS(moBsDto);
+            dto.setLignesMainDoeuvres(moBsDto);
+        } else {
+            dto.setBonDeSortie(null);
+            dto.setHasBonDeSortie(false);
+            dto.setMontantTotalBons(0.0);
+            dto.setQuantiteTotalePieces(0);
+            dto.setLignesPiecesBS(new ArrayList<>());
+            dto.setLignesMainDoeuvresBS(new ArrayList<>());
+
+            // Si aucun BS n'existe encore, pré-remplir lignesPieces et lignesMainDoeuvres avec celles du proforma
+            dto.setLignesPieces(new ArrayList<>(dto.getLignesPiecesProforma()));
+            dto.setLignesMainDoeuvres(new ArrayList<>(dto.getLignesMainDoeuvresProforma()));
         }
 
         return dto;
@@ -1161,17 +1173,12 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
 
         Map<String, Long> quantitesValidees = new HashMap<>();
         for (var ligne : bonDeSortieRepository.sommerQuantitesPiecesValideesParOrdreReparation(ordreReparationId,
-                StatutBon.VALIDE, TypeLigneBonDeSortie.PIECE)) {
+                StatutBon.VALIDE)) {
             quantitesValidees.merge(clePiece(ligne.getPieceId(), ligne.getDesignation()),
                     quantite(ligne.getQuantiteTotale()), Long::sum);
         }
         for (var ligne : bonDeSortieRepository.sommerQuantitesMainDoeuvreValideesParOrdreReparation(ordreReparationId,
                 StatutBon.VALIDE)) {
-            quantitesValidees.merge(cleMainDoeuvre(ligne.getMainDoeuvreId()),
-                    quantite(ligne.getQuantiteTotale()), Long::sum);
-        }
-        for (var ligne : bonDeSortieRepository.sommerQuantitesMainDoeuvreLegacyValideesParOrdreReparation(ordreReparationId,
-                StatutBon.VALIDE, TypeLigneBonDeSortie.MAIN_DOEUVRE)) {
             quantitesValidees.merge(cleMainDoeuvre(ligne.getMainDoeuvreId()),
                     quantite(ligne.getQuantiteTotale()), Long::sum);
         }

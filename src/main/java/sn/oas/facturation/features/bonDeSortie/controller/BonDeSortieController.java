@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 
@@ -72,6 +73,18 @@ public class BonDeSortieController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         return ResponseEntity.ok(bonDeSortieService.getHistorique(id, page, size));
+    }
+
+    @Operation(summary = "Mettre à jour un bon de sortie", description = "Remplace les lignes d'un bon de sortie en attente et recalcule les totaux.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Bon de sortie mis à jour avec succès"),
+            @ApiResponse(responseCode = "400", description = "Données invalides ou bon déjà validé")
+    })
+    @PutMapping("/{id}")
+    public ResponseEntity<BonDeSortieListResponse> update(
+            @PathVariable Long id,
+            @Valid @RequestBody BonDeSortieRequest request) {
+        return ResponseEntity.ok(BonDeSortieListResponse.from(bonDeSortieService.update(id, request)));
     }
 
     @Operation(summary = "Obtenir l'historique global de tous les bons de sortie", description = "Retourne la liste chronologique paginée de tous les mouvements sur l'ensemble des bons de sortie.")

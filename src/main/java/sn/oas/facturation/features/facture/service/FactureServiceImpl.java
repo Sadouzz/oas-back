@@ -256,9 +256,9 @@ public class FactureServiceImpl implements FactureService {
             }
         }
 
-        // Update OrdreReparation status to PAIEMENT
+        // Update OrdreReparation status to BL
         if (ordreReparation != null && (ordreReparation.getStatut() == StatutOrdreReparation.ORDRE_DE_TRAVAIL || ordreReparation.getStatut() == StatutOrdreReparation.PROFORMA)) {
-            ordreReparation.setStatut(StatutOrdreReparation.PAIEMENT);
+            ordreReparation.setStatut(StatutOrdreReparation.BL);
             ordreReparationRepository.save(ordreReparation);
         }
         agentNotificationService.notifyRoleInGarage(Role.AGENT, facture.getGarage(),

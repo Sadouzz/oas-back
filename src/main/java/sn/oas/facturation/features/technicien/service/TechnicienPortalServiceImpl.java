@@ -54,7 +54,7 @@ public class TechnicienPortalServiceImpl implements TechnicienPortalService {
                 technicien.getId(), Arrays.asList(StatutOrdreReparation.ORDRE_DE_TRAVAIL));
         
         long termines = ordreReparationRepository.countByTechnicienAssigneAndStatutIn(
-                technicien.getId(), Arrays.asList(StatutOrdreReparation.PAIEMENT, StatutOrdreReparation.PRET_A_LIVRER, StatutOrdreReparation.LIVRE));
+                technicien.getId(), Arrays.asList(StatutOrdreReparation.BL, StatutOrdreReparation.PAIEMENT, StatutOrdreReparation.PRET_A_LIVRER, StatutOrdreReparation.LIVRE));
 
         return TechnicienDashboardDto.builder()
                 .totalDiagnostics(diagnostics)
