@@ -10,7 +10,7 @@ public class AdditionalStubs {
     @Data public static class TechnicienDto { private Long id; private String nom; private String prenom; private String telephone; private String specialite; }
     @Data public static class RemarqueDiagnosticDto { private Long id; private String texte; private String contenu; private Long technicienId; private String technicienNom; private String createdAt; }
     @Data public static class PieceJointeDiagnosticDto { private Long id; private String url; private String type; private String remarque; private String technicienNom; private String createdAt; }
-    @Data public static class LigneProformaPieceDto { private Long id; private String nom; private Double prix; private Integer quantite; private Double montantTotal; private Double tauxRemise; private Boolean isCustom; private String type; }
-    @Data public static class LigneProformaMoDto { private Long id; private String nom; private Double tarifHoraire; private Integer nbreHeure; private Double montantTotal; private Double tauxRemise; }
+    @Data public static class LigneProformaPieceDto { private Long id; private String nom; private Double prix; private Integer quantite; private Double montantTotal; private Double tauxRemise; private Boolean isCustom; private String type; private java.time.LocalDateTime dateHeureSaisie; }
+    @Data public static class LigneProformaMoDto { private Long id; private String nom; private Double tarifHoraire; private Integer nbreHeure; private Double montantTotal; private Double tauxRemise; private java.time.LocalDateTime dateHeureSaisie; }
     @Data public static class BonCommandeSummaryDto { private Long id; private String reference; }
 }

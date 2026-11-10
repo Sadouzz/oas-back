@@ -52,6 +52,7 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
     private final UserService userService;
     private final DocumentNumberGeneratorService documentNumberGeneratorService;
     private final EmailService emailService;
+    private final sn.oas.facturation.features.notification.service.ClientEmailTemplateService clientEmailTemplateService;
     private final sn.oas.facturation.features.notification.service.MailDeliveryAsyncService mailDeliveryAsyncService;
     private final AgentNotificationService agentNotificationService;
     private final DevisPrevisionnelGenerator devisPrevisionnelGenerator;
@@ -157,11 +158,11 @@ public class DevisPrevisionnelServiceImpl implements DevisPrevisionnelService {
             String immatVehicule = vehicule.getImmatriculation();
             mailDeliveryAsyncService.sendEmailWithPdfAttachmentAsync(
                     clientEmail,
-                    "Votre devis prévisionnel",
-                    "<p>Bonjour,</p><p>Veuillez trouver ci-joint le devis prévisionnel <b>" + numeroDevis + "</b> pour votre véhicule " + immatVehicule + ".</p><p>Cordialement.</p>",
+                    "Votre devis prévisionnel · " + numeroDevis,
+                    clientEmailTemplateService.devis(client.getFirstName(), numeroDevis, immatVehicule),
                     "devis_" + numeroDevis + ".pdf",
                     () -> generatePdf(devisId),
-                    false
+                    true
             );
         }
 

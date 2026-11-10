@@ -74,6 +74,7 @@ public class ProformaServiceImpl implements ProformaService {
     private final AgentNotificationService agentNotificationService;
     private final DocumentNumberGeneratorService documentNumberGeneratorService;
     private final EmailService emailService;
+    private final sn.oas.facturation.features.notification.service.ClientEmailTemplateService clientEmailTemplateService;
     private final sn.oas.facturation.features.notification.service.MailDeliveryAsyncService mailDeliveryAsyncService;
     private final sn.oas.facturation.features.notification.service.NotificationService notificationService;
     private final ProformaGenerator proformaGenerator;
@@ -420,6 +421,7 @@ public class ProformaServiceImpl implements ProformaService {
                             .prix(prix)
                             .tauxRemise(tauxRemisePieceDepuisOrdre(proforma.getOrdreReparation(), lReq, lignesPieceOrConsommees))
                             .dateHeureSaisie(lReq.getId() != null ? datesPiecesExistantes.get(lReq.getId()) : null)
+                            .dateHeureSaisieHistoriqueInconnue(lReq.getId() != null && datesPiecesExistantes.containsKey(lReq.getId()) && datesPiecesExistantes.get(lReq.getId()) == null)
                             .build());
                 }
             }
@@ -446,6 +448,7 @@ public class ProformaServiceImpl implements ProformaService {
                             .tarifHoraire(lReq.getTarifHoraire())
                             .tauxRemise(tauxRemiseMoDepuisOrdre(proforma.getOrdreReparation(), lReq, lignesMoOrConsommees))
                             .dateHeureSaisie(lReq.getId() != null ? datesMoExistantes.get(lReq.getId()) : null)
+                            .dateHeureSaisieHistoriqueInconnue(lReq.getId() != null && datesMoExistantes.containsKey(lReq.getId()) && datesMoExistantes.get(lReq.getId()) == null)
                             .build());
                 }
             }
@@ -613,9 +616,8 @@ public class ProformaServiceImpl implements ProformaService {
                 String noticeTimbreEspeces = noticeTimbreEspecesEmail(saved);
                 mailDeliveryAsyncService.sendEmailWithPdfAttachmentAsync(
                         email,
-                        "Validation de votre proforma",
-                        "<p>Bonjour,</p><p>Votre proforma <b>" + proformaNumero + "</b> a été créé. Veuillez le trouver en pièce jointe et le valider depuis votre espace.</p>"
-                                + noticeTimbreEspeces + "<p>Cordialement.</p>",
+                        "Votre proposition de travaux · " + proformaNumero,
+                        clientEmailTemplateService.proforma(ownerAtWork.getFirstName(), proformaNumero, noticeTimbreEspeces),
                         "proforma_" + proformaNumero + ".pdf",
                         () -> generatePdf(proformaId),
                         true
@@ -735,9 +737,7 @@ public class ProformaServiceImpl implements ProformaService {
                 mailDeliveryAsyncService.sendEmailWithPdfAttachmentAsync(
                         email,
                         "Votre facture " + factureNum,
-                        "<p>Bonjour,</p><p>Le proforma <b>" + proformaNum
-                                + "</b> a été converti en facture <b>" + factureNum
-                                + "</b>. Vous trouverez la facture en pièce jointe.</p><p>Cordialement.</p>",
+                        clientEmailTemplateService.factureDepuisProforma(clientFacture.getFirstName(), proformaNum, factureNum),
                         "Facture_" + factureNum + ".pdf",
                         () -> factureService.generatePdf(factureId, "AVEC_ENTETE"),
                         true
@@ -942,7 +942,7 @@ public class ProformaServiceImpl implements ProformaService {
         } else {
             message += " Ce timbre n'est pas inclus dans le total du proforma.";
         }
-        return "<p><strong>Information sur le timbre fiscal :</strong> " + message + "</p>";
+        return "À noter : " + message;
     }
 
     private void verifierDiagnosticTermineAvantProgression(OrdreReparation ordre) {

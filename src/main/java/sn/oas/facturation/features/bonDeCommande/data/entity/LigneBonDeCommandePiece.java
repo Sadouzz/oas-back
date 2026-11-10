@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import sn.oas.facturation.features.piecedetache.data.entity.PieceDetache;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "Ligne_Bon_De_Commande")
@@ -43,4 +44,12 @@ public class LigneBonDeCommandePiece {
     private String referencePds;
 
     private String categoriePds;
+
+    @Column(name = "date_heure_saisie", updatable = false)
+    private LocalDateTime dateHeureSaisie;
+
+    @PrePersist
+    protected void onCreate() {
+        if (dateHeureSaisie == null) dateHeureSaisie = LocalDateTime.now();
+    }
 }

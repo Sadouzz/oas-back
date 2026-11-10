@@ -43,9 +43,13 @@ public class LigneFacturationMainDoeuvre {
     @Column(name = "date_heure_saisie", updatable = false)
     private LocalDateTime dateHeureSaisie;
 
+    @Transient
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private boolean dateHeureSaisieHistoriqueInconnue;
+
     @PrePersist
     protected void onCreate() {
-        if (this.dateHeureSaisie == null) this.dateHeureSaisie = LocalDateTime.now();
+        if (this.dateHeureSaisie == null && !this.dateHeureSaisieHistoriqueInconnue) this.dateHeureSaisie = LocalDateTime.now();
         if (this.nbreHeure == null) {
             this.nbreHeure = 1;
         }

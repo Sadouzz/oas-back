@@ -72,6 +72,7 @@ public class BonDeCommandeResponse {
                         .quantiteRecue(ligne.getQuantiteRecue())
                         .prixUnitaire(ligne.getPrixUnitaire() != null ? ligne.getPrixUnitaire().doubleValue() : 0.0)
                         .montant(ligne.getMontant() != null ? ligne.getMontant().doubleValue() : 0.0)
+                        .dateHeureSaisie(ligne.getDateHeureSaisie())
                         .build()).toList())
                 .build();
     }

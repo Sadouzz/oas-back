@@ -50,6 +50,10 @@ public class LigneFacturationPiece {
     @Column(name = "date_heure_saisie", updatable = false)
     private LocalDateTime dateHeureSaisie;
 
+    @Transient
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private boolean dateHeureSaisieHistoriqueInconnue;
+
     @ElementCollection
     @CollectionTable(name = "ligne_facturation_piece_dates_source", joinColumns = @JoinColumn(name = "ligne_facturation_piece_id"))
     @OrderColumn(name = "position")
@@ -59,7 +63,7 @@ public class LigneFacturationPiece {
 
     @PrePersist
     protected void onCreate() {
-        if (this.dateHeureSaisie == null) this.dateHeureSaisie = LocalDateTime.now();
+        if (this.dateHeureSaisie == null && !this.dateHeureSaisieHistoriqueInconnue) this.dateHeureSaisie = LocalDateTime.now();
         if (this.quantite == null) {
             this.quantite = 1;
         }

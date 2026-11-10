@@ -80,6 +80,7 @@ import sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier;
 import sn.oas.facturation.features.ficheAtelier.dto.FicheAtelierDetailsResponse;
 import sn.oas.facturation.features.ficheAtelier.repository.FicheAtelierRepository;
 import sn.oas.facturation.features.notification.service.EmailService;
+import sn.oas.facturation.features.notification.service.ClientEmailTemplateService;
 import sn.oas.facturation.features.ordreReparation.dto.responses.AdditionalStubs.LigneProformaMoDto;
 import sn.oas.facturation.features.ordreReparation.dto.responses.AdditionalStubs.LigneProformaPieceDto;
 import sn.oas.facturation.features.ordreReparation.dto.responses.ClientHeaderDto;
@@ -134,6 +135,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     private final AgentNotificationService agentNotificationService;
     private final NotificationService notificationService;
     private final EmailService emailService;
+    private final ClientEmailTemplateService clientEmailTemplateService;
     private final sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService documentNumberGeneratorService;
     private final DiagnosticRepository diagnosticRepository;
     private final PieceJointeDiagnosticRepository pieceJointeDiagnosticRepository;
@@ -247,8 +249,9 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             if (clientEmail != null && !clientEmail.isEmpty()) {
                 emailService.sendHtmlEmail(
                         clientEmail,
-                        "Création de votre Ordre de Réparation",
-                        "<p>Bonjour,</p><p>Nous vous informons de la création de l'ordre de réparation <b>" + savedOrdre.getNumero() + "</b> pour votre véhicule " + savedOrdre.getVehicule().getImmatriculation() + ".</p><p>Cordialement.</p>"
+                        "Votre prise en charge est ouverte · " + savedOrdre.getNumero(),
+                        clientEmailTemplateService.ordreCree(client.getFirstName(), savedOrdre.getNumero(),
+                                savedOrdre.getVehicule().getImmatriculation())
                 );
             }
         }
@@ -604,6 +607,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                         .prix(prix)
                         .tauxRemise(tauxRemise(ligneReq.tauxRemise()))
                         .dateHeureSaisie(ancienneLigne != null ? ancienneLigne.getDateHeureSaisie() : null)
+                        .dateHeureSaisieHistoriqueInconnue(ancienneLigne != null && ancienneLigne.getDateHeureSaisie() == null)
                         .build());
             }
         }
@@ -625,6 +629,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                                 : (md.getPrix() != null ? md.getPrix().intValue() : 0))
                         .tauxRemise(tauxRemise(ligneReq.tauxRemise()))
                         .dateHeureSaisie(ancienneLigne != null ? ancienneLigne.getDateHeureSaisie() : null)
+                        .dateHeureSaisieHistoriqueInconnue(ancienneLigne != null && ancienneLigne.getDateHeureSaisie() == null)
                         .build());
             }
         }
@@ -844,8 +849,9 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 if (clientEmail != null && !clientEmail.isEmpty()) {
                     emailService.sendHtmlEmail(
                             clientEmail,
-                            "Votre véhicule est prêt",
-                            "<p>Bonjour,</p><p>Toutes les réparations sont terminées. Vous pouvez venir récupérer votre véhicule " + savedFiche.getVehicule().getImmatriculation() + ".</p><p>Cordialement.</p>"
+                            "Votre véhicule est prêt · " + savedFiche.getVehicule().getImmatriculation(),
+                            clientEmailTemplateService.vehiculePret(client.getFirstName(), savedFiche.getNumero(),
+                                    savedFiche.getVehicule().getImmatriculation())
                     );
                 }
             }
@@ -1157,8 +1163,9 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             if (clientEmail != null && !clientEmail.isEmpty()) {
                 emailService.sendHtmlEmail(
                         clientEmail,
-                        "Création de votre Ordre de Réparation",
-                        "<p>Bonjour,</p><p>Nous vous informons de la création de l'ordre de réparation <b>" + savedOrdre.getNumero() + "</b> pour votre véhicule " + savedOrdre.getVehicule().getImmatriculation() + ".</p><p>Cordialement.</p>"
+                        "Votre prise en charge est ouverte · " + savedOrdre.getNumero(),
+                        clientEmailTemplateService.ordreCree(client.getFirstName(), savedOrdre.getNumero(),
+                                savedOrdre.getVehicule().getImmatriculation())
                 );
             }
         }
@@ -1599,6 +1606,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 ligneDto.setQuantite(ligne.getQuantite());
                 ligneDto.setPrix(ligne.getPrix() != null ? ligne.getPrix().doubleValue() : 0.0);
                 ligneDto.setTauxRemise(ligne.getTauxRemise() != null ? ligne.getTauxRemise().doubleValue() : 0.0);
+                ligneDto.setDateHeureSaisie(ligne.getDateHeureSaisie());
                 double brut = ligne.getPrix() != null && ligne.getQuantite() != null ? ligne.getPrix().doubleValue() * ligne.getQuantite() : 0.0;
                 ligneDto.setMontantTotal(Math.round(brut * (1 - ligneDto.getTauxRemise() / 100.0) * 100.0) / 100.0);
                 ligneDto.setIsCustom(ligne.getIsCustom());
@@ -1613,6 +1621,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 ligneDto.setNbreHeure(ligne.getNbreHeure());
                 ligneDto.setTarifHoraire(ligne.getTarifHoraire() != null ? ligne.getTarifHoraire().doubleValue() : 0.0);
                 ligneDto.setTauxRemise(ligne.getTauxRemise() != null ? ligne.getTauxRemise().doubleValue() : 0.0);
+                ligneDto.setDateHeureSaisie(ligne.getDateHeureSaisie());
                 double brut = ligne.getTarifHoraire() != null && ligne.getNbreHeure() != null ? ligne.getTarifHoraire().doubleValue() * ligne.getNbreHeure() : 0.0;
                 ligneDto.setMontantTotal(Math.round(brut * (1 - ligneDto.getTauxRemise() / 100.0) * 100.0) / 100.0);
                 return ligneDto;

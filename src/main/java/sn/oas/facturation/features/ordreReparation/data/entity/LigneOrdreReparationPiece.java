@@ -49,8 +49,12 @@ public class LigneOrdreReparationPiece {
     @Column(name = "date_heure_saisie", updatable = false)
     private LocalDateTime dateHeureSaisie;
 
+    @jakarta.persistence.Transient
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private boolean dateHeureSaisieHistoriqueInconnue;
+
     @PrePersist
     protected void onCreate() {
-        if (dateHeureSaisie == null) dateHeureSaisie = LocalDateTime.now();
+        if (dateHeureSaisie == null && !dateHeureSaisieHistoriqueInconnue) dateHeureSaisie = LocalDateTime.now();
     }
 }
