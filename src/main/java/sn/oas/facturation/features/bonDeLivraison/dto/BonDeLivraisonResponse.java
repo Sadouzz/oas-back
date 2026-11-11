@@ -10,6 +10,7 @@ import java.util.List;
 @Value @Builder
 public class BonDeLivraisonResponse {
     Long id; String numero; LocalDateTime dateCreation; Long ordreReparationId; String ordreReparationNumero;
+    Long ordreTravailId; String ordreTravailNumero;
     Long clientId; String clientNom; Long vehiculeId; String immatriculation;
     Boolean tvaApplicable; BigDecimal montantHT; BigDecimal montantTVA; BigDecimal montantTTC;
     String remarque; List<Long> bonsDeSortieIds; List<String> bonsDeSortieReferences;
@@ -24,17 +25,29 @@ public class BonDeLivraisonResponse {
     public static BonDeLivraisonResponse from(BonDeLivraison bl) { return from(bl, true); }
 
     public static BonDeLivraisonResponse from(BonDeLivraison bl, boolean inclureLignes) {
-        var client = bl.getClient(); var vehicule = bl.getVehicule(); var ordre = bl.getOrdreReparation();
-        var builder = BonDeLivraisonResponse.builder().id(bl.getId()).numero(bl.getNumero()).dateCreation(bl.getDateCreation())
-                .ordreReparationId(ordre.getId()).ordreReparationNumero(ordre.getNumero())
+        var client = bl.getClient();
+        var vehicule = bl.getVehicule();
+        var ordre = bl.getOrdreReparation();
+        var ot = bl.getOrdreTravail();
+        var builder = BonDeLivraisonResponse.builder()
+                .id(bl.getId())
+                .numero(bl.getNumero())
+                .dateCreation(bl.getDateCreation())
+                .ordreReparationId(ordre == null ? null : ordre.getId())
+                .ordreReparationNumero(ordre == null ? null : ordre.getNumero())
+                .ordreTravailId(ot == null ? null : ot.getId())
+                .ordreTravailNumero(ot == null ? null : ot.getNumero())
                 .clientId(client == null ? null : client.getId())
                 .clientNom(client == null ? "" : (client.getFirstName() + " " + client.getLastName()).trim())
                 .vehiculeId(vehicule == null ? null : vehicule.getId())
                 .immatriculation(vehicule == null ? "" : vehicule.getImmatriculation())
-                .tvaApplicable(bl.getTvaApplicable()).montantHT(bl.getMontantHT()).montantTVA(bl.getMontantTVA())
-                .montantTTC(bl.getMontantTTC()).remarque(bl.getRemarque())
-                .bonsDeSortieIds(bl.getBonsDeSortie().stream().map(b -> b.getId()).toList())
-                .bonsDeSortieReferences(bl.getBonsDeSortie().stream().map(b -> b.getReference()).toList())
+                .tvaApplicable(bl.getTvaApplicable())
+                .montantHT(bl.getMontantHT())
+                .montantTVA(bl.getMontantTVA())
+                .montantTTC(bl.getMontantTTC())
+                .remarque(bl.getRemarque())
+                .bonsDeSortieIds(bl.getBonsDeSortie() == null ? List.of() : bl.getBonsDeSortie().stream().map(b -> b.getId()).toList())
+                .bonsDeSortieReferences(bl.getBonsDeSortie() == null ? List.of() : bl.getBonsDeSortie().stream().map(b -> b.getReference()).toList())
                 .factureId(bl.getFacture() == null ? null : bl.getFacture().getId())
                 .factureNumero(bl.getFacture() == null ? null : bl.getFacture().getNumero())
                 .noteDePrixId(bl.getNoteDePrix() == null ? null : bl.getNoteDePrix().getId())

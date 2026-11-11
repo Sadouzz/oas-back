@@ -57,6 +57,12 @@ public interface OrdreTravailService {
 
     StepReparationResponseDto getStepReparation(Long id);
 
+    StepBLResponseDto getStepBL(Long id);
+
+    default StepBLResponseDto getStepPaiement(Long id) {
+        return getStepBL(id);
+    }
+
     // --- Steps Updaters ---
     StepAssignationDto updateStepAssignation(Long id, StepAssignationDto dto);
 

@@ -49,6 +49,12 @@ class OrdreTravailDocumentTest {
     @Mock
     private Uploader uploader;
 
+    @Mock
+    private sn.oas.facturation.features.bonDeLivraison.service.BonDeLivraisonService bonDeLivraisonService;
+
+    @Mock
+    private sn.oas.facturation.features.bonDeLivraison.repository.BonDeLivraisonRepository bonDeLivraisonRepository;
+
     @InjectMocks
     private OrdreTravailServiceImpl service;
 

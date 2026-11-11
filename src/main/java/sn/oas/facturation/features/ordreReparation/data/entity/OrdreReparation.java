@@ -9,6 +9,7 @@ import sn.oas.facturation.shared.tenant.TenantAware;
 import sn.oas.facturation.shared.tenant.TenantListener;
 import sn.oas.facturation.features.garage.data.entity.Garage;
 import sn.oas.facturation.features.bonDeCommande.data.entity.BonDeCommande;
+import sn.oas.facturation.features.bonDeLivraison.data.entity.BonDeLivraison;
 import sn.oas.facturation.features.bonDeSortie.data.entity.BonDeSortie;
 import sn.oas.facturation.features.devisPrevisionnel.data.entity.DevisPrevisionnel;
 import sn.oas.facturation.features.facturation.data.entity.Facturation;
@@ -136,6 +137,12 @@ public class OrdreReparation implements TenantAware  {
     @EqualsAndHashCode.Exclude
     private BonDeSortie bonDeSortie;
 
+    @OneToOne(mappedBy = "ordreReparation", fetch = FetchType.LAZY)
+    @JsonIgnoreProperties("ordreReparation")
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private BonDeLivraison bonDeLivraison;
+
     @OneToOne(mappedBy = "ordreReparation", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonIgnoreProperties("ordreReparation")
     private Diagnostic diagnostic;
@@ -215,6 +222,17 @@ public class OrdreReparation implements TenantAware  {
         if (this.bonDeSortie != null && this.bonDeSortie.equals(bonDeSortie)) {
             this.bonDeSortie.setOrdreReparation(null);
             this.bonDeSortie = null;
+        }
+    }
+
+    public BonDeLivraison getBonDeLivraison() {
+        return this.bonDeLivraison;
+    }
+
+    public void setBonDeLivraison(BonDeLivraison bonDeLivraison) {
+        this.bonDeLivraison = bonDeLivraison;
+        if (bonDeLivraison != null) {
+            bonDeLivraison.setOrdreReparation(this);
         }
     }
 }

@@ -20,6 +20,7 @@ import sn.oas.facturation.features.ordreReparation.dto.responses.StepAssignation
 import sn.oas.facturation.features.ordreReparation.dto.responses.StepBonSortieResponseDto;
 import sn.oas.facturation.features.ordreReparation.dto.responses.StepDiagnosticResponseDto;
 import sn.oas.facturation.features.ordreReparation.dto.responses.StepLivraisonResponseDto;
+import sn.oas.facturation.features.ordreReparation.dto.responses.StepBLResponseDto;
 import sn.oas.facturation.features.ordreReparation.dto.responses.StepPaiementResponseDto;
 import sn.oas.facturation.features.ordreReparation.dto.responses.StepPiecesMoResponseDto;
 import sn.oas.facturation.features.ordreReparation.dto.responses.StepPretALivrerResponseDto;
@@ -62,6 +63,7 @@ public interface OrdreReparationService {
     StepBonSortieResponseDto getStepBonSortie(Long id);
     StepAssignationResponseDto getStepAssignation(Long id);
     StepReparationResponseDto getStepReparation(Long id);
+    StepBLResponseDto getStepBL(Long id);
     StepPaiementResponseDto getStepPaiement(Long id);
     StepPretALivrerResponseDto getStepPretALivrer(Long id);
     StepLivraisonResponseDto getStepLivraison(Long id);

@@ -21,16 +21,21 @@ import sn.oas.facturation.features.bonDeCommande.data.entity.BonDeCommande;
 import sn.oas.facturation.features.bonDeCommande.data.entity.LigneBonDeCommandePiece;
 import sn.oas.facturation.features.bonDeCommande.data.enums.StatutBonCommande;
 import sn.oas.facturation.features.bonDeCommande.repository.BonDeCommandeRepository;
+import sn.oas.facturation.features.bonDeLivraison.data.entity.BonDeLivraison;
+import sn.oas.facturation.features.bonDeLivraison.repository.BonDeLivraisonRepository;
+import sn.oas.facturation.features.bonDeLivraison.service.BonDeLivraisonService;
 import sn.oas.facturation.features.bonDeSortie.data.entity.BonDeSortie;
 import sn.oas.facturation.features.bonDeSortie.data.entity.LigneBonDeSortiePiece;
 import sn.oas.facturation.features.bonDeSortie.data.entity.LigneBonDeSortieMainDoeuvre;
 import sn.oas.facturation.features.bonDeSortie.data.enums.StatutBon;
 import sn.oas.facturation.features.bonDeSortie.repository.BonDeSortieRepository;
+import sn.oas.facturation.features.facturation.data.entity.LigneFacturationMainDoeuvre;
 import sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece;
 import sn.oas.facturation.features.main_doeuvre.data.entity.MainDoeuvre;
 import sn.oas.facturation.features.piecedetache.data.entity.PDP;
 import sn.oas.facturation.features.piecedetache.data.entity.PDG;
 import sn.oas.facturation.features.piecedetache.data.entity.PieceDetache;
+import sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation;
 import sn.oas.facturation.features.ordreReparation.dto.responses.StepApprovisionnementResponseDto.PieceApprovisionnementDto;
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.garage.data.entity.Garage;
@@ -104,6 +109,8 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
     private final DocumentNumberGeneratorService documentNumberGeneratorService;
     private final DocumentOrdreTravailRepository documentOrdreTravailRepository;
     private final Cloudinary cloudinary;
+    private final BonDeLivraisonService bonDeLivraisonService;
+    private final BonDeLivraisonRepository bonDeLivraisonRepository;
 
     @Override
     @Transactional
@@ -458,8 +465,8 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
         OrdreTravail ot = getEntityById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Ordre de travail introuvable avec l'id : " + id));
         ot.setStatut(statut);
-        if (statut == StatutOrdreTravail.TERMINE && ot.getDateFinReparation() == null) {
-            ot.setDateFinReparation(LocalDateTime.now());
+        if (statut == StatutOrdreTravail.TERMINE) {
+            traiterFinReparationEtGenererBL(ot);
         }
         return OrdreTravailResponseDto.from(ordreTravailRepository.save(ot));
     }
@@ -609,6 +616,7 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
                     lDto.setMontantTotal(Math.round(brut * (1 - lDto.getTauxRemise() / 100.0) * 100.0) / 100.0);
                     lDto.setIsCustom(ligne.getIsCustom());
                     lDto.setType(ligne.getPiece() != null && ligne.getPiece().getType() != null ? ligne.getPiece().getType().name() : null);
+                    lDto.setDateHeureSaisie(ligne.getDateHeureSaisie());
                     return lDto;
                 }).collect(Collectors.toList()));
             }
@@ -623,6 +631,7 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
                     lDto.setTauxRemise(ligne.getTauxRemise() != null ? ligne.getTauxRemise().doubleValue() : 0.0);
                     double brut = ligne.getTarifHoraire() != null && ligne.getNbreHeure() != null ? ligne.getTarifHoraire().doubleValue() * ligne.getNbreHeure() : 0.0;
                     lDto.setMontantTotal(Math.round(brut * (1 - lDto.getTauxRemise() / 100.0) * 100.0) / 100.0);
+                    lDto.setDateHeureSaisie(ligne.getDateHeureSaisie());
                     return lDto;
                 }).collect(Collectors.toList()));
             }
@@ -883,6 +892,7 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
                             .prixCatalogue(prixCatalogue)
                             .montantTotal(total)
                             .tauxRemise(tauxRemise)
+                            .dateHeureSaisie(lp.getDateHeureSaisie())
                             .build());
                 }
             }
@@ -909,6 +919,7 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
                             .tarifHoraire(tarif)
                             .montantTotal(total)
                             .tauxRemise(tauxRemise)
+                            .dateHeureSaisie(lmo.getDateHeureSaisie())
                             .build());
                 }
             }
@@ -1026,6 +1037,211 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public StepBLResponseDto getStepBL(Long id) {
+        OrdreTravail ot = getEntityById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Ordre de travail non trouvé avec l'id : " + id));
+
+        StepBLResponseDto dto = new StepBLResponseDto();
+        dto.setId(ot.getId());
+        dto.setNumero(ot.getNumero());
+        dto.setStatut(ot.getStatut() != null ? ot.getStatut().name() : null);
+        dto.setEtape(ot.getStatut() != null ? ot.getStatut().getEtape() : 5);
+
+        if (ot.getVehicule() != null) {
+            Vehicule v = ot.getVehicule();
+            dto.setVehiculeId(v.getId());
+            dto.setImmatriculation(v.getImmatriculation());
+            dto.setMarque(v.getMarque());
+            dto.setModele(v.getModele());
+        }
+        if (ot.getClient() != null) {
+            Client c = ot.getClient();
+            dto.setClientId(c.getId());
+            dto.setClientNom(((c.getFirstName() != null ? c.getFirstName() : "") + " "
+                    + (c.getLastName() != null ? c.getLastName() : "")).trim());
+            dto.setClientTelephone(c.getPhone());
+        }
+        if (ot.getProforma() != null) {
+            dto.setProformaId(ot.getProforma().getId());
+        }
+        if (ot.getOrdreReparation() != null) {
+            dto.setOrdreReparationId(ot.getOrdreReparation().getId());
+        }
+
+        BonDeLivraison bl = null;
+        if (ot.getOrdreReparation() != null) {
+            bl = bonDeLivraisonRepository.findByOrdreReparationId(ot.getOrdreReparation().getId()).orElse(null);
+        }
+
+        if (bl != null) {
+            dto.setHasBonDeLivraison(true);
+            Long fId = bl.getFacture() != null ? bl.getFacture().getId() : null;
+            String fNum = bl.getFacture() != null ? bl.getFacture().getNumero() : null;
+
+            dto.setBonDeLivraison(StepBLResponseDto.BonDeLivraisonSummaryDto.builder()
+                    .id(bl.getId())
+                    .numero(bl.getNumero())
+                    .dateCreation(bl.getDateCreation())
+                    .statut(bl.getStatut() != null ? bl.getStatut().name() : null)
+                    .remarque(bl.getRemarque())
+                    .montantHT(bl.getMontantHT() != null ? bl.getMontantHT().doubleValue() : 0.0)
+                    .montantTVA(bl.getMontantTVA() != null ? bl.getMontantTVA().doubleValue() : 0.0)
+                    .montantTTC(bl.getMontantTTC() != null ? bl.getMontantTTC().doubleValue() : 0.0)
+                    .tvaApplicable(bl.getTvaApplicable())
+                    .factureId(fId)
+                    .factureNumero(fNum)
+                    .build());
+
+            dto.setMontantHT(bl.getMontantHT() != null ? bl.getMontantHT().doubleValue() : 0.0);
+            dto.setMontantTVA(bl.getMontantTVA() != null ? bl.getMontantTVA().doubleValue() : 0.0);
+            dto.setMontantTTC(bl.getMontantTTC() != null ? bl.getMontantTTC().doubleValue() : 0.0);
+            dto.setMontantTotal(bl.getMontantTotal() != null ? bl.getMontantTotal().doubleValue() : 0.0);
+            dto.setTvaApplicable(bl.getTvaApplicable());
+
+            double ht = dto.getMontantHT() != null ? dto.getMontantHT() : 0.0;
+            double tva = dto.getMontantTVA() != null ? dto.getMontantTVA() : 0.0;
+            dto.setTvaRate((ht > 0) ? Math.round((tva / ht * 100.0) * 100.0) / 100.0 : 18.0);
+
+            List<ProformaDetailsResponseDto.LignePieceResponseDto> piecesDto = new ArrayList<>();
+            if (bl.getLignesFacturationPieces() != null) {
+                for (LigneFacturationPiece lp : bl.getLignesFacturationPieces()) {
+                    PieceDetache piece = lp.getPiece();
+                    String pieceType = piece != null && piece.getType() != null ? piece.getType().name()
+                            : (piece instanceof PDP ? "PDP" : (piece instanceof PDG ? "PDG" : "PDS"));
+                    boolean isCustom = "PDS".equalsIgnoreCase(pieceType) || piece == null || Boolean.TRUE.equals(lp.getIsCustom());
+                    Double prixCatalogue = piece != null && piece.getPrixUnitaire() != null ? piece.getPrixUnitaire() : null;
+                    Double prixUnitaire = lp.getPrix() != null ? lp.getPrix().doubleValue() : (prixCatalogue != null ? prixCatalogue : 0.0);
+                    Double tauxRemise = lp.getTauxRemise() != null ? lp.getTauxRemise().doubleValue() : 0.0;
+                    int qte = lp.getQuantite() != null ? lp.getQuantite() : 1;
+                    double brut = prixUnitaire * qte;
+                    double total = brut * (1.0 - tauxRemise / 100.0);
+
+                    piecesDto.add(ProformaDetailsResponseDto.LignePieceResponseDto.builder()
+                            .id(lp.getId())
+                            .pieceId(piece != null ? piece.getId() : null)
+                            .type(pieceType)
+                            .referencePiece(piece != null ? piece.getReference() : null)
+                            .designationPiece(piece != null ? piece.getDesignation() : lp.getDesignationPds())
+                            .designationPds(isCustom ? lp.getDesignationPds() : null)
+                            .isCustom(isCustom)
+                            .quantite(qte)
+                            .prix(prixUnitaire)
+                            .prixCatalogue(prixCatalogue)
+                            .montantTotal(total)
+                            .tauxRemise(tauxRemise)
+                            .dateHeureSaisie(lp.getDateHeureSaisie())
+                            .build());
+                }
+            }
+            dto.setLignesPieces(piecesDto);
+
+            List<ProformaDetailsResponseDto.LigneMainDoeuvreResponseDto> moDto = new ArrayList<>();
+            if (bl.getLignesFacturationMainDoeuvres() != null) {
+                for (LigneFacturationMainDoeuvre lmo : bl.getLignesFacturationMainDoeuvres()) {
+                    MainDoeuvre mo = lmo.getMainDoeuvre();
+                    String desc = mo != null ? mo.getDescription() : "Main d'œuvre";
+                    double tarif = lmo.getTarifHoraire() != null ? lmo.getTarifHoraire().doubleValue() : 0.0;
+                    double heures = lmo.getNbreHeure() != null ? lmo.getNbreHeure().doubleValue() : 1.0;
+                    Double tauxRemise = lmo.getTauxRemise() != null ? lmo.getTauxRemise().doubleValue() : 0.0;
+                    double brut = tarif * heures;
+                    double total = brut * (1.0 - tauxRemise / 100.0);
+
+                    moDto.add(ProformaDetailsResponseDto.LigneMainDoeuvreResponseDto.builder()
+                            .id(lmo.getId())
+                            .mainDoeuvreId(mo != null ? mo.getId() : null)
+                            .descriptionMainDoeuvre(desc)
+                            .nbreHeure(heures)
+                            .tarifHoraire(tarif)
+                            .montantTotal(total)
+                            .tauxRemise(tauxRemise)
+                            .dateHeureSaisie(lmo.getDateHeureSaisie())
+                            .build());
+                }
+            }
+            dto.setLignesMainDoeuvres(moDto);
+
+            if (bl.getFacture() != null) {
+                dto.setHasFacture(true);
+                Facture f = bl.getFacture();
+                FactureSummaryDto fDto = new FactureSummaryDto();
+                fDto.setId(f.getId());
+                fDto.setNumero(f.getNumero());
+                fDto.setStatut(f.getStatutPaiement() != null ? f.getStatutPaiement().name() : null);
+                fDto.setMontantTotal(f.getMontantTotal() != null ? f.getMontantTotal().doubleValue() : 0.0);
+                dto.setFacture(fDto);
+            }
+        } else {
+            dto.setHasBonDeLivraison(false);
+            BonDeSortie bs = trouverBonDeSortie(ot);
+            if (bs != null) {
+                List<ProformaDetailsResponseDto.LignePieceResponseDto> piecesDto = new ArrayList<>();
+                if (bs.getLignesBonDeSortiePieces() != null) {
+                    for (LigneBonDeSortiePiece lp : bs.getLignesBonDeSortiePieces()) {
+                        PieceDetache piece = lp.getPiece();
+                        String pieceType = piece != null && piece.getType() != null ? piece.getType().name()
+                                : (piece instanceof PDP ? "PDP" : (piece instanceof PDG ? "PDG" : "PDS"));
+                        boolean isCustom = "PDS".equalsIgnoreCase(pieceType) || piece == null;
+                        Double prixCatalogue = piece != null && piece.getPrixUnitaire() != null ? piece.getPrixUnitaire() : null;
+                        Double prixUnitaire = lp.getPrix() != null ? lp.getPrix().doubleValue() : (prixCatalogue != null ? prixCatalogue : 0.0);
+                        Double tauxRemise = lp.getTauxRemise() != null ? lp.getTauxRemise().doubleValue() : 0.0;
+                        int qte = lp.getQuantite() != null ? lp.getQuantite() : 1;
+                        double brut = prixUnitaire * qte;
+                        double total = lp.getMontantTotal() != null ? lp.getMontantTotal().doubleValue() : (brut * (1.0 - tauxRemise / 100.0));
+
+                        piecesDto.add(ProformaDetailsResponseDto.LignePieceResponseDto.builder()
+                                .id(lp.getId())
+                                .pieceId(piece != null ? piece.getId() : null)
+                                .type(pieceType)
+                                .referencePiece(piece != null ? piece.getReference() : null)
+                                .designationPiece(piece != null ? piece.getDesignation() : lp.getDesignation())
+                                .designationPds(isCustom ? lp.getDesignation() : null)
+                                .isCustom(isCustom)
+                                .quantite(qte)
+                                .prix(prixUnitaire)
+                                .prixCatalogue(prixCatalogue)
+                                .montantTotal(total)
+                                .tauxRemise(tauxRemise)
+                                .dateHeureSaisie(lp.getDateHeureSaisie())
+                                .build());
+                    }
+                }
+                dto.setLignesPieces(piecesDto);
+
+                List<ProformaDetailsResponseDto.LigneMainDoeuvreResponseDto> moDto = new ArrayList<>();
+                if (bs.getLignesBonDeSortieMainDoeuvres() != null) {
+                    for (LigneBonDeSortieMainDoeuvre lmo : bs.getLignesBonDeSortieMainDoeuvres()) {
+                        MainDoeuvre mo = lmo.getMainDoeuvre();
+                        String desc = lmo.getDescription() != null ? lmo.getDescription()
+                                : (mo != null ? mo.getDescription() : "Main d'œuvre");
+                        double tarif = lmo.getTarifHoraire() != null ? lmo.getTarifHoraire().doubleValue() : 0.0;
+                        double heures = lmo.getNbreHeure() != null ? lmo.getNbreHeure().doubleValue() : 1.0;
+                        Double tauxRemise = lmo.getTauxRemise() != null ? lmo.getTauxRemise().doubleValue() : 0.0;
+                        double brut = tarif * heures;
+                        double total = lmo.getMontantTotal() != null ? lmo.getMontantTotal().doubleValue() : (brut * (1.0 - tauxRemise / 100.0));
+
+                        moDto.add(ProformaDetailsResponseDto.LigneMainDoeuvreResponseDto.builder()
+                                .id(lmo.getId())
+                                .mainDoeuvreId(mo != null ? mo.getId() : null)
+                                .descriptionMainDoeuvre(desc)
+                                .nbreHeure(heures)
+                                .tarifHoraire(tarif)
+                                .montantTotal(total)
+                                .tauxRemise(tauxRemise)
+                                .dateHeureSaisie(lmo.getDateHeureSaisie())
+                                .build());
+                    }
+                }
+                dto.setLignesMainDoeuvres(moDto);
+                dto.setMontantHT(bs.getMontantTotal() != null ? bs.getMontantTotal().doubleValue() : 0.0);
+                dto.setMontantTotal(bs.getMontantTotal() != null ? bs.getMontantTotal().doubleValue() : 0.0);
+            }
+        }
+
+        return dto;
+    }
+
+    @Override
     @Transactional
     public StepAssignationDto updateStepAssignation(Long id, StepAssignationDto dto) {
         OrdreTravail ot = getEntityById(id)
@@ -1112,6 +1328,9 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
         if (dto.getStatut() != null) {
             ot.setStatut(dto.getStatut());
         }
+        if (ot.getStatut() == StatutOrdreTravail.TERMINE) {
+            traiterFinReparationEtGenererBL(ot);
+        }
         ot.setUpdatedAt(LocalDateTime.now());
         ordreTravailRepository.save(ot);
 
@@ -1129,6 +1348,52 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
         dto.setDocuments(updatedReqs);
         dto.setPiecesJointes(updatedReqs);
         return dto;
+    }
+
+    private void traiterFinReparationEtGenererBL(OrdreTravail ot) {
+        if (ot.getDateFinReparation() == null) {
+            ot.setDateFinReparation(LocalDateTime.now());
+        }
+        BonDeSortie bs = trouverBonDeSortie(ot);
+        if (bs != null && bonDeLivraisonService != null) {
+            bonDeLivraisonService.creerOuMettreAJourDepuisBonDeSortie(bs, ot);
+        }
+        if (ot.getOrdreReparation() != null) {
+            OrdreReparation ordre = ot.getOrdreReparation();
+            if (ordre.getStatut() == StatutOrdreReparation.ORDRE_DE_TRAVAIL
+                    || ordre.getStatut() == StatutOrdreReparation.PROFORMA) {
+                ordre.setStatut(StatutOrdreReparation.BL);
+                ordreReparationRepository.save(ordre);
+            }
+        }
+    }
+
+    private BonDeSortie trouverBonDeSortie(OrdreTravail ot) {
+        if (ot == null) return null;
+        if (ot.getBonDeSortie() != null) {
+            return ot.getBonDeSortie();
+        }
+        if (ot.getOrdreReparation() != null && ot.getOrdreReparation().getId() != null) {
+            List<BonDeSortie> list = bonDeSortieRepository.findByOrdreReparationIdOrderByDateDesc(ot.getOrdreReparation().getId());
+            if (list != null && !list.isEmpty()) {
+                BonDeSortie bs = list.get(0);
+                ot.setBonDeSortie(bs);
+                return bs;
+            }
+        }
+        if (ot.getId() != null) {
+            List<BonDeSortie> list = bonDeSortieRepository.findByOrdreTravailIdOrderByDateDesc(ot.getId());
+            if (list != null && !list.isEmpty()) {
+                BonDeSortie bs = list.get(0);
+                ot.setBonDeSortie(bs);
+                return bs;
+            }
+        }
+        List<BonDeSortie> bsList = ot.getBonsDeSortie();
+        if (bsList != null && !bsList.isEmpty()) {
+            return bsList.get(0);
+        }
+        return null;
     }
 
     /**

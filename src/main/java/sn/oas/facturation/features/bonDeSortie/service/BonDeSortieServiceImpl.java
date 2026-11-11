@@ -239,6 +239,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                         .quantite(ligneReq.quantite()).prix((int) Math.round(prix))
                         .tauxRemise(tauxRemise)
                         .proformaLineId(ligneSourceId)
+                        .dateHeureSaisie(ligneReq.dateHeureSaisie())
                         .build();
                 bon.addLignePiece(ligne);
                 nouvellesLignesPieces.add(ligne);
@@ -282,6 +283,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                         .tarifHoraire((int) Math.round(tarif))
                         .tauxRemise(tauxRemise)
                         .proformaLineId(moReq.proformaLineId())
+                        .dateHeureSaisie(moReq.dateHeureSaisie())
                         .build();
                 bon.addLigneMainDoeuvre(ligneMo);
                 nouvellesLignesMainDoeuvres.add(ligneMo);
@@ -617,6 +619,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                         .prix((int) Math.round(prix))
                         .tauxRemise(tauxRemise)
                         .proformaLineId(ligneSourceId)
+                        .dateHeureSaisie(ligneReq.dateHeureSaisie())
                         .build();
                 bon.addLignePiece(ligne);
                 nouvellesLignesPieces.add(ligne);
@@ -653,6 +656,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                         .tarifHoraire((int) Math.round(tarif))
                         .tauxRemise(tauxRemise)
                         .proformaLineId(moReq.proformaLineId())
+                        .dateHeureSaisie(moReq.dateHeureSaisie())
                         .build();
                 bon.addLigneMainDoeuvre(ligneMo);
                 nouvellesLignesMainDoeuvres.add(ligneMo);
@@ -1336,12 +1340,12 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
             if (index == null) {
                 indexParCle.put(cle, resultat.size());
                 resultat.add(new LignePieceRequest(null, ligne.quantite(), (double) prix, (double) prix,
-                        "PDS", designation, ligne.proformaLineId()));
+                        ligne.getEffectiveRemise(), "PDS", designation, ligne.proformaLineId(), ligne.dateHeureSaisie()));
             } else {
                 LignePieceRequest existante = resultat.get(index);
                 resultat.set(index, new LignePieceRequest(null, (existante.quantite() == null ? 0 : existante.quantite()) + ligne.quantite(),
-                        existante.getEffectivePrix(), existante.prixUnitaire(), "PDS",
-                        existante.designation(), existante.proformaLineId()));
+                        existante.getEffectivePrix(), existante.prixUnitaire(), existante.getEffectiveRemise(), "PDS",
+                        existante.designation(), existante.proformaLineId(), existante.dateHeureSaisie()));
             }
         }
         return resultat;

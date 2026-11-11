@@ -3,11 +3,11 @@ package sn.oas.facturation.features.ordreReparation.dto.responses;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+/**
+ * @deprecated Remplacé par {@link StepBLResponseDto} pour l'étape Bon de Livraison (BL).
+ */
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class StepPaiementResponseDto extends BaseStepResponseDto {
-    private Integer etape;
-    private Long clientId;
-    private Boolean tvaApplicable;
-    private FactureSummaryDto facture;
+@Deprecated
+public class StepPaiementResponseDto extends StepBLResponseDto {
 }

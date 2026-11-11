@@ -192,6 +192,18 @@ public class OrdreTravailController {
         return ResponseEntity.ok(ordreTravailService.updateStepReparation(id, dto));
     }
 
+    @Operation(summary = "Obtenir l'étape Bon de Livraison (Step 5 / BL)")
+    @GetMapping("/{id}/step-bl")
+    public ResponseEntity<StepBLResponseDto> getStepBL(@PathVariable Long id) {
+        return ResponseEntity.ok(ordreTravailService.getStepBL(id));
+    }
+
+    @Operation(summary = "Obtenir l'étape Bon de Livraison (alias rétrocompatible)")
+    @GetMapping("/{id}/step-paiement")
+    public ResponseEntity<StepBLResponseDto> getStepPaiement(@PathVariable Long id) {
+        return ResponseEntity.ok(ordreTravailService.getStepBL(id));
+    }
+
     // ==================== DOCUMENTS & PHOTOS (STEP 4 & OT) ====================
 
     @Operation(summary = "Lister les documents / photos d'un ordre de travail")

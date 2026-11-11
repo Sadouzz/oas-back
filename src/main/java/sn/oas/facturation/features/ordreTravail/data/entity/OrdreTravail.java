@@ -8,6 +8,7 @@ import org.hibernate.annotations.FilterDef;
 import org.hibernate.annotations.ParamDef;
 import org.hibernate.annotations.UpdateTimestamp;
 import sn.oas.facturation.features.bonDeCommande.data.entity.BonDeCommande;
+import sn.oas.facturation.features.bonDeLivraison.data.entity.BonDeLivraison;
 import sn.oas.facturation.features.bonDeSortie.data.entity.BonDeSortie;
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.garage.data.entity.Garage;
@@ -75,6 +76,11 @@ public class OrdreTravail implements TenantAware {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private BonDeSortie bonDeSortie;
+
+    @OneToOne(mappedBy = "ordreTravail", fetch = FetchType.LAZY)
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    private BonDeLivraison bonDeLivraison;
 
     @OneToMany(mappedBy = "ordreTravail", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
@@ -155,6 +161,17 @@ public class OrdreTravail implements TenantAware {
         if (this.bonDeSortie != null && this.bonDeSortie.equals(bonDeSortie)) {
             this.bonDeSortie.setOrdreTravail(null);
             this.bonDeSortie = null;
+        }
+    }
+
+    public BonDeLivraison getBonDeLivraison() {
+        return this.bonDeLivraison;
+    }
+
+    public void setBonDeLivraison(BonDeLivraison bonDeLivraison) {
+        this.bonDeLivraison = bonDeLivraison;
+        if (bonDeLivraison != null) {
+            bonDeLivraison.setOrdreTravail(this);
         }
     }
 

@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import java.time.LocalDateTime;
+
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record LigneMainDoeuvreRequest(
         Long mainDoeuvreId,
@@ -17,10 +19,15 @@ public record LigneMainDoeuvreRequest(
         @JsonAlias({"remise", "discount"})
         Double tauxRemise,
         String designation,
-        Long proformaLineId
+        Long proformaLineId,
+        LocalDateTime dateHeureSaisie
 ) {
     public LigneMainDoeuvreRequest(Long mainDoeuvreId, Integer nbreHeure, Double tarifHoraire, String designation) {
-        this(mainDoeuvreId, nbreHeure, null, tarifHoraire, null, null, designation, null);
+        this(mainDoeuvreId, nbreHeure, null, tarifHoraire, null, null, designation, null, null);
+    }
+
+    public LigneMainDoeuvreRequest(Long mainDoeuvreId, Integer nbreHeure, Double tarifHoraire, String designation, Long proformaLineId) {
+        this(mainDoeuvreId, nbreHeure, null, tarifHoraire, null, null, designation, proformaLineId, null);
     }
 
     @JsonIgnore

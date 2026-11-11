@@ -201,11 +201,21 @@ public class OrdreReparationController {
         }
     }
 
+    @GetMapping("/{id}/step-bl")
+    @Operation(summary = "Obtenir l'étape Bon de Livraison (BL)")
+    public ResponseEntity<?> getStepBL(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(ordreReparationService.getStepBL(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
     @GetMapping("/{id}/step-paiement")
-    @Operation(summary = "Obtenir l'étape Paiement")
+    @Operation(summary = "Obtenir l'étape Paiement (alias rétrocompatible)")
     public ResponseEntity<?> getStepPaiement(@PathVariable Long id) {
         try {
-            return ResponseEntity.ok(ordreReparationService.getStepPaiement(id));
+            return ResponseEntity.ok(ordreReparationService.getStepBL(id));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
         }

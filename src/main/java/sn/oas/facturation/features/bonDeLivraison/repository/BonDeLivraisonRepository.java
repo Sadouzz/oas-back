@@ -15,6 +15,8 @@ import org.springframework.data.repository.query.Param;
 public interface BonDeLivraisonRepository extends JpaRepository<BonDeLivraison, Long> {
     Optional<BonDeLivraison> findByOrdreReparationId(Long ordreReparationId);
     boolean existsByOrdreReparationId(Long ordreReparationId);
+    Optional<BonDeLivraison> findByOrdreTravailId(Long ordreTravailId);
+    boolean existsByOrdreTravailId(Long ordreTravailId);
 
     @Query(value = "SELECT new sn.oas.facturation.features.bonDeLivraison.dto.BonDeLivraisonListRow(" +
             "b.id, b.numero, b.dateCreation, o.id, o.numero, c.id, " +
