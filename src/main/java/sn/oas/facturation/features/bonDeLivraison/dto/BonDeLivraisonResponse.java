@@ -55,17 +55,27 @@ public class BonDeLivraisonResponse {
         if (inclureLignes) {
             builder.lignesPieces(sn.oas.facturation.shared.OrdreAffichageLignes.plusRecentesEnPremier(
                     bl.getLignesFacturationPieces(), sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece::getId).stream()
-                    .map(l -> new LignePieceBL(l.getId(), l.getPiece() == null ? null : l.getPiece().getId(),
-                            l.getPiece() == null || l.getPiece().getType() == null ? "PDS" : l.getPiece().getType().name(),
-                            l.getPiece() == null ? l.getDesignationPds() : l.getPiece().getDesignation(),
-                            l.getPiece() == null ? null : l.getPiece().getReference(), l.getQuantite(), l.getPrix(),
-                            l.getTauxRemise() == null ? 0d : l.getTauxRemise().doubleValue(),
-                            l.getDatesHeuresSaisieSource() == null ? List.of() : List.copyOf(l.getDatesHeuresSaisieSource())))
+                    .map(l -> {
+                        String designationPiece = l.getPiece() != null && l.getPiece().getDesignation() != null && !l.getPiece().getDesignation().isBlank()
+                                ? l.getPiece().getDesignation()
+                                : (l.getDesignationPds() != null && !l.getDesignationPds().isBlank() ? l.getDesignationPds() : "Pièce");
+                        return new LignePieceBL(l.getId(), l.getPiece() == null ? null : l.getPiece().getId(),
+                                l.getPiece() == null || l.getPiece().getType() == null ? "PDS" : l.getPiece().getType().name(),
+                                designationPiece,
+                                l.getPiece() == null ? null : l.getPiece().getReference(), l.getQuantite(), l.getPrix(),
+                                l.getTauxRemise() == null ? 0d : l.getTauxRemise().doubleValue(),
+                                l.getDatesHeuresSaisieSource() == null ? List.of() : List.copyOf(l.getDatesHeuresSaisieSource()));
+                    })
                     .toList());
             builder.lignesMainDoeuvres(bl.getLignesFacturationMainDoeuvres() == null ? List.of() : bl.getLignesFacturationMainDoeuvres().stream()
-                    .map(l -> new LigneMainDoeuvreBL(l.getId(), l.getMainDoeuvre() == null ? null : l.getMainDoeuvre().getId(),
-                            l.getMainDoeuvre() == null ? "Main-d'œuvre" : l.getMainDoeuvre().getDescription(),
-                            l.getNbreHeure(), l.getTarifHoraire(), l.getTauxRemise() == null ? 0d : l.getTauxRemise().doubleValue()))
+                    .map(l -> {
+                        String descriptionMo = l.getMainDoeuvre() != null && l.getMainDoeuvre().getDescription() != null && !l.getMainDoeuvre().getDescription().isBlank()
+                                ? l.getMainDoeuvre().getDescription()
+                                : (l.getMainDoeuvre() != null && l.getMainDoeuvre().getCategorie() != null ? l.getMainDoeuvre().getCategorie().getNom() : "Main-d'œuvre");
+                        return new LigneMainDoeuvreBL(l.getId(), l.getMainDoeuvre() == null ? null : l.getMainDoeuvre().getId(),
+                                descriptionMo,
+                                l.getNbreHeure(), l.getTarifHoraire(), l.getTauxRemise() == null ? 0d : l.getTauxRemise().doubleValue());
+                    })
                     .toList());
         }
         return builder.build();

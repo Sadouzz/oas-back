@@ -65,5 +65,8 @@ public interface NoteDePrixRepository extends JpaRepository<NoteDePrix, Long> {
             "LOWER(o.numero) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<NoteDePrix> searchNotesDePrix(@Param("keyword") String keyword);
 
+    java.util.Optional<NoteDePrix> findFirstByOrdreReparationId(Long ordreReparationId);
+    java.util.Optional<NoteDePrix> findByBonDeLivraisonId(Long bonDeLivraisonId);
+
     List<NoteDePrix> findTop5ByOrderByDateCreationDesc();
 }

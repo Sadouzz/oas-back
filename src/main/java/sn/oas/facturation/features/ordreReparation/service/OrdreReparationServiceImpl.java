@@ -111,6 +111,7 @@ import sn.oas.facturation.features.proforma.dto.ProformaDetailsResponseDto;
 import sn.oas.facturation.features.ordreReparation.dto.responses.StepPiecesMoResponseDto;
 import sn.oas.facturation.features.ordreReparation.dto.responses.StepOrdreTravailResponseDto;
 import sn.oas.facturation.features.ordreTravail.dto.OrdreTravailResponseDto;
+import sn.oas.facturation.features.ordreReparation.dto.responses.StepFacturationResponseDto;
 import sn.oas.facturation.features.ordreReparation.dto.responses.StepPretALivrerResponseDto;
 import sn.oas.facturation.features.ordreReparation.dto.responses.StepProformaResponseDto;
 import sn.oas.facturation.features.ordreReparation.dto.responses.StepReceptionResponseDto;
@@ -121,6 +122,7 @@ import sn.oas.facturation.features.ordreReparation.dto.steps.StepApprovisionneme
 import sn.oas.facturation.features.ordreReparation.dto.steps.StepAssignationDto;
 import sn.oas.facturation.features.ordreReparation.dto.steps.StepBonSortieDto;
 import sn.oas.facturation.features.ordreReparation.dto.steps.StepDiagnosticDto;
+import sn.oas.facturation.features.ordreReparation.dto.steps.StepFacturationDto;
 import sn.oas.facturation.features.ordreReparation.dto.steps.StepLivraisonDto;
 import sn.oas.facturation.features.ordreReparation.dto.steps.StepPaiementDto;
 import sn.oas.facturation.features.ordreReparation.dto.steps.StepPiecesMoDto;
@@ -128,6 +130,11 @@ import sn.oas.facturation.features.ordreReparation.dto.steps.StepPretALivrerDto;
 import sn.oas.facturation.features.ordreReparation.dto.steps.StepProformaDto;
 import sn.oas.facturation.features.ordreReparation.dto.steps.StepReceptionDto;
 import sn.oas.facturation.features.ordreReparation.dto.steps.StepReparationDto;
+import sn.oas.facturation.features.facture.dto.FactureResponse;
+import sn.oas.facturation.features.facture.data.entity.Facture;
+import sn.oas.facturation.features.noteDePrix.dto.NoteDePrixResponse;
+import sn.oas.facturation.features.noteDePrix.data.entity.NoteDePrix;
+import sn.oas.facturation.features.noteDePrix.repository.NoteDePrixRepository;
 import java.util.stream.Collectors;
 
 @Service
@@ -154,6 +161,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     private final sn.oas.facturation.features.ordreTravail.repository.OrdreTravailRepository ordreTravailRepository;
     private final sn.oas.facturation.features.facture.repository.FactureRepository factureRepository;
     private final sn.oas.facturation.features.bonDeLivraison.repository.BonDeLivraisonRepository bonDeLivraisonRepository;
+    private final NoteDePrixRepository noteDePrixRepository;
     private final CataloguePiecePricingPolicy cataloguePiecePricingPolicy;
 
     @Autowired
@@ -847,7 +855,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             agentNotificationService.notifyRoleInGarage(Role.AGENT_MAGASIN, savedFiche.getGarage(),
                     "Ordre de travail pour " + savedFiche.getNumero(),
                     "La fiche " + savedFiche.getNumero() + " est passée en Ordre de Travail.");
-        } else if (newStatut != ancienStatut && newStatut == StatutOrdreReparation.PRET_A_LIVRER) {
+        } else if (newStatut != ancienStatut && (newStatut == StatutOrdreReparation.FACTURATION || newStatut == StatutOrdreReparation.PRET_A_LIVRER)) {
             Client client = clientForOrder(savedFiche);
             if (client != null && savedFiche.getVehicule() != null) {
                 notificationService.sendInAppNotification(client, "Véhicule prêt à récupérer",
@@ -873,8 +881,8 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     public OrdreReparation restituerVehicule(Long id, String signature, Integer garantieMois) {
         OrdreReparation ordre = ordreReparationRepository.findByIdForRestitution(id)
                 .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Ordre de réparation introuvable"));
-        if (ordre.getStatut() != StatutOrdreReparation.PRET_A_LIVRER) {
-            throw new IllegalArgumentException("Le véhicule doit être prêt à livrer avant sa restitution.");
+        if (ordre.getStatut() != StatutOrdreReparation.FACTURATION && ordre.getStatut() != StatutOrdreReparation.PRET_A_LIVRER) {
+            throw new IllegalArgumentException("Le véhicule doit être prêt à livrer / facturé avant sa restitution.");
         }
         if (!bonDeLivraisonRepository.existsByOrdreReparationId(ordre.getId())) {
             throw new IllegalArgumentException("Créez le bon de livraison à partir des bons de sortie avant de restituer le véhicule.");
@@ -1122,7 +1130,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         
         Optional<OrdreReparation> activeOr = ordreReparationRepository.findFirstByVehiculeIdAndStatutNotIn(
                 ficheAtelier.getVehicule().getId(), 
-                List.of(StatutOrdreReparation.LIVRE, StatutOrdreReparation.PRET_A_LIVRER)
+                List.of(StatutOrdreReparation.LIVRE, StatutOrdreReparation.FACTURATION, StatutOrdreReparation.PRET_A_LIVRER)
         );
         if (activeOr.isPresent()) {
             OrdreReparation existing = activeOr.get();
@@ -1243,7 +1251,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         if (fiche != null && fiche.getVehicule() != null) {
             return ordreReparationRepository.existsByVehiculeIdAndStatutNotIn(
                 fiche.getVehicule().getId(), 
-                List.of(StatutOrdreReparation.LIVRE, StatutOrdreReparation.PRET_A_LIVRER)
+                List.of(StatutOrdreReparation.LIVRE, StatutOrdreReparation.FACTURATION, StatutOrdreReparation.PRET_A_LIVRER)
             );
         }
         return false;
@@ -2143,13 +2151,53 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
 
     @Override
     @Transactional(readOnly = true)
-    public StepPretALivrerResponseDto getStepPretALivrer(Long id) {
+    public StepFacturationResponseDto getStepFacturation(Long id) {
         OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
-        StepPretALivrerResponseDto dto = new StepPretALivrerResponseDto();
+        StepFacturationResponseDto dto = new StepFacturationResponseDto();
         dto.setId(ordre.getId());
         dto.setNumero(ordre.getNumero());
         dto.setStatut(ordre.getStatut() != null ? ordre.getStatut().name() : null);
         if (ordre.getVehicule() != null) dto.setVehiculeId(ordre.getVehicule().getId());
+
+        Facture facture = factureRepository.findFirstByOrdreReparationId(ordre.getId()).orElse(null);
+        if (facture == null) {
+            BonDeLivraison bl = bonDeLivraisonRepository.findByOrdreReparationId(ordre.getId()).orElse(null);
+            if (bl != null && bl.getFacture() != null) {
+                facture = bl.getFacture();
+            }
+        }
+        if (facture != null) {
+            dto.setFacture(FactureResponse.from(facture));
+            dto.setTypeDocument("FACTURE");
+            dto.setHasDocument(true);
+            return dto;
+        }
+
+        NoteDePrix noteDePrix = noteDePrixRepository.findFirstByOrdreReparationId(ordre.getId()).orElse(null);
+        if (noteDePrix == null) {
+            BonDeLivraison bl = bonDeLivraisonRepository.findByOrdreReparationId(ordre.getId()).orElse(null);
+            if (bl != null && bl.getNoteDePrix() != null) {
+                noteDePrix = bl.getNoteDePrix();
+            }
+        }
+        if (noteDePrix != null) {
+            dto.setNoteDePrix(NoteDePrixResponse.from(noteDePrix));
+            dto.setTypeDocument("NOTE_DE_PRIX");
+            dto.setHasDocument(true);
+            return dto;
+        }
+
+        dto.setHasDocument(false);
+        dto.setTypeDocument(null);
+        return dto;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StepPretALivrerResponseDto getStepPretALivrer(Long id) {
+        StepFacturationResponseDto facturation = getStepFacturation(id);
+        StepPretALivrerResponseDto dto = new StepPretALivrerResponseDto();
+        org.springframework.beans.BeanUtils.copyProperties(facturation, dto);
         return dto;
     }
 
@@ -2321,10 +2369,17 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
 
     @Override
     @Transactional
-    public StepPretALivrerDto updateStepPretALivrer(Long id, StepPretALivrerDto dto) {
+    public StepFacturationDto updateStepFacturation(Long id, StepFacturationDto dto) {
         OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
         updateBaseStepFields(ordre, dto);
         ordreReparationRepository.save(ordre);
+        return dto;
+    }
+
+    @Override
+    @Transactional
+    public StepPretALivrerDto updateStepPretALivrer(Long id, StepPretALivrerDto dto) {
+        updateStepFacturation(id, dto);
         return dto;
     }
 

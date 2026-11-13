@@ -59,6 +59,7 @@ import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -257,9 +258,10 @@ public class FactureServiceImpl implements FactureService {
             }
         }
 
-        // Update OrdreReparation status to BL
-        if (ordreReparation != null && (ordreReparation.getStatut() == StatutOrdreReparation.ORDRE_DE_TRAVAIL || ordreReparation.getStatut() == StatutOrdreReparation.PROFORMA)) {
-            ordreReparation.setStatut(StatutOrdreReparation.BL);
+        // Update OrdreReparation status to FACTURATION
+        if (ordreReparation != null && (ordreReparation.getStatut() == null || ordreReparation.getStatut().getEtape() < StatutOrdreReparation.FACTURATION.getEtape())) {
+            ordreReparation.setStatut(StatutOrdreReparation.FACTURATION);
+            ordreReparation.setUpdatedAt(LocalDateTime.now());
             ordreReparationRepository.save(ordreReparation);
         }
         agentNotificationService.notifyRoleInGarage(Role.AGENT, facture.getGarage(),

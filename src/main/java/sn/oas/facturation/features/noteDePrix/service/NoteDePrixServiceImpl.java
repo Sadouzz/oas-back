@@ -35,6 +35,7 @@ import sn.oas.facturation.shared.documentNumber.DocumentType;
 import sn.oas.facturation.features.piecedetache.repository.PieceMouvementRepository;
 import sn.oas.facturation.features.user.data.entity.Agent;
 import sn.oas.facturation.features.user.data.entity.User;
+import sn.oas.facturation.features.facture.service.FacturePaymentMode;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -130,6 +131,8 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
                 LigneFacturationPiece ligne = LigneFacturationPiece.builder()
                         .facturation(note)
                         .piece(piece)
+                        .isCustom(piece == null)
+                        .designationPds(piece != null ? piece.getDesignation() : lp.getDesignationPds())
                         .quantite(lp.getQuantite() != null ? lp.getQuantite() : 1)
                         .prix(lp.getPrix() != null ? lp.getPrix() : 0)
                         .build();
@@ -142,6 +145,8 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
                 LigneFacturationPiece ligne = LigneFacturationPiece.builder()
                         .facturation(note)
                         .piece(lf.getPiece())
+                        .isCustom(lf.getPiece() == null)
+                        .designationPds(lf.getPiece() != null ? lf.getPiece().getDesignation() : lf.getDesignationPds())
                         .quantite(lf.getQuantite())
                         .prix(lf.getPrix())
                         .build();
@@ -202,20 +207,27 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
 
         note.setClient(client);
         note.setVehicule(vehicule);
-        note.setModePaiement(request.getModePaiement() != null ? request.getModePaiement() : "ESPECE");
+        String modePaiement = FacturePaymentMode.normalize(request.getModePaiement());
+        note.setModePaiement(modePaiement);
         note.setNumeroBonDeCommande(request.getNumeroBonDeCommande());
         note.setMontantAutre(request.getMontantAutre() != null ? request.getMontantAutre() : BigDecimal.ZERO);
         BigDecimal totalFinal = montantTotalHT.add(note.getMontantAutre());
-        boolean appliquerTVA = Boolean.TRUE.equals(request.getAppliquerTVA());
+        boolean isHt = FacturePaymentMode.isHt(modePaiement);
+        boolean appliquerTVA = !isHt && Boolean.TRUE.equals(request.getAppliquerTVA());
         BigDecimal montantTVA = appliquerTVA
                 ? fiscalConfigurationService.calculateRate(totalFinal, fiscalConfigurationService.getCurrent().getTvaRate())
+                : BigDecimal.ZERO;
+        BigDecimal timbre = isHt
+                ? fiscalConfigurationService.calculateRate(totalFinal, fiscalConfigurationService.getCurrent().getTimbreFiscalRate())
                 : BigDecimal.ZERO;
         note.setTvaApplicable(appliquerTVA);
         note.setMontantTVA(montantTVA);
         note.setMontantHT(totalFinal);
-        note.setMontantTotal(totalFinal.add(montantTVA));
+        BigDecimal totalDocument = totalFinal.add(montantTVA).add(timbre);
+        note.setMontantTotal(totalDocument);
         note.setMontantPaye(BigDecimal.ZERO);
-        note.setResteAPayer(totalFinal.add(montantTVA));
+        note.setMontantTimbrePaye(timbre);
+        note.setResteAPayer(totalDocument);
         note.setStatutPaiement(StatutPaiement.NON_PAYE);
 
         NoteDePrix saved = noteDePrixRepository.save(note);
@@ -298,6 +310,8 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
                 LigneFacturationPiece ligne = LigneFacturationPiece.builder()
                         .facturation(note)
                         .piece(piece)
+                        .isCustom(piece == null)
+                        .designationPds(piece != null ? piece.getDesignation() : lp.getDesignationPds())
                         .quantite(lp.getQuantite() != null ? lp.getQuantite() : 1)
                         .prix(lp.getPrix() != null ? lp.getPrix() : 0)
                         .build();
@@ -326,10 +340,13 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
             note.setMontantAutre(request.getMontantAutre());
         }
 
-        // Recalculate totals if lines or montantAutre were updated
+        // Recalculate totals if lines, montantAutre, TVA or modePaiement were updated
+        if (request.getModePaiement() != null) {
+            note.setModePaiement(FacturePaymentMode.normalize(request.getModePaiement()));
+        }
         if (request.getAppliquerTVA() != null) note.setTvaApplicable(request.getAppliquerTVA());
         if (request.getLignesPieces() != null || request.getLignesMainDoeuvres() != null || request.getMontantAutre() != null
-                || request.getAppliquerTVA() != null) {
+                || request.getAppliquerTVA() != null || request.getModePaiement() != null) {
             BigDecimal piecesSum = note.getLignesFacturationPieces().stream()
                     .map(l -> BigDecimal.valueOf((long) (l.getPrix() != null ? l.getPrix() : 0) * (l.getQuantite() != null ? l.getQuantite() : 0)))
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -337,13 +354,21 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
                     .map(l -> BigDecimal.valueOf((long) (l.getTarifHoraire() != null ? l.getTarifHoraire() : 0) * (l.getNbreHeure() != null ? l.getNbreHeure() : 0)))
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
             BigDecimal totalHT = piecesSum.add(moSum).add(note.getMontantAutre() != null ? note.getMontantAutre() : BigDecimal.ZERO);
-            BigDecimal montantTVA = Boolean.TRUE.equals(note.getTvaApplicable())
+            boolean isHt = FacturePaymentMode.isHt(note.getModePaiement());
+            boolean appliquerTVA = !isHt && Boolean.TRUE.equals(note.getTvaApplicable());
+            BigDecimal montantTVA = appliquerTVA
                     ? fiscalConfigurationService.calculateRate(totalHT, fiscalConfigurationService.getCurrent().getTvaRate())
                     : BigDecimal.ZERO;
-            BigDecimal totalDocument = totalHT.add(montantTVA);
+            BigDecimal timbre = isHt
+                    ? fiscalConfigurationService.calculateRate(totalHT, fiscalConfigurationService.getCurrent().getTimbreFiscalRate())
+                    : BigDecimal.ZERO;
+            BigDecimal totalDocument = totalHT.add(montantTVA).add(timbre);
             note.setMontantHT(totalHT);
             note.setMontantTVA(montantTVA);
             note.setMontantTotal(totalDocument);
+            if (isHt) {
+                note.setMontantTimbrePaye(timbre);
+            }
             BigDecimal paye = note.getMontantPaye() != null ? note.getMontantPaye() : BigDecimal.ZERO;
             BigDecimal reste = totalDocument.subtract(paye).max(BigDecimal.ZERO);
             note.setResteAPayer(reste);
@@ -371,7 +396,9 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
             String modePaiementEffectif = request.getModePaiement() != null
                     ? request.getModePaiement().trim().toUpperCase(java.util.Locale.ROOT)
                     : note.getModePaiement();
-            if ("ESPECE".equals(modePaiementEffectif) && partNouvellementPayee.signum() > 0) {
+            boolean isEspeces = "ESPECE".equals(modePaiementEffectif) || "ESPECE_TTC".equals(modePaiementEffectif);
+            boolean timbreDejaInclus = FacturePaymentMode.isHt(note.getModePaiement());
+            if (isEspeces && !timbreDejaInclus && partNouvellementPayee.signum() > 0) {
                 BigDecimal timbre = fiscalConfigurationService.calculateRate(partNouvellementPayee,
                         fiscalConfigurationService.getCurrent().getTimbreFiscalRate());
                 BigDecimal timbreActuel = note.getMontantTimbrePaye() != null ? note.getMontantTimbrePaye() : BigDecimal.ZERO;

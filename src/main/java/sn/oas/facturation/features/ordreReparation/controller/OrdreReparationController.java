@@ -221,11 +221,21 @@ public class OrdreReparationController {
         }
     }
 
+    @GetMapping("/{id}/step-facturation")
+    @Operation(summary = "Obtenir l'étape Facturation (Step 7)")
+    public ResponseEntity<?> getStepFacturation(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(ordreReparationService.getStepFacturation(id));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
     @GetMapping("/{id}/step-pret-a-livrer")
-    @Operation(summary = "Obtenir l'étape Prêt à Livrer")
+    @Operation(summary = "Obtenir l'étape Prêt à Livrer (alias rétrocompatible)")
     public ResponseEntity<?> getStepPretALivrer(@PathVariable Long id) {
         try {
-            return ResponseEntity.ok(ordreReparationService.getStepPretALivrer(id));
+            return ResponseEntity.ok(ordreReparationService.getStepFacturation(id));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
         }
@@ -331,11 +341,21 @@ public class OrdreReparationController {
         }
     }
 
+    @PutMapping("/{id}/step-facturation")
+    @Operation(summary = "Mettre à jour l'étape Facturation (Step 7)")
+    public ResponseEntity<?> updateStepFacturation(@PathVariable Long id, @RequestBody sn.oas.facturation.features.ordreReparation.dto.steps.StepFacturationDto request) {
+        try {
+            return ResponseEntity.ok(ordreReparationService.updateStepFacturation(id, request));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
+        }
+    }
+
     @PutMapping("/{id}/step-pret-a-livrer")
-    @Operation(summary = "Mettre à jour l'étape Prêt à Livrer")
+    @Operation(summary = "Mettre à jour l'étape Prêt à Livrer (alias rétrocompatible)")
     public ResponseEntity<?> updateStepPretALivrer(@PathVariable Long id, @RequestBody sn.oas.facturation.features.ordreReparation.dto.steps.StepPretALivrerDto request) {
         try {
-            return ResponseEntity.ok(ordreReparationService.updateStepPretALivrer(id, request));
+            return ResponseEntity.ok(ordreReparationService.updateStepFacturation(id, request));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body("{\"message\": \"" + e.getMessage() + "\"}");
         }

@@ -112,8 +112,8 @@ public class RecuServiceImpl implements RecuService {
             // Advance Fiche Atelier to TERMINE if it was waiting for payment
             if (facture.getOrdreReparation() != null) {
                 OrdreReparation fiche = facture.getOrdreReparation();
-                if (fiche.getStatut() == StatutOrdreReparation.BL || fiche.getStatut() == StatutOrdreReparation.PAIEMENT) {
-                    fiche.setStatut(StatutOrdreReparation.PRET_A_LIVRER);
+                if (fiche.getStatut() == StatutOrdreReparation.BL || fiche.getStatut() == StatutOrdreReparation.PAIEMENT || fiche.getStatut() == StatutOrdreReparation.FACTURATION || fiche.getStatut() == StatutOrdreReparation.PRET_A_LIVRER) {
+                    fiche.setStatut(StatutOrdreReparation.FACTURATION);
                     ordreReparationRepository.save(fiche);
                     vehicleReadyForDelivery = true;
                     if (facture.getClient() != null) {

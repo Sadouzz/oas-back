@@ -85,7 +85,7 @@ public class RendezVousServiceImpl implements RendezVousService {
                 throw new BadRequestException("Ce véhicule a déjà un rendez-vous confirmé à venir");
             }
             if (ordreReparationService.existsByVehiculeIdAndStatutNotIn(vehicule.getId(),
-                    List.of(StatutOrdreReparation.PRET_A_LIVRER, StatutOrdreReparation.LIVRE))) {
+                    List.of(StatutOrdreReparation.FACTURATION, StatutOrdreReparation.PRET_A_LIVRER, StatutOrdreReparation.LIVRE))) {
                 throw new BadRequestException("Ce véhicule est actuellement en cours d'intervention/réparation");
             }
         }
@@ -164,7 +164,7 @@ public class RendezVousServiceImpl implements RendezVousService {
         }
 
         if (ordreReparationService.existsByVehiculeIdAndStatutNotIn(vehicule.getId(), 
-                List.of(StatutOrdreReparation.PRET_A_LIVRER, StatutOrdreReparation.LIVRE))) {
+                List.of(StatutOrdreReparation.FACTURATION, StatutOrdreReparation.PRET_A_LIVRER, StatutOrdreReparation.LIVRE))) {
             throw new BadRequestException("Ce véhicule est actuellement en cours d'intervention/réparation");
         }
 

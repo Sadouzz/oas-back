@@ -768,6 +768,7 @@ public class BonDeSortieServiceImpl implements BonDeSortieService {
                 ? ordreTravail.getStatut() == StatutOrdreTravail.TERMINE
                 : ordre != null && (ordre.getStatut() == StatutOrdreReparation.BL
                         || ordre.getStatut() == StatutOrdreReparation.PAIEMENT
+                        || ordre.getStatut() == StatutOrdreReparation.FACTURATION
                         || ordre.getStatut() == StatutOrdreReparation.PRET_A_LIVRER
                         || ordre.getStatut() == StatutOrdreReparation.LIVRE);
         if (!reparationTerminee) {

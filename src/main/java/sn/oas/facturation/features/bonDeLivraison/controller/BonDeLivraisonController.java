@@ -62,5 +62,8 @@ public class BonDeLivraisonController {
         return FactureResponse.from(service.convertirEnFacture(id, request));
     }
     @PostMapping("/{id}/convertir-en-note-de-prix")
-    public NoteDePrixResponse convertirEnNote(@PathVariable Long id) { return NoteDePrixResponse.from(service.convertirEnNoteDePrix(id)); }
+    public NoteDePrixResponse convertirEnNote(@PathVariable Long id,
+            @RequestBody(required = false) BonDeLivraisonFactureRequest request) {
+        return NoteDePrixResponse.from(service.convertirEnNoteDePrix(id, request));
+    }
 }

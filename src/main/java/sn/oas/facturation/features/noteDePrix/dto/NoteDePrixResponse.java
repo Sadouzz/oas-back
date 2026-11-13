@@ -103,16 +103,43 @@ public class NoteDePrixResponse {
                         .map(lp -> {
                             int q = lp.getQuantite() != null ? lp.getQuantite() : 0;
                             int p = lp.getPrix() != null ? lp.getPrix() : 0;
+                            double remise = lp.getTauxRemise() == null ? 0d : lp.getTauxRemise().doubleValue();
+                            int total = (int) Math.round(q * p * (1 - remise / 100));
+
+                            String designation = null;
+                            if (lp.getPiece() != null && lp.getPiece().getDesignation() != null && !lp.getPiece().getDesignation().isBlank()) {
+                                designation = lp.getPiece().getDesignation();
+                            } else if (lp.getDesignationPds() != null && !lp.getDesignationPds().isBlank()) {
+                                designation = lp.getDesignationPds();
+                            } else {
+                                designation = "Pièce";
+                            }
+
+                            String type;
+                            if (lp.getPiece() != null && lp.getPiece().getType() != null) {
+                                type = lp.getPiece().getType().name();
+                            } else {
+                                type = "PDS";
+                            }
+
+                            String reference = lp.getPiece() != null ? lp.getPiece().getReference() : null;
+                            String depotNom = lp.getPiece() != null && lp.getPiece().getDepot() != null ? lp.getPiece().getDepot().getNom() : null;
+                            boolean isCustom = lp.getIsCustom() != null ? lp.getIsCustom() : (lp.getPiece() == null);
+
                             return LigneFacturationPieceResponse.builder()
                                     .id(lp.getId())
-                                        .dateHeureSaisie(lp.getDateHeureSaisie())
+                                    .dateHeureSaisie(lp.getDateHeureSaisie())
                                     .pieceId(lp.getPiece() != null ? lp.getPiece().getId() : null)
-                                    .designationPiece(
-                                            lp.getPiece() != null ? lp.getPiece().getDesignation() : "Pièce")
+                                    .type(type)
+                                    .designationPiece(designation)
+                                    .isCustom(isCustom)
+                                    .designationPds(lp.getDesignationPds() != null ? lp.getDesignationPds() : designation)
+                                    .referencePiece(reference)
+                                    .depotNom(depotNom)
                                     .quantite(q)
                                     .prix(p)
-                                    .montantTotal((int) Math.round(q * p * (1 - (lp.getTauxRemise() == null ? 0 : lp.getTauxRemise().doubleValue()) / 100)))
-                                    .tauxRemise(lp.getTauxRemise() == null ? 0d : lp.getTauxRemise().doubleValue())
+                                    .montantTotal(total)
+                                    .tauxRemise(remise)
                                     .datesHeuresSaisieSource(lp.getDatesHeuresSaisieSource() == null ? List.of() : List.copyOf(lp.getDatesHeuresSaisieSource()))
                                     .build();
                         })
@@ -123,17 +150,27 @@ public class NoteDePrixResponse {
                         .map(lm -> {
                             int h = lm.getNbreHeure() != null ? lm.getNbreHeure() : 0;
                             int t = lm.getTarifHoraire() != null ? lm.getTarifHoraire() : 0;
+                            double remiseMo = lm.getTauxRemise() != null ? lm.getTauxRemise().doubleValue() : 0.0;
+                            int totalMo = (int) Math.round(h * t * (1 - remiseMo / 100));
+
+                            String descriptionMo = "Main d'œuvre";
+                            if (lm.getMainDoeuvre() != null) {
+                                if (lm.getMainDoeuvre().getDescription() != null && !lm.getMainDoeuvre().getDescription().isBlank()) {
+                                    descriptionMo = lm.getMainDoeuvre().getDescription();
+                                } else if (lm.getMainDoeuvre().getCategorie() != null && lm.getMainDoeuvre().getCategorie().getNom() != null) {
+                                    descriptionMo = lm.getMainDoeuvre().getCategorie().getNom();
+                                }
+                            }
+
                             return LigneFacturationMainDoeuvreResponse.builder()
                                     .id(lm.getId())
-                                        .dateHeureSaisie(lm.getDateHeureSaisie())
+                                    .dateHeureSaisie(lm.getDateHeureSaisie())
                                     .mainDoeuvreId(lm.getMainDoeuvre() != null ? lm.getMainDoeuvre().getId() : null)
-                                    .descriptionMainDoeuvre(
-                                            lm.getMainDoeuvre() != null && lm.getMainDoeuvre().getCategorie() != null
-                                                    ? lm.getMainDoeuvre().getCategorie().getNom()
-                                                    : "Main d'œuvre")
+                                    .descriptionMainDoeuvre(descriptionMo)
                                     .nbreHeure(h)
                                     .tarifHoraire(t)
-                                    .montantTotal(h * t)
+                                    .montantTotal(totalMo)
+                                    .tauxRemise(remiseMo)
                                     .build();
                         })
                         .toList();

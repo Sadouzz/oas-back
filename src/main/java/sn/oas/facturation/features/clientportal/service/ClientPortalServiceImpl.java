@@ -45,6 +45,7 @@ public class ClientPortalServiceImpl implements ClientPortalService {
     private static final List<StatutOrdreReparation> TERMINATED_STATUSES = List.of(
             StatutOrdreReparation.BL,
             StatutOrdreReparation.PAIEMENT,
+            StatutOrdreReparation.FACTURATION,
             StatutOrdreReparation.PRET_A_LIVRER,
             StatutOrdreReparation.LIVRE
     );
@@ -62,7 +63,7 @@ public class ClientPortalServiceImpl implements ClientPortalService {
                     new StageInfo(statut.name(), 2, "Préparation", "pending", true);
             case ORDRE_DE_TRAVAIL, BON_DE_COMMANDE, BON_DE_SORTIE, ASSIGN_TECHNICIEN, REPARATION ->
                     new StageInfo("ORDRE_DE_TRAVAIL", 3, "Travaux en cours", "info", true);
-            case BL, PAIEMENT, PRET_A_LIVRER, LIVRE ->
+            case BL, PAIEMENT, FACTURATION, PRET_A_LIVRER, LIVRE ->
                     new StageInfo(statut.name(), 4, "Terminée", "success", false);
         };
     }
