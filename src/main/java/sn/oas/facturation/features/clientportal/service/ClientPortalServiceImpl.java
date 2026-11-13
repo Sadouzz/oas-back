@@ -19,6 +19,7 @@ import sn.oas.facturation.features.ordreReparation.repository.OrdreReparationRep
 import sn.oas.facturation.features.proforma.repository.ProformaRepository;
 import sn.oas.facturation.features.rendezvous.data.enums.RendezVousStatus;
 import sn.oas.facturation.features.rendezvous.repository.RendezVousRepository;
+import sn.oas.facturation.features.rendezvous.service.RendezVousService;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.features.vehicule.repository.VehiculeRepository;
 
@@ -41,6 +42,7 @@ public class ClientPortalServiceImpl implements ClientPortalService {
     private final RendezVousRepository rendezVousRepository;
     private final FactureRepository factureRepository;
     private final GarageRepository garageRepository;
+    private final RendezVousService rendezVousService;
 
     private static final List<StatutOrdreReparation> TERMINATED_STATUSES = List.of(
             StatutOrdreReparation.BL,
@@ -347,6 +349,7 @@ public class ClientPortalServiceImpl implements ClientPortalService {
                 ))
                 .toList();
 
-        return new ClientBookingContextDTO(vehiculeDTOs, garageDTOs);
+        return new ClientBookingContextDTO(vehiculeDTOs, garageDTOs,
+                rendezVousService.getClientBookingStatus(client.getId()));
     }
 }

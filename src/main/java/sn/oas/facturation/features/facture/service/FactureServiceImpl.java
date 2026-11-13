@@ -523,14 +523,19 @@ public class FactureServiceImpl implements FactureService {
 
         if (clientIdFilter == null && clientTexte != null) {
             java.util.regex.Matcher idClient = java.util.regex.Pattern
-                    .compile("(?i)^client\\s*#?\\s*(\\d+)$|^#?(\\d+)$")
-                    .matcher(clientTexte);
+                    .compile("(?i)^client\\s*#\\s*(\\d+)$|^#?(\\d+)$")
+                    .matcher(filtreClient);
             if (idClient.matches()) {
                 String digits = idClient.group(1) != null ? idClient.group(1) : idClient.group(2);
-                try {
-                    clientIdFilter = Long.valueOf(digits);
-                    clientTexte = null;
-                } catch (NumberFormatException ignored) {}
+                // Un nombre long sans préfixe "Client #" est traité comme un téléphone.
+                if (idClient.group(1) != null || digits.length() < 7) {
+                    try {
+                        clientId = Long.valueOf(digits);
+                        filtreClient = null;
+                    } catch (NumberFormatException ignored) {
+                        // Le texte reste un filtre de recherche si l'identifiant dépasse la plage d'un Long.
+                    }
+                }
             }
         }
 
@@ -546,6 +551,7 @@ public class FactureServiceImpl implements FactureService {
             var clientOrdre = ordre.join("client", jakarta.persistence.criteria.JoinType.LEFT);
             var vehiculeOrdre = ordre.join("vehicule", jakarta.persistence.criteria.JoinType.LEFT);
             var clientVehiculeOrdre = vehiculeOrdre.join("client", jakarta.persistence.criteria.JoinType.LEFT);
+            var clientVehiculeDirect = vehiculeDirect.join("client", jakarta.persistence.criteria.JoinType.LEFT);
 
             jakarta.persistence.criteria.Expression<String> immatriculationExpr = coalesceText(cb,
                     vehiculeDirect.<String>get("immatriculation"), vehiculeOrdre.<String>get("immatriculation"));
@@ -566,7 +572,17 @@ public class FactureServiceImpl implements FactureService {
             jakarta.persistence.criteria.Expression<String> nom = coalesceText(cb,
                     clientDirect.<String>get("lastName"), clientOrdre.<String>get("lastName"),
                     clientVehiculeOrdre.<String>get("lastName"));
-            jakarta.persistence.criteria.Expression<String> nomComplet = cb.concat(cb.concat(prenom, " "), nom);
+            jakarta.persistence.criteria.Expression<String> telephone = coalesceText(cb,
+                    clientDirect.<String>get("phone"), clientOrdre.<String>get("phone"),
+                    clientVehiculeOrdre.<String>get("phone"), clientVehiculeDirect.<String>get("phone"));
+            jakarta.persistence.criteria.Expression<String> numeroClient = coalesceText(cb,
+                    clientDirect.<String>get("codeClient"), clientOrdre.<String>get("codeClient"),
+                    clientVehiculeOrdre.<String>get("codeClient"), clientVehiculeDirect.<String>get("codeClient"));
+            jakarta.persistence.criteria.Expression<String> matriculeClient = coalesceText(cb,
+                    clientDirect.<String>get("matricule"), clientOrdre.<String>get("matricule"),
+                    clientVehiculeOrdre.<String>get("matricule"), clientVehiculeDirect.<String>get("matricule"));
+            jakarta.persistence.criteria.Expression<String> telephoneChiffres = cb.function("regexp_replace", String.class,
+                    telephone, cb.literal("[^0-9]"), cb.literal(""), cb.literal("g"));
 
             if (motCle != null) {
                 String pattern = "%" + motCle + "%";
@@ -582,7 +598,14 @@ public class FactureServiceImpl implements FactureService {
                         cb.like(cb.lower(matriculeClient), pattern),
                         cb.like(cb.lower(prenom), pattern),
                         cb.like(cb.lower(nom), pattern),
-                        cb.like(cb.lower(nomComplet), pattern)));
+                        cb.like(cb.lower(numeroClient), pattern),
+                        cb.like(cb.lower(matriculeClient), pattern),
+                        cb.like(cb.lower(cb.concat(cb.concat(prenom, " "), nom)), pattern)));
+                String chiffres = motCle.replaceAll("[^0-9]", "");
+                if (chiffres.length() >= 6) {
+                    predicates.set(predicates.size() - 1, cb.or(predicates.get(predicates.size() - 1),
+                            cb.like(telephoneChiffres, "%" + chiffres + "%")));
+                }
             }
 
             if (numFiltre != null) {
@@ -627,8 +650,26 @@ public class FactureServiceImpl implements FactureService {
 
             if (debut != null) predicates.add(cb.greaterThanOrEqualTo(root.get("dateCreation"), debut));
             if (finExclusive != null) predicates.add(cb.lessThan(root.get("dateCreation"), finExclusive));
+            if (clientIdFilter != null) {
+                predicates.add(cb.or(cb.equal(clientDirect.<Long>get("id"), clientIdFilter),
+                        cb.equal(clientOrdre.<Long>get("id"), clientIdFilter),
+                        cb.equal(clientVehiculeOrdre.<Long>get("id"), clientIdFilter),
+                        cb.equal(clientVehiculeDirect.<Long>get("id"), clientIdFilter)));
+            }
             if (ordreReparationId != null) predicates.add(cb.equal(ordre.<Long>get("id"), ordreReparationId));
-
+            if (nomClient != null) {
+                String pattern = "%" + nomClient + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(prenom), pattern),
+                        cb.like(cb.lower(nom), pattern),
+                        cb.like(cb.lower(cb.concat(cb.concat(prenom, " "), nom)), pattern),
+                        cb.like(cb.lower(numeroClient), pattern),
+                        cb.like(cb.lower(matriculeClient), pattern)));
+                String chiffres = nomClient.replaceAll("[^0-9]", "");
+                if (chiffres.length() >= 6) {
+                    predicates.add(cb.like(telephoneChiffres, "%" + chiffres + "%"));
+                }
+            }
             return cb.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
         };
         return factureRepository.findAll(specification, pageable);
@@ -652,14 +693,22 @@ public class FactureServiceImpl implements FactureService {
     @Override
     @Transactional(readOnly = true)
     public List<Facture> search(String keyword) {
-        return factureRepository.searchFactures(keyword);
+        String searchText = keyword == null ? "" : keyword.trim();
+        return factureRepository.searchFactures(searchText, phoneDigitsForSearch(searchText));
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<Facture> search(String keyword, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size);
-        return factureRepository.searchFactures(keyword, pageable);
+        String searchText = keyword == null ? "" : keyword.trim();
+        Pageable pageable = PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 100),
+                Sort.by(Sort.Direction.DESC, "dateCreation"));
+        return factureRepository.searchFactures(searchText, phoneDigitsForSearch(searchText), pageable);
+    }
+
+    private static String phoneDigitsForSearch(String value) {
+        String digits = value.replaceAll("[^0-9]", "");
+        return digits.length() >= 6 ? digits : "";
     }
 
     @Override
@@ -671,10 +720,8 @@ public class FactureServiceImpl implements FactureService {
     @Override
     @Transactional
     public void delete(Long id) {
-        if (!factureRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Facture non trouvée avec l'id : " + id);
-        }
-        factureRepository.deleteById(id);
+        if (!factureRepository.existsById(id)) throw new ResourceNotFoundException("Facture non trouvée avec l'id : " + id);
+        throw new BadRequestException("Une facture émise ne peut pas être supprimée. Émettez un avoir pour la corriger ou l'annuler.");
     }
 
     @Override
@@ -696,12 +743,16 @@ public class FactureServiceImpl implements FactureService {
         String layoutKey = normalizeInvoiceLayout(requestedLayoutKey != null ? requestedLayoutKey
                 : f.getPdfTemplate() != null ? f.getPdfTemplate().getLayoutKey() : f.getPdfLayoutKey());
 
-        var vehicle = f.getVehicule();
+        var ordre = f.getOrdreReparation();
+        var vehicle = f.getVehicule() != null ? f.getVehicule() : ordre != null ? ordre.getVehicule() : null;
+        var client = f.getClient() != null ? f.getClient()
+                : ordre != null && ordre.getClient() != null ? ordre.getClient()
+                : vehicle != null ? vehicle.getClient() : null;
         BigDecimal montantRemiseGenerale = calculerRemiseGenerale(f);
         var tokens = java.util.Map.<String, String>ofEntries(
                 java.util.Map.entry("numero", templateValue(f.getNumero())), java.util.Map.entry("date", templateValue(f.getDateCreation())),
                 java.util.Map.entry("agentNom", f.getAgent() == null ? "" : templateValue(f.getAgent().getFirstName() + " " + f.getAgent().getLastName())),
-                java.util.Map.entry("clientNom", f.getClient() == null ? "" : templateValue(f.getClient().getFirstName() + " " + f.getClient().getLastName())),
+                java.util.Map.entry("clientNom", client == null ? "" : templateValue(client.getFirstName() + " " + client.getLastName())),
                 java.util.Map.entry("immatriculation", vehicle == null ? "" : templateValue(vehicle.getImmatriculation())),
                 java.util.Map.entry("marque", vehicle == null ? "" : templateValue(vehicle.getMarque())), java.util.Map.entry("modele", vehicle == null ? "" : templateValue(vehicle.getModele())),
                 java.util.Map.entry("annee", vehicle == null ? "" : templateValue(vehicle.getAnnee())), java.util.Map.entry("chassis", vehicle == null ? "" : templateValue(vehicle.getNumeroChassis())),
@@ -766,11 +817,11 @@ public class FactureServiceImpl implements FactureService {
             if (f.getAgent() != null) {
                 document.add(new Paragraph("Agent : " + f.getAgent().getFirstName() + " " + f.getAgent().getLastName(), fontTexte));
             }
-            if (f.getClient() != null) {
-                document.add(new Paragraph("Client : " + f.getClient().getFirstName() + " " + f.getClient().getLastName(), fontTexte));
+            if (client != null) {
+                document.add(new Paragraph("Client : " + client.getFirstName() + " " + client.getLastName(), fontTexte));
             }
-            if (f.getVehicule() != null) {
-                Vehicule v = f.getVehicule();
+            if (vehicle != null) {
+                Vehicule v = vehicle;
                 document.add(new Paragraph("Véhicule : " + v.getMarque() + " " + v.getModele() + " (Immat: " + v.getImmatriculation() + ", Année: " + v.getAnnee() + ")", fontTexte));
             }
             document.add(new Paragraph("Kilométrage : " + f.getKilometrage(), fontTexte));
@@ -955,17 +1006,14 @@ public class FactureServiceImpl implements FactureService {
     @Override
     @Transactional(readOnly = true)
     public List<Facture> getClientFactures(Client client) {
-        return factureRepository.findByClientIdOrderByDateCreationDesc(client.getId());
+        return factureRepository.findFacturesVisiblesParClient(client.getId());
     }
 
     @Override
     @Transactional(readOnly = true)
     public Facture getClientFactureById(Client client, Long id) {
-        Facture f = factureRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Facture non trouvée avec l'id : " + id));
-        if (f.getClient() == null || !f.getClient().getId().equals(client.getId())) {
-            throw new sn.oas.facturation.shared.exception.ForbiddenException("Accès non autorisé à cette facture");
-        }
+        Facture f = factureRepository.findFactureVisibleParClient(client.getId(), id)
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ForbiddenException("Accès non autorisé à cette facture"));
         return f;
     }
 }

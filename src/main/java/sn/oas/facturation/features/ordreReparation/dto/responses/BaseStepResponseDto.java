@@ -8,4 +8,5 @@ public class BaseStepResponseDto {
     private String numero;
     private String statut;
     private Long vehiculeId;
+    private Boolean hasOrdreTravail;
 }

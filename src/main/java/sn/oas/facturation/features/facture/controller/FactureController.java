@@ -18,7 +18,6 @@ import sn.oas.facturation.features.facture.dto.FactureCreateRequest;
 import sn.oas.facturation.features.facture.dto.FactureListResponse;
 import sn.oas.facturation.features.facture.dto.FactureResponse;
 import sn.oas.facturation.features.facture.service.FactureService;
-import sn.oas.facturation.shared.exception.ForbiddenException;
 
 import java.util.List;
 
@@ -105,10 +104,7 @@ public class FactureController {
     @Operation(summary = "Récupérer une facture du client connecté")
     public ResponseEntity<FactureResponse> getMyFacture(@PathVariable Long id) {
         Client client = clientService.getClientConnecte();
-        var facture = factureService.getById(id);
-        if (facture.getClient() == null || !facture.getClient().getId().equals(client.getId())) {
-            throw new ForbiddenException("Accès non autorisé à cette facture");
-        }
+        var facture = factureService.getClientFactureById(client, id);
         return ResponseEntity.ok(FactureResponse.from(facture));
     }
 
@@ -117,10 +113,7 @@ public class FactureController {
     public ResponseEntity<byte[]> downloadMyFacturePdf(@PathVariable Long id,
             @RequestParam(defaultValue = "AVEC_ENTETE") String layoutKey) {
         Client client = clientService.getClientConnecte();
-        var facture = factureService.getById(id);
-        if (facture.getClient() == null || !facture.getClient().getId().equals(client.getId())) {
-            throw new ForbiddenException("Accès non autorisé à cette facture");
-        }
+        factureService.getClientFactureById(client, id);
         return pdfResponse(id, layoutKey);
     }
 
