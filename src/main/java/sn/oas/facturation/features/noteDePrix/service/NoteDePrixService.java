@@ -12,6 +12,20 @@ public interface NoteDePrixService {
     NoteDePrix getNoteDePrix(Long id);
     List<NoteDePrix> getAllNotesDePrix();
     Page<NoteDePrix> getAllNotesDePrix(int page, int size);
+    Page<NoteDePrix> getAllFiltered(
+            String keyword,
+            String numero,
+            String immatriculation,
+            Long clientId,
+            String clientNumero,
+            String clientMatricule,
+            String clientKeyword,
+            String statut,
+            java.time.LocalDate dateDebut,
+            java.time.LocalDate dateFin,
+            Long ordreReparationId,
+            int page,
+            int size);
     Page<NoteDePrix> searchNotesDePrix(String keyword, int page, int size);
     List<NoteDePrix> searchNotesDePrix(String keyword);
     void deleteNoteDePrix(Long id);

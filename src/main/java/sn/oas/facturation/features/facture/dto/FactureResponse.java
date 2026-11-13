@@ -41,8 +41,12 @@ public class FactureResponse {
 
     private Long clientId;
     private String clientNom;
+    private String clientMatricule;
+    private String clientNumero;
+    private String numeroClient;
     
     private Long vehiculeId;
+    private String vehiculeImmatriculation;
     private String immatriculation;
     private String numeroChassis;
     private String marque;
@@ -65,6 +69,8 @@ public class FactureResponse {
         var client = f.getClient() != null ? f.getClient()
                 : ordre != null && ordre.getClient() != null ? ordre.getClient()
                 : vehicule != null ? vehicule.getClient() : null;
+        String clientMatricule = client != null ? client.getMatricule() : null;
+        String immat = vehicule != null ? vehicule.getImmatriculation() : null;
         return FactureResponse.builder()
                 .id(f.getId())
                 .numero(f.getNumero())
@@ -91,8 +97,12 @@ public class FactureResponse {
                 .kilometrage(f.getKilometrage())
                 .clientId(client != null ? client.getId() : null)
                 .clientNom(client != null ? (client.getFirstName() + " " + client.getLastName()).trim() : null)
+                .clientMatricule(clientMatricule)
+                .clientNumero(clientMatricule)
+                .numeroClient(clientMatricule)
                 .vehiculeId(vehicule != null ? vehicule.getId() : null)
-                .immatriculation(vehicule != null ? vehicule.getImmatriculation() : null)
+                .vehiculeImmatriculation(immat)
+                .immatriculation(immat)
                 .numeroChassis(vehicule != null ? vehicule.getNumeroChassis() : null)
                 .marque(vehicule != null ? vehicule.getMarque() : null)
                 .modele(vehicule != null ? vehicule.getModele() : null)

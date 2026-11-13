@@ -3,6 +3,7 @@ package sn.oas.facturation.features.noteDePrix.repository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -11,7 +12,7 @@ import sn.oas.facturation.features.noteDePrix.data.entity.NoteDePrix;
 import java.util.List;
 
 @Repository
-public interface NoteDePrixRepository extends JpaRepository<NoteDePrix, Long> {
+public interface NoteDePrixRepository extends JpaRepository<NoteDePrix, Long>, JpaSpecificationExecutor<NoteDePrix> {
 
     @Query(value = "SELECT n FROM NoteDePrix n " +
             "LEFT JOIN n.client c " +

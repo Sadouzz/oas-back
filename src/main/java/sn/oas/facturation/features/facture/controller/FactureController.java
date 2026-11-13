@@ -43,18 +43,24 @@ public class FactureController {
     }
 
     @GetMapping
-    @Operation(summary = "Récupérer toutes les factures ou rechercher par mot-clé avec pagination")
+    @Operation(summary = "Récupérer toutes les factures ou rechercher avec filtres et pagination")
     public ResponseEntity<Page<FactureListResponse>> getAll(
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String numero,
+            @RequestParam(required = false) String immatriculation,
+            @RequestParam(required = false) Long clientId,
+            @RequestParam(required = false) String clientNumero,
+            @RequestParam(required = false) String clientMatricule,
+            @RequestParam(required = false) String client,
             @RequestParam(required = false) String statut,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateDebut,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFin,
-            @RequestParam(required = false) String client,
             @RequestParam(required = false) Long ordreReparationId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        return ResponseEntity.ok(factureService.getAllFiltered(keyword, statut, dateDebut, dateFin, client,
-                ordreReparationId, page, size)
+        return ResponseEntity.ok(factureService.getAllFiltered(
+                keyword, numero, immatriculation, clientId, clientNumero, clientMatricule, client,
+                statut, dateDebut, dateFin, ordreReparationId, page, size)
                 .map(FactureListResponse::from));
     }
 
