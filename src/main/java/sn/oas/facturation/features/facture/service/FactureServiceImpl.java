@@ -519,7 +519,7 @@ public class FactureServiceImpl implements FactureService {
 
         if (clientIdFilter == null && clientTexte != null) {
             java.util.regex.Matcher idClient = java.util.regex.Pattern
-                    .compile("(?i)^client\\s*#\\s*(\\d+)$|^#?(\\d+)$")
+                    .compile("(?i)^client\\s*#?\\s*(\\d+)$|^#?(\\d+)$")
                     .matcher(clientTexte);
             if (idClient.matches()) {
                 String digits = idClient.group(1) != null ? idClient.group(1) : idClient.group(2);
@@ -572,10 +572,10 @@ public class FactureServiceImpl implements FactureService {
 
             jakarta.persistence.criteria.Expression<String> prenom = coalesceText(cb,
                     clientDirect.<String>get("firstName"), clientOrdre.<String>get("firstName"),
-                    clientVehiculeOrdre.<String>get("firstName"));
+                    clientVehiculeOrdre.<String>get("firstName"), clientVehiculeDirect.<String>get("firstName"));
             jakarta.persistence.criteria.Expression<String> nom = coalesceText(cb,
                     clientDirect.<String>get("lastName"), clientOrdre.<String>get("lastName"),
-                    clientVehiculeOrdre.<String>get("lastName"));
+                    clientVehiculeOrdre.<String>get("lastName"), clientVehiculeDirect.<String>get("lastName"));
             jakarta.persistence.criteria.Expression<String> nomComplet = cb.concat(cb.concat(prenom, " "), nom);
 
             if (motCle != null) {
@@ -594,7 +594,8 @@ public class FactureServiceImpl implements FactureService {
                         cb.like(cb.lower(matriculeClient), pattern),
                         cb.like(cb.lower(prenom), pattern),
                         cb.like(cb.lower(nom), pattern),
-                        cb.like(cb.lower(nomComplet), pattern)));
+                        cb.like(cb.lower(nomComplet), pattern),
+                        cb.like(cb.lower(telephone), pattern)));
                 String chiffres = motCle.replaceAll("[^0-9]", "");
                 if (chiffres.length() >= 6) {
                     motsCles.add(cb.like(telephoneChiffres, "%" + chiffres + "%"));
@@ -619,7 +620,8 @@ public class FactureServiceImpl implements FactureService {
             }
 
             if (finalClientIdFilter != null) {
-                predicates.add(cb.or(cb.equal(clientDirect.<Long>get("id"), finalClientIdFilter),
+                predicates.add(cb.or(
+                        cb.equal(clientDirect.<Long>get("id"), finalClientIdFilter),
                         cb.equal(clientOrdre.<Long>get("id"), finalClientIdFilter),
                         cb.equal(clientVehiculeOrdre.<Long>get("id"), finalClientIdFilter),
                         cb.equal(clientVehiculeDirect.<Long>get("id"), finalClientIdFilter)));
@@ -633,6 +635,7 @@ public class FactureServiceImpl implements FactureService {
                 clientPredicates.add(cb.like(cb.lower(prenom), pattern));
                 clientPredicates.add(cb.like(cb.lower(nom), pattern));
                 clientPredicates.add(cb.like(cb.lower(nomComplet), pattern));
+                clientPredicates.add(cb.like(cb.lower(telephone), pattern));
                 String chiffres = finalClientTexte.replaceAll("[^0-9]", "");
                 if (chiffres.length() >= 6) {
                     clientPredicates.add(cb.like(telephoneChiffres, "%" + chiffres + "%"));
