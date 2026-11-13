@@ -32,6 +32,9 @@ public class NoteDePrixResponse {
     private String agentNom;
     private Long clientId;
     private String clientNom;
+    private String clientMatricule;
+    private String clientNumero;
+    private String numeroClient;
     private Long vehiculeId;
     private String vehiculeImmatriculation;
     private String immatriculation;
@@ -59,20 +62,25 @@ public class NoteDePrixResponse {
             agentNom = (fn + " " + ln).trim();
         }
 
+        var client = note.getClient();
+        if (client == null && note.getOrdreReparation() != null) {
+            client = note.getOrdreReparation().getClient() != null
+                    ? note.getOrdreReparation().getClient()
+                    : (note.getOrdreReparation().getVehicule() != null ? note.getOrdreReparation().getVehicule().getClient() : null);
+        }
+        if (client == null && note.getVehicule() != null) {
+            client = note.getVehicule().getClient();
+        }
+
         Long clientId = null;
         String clientNom = null;
-        if (note.getClient() != null) {
-            clientId = note.getClient().getId();
-            String fn = note.getClient().getFirstName() != null ? note.getClient().getFirstName() : "";
-            String ln = note.getClient().getLastName() != null ? note.getClient().getLastName() : "";
-            clientNom = (fn + " " + ln).trim();
-        } else if (note.getOrdreReparation() != null && (note.getOrdreReparation().getClient() != null
-                || note.getOrdreReparation().getVehicule() != null && note.getOrdreReparation().getVehicule().getClient() != null)) {
-            var client = note.getOrdreReparation().getClient() != null ? note.getOrdreReparation().getClient() : note.getOrdreReparation().getVehicule().getClient();
+        String clientMatricule = null;
+        if (client != null) {
             clientId = client.getId();
             String fn = client.getFirstName() != null ? client.getFirstName() : "";
             String ln = client.getLastName() != null ? client.getLastName() : "";
             clientNom = (fn + " " + ln).trim();
+            clientMatricule = client.getMatricule();
         }
 
         Long vehiculeId = null;
@@ -103,16 +111,43 @@ public class NoteDePrixResponse {
                         .map(lp -> {
                             int q = lp.getQuantite() != null ? lp.getQuantite() : 0;
                             int p = lp.getPrix() != null ? lp.getPrix() : 0;
+                            double remise = lp.getTauxRemise() == null ? 0d : lp.getTauxRemise().doubleValue();
+                            int total = (int) Math.round(q * p * (1 - remise / 100));
+
+                            String designation = null;
+                            if (lp.getPiece() != null && lp.getPiece().getDesignation() != null && !lp.getPiece().getDesignation().isBlank()) {
+                                designation = lp.getPiece().getDesignation();
+                            } else if (lp.getDesignationPds() != null && !lp.getDesignationPds().isBlank()) {
+                                designation = lp.getDesignationPds();
+                            } else {
+                                designation = "Pièce";
+                            }
+
+                            String type;
+                            if (lp.getPiece() != null && lp.getPiece().getType() != null) {
+                                type = lp.getPiece().getType().name();
+                            } else {
+                                type = "PDS";
+                            }
+
+                            String reference = lp.getPiece() != null ? lp.getPiece().getReference() : null;
+                            String depotNom = lp.getPiece() != null && lp.getPiece().getDepot() != null ? lp.getPiece().getDepot().getNom() : null;
+                            boolean isCustom = lp.getIsCustom() != null ? lp.getIsCustom() : (lp.getPiece() == null);
+
                             return LigneFacturationPieceResponse.builder()
                                     .id(lp.getId())
-                                        .dateHeureSaisie(lp.getDateHeureSaisie())
+                                    .dateHeureSaisie(lp.getDateHeureSaisie())
                                     .pieceId(lp.getPiece() != null ? lp.getPiece().getId() : null)
-                                    .designationPiece(
-                                            lp.getPiece() != null ? lp.getPiece().getDesignation() : "Pièce")
+                                    .type(type)
+                                    .designationPiece(designation)
+                                    .isCustom(isCustom)
+                                    .designationPds(lp.getDesignationPds() != null ? lp.getDesignationPds() : designation)
+                                    .referencePiece(reference)
+                                    .depotNom(depotNom)
                                     .quantite(q)
                                     .prix(p)
-                                    .montantTotal((int) Math.round(q * p * (1 - (lp.getTauxRemise() == null ? 0 : lp.getTauxRemise().doubleValue()) / 100)))
-                                    .tauxRemise(lp.getTauxRemise() == null ? 0d : lp.getTauxRemise().doubleValue())
+                                    .montantTotal(total)
+                                    .tauxRemise(remise)
                                     .datesHeuresSaisieSource(lp.getDatesHeuresSaisieSource() == null ? List.of() : List.copyOf(lp.getDatesHeuresSaisieSource()))
                                     .build();
                         })
@@ -123,17 +158,27 @@ public class NoteDePrixResponse {
                         .map(lm -> {
                             int h = lm.getNbreHeure() != null ? lm.getNbreHeure() : 0;
                             int t = lm.getTarifHoraire() != null ? lm.getTarifHoraire() : 0;
+                            double remiseMo = lm.getTauxRemise() != null ? lm.getTauxRemise().doubleValue() : 0.0;
+                            int totalMo = (int) Math.round(h * t * (1 - remiseMo / 100));
+
+                            String descriptionMo = "Main d'œuvre";
+                            if (lm.getMainDoeuvre() != null) {
+                                if (lm.getMainDoeuvre().getDescription() != null && !lm.getMainDoeuvre().getDescription().isBlank()) {
+                                    descriptionMo = lm.getMainDoeuvre().getDescription();
+                                } else if (lm.getMainDoeuvre().getCategorie() != null && lm.getMainDoeuvre().getCategorie().getNom() != null) {
+                                    descriptionMo = lm.getMainDoeuvre().getCategorie().getNom();
+                                }
+                            }
+
                             return LigneFacturationMainDoeuvreResponse.builder()
                                     .id(lm.getId())
-                                        .dateHeureSaisie(lm.getDateHeureSaisie())
+                                    .dateHeureSaisie(lm.getDateHeureSaisie())
                                     .mainDoeuvreId(lm.getMainDoeuvre() != null ? lm.getMainDoeuvre().getId() : null)
-                                    .descriptionMainDoeuvre(
-                                            lm.getMainDoeuvre() != null && lm.getMainDoeuvre().getCategorie() != null
-                                                    ? lm.getMainDoeuvre().getCategorie().getNom()
-                                                    : "Main d'œuvre")
+                                    .descriptionMainDoeuvre(descriptionMo)
                                     .nbreHeure(h)
                                     .tarifHoraire(t)
-                                    .montantTotal(h * t)
+                                    .montantTotal(totalMo)
+                                    .tauxRemise(remiseMo)
                                     .build();
                         })
                         .toList();
@@ -159,6 +204,9 @@ public class NoteDePrixResponse {
                 .agentNom(agentNom)
                 .clientId(clientId)
                 .clientNom(clientNom)
+                .clientMatricule(clientMatricule)
+                .clientNumero(clientMatricule)
+                .numeroClient(clientMatricule)
                 .vehiculeId(vehiculeId)
                 .vehiculeImmatriculation(vehiculeImmat)
                 .immatriculation(vehiculeImmat)

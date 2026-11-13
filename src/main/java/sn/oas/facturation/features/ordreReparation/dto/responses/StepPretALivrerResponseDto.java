@@ -5,6 +5,6 @@ import lombok.EqualsAndHashCode;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
-public class StepPretALivrerResponseDto extends BaseStepResponseDto {
-    private String remarquesPreparation;
+@Deprecated
+public class StepPretALivrerResponseDto extends StepFacturationResponseDto {
 }

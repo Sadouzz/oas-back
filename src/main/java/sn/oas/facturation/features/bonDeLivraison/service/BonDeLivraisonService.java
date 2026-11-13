@@ -39,4 +39,6 @@ public interface BonDeLivraisonService {
     Facture convertirEnFacture(Long id, BonDeLivraisonFactureRequest request);
 
     NoteDePrix convertirEnNoteDePrix(Long id);
+
+    NoteDePrix convertirEnNoteDePrix(Long id, BonDeLivraisonFactureRequest request);
 }

@@ -175,9 +175,13 @@ public class DashboardServiceImpl implements DashboardService {
                 + ordreReparationRepository.countByStatut(StatutOrdreReparation.REPARATION);
         long attentePaiement = ordreReparationRepository.countByStatut(StatutOrdreReparation.BL)
                 + ordreReparationRepository.countByStatut(StatutOrdreReparation.PAIEMENT);
-        long termine = ordreReparationRepository.countByStatut(StatutOrdreReparation.PRET_A_LIVRER)
+        long termine = ordreReparationRepository.countByStatut(StatutOrdreReparation.FACTURATION)
+                + ordreReparationRepository.countByStatut(StatutOrdreReparation.PRET_A_LIVRER)
                 + ordreReparationRepository.countByStatut(StatutOrdreReparation.LIVRE);
-        long totalActifs = ordreReparationRepository.countByStatutNotIn(List.of(StatutOrdreReparation.PRET_A_LIVRER, StatutOrdreReparation.LIVRE));
+        long totalActifs = ordreReparationRepository.countByStatutNotIn(List.of(
+                StatutOrdreReparation.FACTURATION,
+                StatutOrdreReparation.PRET_A_LIVRER,
+                StatutOrdreReparation.LIVRE));
 
         return EtatOrdreReparationDTO.builder()
                 .diagnostic(diagnostic)

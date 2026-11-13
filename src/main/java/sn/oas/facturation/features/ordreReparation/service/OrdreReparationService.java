@@ -23,6 +23,7 @@ import sn.oas.facturation.features.ordreReparation.dto.responses.StepLivraisonRe
 import sn.oas.facturation.features.ordreReparation.dto.responses.StepBLResponseDto;
 import sn.oas.facturation.features.ordreReparation.dto.responses.StepPaiementResponseDto;
 import sn.oas.facturation.features.ordreReparation.dto.responses.StepPiecesMoResponseDto;
+import sn.oas.facturation.features.ordreReparation.dto.responses.StepFacturationResponseDto;
 import sn.oas.facturation.features.ordreReparation.dto.responses.StepPretALivrerResponseDto;
 import sn.oas.facturation.features.ordreReparation.dto.responses.StepOrdreTravailResponseDto;
 import sn.oas.facturation.features.ordreReparation.dto.responses.StepProformaResponseDto;
@@ -32,6 +33,7 @@ import sn.oas.facturation.features.ordreReparation.dto.steps.StepApprovisionneme
 import sn.oas.facturation.features.ordreReparation.dto.steps.StepAssignationDto;
 import sn.oas.facturation.features.ordreReparation.dto.steps.StepBonSortieDto;
 import sn.oas.facturation.features.ordreReparation.dto.steps.StepDiagnosticDto;
+import sn.oas.facturation.features.ordreReparation.dto.steps.StepFacturationDto;
 import sn.oas.facturation.features.ordreReparation.dto.steps.StepLivraisonDto;
 import sn.oas.facturation.features.ordreReparation.dto.steps.StepPaiementDto;
 import sn.oas.facturation.features.ordreReparation.dto.steps.StepPiecesMoDto;
@@ -65,6 +67,7 @@ public interface OrdreReparationService {
     StepReparationResponseDto getStepReparation(Long id);
     StepBLResponseDto getStepBL(Long id);
     StepPaiementResponseDto getStepPaiement(Long id);
+    StepFacturationResponseDto getStepFacturation(Long id);
     StepPretALivrerResponseDto getStepPretALivrer(Long id);
     StepLivraisonResponseDto getStepLivraison(Long id);
 
@@ -77,6 +80,7 @@ public interface OrdreReparationService {
     StepAssignationDto updateStepAssignation(Long id, StepAssignationDto dto);
     StepReparationDto updateStepReparation(Long id, StepReparationDto dto);
     StepPaiementDto updateStepPaiement(Long id, StepPaiementDto dto);
+    StepFacturationDto updateStepFacturation(Long id, StepFacturationDto dto);
     StepPretALivrerDto updateStepPretALivrer(Long id, StepPretALivrerDto dto);
     StepLivraisonDto updateStepLivraison(Long id, StepLivraisonDto dto);
 

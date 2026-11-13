@@ -12,7 +12,7 @@ public record FactureListResponse(
         Long id,
         String numero,
         LocalDateTime dateCreation,
-        // LocalDateTime dateModification,
+        LocalDateTime dateModification,
         BigDecimal montantHT,
         BigDecimal montantTVA,
         Boolean tvaApplicable,
@@ -24,38 +24,46 @@ public record FactureListResponse(
         BigDecimal montantTotal,
         BigDecimal tauxRemiseClient,
         BigDecimal montantRemiseClient,
-        java.time.LocalDateTime dateEcheance,
+        LocalDateTime dateEcheance,
         BigDecimal montantPaye,
         BigDecimal resteAPayer,
         StatutPaiement statutPaiement,
-        // Long agentId,
+        Long agentId,
         String agentNom,
         String remarque,
         Double kilometrage,
         Long clientId,
         String clientNom,
-        // Long vehiculeId,
+        String clientMatricule,
+        String clientNumero,
+        String numeroClient,
+        Long vehiculeId,
+        String vehiculeImmatriculation,
         String immatriculation,
-        // String numeroChassis,
+        String numeroChassis,
         String marque,
         String modele,
-        Integer annee
-        // String numeroBonDeCommande,
-        // Long ordreReparationId,
-        // String numeroOrdreReparation
+        Integer annee,
+        String numeroBonDeCommande,
+        Long ordreReparationId,
+        String numeroOrdreReparation
 ) {
     public static FactureListResponse from(Facture f) {
         if (f == null) return null;
         var ordre = f.getOrdreReparation();
-        var vehicule = f.getVehicule() != null ? f.getVehicule() : ordre != null ? ordre.getVehicule() : null;
+        var vehicule = f.getVehicule() != null ? f.getVehicule() : (ordre != null ? ordre.getVehicule() : null);
         var client = f.getClient() != null ? f.getClient()
-                : ordre != null && ordre.getClient() != null ? ordre.getClient()
-                : vehicule != null ? vehicule.getClient() : null;
+                : (ordre != null && ordre.getClient() != null ? ordre.getClient()
+                : (vehicule != null ? vehicule.getClient() : null));
+
+        String clientMatricule = client != null ? client.getMatricule() : null;
+        String immat = vehicule != null ? vehicule.getImmatriculation() : null;
+
         return FactureListResponse.builder()
                 .id(f.getId())
                 .numero(f.getNumero())
                 .dateCreation(f.getDateCreation())
-                // .dateModification(f.getDateModification())
+                .dateModification(f.getDateModification())
                 .montantHT(f.getMontantHT())
                 .montantTVA(f.getMontantTVA())
                 .tvaApplicable(f.getTvaApplicable())
@@ -71,21 +79,25 @@ public record FactureListResponse(
                 .montantPaye(f.getMontantPaye())
                 .resteAPayer(f.getResteAPayer())
                 .statutPaiement(f.getStatutPaiement())
-                // .agentId(f.getAgent() != null ? f.getAgent().getId() : null)
+                .agentId(f.getAgent() != null ? f.getAgent().getId() : null)
                 .agentNom(f.getAgent() != null ? (f.getAgent().getFirstName() + " " + f.getAgent().getLastName()).trim() : null)
                 .remarque(f.getRemarque())
                 .kilometrage(f.getKilometrage())
                 .clientId(client != null ? client.getId() : null)
                 .clientNom(client != null ? (client.getFirstName() + " " + client.getLastName()).trim() : null)
-                // .vehiculeId(f.getVehicule() != null ? f.getVehicule().getId() : null)
-                .immatriculation(vehicule != null ? vehicule.getImmatriculation() : null)
-                // .numeroChassis(f.getVehicule() != null ? f.getVehicule().getNumeroChassis() : null)
+                .clientMatricule(clientMatricule)
+                .clientNumero(clientMatricule)
+                .numeroClient(clientMatricule)
+                .vehiculeId(vehicule != null ? vehicule.getId() : null)
+                .vehiculeImmatriculation(immat)
+                .immatriculation(immat)
+                .numeroChassis(vehicule != null ? vehicule.getNumeroChassis() : null)
                 .marque(vehicule != null ? vehicule.getMarque() : null)
                 .modele(vehicule != null ? vehicule.getModele() : null)
                 .annee(vehicule != null ? vehicule.getAnnee() : null)
-                // .numeroBonDeCommande(f.getNumeroBonDeCommande())
-                // .ordreReparationId(f.getOrdreReparation() != null ? f.getOrdreReparation().getId() : null)
-                // .numeroOrdreReparation(f.getOrdreReparation() != null ? f.getOrdreReparation().getNumero() : null)
+                .numeroBonDeCommande(f.getNumeroBonDeCommande())
+                .ordreReparationId(ordre != null ? ordre.getId() : null)
+                .numeroOrdreReparation(ordre != null ? ordre.getNumero() : null)
                 .build();
     }
 }

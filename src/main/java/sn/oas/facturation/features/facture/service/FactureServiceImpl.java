@@ -59,6 +59,7 @@ import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -257,9 +258,10 @@ public class FactureServiceImpl implements FactureService {
             }
         }
 
-        // Update OrdreReparation status to BL
-        if (ordreReparation != null && (ordreReparation.getStatut() == StatutOrdreReparation.ORDRE_DE_TRAVAIL || ordreReparation.getStatut() == StatutOrdreReparation.PROFORMA)) {
-            ordreReparation.setStatut(StatutOrdreReparation.BL);
+        // Update OrdreReparation status to FACTURATION
+        if (ordreReparation != null && (ordreReparation.getStatut() == null || ordreReparation.getStatut().getEtape() < StatutOrdreReparation.FACTURATION.getEtape())) {
+            ordreReparation.setStatut(StatutOrdreReparation.FACTURATION);
+            ordreReparation.setUpdatedAt(LocalDateTime.now());
             ordreReparationRepository.save(ordreReparation);
         }
         agentNotificationService.notifyRoleInGarage(Role.AGENT, facture.getGarage(),
@@ -479,35 +481,63 @@ public class FactureServiceImpl implements FactureService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<Facture> getAllFiltered(String keyword, String statut, java.time.LocalDate dateDebut,
-            java.time.LocalDate dateFin, String clientKeyword, Long ordreReparationId, int page, int size) {
-        String statutFiltre = "PAYE".equals(statut) || "EN_COURS".equals(statut) ? statut : null;
+    public Page<Facture> getAllFiltered(
+            String keyword,
+            String numero,
+            String immatriculation,
+            Long clientId,
+            String clientTelephone,
+            String clientMatricule,
+            String clientKeyword,
+            String statut,
+            java.time.LocalDate dateDebut,
+            java.time.LocalDate dateFin,
+            Long ordreReparationId,
+            int page,
+            int size) {
+
+        int maxPageSize = 1000;
+        int effectivePage = Math.max(0, page);
+        int effectiveSize = size > 0 ? Math.min(size, maxPageSize) : 10;
+        Pageable pageable = PageRequest.of(effectivePage, effectiveSize, Sort.by(Sort.Direction.DESC, "dateCreation"));
+
         java.time.LocalDateTime debut = dateDebut == null ? null : dateDebut.atStartOfDay();
         java.time.LocalDateTime finExclusive = dateFin == null ? null : dateFin.plusDays(1).atStartOfDay();
-        Long clientId = null;
-        String filtreClient = clientKeyword == null ? null : clientKeyword.trim();
-        if (filtreClient != null) {
+
+        String motCle = (keyword == null || keyword.isBlank()) ? null : keyword.trim().toLowerCase();
+        String numFiltre = (numero == null || numero.isBlank()) ? null : numero.trim().toLowerCase();
+        String immatFiltre = (immatriculation == null || immatriculation.isBlank()) ? null : immatriculation.trim().toLowerCase();
+
+        String telephoneClientFiltre = clientTelephone == null
+                ? "" : clientTelephone.replaceAll("[^0-9]", "");
+        if (telephoneClientFiltre.length() < 3) telephoneClientFiltre = "";
+        String matriculeFiltre = clientMatricule == null || clientMatricule.isBlank()
+                ? null : clientMatricule.trim();
+
+        Long clientIdFilter = clientId;
+        String clientTexte = clientKeyword != null && !clientKeyword.isBlank() ? clientKeyword.trim() : null;
+
+        if (clientIdFilter == null && clientTexte != null) {
             java.util.regex.Matcher idClient = java.util.regex.Pattern
                     .compile("(?i)^client\\s*#\\s*(\\d+)$|^#?(\\d+)$")
-                    .matcher(filtreClient);
+                    .matcher(clientTexte);
             if (idClient.matches()) {
                 String digits = idClient.group(1) != null ? idClient.group(1) : idClient.group(2);
-                // Un nombre long sans préfixe "Client #" est traité comme un téléphone.
                 if (idClient.group(1) != null || digits.length() < 7) {
                     try {
-                        clientId = Long.valueOf(digits);
-                        filtreClient = null;
+                        clientIdFilter = Long.valueOf(digits);
+                        clientTexte = null;
                     } catch (NumberFormatException ignored) {
-                        // Le texte reste un filtre de recherche si l'identifiant dépasse la plage d'un Long.
+                        // Un identifiant hors plage reste traité comme texte de recherche.
                     }
                 }
             }
         }
-        Pageable pageable = PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 100),
-                Sort.by(Sort.Direction.DESC, "dateCreation"));
-        String motCle = keyword == null || keyword.isBlank() ? null : keyword.trim().toLowerCase();
-        String nomClient = filtreClient == null || filtreClient.isBlank() ? null : filtreClient.toLowerCase();
-        Long clientIdFilter = clientId;
+
+        final Long finalClientIdFilter = clientIdFilter;
+        final String finalClientTexte = clientTexte;
+        final String finalMatriculeFiltre = matriculeFiltre;
+        final String finalTelephoneClientFiltre = telephoneClientFiltre;
 
         Specification<Facture> specification = (root, query, cb) -> {
             java.util.List<jakarta.persistence.criteria.Predicate> predicates = new java.util.ArrayList<>();
@@ -519,81 +549,114 @@ public class FactureServiceImpl implements FactureService {
             var clientVehiculeOrdre = vehiculeOrdre.join("client", jakarta.persistence.criteria.JoinType.LEFT);
             var clientVehiculeDirect = vehiculeDirect.join("client", jakarta.persistence.criteria.JoinType.LEFT);
 
-            jakarta.persistence.criteria.Expression<String> immatriculation = coalesceText(cb,
+            jakarta.persistence.criteria.Expression<String> immatriculationExpr = coalesceText(cb,
                     vehiculeDirect.<String>get("immatriculation"), vehiculeOrdre.<String>get("immatriculation"));
             jakarta.persistence.criteria.Expression<String> marque = coalesceText(cb,
                     vehiculeDirect.<String>get("marque"), vehiculeOrdre.<String>get("marque"));
             jakarta.persistence.criteria.Expression<String> modele = coalesceText(cb,
                     vehiculeDirect.<String>get("modele"), vehiculeOrdre.<String>get("modele"));
+            jakarta.persistence.criteria.Expression<String> numeroChassis = coalesceText(cb,
+                    vehiculeDirect.<String>get("numeroChassis"), vehiculeOrdre.<String>get("numeroChassis"));
+
+            jakarta.persistence.criteria.Expression<String> matriculeClient = coalesceText(cb,
+                    clientDirect.<String>get("matricule"), clientOrdre.<String>get("matricule"),
+                    clientVehiculeOrdre.<String>get("matricule"), clientVehiculeDirect.<String>get("matricule"));
+            jakarta.persistence.criteria.Expression<String> numeroClient = coalesceText(cb,
+                    clientDirect.<String>get("codeClient"), clientOrdre.<String>get("codeClient"),
+                    clientVehiculeOrdre.<String>get("codeClient"), clientVehiculeDirect.<String>get("codeClient"));
+            jakarta.persistence.criteria.Expression<String> telephone = coalesceText(cb,
+                    clientDirect.<String>get("phone"), clientOrdre.<String>get("phone"),
+                    clientVehiculeOrdre.<String>get("phone"), clientVehiculeDirect.<String>get("phone"));
+            jakarta.persistence.criteria.Expression<String> telephoneChiffres = cb.function("regexp_replace", String.class,
+                    telephone, cb.literal("[^0-9]"), cb.literal(""), cb.literal("g"));
+
             jakarta.persistence.criteria.Expression<String> prenom = coalesceText(cb,
                     clientDirect.<String>get("firstName"), clientOrdre.<String>get("firstName"),
                     clientVehiculeOrdre.<String>get("firstName"));
             jakarta.persistence.criteria.Expression<String> nom = coalesceText(cb,
                     clientDirect.<String>get("lastName"), clientOrdre.<String>get("lastName"),
                     clientVehiculeOrdre.<String>get("lastName"));
-            jakarta.persistence.criteria.Expression<String> telephone = coalesceText(cb,
-                    clientDirect.<String>get("phone"), clientOrdre.<String>get("phone"),
-                    clientVehiculeOrdre.<String>get("phone"), clientVehiculeDirect.<String>get("phone"));
-            jakarta.persistence.criteria.Expression<String> numeroClient = coalesceText(cb,
-                    clientDirect.<String>get("codeClient"), clientOrdre.<String>get("codeClient"),
-                    clientVehiculeOrdre.<String>get("codeClient"), clientVehiculeDirect.<String>get("codeClient"));
-            jakarta.persistence.criteria.Expression<String> matriculeClient = coalesceText(cb,
-                    clientDirect.<String>get("matricule"), clientOrdre.<String>get("matricule"),
-                    clientVehiculeOrdre.<String>get("matricule"), clientVehiculeDirect.<String>get("matricule"));
-            jakarta.persistence.criteria.Expression<String> telephoneChiffres = cb.function("regexp_replace", String.class,
-                    telephone, cb.literal("[^0-9]"), cb.literal(""), cb.literal("g"));
+            jakarta.persistence.criteria.Expression<String> nomComplet = cb.concat(cb.concat(prenom, " "), nom);
 
             if (motCle != null) {
                 String pattern = "%" + motCle + "%";
-                predicates.add(cb.or(
+                java.util.List<jakarta.persistence.criteria.Predicate> motsCles = new java.util.ArrayList<>();
+                motsCles.add(cb.or(
                         cb.like(cb.lower(cb.coalesce(root.<String>get("numero"), "")), pattern),
                         cb.like(cb.lower(cb.coalesce(root.<String>get("remarque"), "")), pattern),
                         cb.like(cb.lower(cb.coalesce(root.<String>get("numeroBonDeCommande"), "")), pattern),
                         cb.like(cb.lower(cb.coalesce(ordre.<String>get("numero"), "")), pattern),
-                        cb.like(cb.lower(immatriculation), pattern),
+                        cb.like(cb.lower(immatriculationExpr), pattern),
+                        cb.like(cb.lower(numeroChassis), pattern),
                         cb.like(cb.lower(marque), pattern),
                         cb.like(cb.lower(modele), pattern),
-                        cb.like(cb.lower(prenom), pattern),
-                        cb.like(cb.lower(nom), pattern),
                         cb.like(cb.lower(numeroClient), pattern),
                         cb.like(cb.lower(matriculeClient), pattern),
-                        cb.like(cb.lower(cb.concat(cb.concat(prenom, " "), nom)), pattern)));
-                String chiffres = motCle.replaceAll("[^0-9]", "");
-                if (chiffres.length() >= 6) {
-                    predicates.set(predicates.size() - 1, cb.or(predicates.get(predicates.size() - 1),
-                            cb.like(telephoneChiffres, "%" + chiffres + "%")));
-                }
-            }
-            if (statutFiltre != null) {
-                if ("PAYE".equals(statutFiltre)) {
-                    predicates.add(cb.equal(root.get("statutPaiement"), StatutPaiement.PAYE));
-                } else {
-                    predicates.add(cb.or(root.get("statutPaiement").isNull(),
-                            cb.notEqual(root.get("statutPaiement"), StatutPaiement.PAYE)));
-                }
-            }
-            if (debut != null) predicates.add(cb.greaterThanOrEqualTo(root.get("dateCreation"), debut));
-            if (finExclusive != null) predicates.add(cb.lessThan(root.get("dateCreation"), finExclusive));
-            if (clientIdFilter != null) {
-                predicates.add(cb.or(cb.equal(clientDirect.<Long>get("id"), clientIdFilter),
-                        cb.equal(clientOrdre.<Long>get("id"), clientIdFilter),
-                        cb.equal(clientVehiculeOrdre.<Long>get("id"), clientIdFilter),
-                        cb.equal(clientVehiculeDirect.<Long>get("id"), clientIdFilter)));
-            }
-            if (ordreReparationId != null) predicates.add(cb.equal(ordre.<Long>get("id"), ordreReparationId));
-            if (nomClient != null) {
-                String pattern = "%" + nomClient + "%";
-                predicates.add(cb.or(
                         cb.like(cb.lower(prenom), pattern),
                         cb.like(cb.lower(nom), pattern),
-                        cb.like(cb.lower(cb.concat(cb.concat(prenom, " "), nom)), pattern),
-                        cb.like(cb.lower(numeroClient), pattern),
-                        cb.like(cb.lower(matriculeClient), pattern)));
-                String chiffres = nomClient.replaceAll("[^0-9]", "");
+                        cb.like(cb.lower(nomComplet), pattern)));
+                String chiffres = motCle.replaceAll("[^0-9]", "");
                 if (chiffres.length() >= 6) {
-                    predicates.add(cb.like(telephoneChiffres, "%" + chiffres + "%"));
+                    motsCles.add(cb.like(telephoneChiffres, "%" + chiffres + "%"));
+                }
+                predicates.add(cb.or(motsCles.toArray(jakarta.persistence.criteria.Predicate[]::new)));
+            }
+
+            if (numFiltre != null) {
+                predicates.add(cb.like(cb.lower(cb.coalesce(root.<String>get("numero"), "")), "%" + numFiltre + "%"));
+            }
+
+            if (immatFiltre != null) {
+                predicates.add(cb.like(cb.lower(immatriculationExpr), "%" + immatFiltre + "%"));
+            }
+
+            if (finalMatriculeFiltre != null) {
+                predicates.add(cb.like(cb.lower(matriculeClient), "%" + finalMatriculeFiltre.toLowerCase() + "%"));
+            }
+
+            if (finalTelephoneClientFiltre != null && !finalTelephoneClientFiltre.isBlank()) {
+                predicates.add(cb.like(telephoneChiffres, "%" + finalTelephoneClientFiltre + "%"));
+            }
+
+            if (finalClientIdFilter != null) {
+                predicates.add(cb.or(cb.equal(clientDirect.<Long>get("id"), finalClientIdFilter),
+                        cb.equal(clientOrdre.<Long>get("id"), finalClientIdFilter),
+                        cb.equal(clientVehiculeOrdre.<Long>get("id"), finalClientIdFilter),
+                        cb.equal(clientVehiculeDirect.<Long>get("id"), finalClientIdFilter)));
+            }
+
+            if (finalClientTexte != null) {
+                String pattern = "%" + finalClientTexte.toLowerCase() + "%";
+                java.util.List<jakarta.persistence.criteria.Predicate> clientPredicates = new java.util.ArrayList<>();
+                clientPredicates.add(cb.like(cb.lower(matriculeClient), pattern));
+                clientPredicates.add(cb.like(cb.lower(numeroClient), pattern));
+                clientPredicates.add(cb.like(cb.lower(prenom), pattern));
+                clientPredicates.add(cb.like(cb.lower(nom), pattern));
+                clientPredicates.add(cb.like(cb.lower(nomComplet), pattern));
+                String chiffres = finalClientTexte.replaceAll("[^0-9]", "");
+                if (chiffres.length() >= 6) {
+                    clientPredicates.add(cb.like(telephoneChiffres, "%" + chiffres + "%"));
+                }
+                predicates.add(cb.or(clientPredicates.toArray(jakarta.persistence.criteria.Predicate[]::new)));
+            }
+
+            if (statut != null && !statut.isBlank()) {
+                String st = statut.trim().toUpperCase();
+                if ("PAYE".equals(st)) {
+                    predicates.add(cb.equal(root.get("statutPaiement"), StatutPaiement.PAYE));
+                } else if ("EN_COURS".equals(st)) {
+                    predicates.add(cb.or(root.get("statutPaiement").isNull(),
+                            cb.notEqual(root.get("statutPaiement"), StatutPaiement.PAYE)));
+                } else if ("NON_PAYE".equals(st)) {
+                    predicates.add(cb.equal(root.get("statutPaiement"), StatutPaiement.NON_PAYE));
+                } else if ("PARTIEL".equals(st)) {
+                    predicates.add(cb.equal(root.get("statutPaiement"), StatutPaiement.PARTIEL));
                 }
             }
+
+            if (debut != null) predicates.add(cb.greaterThanOrEqualTo(root.get("dateCreation"), debut));
+            if (finExclusive != null) predicates.add(cb.lessThan(root.get("dateCreation"), finExclusive));
+            if (ordreReparationId != null) predicates.add(cb.equal(ordre.<Long>get("id"), ordreReparationId));
             return cb.and(predicates.toArray(jakarta.persistence.criteria.Predicate[]::new));
         };
         return factureRepository.findAll(specification, pageable);
