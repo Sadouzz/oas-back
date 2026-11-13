@@ -32,6 +32,9 @@ public class NoteDePrixResponse {
     private String agentNom;
     private Long clientId;
     private String clientNom;
+    private String clientMatricule;
+    private String clientNumero;
+    private String numeroClient;
     private Long vehiculeId;
     private String vehiculeImmatriculation;
     private String immatriculation;
@@ -59,20 +62,25 @@ public class NoteDePrixResponse {
             agentNom = (fn + " " + ln).trim();
         }
 
+        var client = note.getClient();
+        if (client == null && note.getOrdreReparation() != null) {
+            client = note.getOrdreReparation().getClient() != null
+                    ? note.getOrdreReparation().getClient()
+                    : (note.getOrdreReparation().getVehicule() != null ? note.getOrdreReparation().getVehicule().getClient() : null);
+        }
+        if (client == null && note.getVehicule() != null) {
+            client = note.getVehicule().getClient();
+        }
+
         Long clientId = null;
         String clientNom = null;
-        if (note.getClient() != null) {
-            clientId = note.getClient().getId();
-            String fn = note.getClient().getFirstName() != null ? note.getClient().getFirstName() : "";
-            String ln = note.getClient().getLastName() != null ? note.getClient().getLastName() : "";
-            clientNom = (fn + " " + ln).trim();
-        } else if (note.getOrdreReparation() != null && (note.getOrdreReparation().getClient() != null
-                || note.getOrdreReparation().getVehicule() != null && note.getOrdreReparation().getVehicule().getClient() != null)) {
-            var client = note.getOrdreReparation().getClient() != null ? note.getOrdreReparation().getClient() : note.getOrdreReparation().getVehicule().getClient();
+        String clientMatricule = null;
+        if (client != null) {
             clientId = client.getId();
             String fn = client.getFirstName() != null ? client.getFirstName() : "";
             String ln = client.getLastName() != null ? client.getLastName() : "";
             clientNom = (fn + " " + ln).trim();
+            clientMatricule = client.getMatricule();
         }
 
         Long vehiculeId = null;
@@ -196,6 +204,9 @@ public class NoteDePrixResponse {
                 .agentNom(agentNom)
                 .clientId(clientId)
                 .clientNom(clientNom)
+                .clientMatricule(clientMatricule)
+                .clientNumero(clientMatricule)
+                .numeroClient(clientMatricule)
                 .vehiculeId(vehiculeId)
                 .vehiculeImmatriculation(vehiculeImmat)
                 .immatriculation(vehiculeImmat)

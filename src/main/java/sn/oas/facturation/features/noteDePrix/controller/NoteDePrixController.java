@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.format.annotation.DateTimeFormat;
+import java.time.LocalDate;
 import sn.oas.facturation.features.noteDePrix.dto.NoteDePrixListResponse;
 import sn.oas.facturation.features.noteDePrix.dto.NoteDePrixRequest;
 import sn.oas.facturation.features.noteDePrix.dto.NoteDePrixResponse;
@@ -39,16 +41,25 @@ public class NoteDePrixController {
     }
 
     @GetMapping
-    @Operation(summary = "Lister toutes les notes de prix ou rechercher par mot-clé avec pagination")
+    @Operation(summary = "Lister toutes les notes de prix ou rechercher avec filtres et pagination")
     public ResponseEntity<Page<NoteDePrixListResponse>> getAllNotesDePrix(
             @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) String numero,
+            @RequestParam(required = false) String immatriculation,
+            @RequestParam(required = false) Long clientId,
+            @RequestParam(required = false) String clientNumero,
+            @RequestParam(required = false) String clientMatricule,
+            @RequestParam(required = false) String client,
+            @RequestParam(required = false) String statut,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateDebut,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFin,
+            @RequestParam(required = false) Long ordreReparationId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            return ResponseEntity
-                    .ok(noteDePrixService.searchNotesDePrix(keyword.trim(), page, size).map(NoteDePrixListResponse::from));
-        }
-        return ResponseEntity.ok(noteDePrixService.getAllNotesDePrix(page, size).map(NoteDePrixListResponse::from));
+        return ResponseEntity.ok(noteDePrixService.getAllFiltered(
+                keyword, numero, immatriculation, clientId, clientNumero, clientMatricule, client,
+                statut, dateDebut, dateFin, ordreReparationId, page, size)
+                .map(NoteDePrixListResponse::from));
     }
 
     @DeleteMapping("/{id}")
