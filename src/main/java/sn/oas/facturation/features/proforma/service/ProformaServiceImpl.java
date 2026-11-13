@@ -582,8 +582,6 @@ public class ProformaServiceImpl implements ProformaService {
         
         if (ordreReparation != null) {
             verifierDiagnosticTermineAvantProgression(ordreReparation);
-            ordreReparation.setStatut(StatutOrdreReparation.ORDRE_DE_TRAVAIL);
-            ordreReparationRepository.save(ordreReparation);
         }
 
         return proformaRepository.save(proforma);
@@ -789,8 +787,6 @@ public class ProformaServiceImpl implements ProformaService {
 
         if (ordreReparation != null) {
             verifierDiagnosticTermineAvantProgression(ordreReparation);
-            ordreReparation.setStatut(StatutOrdreReparation.ORDRE_DE_TRAVAIL);
-            ordreReparationRepository.save(ordreReparation);
         }
 
         if (statusChanged) {

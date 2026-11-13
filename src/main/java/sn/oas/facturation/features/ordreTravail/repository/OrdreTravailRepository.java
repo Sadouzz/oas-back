@@ -24,6 +24,8 @@ public interface OrdreTravailRepository extends JpaRepository<OrdreTravail, Long
 
     Optional<OrdreTravail> findByOrdreReparationId(Long ordreReparationId);
 
+    boolean existsByOrdreReparationId(Long ordreReparationId);
+
     Optional<OrdreTravail> findByProformaId(Long proformaId);
 
     List<OrdreTravail> findByClientIdOrderByCreatedAtDesc(Long clientId);

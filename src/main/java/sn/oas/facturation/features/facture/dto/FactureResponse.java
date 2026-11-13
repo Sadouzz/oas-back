@@ -121,7 +121,8 @@ public class FactureResponse {
                                 .id(lm.getId())
                                         .dateHeureSaisie(lm.getDateHeureSaisie())
                                 .mainDoeuvreId(lm.getMainDoeuvre() != null ? lm.getMainDoeuvre().getId() : null)
-                                .descriptionMainDoeuvre(lm.getMainDoeuvre() != null && lm.getMainDoeuvre().getCategorie() != null ? lm.getMainDoeuvre().getCategorie().getNom() : null)
+                                .descriptionMainDoeuvre(lm.getMainDoeuvre() != null
+                                        ? lm.getMainDoeuvre().getDescription() : null)
                                 .nbreHeure(lm.getNbreHeure())
                                 .tarifHoraire(lm.getTarifHoraire())
                                 .montantTotal((int) Math.round(lm.getNbreHeure() * lm.getTarifHoraire() * (1 - (lm.getTauxRemise() == null ? 0 : lm.getTauxRemise().doubleValue()) / 100)))

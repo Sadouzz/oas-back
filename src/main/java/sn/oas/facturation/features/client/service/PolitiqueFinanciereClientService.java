@@ -39,17 +39,69 @@ public class PolitiqueFinanciereClientService {
     public String motifBlocageReservation(Long clientId) {
         Client client = clientRepository.findById(clientId).orElse(null);
         if (client == null) return null;
+        return evaluerReservation(client).motifBlocage();
+    }
+
+    @Transactional(readOnly = true)
+    public EvaluationReservation evaluerReservation(Long clientId) {
+        Client client = clientRepository.findById(clientId).orElse(null);
+        return client == null ? EvaluationReservation.autorisee() : evaluerReservation(client);
+    }
+
+    @Transactional(readOnly = true)
+    public String motifBlocageRetard(Long clientId) {
+        Client client = clientRepository.findById(clientId).orElse(null);
+        if (client == null) return null;
         LocalDateTime now = LocalDateTime.now();
         boolean retard = factureRepository.existsFactureImpayeeEnRetard(clientId, now)
                 || (client.getEcheance() != null && client.getEcheance() > 0
                 && factureRepository.existsFactureLegacyImpayeeEnRetard(clientId, now.minusDays(client.getEcheance())));
-        if (retard) return "Votre compte comporte une facture échue impayée. Contactez OAS pour régulariser votre situation avant de prendre un rendez-vous.";
-        if (client.getEcheance() != null && client.getEcheance() > 0 && client.getMontantPlafondEcheance() != null) {
-            BigDecimal periode = zero(factureRepository.sumMontantFacturesDepuis(clientId, now.minusDays(client.getEcheance())));
-            if (periode.compareTo(client.getMontantPlafondEcheance()) >= 0)
-                return "Le plafond de facturation prévu sur votre période d'échéance est atteint. Contactez OAS avant de prendre un rendez-vous.";
+        return retard ? "Votre compte comporte une facture échue impayée. Contactez OAS pour régulariser votre situation avant de prendre un rendez-vous." : null;
+    }
+
+    public EvaluationReservation evaluerReservation(Client client) {
+        Long clientId = client.getId();
+        LocalDateTime now = LocalDateTime.now();
+        boolean retard = factureRepository.existsFactureImpayeeEnRetard(clientId, now)
+                || (client.getEcheance() != null && client.getEcheance() > 0
+                && factureRepository.existsFactureLegacyImpayeeEnRetard(clientId, now.minusDays(client.getEcheance())));
+        if (retard) {
+            return new EvaluationReservation(false, false, true,
+                    "Votre compte comporte une facture échue impayée. Contactez OAS pour régulariser votre situation avant de prendre un rendez-vous.",
+                    client.getMontantPlafondEcheance(), BigDecimal.ZERO, client.getEcheance());
         }
-        return null;
+
+        BigDecimal plafond = client.getMontantPlafondEcheance();
+        Integer echeance = client.getEcheance();
+        if (plafond == null || echeance == null || echeance <= 0) {
+            return EvaluationReservation.autorisee();
+        }
+
+        BigDecimal montantConsomme = zero(factureRepository.sumMontantFacturesDepuis(
+                clientId, now.minusDays(echeance)));
+        boolean plafondAtteint = montantConsomme.compareTo(plafond) >= 0;
+        String motif = plafondAtteint
+                ? "Le plafond de facturation prévu sur votre période d'échéance est atteint. Une demande de dérogation exceptionnelle peut être soumise à OAS."
+                : null;
+        return new EvaluationReservation(!plafondAtteint, plafondAtteint, false, motif,
+                plafond, montantConsomme, echeance);
+    }
+
+    public record EvaluationReservation(
+            boolean workflowAutorise,
+            boolean plafondAtteint,
+            boolean factureEchueImpayee,
+            String motifBlocage,
+            BigDecimal plafond,
+            BigDecimal montantConsomme,
+            Integer echeanceJours) {
+        private static EvaluationReservation autorisee() {
+            return new EvaluationReservation(true, false, false, null, null, BigDecimal.ZERO, null);
+        }
+
+        public boolean derogationPossible() {
+            return plafondAtteint && !factureEchueImpayee;
+        }
     }
 
     private static BigDecimal zero(BigDecimal value) { return value == null ? BigDecimal.ZERO : value; }

@@ -23,6 +23,8 @@ import sn.oas.facturation.features.piecedetache.service.CataloguePiecePricingPol
 import sn.oas.facturation.features.proforma.repository.ProformaRepository;
 import sn.oas.facturation.features.ordreReparation.dto.OrdreReparationRequest;
 import sn.oas.facturation.features.ordreReparation.repository.OrdreReparationRepository;
+import sn.oas.facturation.features.rendezvous.repository.DemandeDerogationPlafondRepository;
+import sn.oas.facturation.features.rendezvous.data.enums.StatutDemandeDerogationPlafond;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.features.vehicule.repository.VehiculeRepository;
 import sn.oas.facturation.shared.documentNumber.DocumentType;
@@ -64,6 +66,8 @@ import sn.oas.facturation.features.ordreReparation.dto.VehiculeLightDTO;
 import sn.oas.facturation.features.ordreReparation.dto.responses.ProformaSummaryDto;
 import sn.oas.facturation.features.ordreReparation.dto.ClientLightDTO;
 import sn.oas.facturation.features.client.data.entity.Client;
+import sn.oas.facturation.features.client.repository.ClientRepository;
+import sn.oas.facturation.features.client.service.PolitiqueFinanciereClientService;
 import sn.oas.facturation.features.client.data.enums.TypeClient;
 import sn.oas.facturation.features.diagnostic.data.entity.Diagnostic;
 import sn.oas.facturation.features.diagnostic.data.entity.PieceJointeDiagnostic;
@@ -135,6 +139,7 @@ import java.util.stream.Collectors;
 public class OrdreReparationServiceImpl implements OrdreReparationService {
 
     private final OrdreReparationRepository ordreReparationRepository;
+    private final ClientRepository clientRepository;
     private final VehiculeRepository vehiculeRepository;
     private final TechnicienRepository technicienRepository;
     private final ProformaRepository proformaRepository;
@@ -155,6 +160,8 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     private final sn.oas.facturation.features.facture.repository.FactureRepository factureRepository;
     private final sn.oas.facturation.features.bonDeLivraison.repository.BonDeLivraisonRepository bonDeLivraisonRepository;
     private final CataloguePiecePricingPolicy cataloguePiecePricingPolicy;
+    private final PolitiqueFinanciereClientService politiqueFinanciereClientService;
+    private final DemandeDerogationPlafondRepository demandeDerogationPlafondRepository;
 
     @Autowired
     @Lazy
@@ -166,6 +173,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         @CacheEvict(value = "dashboard_chef_atelier", allEntries = true),
         @CacheEvict(value = "dashboard_agent", allEntries = true)
     })*/
+    @Transactional
     public OrdreReparation createOrdreReparation(OrdreReparationRequest request) {
         if (request.getStatut() == StatutOrdreReparation.LIVRE) {
             throw new IllegalArgumentException("La livraison doit passer par la restitution du véhicule.");
@@ -182,6 +190,22 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             }
         } else {
             throw new RuntimeException("L'ID du véhicule est obligatoire");
+        }
+
+        Client client = clientRepository.findByIdForUpdate(vehicule.getClient().getId())
+                .orElseThrow(() -> new RuntimeException("Client non trouvé"));
+        var evaluation = politiqueFinanciereClientService.evaluerReservation(client);
+        if (evaluation.factureEchueImpayee()) {
+            throw new sn.oas.facturation.shared.exception.BadRequestException(evaluation.motifBlocage());
+        }
+        if (demandeDerogationPlafondRepository.findFirstByClientIdAndStatutOrderByDateDemandeDesc(
+                client.getId(), StatutDemandeDerogationPlafond.EN_ATTENTE).isPresent()) {
+            throw new sn.oas.facturation.shared.exception.BadRequestException(
+                    "Une demande de dérogation est déjà en attente. Attendez la décision du Super Agent avant de démarrer une nouvelle réparation.");
+        }
+        if (evaluation.plafondAtteint()) {
+            throw new sn.oas.facturation.shared.exception.BadRequestException(
+                    "Le plafond du client est atteint. Une création directe d'OR ne peut pas démarrer une réparation. Commencez par un rendez-vous, puis créez la fiche atelier et l'OR depuis ce parcours.");
         }
 
         String numero = request.getNumero();
@@ -248,7 +272,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 "Nouvel Ordre de Réparation",
                 "Un nouvel ordre de réparation (" + savedOrdre.getNumero() + ") a été créé.");
         
-        Client client = clientForOrder(savedOrdre);
+        client = clientForOrder(savedOrdre);
         if (client != null && savedOrdre.getVehicule() != null) {
             notificationService.sendInAppNotification(client, "Ordre de réparation créé",
                     "L'ordre de réparation " + savedOrdre.getNumero() + " a été créé pour votre véhicule "
@@ -346,6 +370,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         dto.setNumero(ordre.getNumero());
         dto.setStatut(ordre.getStatut() != null ? ordre.getStatut().name() : null);
         dto.setHasDiagnostic(ordre.getDiagnostic() != null);
+        dto.setHasOrdreTravail(ordreTravailRepository.existsByOrdreReparationId(ordre.getId()));
         
         boolean hasPieces = ordre.getLignesOrdreReparationPieces() != null && !ordre.getLignesOrdreReparationPieces().isEmpty();
         boolean hasMo = ordre.getLignesOrdreReparationMainDoeuvres() != null && !ordre.getLignesOrdreReparationMainDoeuvres().isEmpty();
@@ -535,7 +560,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     public OrdreReparation updateOrdreReparation(Long id, OrdreReparationRequest request) {
         OrdreReparation ordreReparation = ordreReparationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
-        if (estAuMoinsOrdreTravail(ordreReparation)) {
+        if (estOrdreTravailCree(ordreReparation)) {
             throw new IllegalArgumentException("L'OR ne peut plus être modifié après son passage à l'Ordre de Travail. Modifiez le proforma depuis son étape dédiée.");
         }
         if (ordreReparation.getVehicule() != null && !ordreReparation.getVehicule().isActif()) {
@@ -547,10 +572,6 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         verifierTravauxDemandesImmuables(ordreReparation, request.getDescriptionTravaux(), request.getLignesTravaux());
         if (request.getLignesReception() != null)
             throw new IllegalArgumentException("L'état des lieux de réception ne peut plus être modifié après la création de l'ordre.");
-        if (request.getListeDefauts() != null && ordreReparation.getStatut() != null
-                && ordreReparation.getStatut().getEtape() >= StatutOrdreReparation.PIECES_MO.getEtape()) {
-            throw new IllegalArgumentException("Les défauts du diagnostic ne peuvent plus être modifiés après sa clôture.");
-        }
         if (request.getListeDefauts() != null)
             ordreReparation.setListeDefauts(request.getListeDefauts());
         if (request.getStatut() == StatutOrdreReparation.LIVRE)
@@ -559,7 +580,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 && request.getStatut() != null && request.getStatut() != StatutOrdreReparation.LIVRE)
             throw new IllegalArgumentException("Un ordre livré ne peut pas revenir à une étape précédente.");
         if (request.getStatut() != null) {
-            verifierTransitionStatut(ordreReparation.getStatut(), request.getStatut());
+            verifierTransitionStatut(ordreReparation, request.getStatut());
             verifierDiagnosticTermineAvantProgression(ordreReparation, request.getStatut());
             if (request.getStatut() == StatutOrdreReparation.ORDRE_DE_TRAVAIL
                     && (ordreReparation.getStatut() == null
@@ -719,8 +740,8 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                 .orElseThrow(() -> new RuntimeException("Technicien non trouvé"));
 
         verifierTechnicienDuGarage(technicien, fiche);
-        if (fiche.getStatut() != null && fiche.getStatut().getEtape() >= StatutOrdreReparation.PIECES_MO.getEtape()) {
-            throw new IllegalArgumentException("Les techniciens du diagnostic ne peuvent plus être modifiés après sa clôture.");
+        if (estOrdreTravailCree(fiche)) {
+            throw new IllegalArgumentException("Les techniciens du diagnostic ne peuvent plus être modifiés après la création de l'Ordre de Travail.");
         }
 
         Diagnostic diag = fiche.getDiagnostic();
@@ -755,8 +776,8 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     public void removeTechnicien(Long ficheId, Long technicienId) {
         OrdreReparation fiche = ordreReparationRepository.findById(ficheId)
                 .orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
-        if (fiche.getStatut() != null && fiche.getStatut().getEtape() >= StatutOrdreReparation.PIECES_MO.getEtape()) {
-            throw new IllegalArgumentException("Les techniciens du diagnostic ne peuvent plus être modifiés après sa clôture.");
+        if (estOrdreTravailCree(fiche)) {
+            throw new IllegalArgumentException("Les techniciens du diagnostic ne peuvent plus être modifiés après la création de l'Ordre de Travail.");
         }
         if (fiche.getDiagnostic() != null) {
             fiche.getDiagnostic().retirerTechnicien(technicienId);
@@ -832,7 +853,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             throw new IllegalArgumentException("Un ordre livré ne peut pas revenir à une étape précédente.");
         }
         StatutOrdreReparation ancienStatut = fiche.getStatut();
-        verifierTransitionStatut(ancienStatut, newStatut);
+        verifierTransitionStatut(fiche, newStatut);
         verifierDiagnosticTermineAvantProgression(fiche, newStatut);
         if (newStatut == StatutOrdreReparation.ORDRE_DE_TRAVAIL
                 && (ancienStatut == null || ancienStatut.getEtape() < StatutOrdreReparation.ORDRE_DE_TRAVAIL.getEtape())) {
@@ -1258,7 +1279,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         if (ordre.getStatut() == StatutOrdreReparation.LIVRE && dto.getStatut() != null) {
             throw new IllegalArgumentException("Un ordre livré ne peut pas revenir à une étape précédente.");
         }
-        if (dto.getStatut() != null) verifierTransitionStatut(ordre.getStatut(), dto.getStatut());
+        if (dto.getStatut() != null) verifierTransitionStatut(ordre, dto.getStatut());
         if (dto.getStatut() != null) verifierDiagnosticTermineAvantProgression(ordre, dto.getStatut());
         if (dto.getStatut() == StatutOrdreReparation.ORDRE_DE_TRAVAIL
                 && (ordre.getStatut() == null || ordre.getStatut().getEtape() < StatutOrdreReparation.ORDRE_DE_TRAVAIL.getEtape())) {
@@ -1274,18 +1295,17 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         ordre.setUpdatedAt(LocalDateTime.now());
     }
 
-    private boolean estAuMoinsOrdreTravail(OrdreReparation ordre) {
-        return ordre.getStatut() != null && ordre.getStatut().getEtape() >= StatutOrdreReparation.ORDRE_DE_TRAVAIL.getEtape();
+    private boolean estOrdreTravailCree(OrdreReparation ordre) {
+        return ordreTravailRepository.existsByOrdreReparationId(ordre.getId());
     }
 
-    private void verifierTransitionStatut(StatutOrdreReparation ancien, StatutOrdreReparation nouveau) {
-        if (ancien != null && ancien.getEtape() >= StatutOrdreReparation.PIECES_MO.getEtape()
-                && nouveau.getEtape() < StatutOrdreReparation.PIECES_MO.getEtape()) {
-            throw new IllegalArgumentException("Après la clôture du diagnostic, le retour à une étape antérieure est interdit.");
-        }
-        if (ancien != null && ancien.getEtape() >= StatutOrdreReparation.ORDRE_DE_TRAVAIL.getEtape()
-                && nouveau.getEtape() < StatutOrdreReparation.ORDRE_DE_TRAVAIL.getEtape()) {
+    private void verifierTransitionStatut(OrdreReparation ordre, StatutOrdreReparation nouveau) {
+        boolean ordreTravailCree = ordreTravailRepository.existsByOrdreReparationId(ordre.getId());
+        if (ordreTravailCree && nouveau.getEtape() < StatutOrdreReparation.ORDRE_DE_TRAVAIL.getEtape()) {
             throw new IllegalArgumentException("Après le passage à l'Ordre de Travail, le retour aux étapes précédentes est interdit. Le proforma reste accessible séparément.");
+        }
+        if (!ordreTravailCree && nouveau == StatutOrdreReparation.ORDRE_DE_TRAVAIL) {
+            throw new IllegalArgumentException("Créez l'Ordre de Travail avant de passer à cette étape.");
         }
     }
 
@@ -1313,7 +1333,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     }
 
     private void verifierEtapeAvantOrdreTravail(OrdreReparation ordre) {
-        if (estAuMoinsOrdreTravail(ordre)) {
+        if (estOrdreTravailCree(ordre)) {
             throw new IllegalArgumentException("Cette étape est verrouillée après le passage à l'Ordre de Travail. Seule la modification du proforma reste autorisée.");
         }
     }
@@ -1350,6 +1370,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         dto.setId(ordre.getId());
         dto.setNumero(ordre.getNumero());
         dto.setStatut(ordre.getStatut() != null ? ordre.getStatut().name() : null);
+        dto.setHasOrdreTravail(ordreTravailRepository.existsByOrdreReparationId(ordre.getId()));
         dto.setDescriptionTravaux(ordre.getDescriptionTravaux());
         dto.setLignesTravaux(ordre.getLignesTravaux());
         dto.setLignesReception(ordre.getLignesReception());
@@ -1391,6 +1412,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         dto.setId(ordre.getId());
         dto.setNumero(ordre.getNumero());
         dto.setStatut(ordre.getStatut() != null ? ordre.getStatut().name() : null);
+        dto.setHasOrdreTravail(ordreTravailRepository.existsByOrdreReparationId(ordre.getId()));
         if (ordre.getVehicule() != null) dto.setVehiculeId(ordre.getVehicule().getId());
         dto.setListeDefauts(ordre.getListeDefauts());
 
@@ -1505,6 +1527,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         dto.setId(ordre.getId());
         dto.setNumero(ordre.getNumero());
         dto.setStatut(ordre.getStatut() != null ? ordre.getStatut().name() : null);
+        dto.setHasOrdreTravail(ordreTravailRepository.existsByOrdreReparationId(ordre.getId()));
         if (ordre.getVehicule() != null) dto.setVehiculeId(ordre.getVehicule().getId());
         Client client = ordre.getClient() != null ? ordre.getClient()
                 : (ordre.getVehicule() != null ? ordre.getVehicule().getClient() : null);
@@ -1564,6 +1587,7 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         dto.setId(ordre.getId());
         dto.setNumero(ordre.getNumero());
         dto.setStatut(ordre.getStatut() != null ? ordre.getStatut().name() : null);
+        dto.setHasOrdreTravail(ordreTravailRepository.existsByOrdreReparationId(ordre.getId()));
         dto.setUpdatedAt(ordre.getUpdatedAt());
         dto.setDateCreation(ordre.getDateCreation());
         if (ordre.getVehicule() != null) {
@@ -2180,9 +2204,6 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
     public StepDiagnosticDto updateStepDiagnostic(Long id, StepDiagnosticDto dto) {
         OrdreReparation ordre = ordreReparationRepository.findById(id).orElseThrow(() -> new RuntimeException("Fiche Atelier non trouvée"));
         verifierEtapeAvantOrdreTravail(ordre);
-        if (ordre.getStatut() != null && ordre.getStatut().getEtape() >= StatutOrdreReparation.PIECES_MO.getEtape()) {
-            throw new IllegalArgumentException("Le diagnostic est terminé et ne peut plus être modifié.");
-        }
         updateBaseStepFields(ordre, dto);
         if (dto.getTechnicienId() != null) {
             Technicien technicien = technicienRepository.findById(dto.getTechnicienId()).orElseThrow(() -> new RuntimeException("Technicien non trouvé"));

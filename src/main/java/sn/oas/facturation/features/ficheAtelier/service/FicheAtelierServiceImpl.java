@@ -7,12 +7,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.repository.ClientRepository;
+import sn.oas.facturation.features.client.service.PolitiqueFinanciereClientService;
 import sn.oas.facturation.features.ficheAtelier.data.entity.FicheAtelier;
 import sn.oas.facturation.features.ficheAtelier.dto.FicheAtelierRequest;
 import sn.oas.facturation.features.ficheAtelier.repository.FicheAtelierRepository;
 import sn.oas.facturation.features.rendezvous.data.entity.RendezVous;
 import sn.oas.facturation.features.rendezvous.data.enums.RendezVousStatus;
+import sn.oas.facturation.features.rendezvous.data.enums.StatutDemandeDerogationPlafond;
 import sn.oas.facturation.features.rendezvous.repository.RendezVousRepository;
+import sn.oas.facturation.features.rendezvous.repository.DemandeDerogationPlafondRepository;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.features.vehicule.repository.VehiculeRepository;
 import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
@@ -40,7 +43,9 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
 
     private final FicheAtelierRepository ficheAtelierRepository;
     private final RendezVousRepository rendezVousRepository;
+    private final DemandeDerogationPlafondRepository demandeDerogationPlafondRepository;
     private final ClientRepository clientRepository;
+    private final PolitiqueFinanciereClientService politiqueFinanciereClientService;
     private final VehiculeRepository vehiculeRepository;
     private final OrdreReparationRepository ordreReparationRepository;
     private final sn.oas.facturation.features.ordreReparation.service.OrdreReparationService ordreReparationService;
@@ -59,7 +64,7 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
         }
         verifierSignature(request.getSignatureReceptionnaireBase64());
         verifierSignature(request.getSignatureBase64());
-        Client client = clientRepository.findById(request.getClientId())
+        Client client = clientRepository.findByIdForUpdate(request.getClientId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Client non trouvé avec l'id : " + request.getClientId()));
 
@@ -71,6 +76,25 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
         }
         if (!vehicule.isActif()) {
             throw new BadRequestException("Ce véhicule est en attente d'activation par un agent.");
+        }
+
+        // Une fiche sans rendez-vous est une voie de démarrage alternative. Elle ne doit pas
+        // permettre de contourner le plafond ni une demande d'exception déjà en cours.
+        if (request.getRendezVousId() == null) {
+            var evaluation = politiqueFinanciereClientService.evaluerReservation(client);
+            if (evaluation.factureEchueImpayee()) {
+                throw new BadRequestException(evaluation.motifBlocage());
+            }
+            boolean derogationEnAttente = demandeDerogationPlafondRepository
+                    .findFirstByClientIdAndStatutOrderByDateDemandeDesc(
+                            client.getId(), StatutDemandeDerogationPlafond.EN_ATTENTE)
+                    .isPresent();
+            if (derogationEnAttente) {
+                throw new BadRequestException("Une demande de dérogation est déjà en attente. Attendez la décision du Super Agent avant de démarrer une nouvelle réparation.");
+            }
+            if (evaluation.plafondAtteint()) {
+                throw new BadRequestException("Le plafond du client est atteint. Aucun nouveau parcours ne peut commencer sans rendez-vous. Créez ou sélectionnez le rendez-vous dans le module Rendez-vous ; la demande sera transmise au Super Agent si une dérogation est nécessaire.");
+            }
         }
 
         // BLOCAGE : Si le véhicule a un ordre de réparation qui n'est pas encore livré
