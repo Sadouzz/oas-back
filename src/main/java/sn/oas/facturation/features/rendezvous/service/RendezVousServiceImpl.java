@@ -185,14 +185,14 @@ public class RendezVousServiceImpl implements RendezVousService {
     private RendezVousCreationResult createOrRequest(Client client, Vehicule vehicule, Garage garage,
             RendezVousRequest request, RendezVousStatus statut, String origine, String requestedBy) {
         EvaluationReservation evaluation = politiqueFinanciereClientService.evaluerReservation(client);
-        if (evaluation.factureEchueImpayee()) {
+        /*if (evaluation.factureEchueImpayee()) {
             throw new BadRequestException(evaluation.motifBlocage());
-        }
+        }*/
 
         Optional<DemandeDerogationPlafond> demandeEnAttente = demandeDerogationRepository
                 .findFirstByClientIdAndStatutOrderByDateDemandeDesc(
                         client.getId(), StatutDemandeDerogationPlafond.EN_ATTENTE);
-        if (evaluation.plafondAtteint() || demandeEnAttente.isPresent()) {
+        /*if (evaluation.plafondAtteint() || demandeEnAttente.isPresent()) {
             if (demandeEnAttente.isPresent()) {
                 return RendezVousCreationResult.dejaEnAttente(
                         DemandeDerogationPlafondResponse.from(demandeEnAttente.get()));
@@ -224,7 +224,7 @@ public class RendezVousServiceImpl implements RendezVousService {
             agentNotificationService.notifyRole(sn.oas.facturation.features.user.data.enums.Role.SUPER_AGENT,
                     "Dérogation de plafond à examiner", message);
             return RendezVousCreationResult.enAttente(DemandeDerogationPlafondResponse.from(demande));
-        }
+        }*/
 
         RendezVous rv = persistAppointment(client, vehicule, garage, request.dateRendezVous(), request.motif(),
                 statut, request.commentaire());
