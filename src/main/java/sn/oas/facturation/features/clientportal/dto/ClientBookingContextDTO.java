@@ -4,7 +4,8 @@ import java.util.List;
 
 public record ClientBookingContextDTO(
         List<VehiculeBookingDTO> vehicules,
-        List<GarageBookingDTO> garages
+        List<GarageBookingDTO> garages,
+        ReservationBookingStatusDTO reservation
 ) {
     public record VehiculeBookingDTO(
             Long id,

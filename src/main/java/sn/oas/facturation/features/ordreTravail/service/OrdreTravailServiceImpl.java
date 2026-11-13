@@ -211,6 +211,11 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
         }
 
         OrdreTravail saved = ordreTravailRepository.save(ordreTravail);
+        if (ordreReparation != null && (ordreReparation.getStatut() == null
+                || ordreReparation.getStatut().getEtape() < StatutOrdreReparation.ORDRE_DE_TRAVAIL.getEtape())) {
+            ordreReparation.setStatut(StatutOrdreReparation.ORDRE_DE_TRAVAIL);
+            ordreReparationRepository.save(ordreReparation);
+        }
         return OrdreTravailResponseDto.from(saved);
     }
 
@@ -229,6 +234,11 @@ public class OrdreTravailServiceImpl implements OrdreTravailService {
         // Vérifier si un ordre de travail existe déjà pour cet ordre de réparation
         Optional<OrdreTravail> existing = ordreTravailRepository.findByOrdreReparationId(ordreReparationId);
         if (existing.isPresent()) {
+            if (or.getStatut() == null
+                    || or.getStatut().getEtape() < StatutOrdreReparation.ORDRE_DE_TRAVAIL.getEtape()) {
+                or.setStatut(StatutOrdreReparation.ORDRE_DE_TRAVAIL);
+                ordreReparationRepository.save(or);
+            }
             return OrdreTravailResponseDto.from(existing.get());
         }
 

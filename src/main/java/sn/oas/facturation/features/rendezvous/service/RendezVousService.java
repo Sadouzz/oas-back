@@ -6,13 +6,20 @@ import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.rendezvous.data.entity.RendezVous;
 import sn.oas.facturation.features.rendezvous.data.enums.RendezVousStatus;
 import sn.oas.facturation.features.rendezvous.dto.RendezVousRequest;
+import sn.oas.facturation.features.rendezvous.dto.RendezVousCreationResult;
+import sn.oas.facturation.features.rendezvous.dto.DemandeDerogationPlafondResponse;
+import sn.oas.facturation.features.clientportal.dto.ReservationBookingStatusDTO;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 public interface RendezVousService {
-    RendezVous bookRendezVous(Client client, RendezVousRequest request);
-    RendezVous createRendezVousByAdmin(RendezVousRequest request);
+    RendezVousCreationResult bookRendezVous(Client client, RendezVousRequest request, String requestedBy);
+    RendezVousCreationResult createRendezVousByAdmin(RendezVousRequest request, String requestedBy, String requesterRole);
+    Page<DemandeDerogationPlafondResponse> getPendingQuotaDerogations(int page, int size);
+    RendezVous approveQuotaDerogation(Long requestId, String decisionMaker, String reason);
+    DemandeDerogationPlafondResponse rejectQuotaDerogation(Long requestId, String decisionMaker, String reason);
+    ReservationBookingStatusDTO getClientBookingStatus(Long clientId);
     RendezVous cancelRendezVous(Client client, Long id);
     RendezVous cancelRendezVous(Client client, Long id, String motifAnnulation);
     List<RendezVous> getClientRendezVous(Client client);

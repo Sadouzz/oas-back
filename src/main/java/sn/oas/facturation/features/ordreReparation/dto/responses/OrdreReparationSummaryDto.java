@@ -9,5 +9,6 @@ public class OrdreReparationSummaryDto {
     private String statut;
     private Boolean hasDiagnostic; 
     private Boolean hasPiecesMo; 
+    private Boolean hasOrdreTravail;
     private VehiculeHeaderDto vehicule; 
 }
