@@ -37,7 +37,7 @@ public class ProformaGenerator {
         String marque = pdfVehicle == null ? "" : safe(pdfVehicle.getMarque());
         String modele = pdfVehicle == null ? "" : safe(pdfVehicle.getModele());
         String immat = pdfVehicle == null ? "" : safe(pdfVehicle.getImmatriculation());
-        String tauxTimbre = tauxTimbreEspeces(p);
+        String tauxTimbre = tauxTimbreFiscal(p);
         var tokens = java.util.Map.ofEntries(
                 java.util.Map.entry("numero", safe(p.getNumero())), java.util.Map.entry("clientNom", clientNom),
                 java.util.Map.entry("marque", marque), java.util.Map.entry("modele", modele),
@@ -51,25 +51,31 @@ public class ProformaGenerator {
                 java.util.Map.entry("timbreFiscalRate", tauxTimbre),
                 java.util.Map.entry("remarque", p.getRemarque() == null ? "" : p.getRemarque()));
         byte[] configuredTemplate = htmlToPdfService.genererTemplatePdfSiConfigure(
-                "PROFORMA", layoutKey, tokens, noticeTimbreEspeces(p, tauxTimbre));
+                "PROFORMA", layoutKey, tokens, noticeTimbreFiscal(p, tauxTimbre));
         return configuredTemplate != null ? configuredTemplate
                 : htmlToPdfService.genererHtmlEnPdf(html, "PROFORMA", tokens, layoutKey);
     }
 
-    private String tauxTimbreEspeces(Proforma proforma) {
+    private String tauxTimbreFiscal(Proforma proforma) {
         BigDecimal rate = proforma.getTimbreFiscalRate();
         if (rate == null) rate = fiscalConfigurationService.getCurrent().getTimbreFiscalRate();
         return rate.stripTrailingZeros().toPlainString();
     }
 
-    private String noticeTimbreEspeces(Proforma proforma, String rate) {
+    private String noticeTimbreFiscal(Proforma proforma, String rate) {
         boolean timbreHistorique = proforma.getMontantTimbre() != null && proforma.getMontantTimbre().signum() > 0;
+        boolean tvaApplicable = Boolean.TRUE.equals(proforma.getTvaApplicable())
+                || (proforma.getTvaApplicable() == null && proforma.getMontantTVA() != null
+                    && proforma.getMontantTVA().signum() > 0);
         String detailTotal = timbreHistorique
-                ? " Ce document conserve également le timbre historique déjà inclus dans son total à l'émission."
-                : " Ce timbre n'est pas inclus dans le total de ce proforma.";
+                ? "Le montant de timbre historique déjà enregistré sur ce proforma est conservé dans son total. "
+                : "Aucun timbre n'est ajouté au total de ce proforma. ";
+        String regimeFacture = tvaApplicable
+                ? "La facture émise avec TVA ne portera pas de timbre fiscal."
+                : "Si une facture est émise en HT à partir de ce proforma, le timbre fiscal au taux de " + rate
+                    + " % sera inclus une seule fois dans le total de la facture, dès son émission.";
         return "<div style=\"margin-top:10px;padding:8px;border:1px solid #d9e2ec;font-size:9pt;\">"
-                + "Pour tout paiement en espèces, un timbre fiscal de " + rate
-                + " % s'applique uniquement au montant réglé en espèces." + detailTotal
+                + detailTotal + regimeFacture
                 + "</div>";
     }
 
@@ -118,7 +124,7 @@ public class ProformaGenerator {
         BigDecimal montantTtcAvecTimbre = p.calculerMontantTtcAvecTimbre();
         String totalTTC    = df.format(montantTtcAvecTimbre);
         String totalTTCLettres = montantEnLettres(montantTtcAvecTimbre);
-        String noticeTimbre = noticeTimbreEspeces(p, tauxTimbreEspeces(p));
+        String noticeTimbre = noticeTimbreFiscal(p, tauxTimbreFiscal(p));
 
         String remarques = "";
         if (p.getRemarque() != null) {

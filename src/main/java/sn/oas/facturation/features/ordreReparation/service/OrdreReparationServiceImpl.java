@@ -203,17 +203,15 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
         Client client = clientRepository.findByIdForUpdate(vehicule.getClient().getId())
                 .orElseThrow(() -> new RuntimeException("Client non trouvé"));
         var evaluation = politiqueFinanciereClientService.evaluerReservation(client);
-        if (evaluation.factureEchueImpayee()) {
-            throw new sn.oas.facturation.shared.exception.BadRequestException(evaluation.motifBlocage());
-        }
         if (demandeDerogationPlafondRepository.findFirstByClientIdAndStatutOrderByDateDemandeDesc(
                 client.getId(), StatutDemandeDerogationPlafond.EN_ATTENTE).isPresent()) {
             throw new sn.oas.facturation.shared.exception.BadRequestException(
                     "Une demande de dérogation est déjà en attente. Attendez la décision du Super Agent avant de démarrer une nouvelle réparation.");
         }
-        if (evaluation.plafondAtteint()) {
+        if (!evaluation.workflowAutorise()) {
             throw new sn.oas.facturation.shared.exception.BadRequestException(
-                    "Le plafond du client est atteint. Une création directe d'OR ne peut pas démarrer une réparation. Commencez par un rendez-vous, puis créez la fiche atelier et l'OR depuis ce parcours.");
+                    evaluation.motifBlocage() + " Une création directe d'OR ne peut pas démarrer un nouveau parcours. "
+                    + "Commencez par un rendez-vous afin que la demande soit transmise au Super Agent.");
         }
 
         String numero = request.getNumero();
@@ -1996,6 +1994,8 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                     .tvaApplicable(bl.getTvaApplicable())
                     .factureId(fId)
                     .factureNumero(fNum)
+                    .noteDePrixId(bl.getNoteDePrix() != null ? bl.getNoteDePrix().getId() : null)
+                    .noteDePrixNumero(bl.getNoteDePrix() != null ? bl.getNoteDePrix().getNumero() : null)
                     .build());
 
             dto.setMontantHT(bl.getMontantHT() != null ? bl.getMontantHT().doubleValue() : 0.0);
@@ -2159,6 +2159,26 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             fDto.setTvaApplicable(facture.getTvaApplicable());
             fDto.setModePaiement(facture.getModePaiement());
             dto.setFacture(fDto);
+        }
+
+        NoteDePrix noteDePrix = (bl != null && bl.getNoteDePrix() != null)
+                ? bl.getNoteDePrix()
+                : noteDePrixRepository.findFirstByOrdreReparationId(ordre.getId()).orElse(null);
+        if (noteDePrix != null) {
+            dto.setHasNoteDePrix(true);
+            dto.setNoteDePrix(StepBLResponseDto.NoteDePrixSummaryDto.builder()
+                    .id(noteDePrix.getId())
+                    .numero(noteDePrix.getNumero())
+                    .dateCreation(noteDePrix.getDateCreation())
+                    .statutPaiement(noteDePrix.getStatutPaiement() != null ? noteDePrix.getStatutPaiement().name() : null)
+                    .modePaiement(noteDePrix.getModePaiement())
+                    .montantTotal(noteDePrix.getMontantTotal() != null ? noteDePrix.getMontantTotal().doubleValue() : 0.0)
+                    .montantPaye(noteDePrix.getMontantPaye() != null ? noteDePrix.getMontantPaye().doubleValue() : 0.0)
+                    .montantTimbrePaye(noteDePrix.getMontantTimbrePaye() != null ? noteDePrix.getMontantTimbrePaye().doubleValue() : 0.0)
+                    .resteAPayer(noteDePrix.getResteAPayer() != null ? noteDePrix.getResteAPayer().doubleValue()
+                            : noteDePrix.getMontantTotal() != null ? noteDePrix.getMontantTotal().doubleValue() : 0.0)
+                    .tvaApplicable(noteDePrix.getTvaApplicable())
+                    .build());
         }
 
         return dto;

@@ -309,7 +309,7 @@ public class ClientServiceImpl implements ClientService {
             client.setEcheance(request.echeance());
         }
         if (request.montantPlafondEcheance() != null) {
-            if (request.montantPlafondEcheance().signum() < 0) throw new IllegalArgumentException("Le plafond de période ne peut pas être négatif.");
+            if (request.montantPlafondEcheance().signum() < 0) throw new IllegalArgumentException("Le plafond d'encours impayé ne peut pas être négatif.");
             client.setMontantPlafondEcheance(request.montantPlafondEcheance());
         }
         if (request.ninea() != null) {
@@ -357,9 +357,9 @@ public class ClientServiceImpl implements ClientService {
         if (request.echeanceJours() != null && (request.echeanceJours() < 1 || request.echeanceJours() > 3650))
             throw new IllegalArgumentException("L'échéance doit être comprise entre 1 et 3650 jours.");
         if (request.plafondPeriode() != null && request.plafondPeriode().signum() < 0)
-            throw new IllegalArgumentException("Le plafond de période ne peut pas être négatif.");
+            throw new IllegalArgumentException("Le plafond d'encours impayé ne peut pas être négatif.");
         if (request.plafondPeriode() != null && (request.echeanceJours() == null || request.echeanceJours() <= 0))
-            throw new IllegalArgumentException("Un délai de paiement est obligatoire pour définir un plafond de période.");
+            throw new IllegalArgumentException("Un délai de paiement est obligatoire pour définir un plafond d'encours.");
         Client client = clientRepository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Client non trouvé"));
         client.setEcheance(request.echeanceJours());
         client.setMontantPlafondEcheance(request.plafondPeriode());

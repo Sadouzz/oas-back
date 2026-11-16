@@ -8,6 +8,8 @@ import sn.oas.facturation.features.client.data.enums.TypeClient;
 import sn.oas.facturation.features.client.dto.*;
 import sn.oas.facturation.features.client.repository.*;
 import sn.oas.facturation.features.facture.repository.FactureRepository;
+import sn.oas.facturation.features.rendezvous.data.enums.StatutDemandeDerogationPlafond;
+import sn.oas.facturation.features.rendezvous.repository.DemandeDerogationPlafondRepository;
 import sn.oas.facturation.shared.exception.ResourceNotFoundException;
 
 import java.math.BigDecimal;
@@ -22,6 +24,8 @@ public class CompteClientService {
     private final ClientRepository clientRepository;
     private final CompteClientRepository compteRepository;
     private final FactureRepository factureRepository;
+    private final PolitiqueFinanciereClientService politiqueFinanciereClientService;
+    private final DemandeDerogationPlafondRepository demandeDerogationPlafondRepository;
 
     @Transactional
     public CompteClientResponse configurer(Long clientId, CompteClientRequest request) {
@@ -29,7 +33,7 @@ public class CompteClientService {
         if (request.echeanceJours() == null || request.echeanceJours() < 1 || request.echeanceJours() > 3650)
             throw new IllegalArgumentException("L'échéance doit être comprise entre 1 et 3650 jours.");
         if (request.plafondPeriode() == null || request.plafondPeriode().signum() <= 0)
-            throw new IllegalArgumentException("Le plafond de période doit être supérieur à zéro.");
+            throw new IllegalArgumentException("Le plafond d'encours impayé doit être supérieur à zéro.");
         if (request.raisonSociale() == null || request.raisonSociale().isBlank())
             throw new IllegalArgumentException("La raison sociale est obligatoire.");
         if (request.ninea() == null || request.ninea().isBlank())
@@ -69,22 +73,23 @@ public class CompteClientService {
     public CompteClientResponse lire(Long clientId) {
         Client client = clientRepository.findById(clientId).orElseThrow(() -> new ResourceNotFoundException("Client non trouvé"));
         CompteClient compte = compteRepository.findByClientId(clientId).orElse(null);
-        BigDecimal encours = factureRepository.sumResteAPayerByClientId(clientId);
-        if (encours == null) encours = BigDecimal.ZERO;
+        var evaluation = politiqueFinanciereClientService.evaluerReservation(client);
+        BigDecimal encours = evaluation.encoursImpayes();
         LocalDateTime now = LocalDateTime.now();
         Integer jours = client.getEcheance();
         LocalDateTime depuis = jours == null || jours <= 0 ? now.minusYears(100) : now.minusDays(jours);
         BigDecimal periode = factureRepository.sumMontantFacturesDepuis(clientId, depuis);
         if (periode == null) periode = BigDecimal.ZERO;
-        boolean retard = factureRepository.existsFactureImpayeeEnRetard(clientId, now)
-                || (jours != null && jours > 0 && factureRepository.existsFactureLegacyImpayeeEnRetard(clientId, now.minusDays(jours)));
-        String motif = null;
-        if (retard) motif = "Une ou plusieurs factures sont échues et impayées.";
-        else if (client.getMontantPlafondEcheance() != null && periode.compareTo(client.getMontantPlafondEcheance()) >= 0)
-            motif = "Le plafond de facturation de la période d'échéance est atteint.";
+        boolean demandeEnAttente = demandeDerogationPlafondRepository
+                .findFirstByClientIdAndStatutOrderByDateDemandeDesc(clientId, StatutDemandeDerogationPlafond.EN_ATTENTE)
+                .isPresent();
+        String motif = demandeEnAttente
+                ? "Une demande de dérogation est en attente de décision par un Super Agent."
+                : evaluation.motifBlocage();
         return new CompteClientResponse(clientId, client.getTypeClient() == null ? TypeClient.PARTICULIER.name() : client.getTypeClient().name(),
                 client.getRaisonSociale(), client.getNumeroEntreprise(), compte != null, compte != null && compte.isActif(), jours,
-                client.getMontantPlafondEcheance(), encours, periode, retard, motif == null, motif,
+                client.getMontantPlafondEcheance(), encours, periode, evaluation.factureEchueImpayee(),
+                evaluation.workflowAutorise() && !demandeEnAttente, motif,
                 client.getRccm(), client.getRib(), compte == null ? null : compte.getDateCreation());
     }
 

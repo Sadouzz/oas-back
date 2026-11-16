@@ -36,6 +36,7 @@ import sn.oas.facturation.features.piecedetache.repository.PieceMouvementReposit
 import sn.oas.facturation.features.user.data.entity.Agent;
 import sn.oas.facturation.features.user.data.entity.User;
 import sn.oas.facturation.features.facture.service.FacturePaymentMode;
+import sn.oas.facturation.shared.exception.BadRequestException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -92,6 +93,14 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
         Garage g = documentNumberGeneratorService.getCurrentGarage();
         if (g != null) return g;
         return garageRepository.findAll().stream().findFirst().orElse(null);
+    }
+
+    private String normaliserModePaiementNote(String modePaiement) {
+        String mode = FacturePaymentMode.normalize(modePaiement);
+        if ("SOLDE_PREPAYE".equals(mode)) {
+            throw new BadRequestException("Le règlement d'une note de prix par solde prépayé n'est pas disponible.");
+        }
+        return mode;
     }
 
     @Override
@@ -207,7 +216,7 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
 
         note.setClient(client);
         note.setVehicule(vehicule);
-        String modePaiement = FacturePaymentMode.normalize(request.getModePaiement());
+        String modePaiement = normaliserModePaiementNote(request.getModePaiement());
         note.setModePaiement(modePaiement);
         note.setNumeroBonDeCommande(request.getNumeroBonDeCommande());
         note.setMontantAutre(request.getMontantAutre() != null ? request.getMontantAutre() : BigDecimal.ZERO);
@@ -217,16 +226,13 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
         BigDecimal montantTVA = appliquerTVA
                 ? fiscalConfigurationService.calculateRate(totalFinal, fiscalConfigurationService.getCurrent().getTvaRate())
                 : BigDecimal.ZERO;
-        BigDecimal timbre = isHt
-                ? fiscalConfigurationService.calculateRate(totalFinal, fiscalConfigurationService.getCurrent().getTimbreFiscalRate())
-                : BigDecimal.ZERO;
         note.setTvaApplicable(appliquerTVA);
         note.setMontantTVA(montantTVA);
         note.setMontantHT(totalFinal);
-        BigDecimal totalDocument = totalFinal.add(montantTVA).add(timbre);
+        BigDecimal totalDocument = totalFinal.add(montantTVA);
         note.setMontantTotal(totalDocument);
         note.setMontantPaye(BigDecimal.ZERO);
-        note.setMontantTimbrePaye(timbre);
+        note.setMontantTimbrePaye(BigDecimal.ZERO);
         note.setResteAPayer(totalDocument);
         note.setStatutPaiement(StatutPaiement.NON_PAYE);
 
@@ -340,13 +346,15 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
             note.setMontantAutre(request.getMontantAutre());
         }
 
-        // Recalculate totals if lines, montantAutre, TVA or modePaiement were updated
+        // Recalculate totals when note content or its tax regime changes, not for a payment-only update.
         if (request.getModePaiement() != null) {
-            note.setModePaiement(FacturePaymentMode.normalize(request.getModePaiement()));
+            note.setModePaiement(normaliserModePaiementNote(request.getModePaiement()));
         }
         if (request.getAppliquerTVA() != null) note.setTvaApplicable(request.getAppliquerTVA());
-        if (request.getLignesPieces() != null || request.getLignesMainDoeuvres() != null || request.getMontantAutre() != null
-                || request.getAppliquerTVA() != null || request.getModePaiement() != null) {
+        boolean recalculerMontants = request.getLignesPieces() != null || request.getLignesMainDoeuvres() != null
+                || request.getMontantAutre() != null || request.getAppliquerTVA() != null
+                || (request.getModePaiement() != null && request.getMontantPaye() == null);
+        if (recalculerMontants) {
             BigDecimal piecesSum = note.getLignesFacturationPieces().stream()
                     .map(l -> BigDecimal.valueOf((long) (l.getPrix() != null ? l.getPrix() : 0) * (l.getQuantite() != null ? l.getQuantite() : 0)))
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -359,16 +367,10 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
             BigDecimal montantTVA = appliquerTVA
                     ? fiscalConfigurationService.calculateRate(totalHT, fiscalConfigurationService.getCurrent().getTvaRate())
                     : BigDecimal.ZERO;
-            BigDecimal timbre = isHt
-                    ? fiscalConfigurationService.calculateRate(totalHT, fiscalConfigurationService.getCurrent().getTimbreFiscalRate())
-                    : BigDecimal.ZERO;
-            BigDecimal totalDocument = totalHT.add(montantTVA).add(timbre);
+            BigDecimal totalDocument = totalHT.add(montantTVA);
             note.setMontantHT(totalHT);
             note.setMontantTVA(montantTVA);
             note.setMontantTotal(totalDocument);
-            if (isHt) {
-                note.setMontantTimbrePaye(timbre);
-            }
             BigDecimal paye = note.getMontantPaye() != null ? note.getMontantPaye() : BigDecimal.ZERO;
             BigDecimal reste = totalDocument.subtract(paye).max(BigDecimal.ZERO);
             note.setResteAPayer(reste);
@@ -391,18 +393,6 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
             if (nouveauMontantPaye.compareTo(note.getMontantTotal()) > 0) {
                 throw new sn.oas.facturation.shared.exception.BadRequestException(
                         "Le montant payé dépasse le total de la note de prix.");
-            }
-            BigDecimal partNouvellementPayee = nouveauMontantPaye.subtract(montantPayeActuel);
-            String modePaiementEffectif = request.getModePaiement() != null
-                    ? request.getModePaiement().trim().toUpperCase(java.util.Locale.ROOT)
-                    : note.getModePaiement();
-            boolean isEspeces = "ESPECE".equals(modePaiementEffectif) || "ESPECE_TTC".equals(modePaiementEffectif);
-            boolean timbreDejaInclus = FacturePaymentMode.isHt(note.getModePaiement());
-            if (isEspeces && !timbreDejaInclus && partNouvellementPayee.signum() > 0) {
-                BigDecimal timbre = fiscalConfigurationService.calculateRate(partNouvellementPayee,
-                        fiscalConfigurationService.getCurrent().getTimbreFiscalRate());
-                BigDecimal timbreActuel = note.getMontantTimbrePaye() != null ? note.getMontantTimbrePaye() : BigDecimal.ZERO;
-                note.setMontantTimbrePaye(timbreActuel.add(timbre));
             }
             note.setMontantPaye(request.getMontantPaye());
             BigDecimal total = note.getMontantTotal() != null ? note.getMontantTotal() : BigDecimal.ZERO;

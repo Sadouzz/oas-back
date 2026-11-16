@@ -170,6 +170,38 @@ public class RendezVousServiceImpl implements RendezVousService {
         Optional<DemandeDerogationPlafond> demandeEnAttente = demandeDerogationRepository
                 .findFirstByClientIdAndStatutOrderByDateDemandeDesc(
                         client.getId(), StatutDemandeDerogationPlafond.EN_ATTENTE);
+        if (demandeEnAttente.isPresent()) {
+            return RendezVousCreationResult.dejaEnAttente(
+                    DemandeDerogationPlafondResponse.from(demandeEnAttente.get()));
+        }
+
+        if (!evaluation.workflowAutorise()) {
+            DemandeDerogationPlafond demande = DemandeDerogationPlafond.builder()
+                    .client(client)
+                    .vehicule(vehicule)
+                    .garage(garage)
+                    .dateRendezVous(request.dateRendezVous())
+                    .motif(request.motif())
+                    .commentaire(request.commentaire())
+                    .statutRendezVousDemande(statut)
+                    .statut(StatutDemandeDerogationPlafond.EN_ATTENTE)
+                    .origine(origine)
+                    .demandeur(requestedBy == null || requestedBy.isBlank() ? "inconnu" : requestedBy)
+                    .plafondSnapshot(evaluation.plafond())
+                    .encoursImpayesSnapshot(evaluation.encoursImpayes())
+                    .echeanceJoursSnapshot(evaluation.echeanceJours())
+                    .detailsBlocageSnapshot(evaluation.motifBlocage())
+                    .build();
+            demande = demandeDerogationRepository.save(demande);
+            String clientName = (client.getFirstName() + " " + client.getLastName()).trim();
+            String message = "Une nouvelle demande de rendez-vous pour " + clientName
+                    + " (véhicule " + vehicule.getImmatriculation() + ") nécessite votre décision.\n"
+                    + evaluation.motifBlocage() + "\nDemande n°" + demande.getId() + ".";
+            agentNotificationService.notifyRole(sn.oas.facturation.features.user.data.enums.Role.SUPER_AGENT,
+                    "Dérogation financière à examiner", message);
+            return RendezVousCreationResult.enAttente(DemandeDerogationPlafondResponse.from(demande));
+        }
+
         /*if (evaluation.plafondAtteint() || demandeEnAttente.isPresent()) {
             if (demandeEnAttente.isPresent()) {
                 return RendezVousCreationResult.dejaEnAttente(
@@ -261,7 +293,7 @@ public class RendezVousServiceImpl implements RendezVousService {
         Optional<DemandeDerogationPlafond> pending = demandeDerogationRepository
                 .findFirstByClientIdAndStatutOrderByDateDemandeDesc(clientId, StatutDemandeDerogationPlafond.EN_ATTENTE);
         String message = evaluation.motifBlocage();
-        if (pending.isPresent() && !evaluation.factureEchueImpayee()) {
+        if (pending.isPresent()) {
             message = "Votre demande exceptionnelle est en attente d'examen par un Super Agent.";
         }
         return new ReservationBookingStatusDTO(
@@ -294,8 +326,6 @@ public class RendezVousServiceImpl implements RendezVousService {
         // Serialize this approval with all other workflow entry points for the same client.
         Client client = clientRepository.findByIdForUpdate(demande.getClient().getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Client non trouvé"));
-        String overdue = politiqueFinanciereClientService.motifBlocageRetard(client.getId());
-        if (overdue != null) throw new BadRequestException(overdue);
         if (demande.getDateRendezVous().isBefore(LocalDateTime.now())) {
             throw new BadRequestException("La date demandée est passée. Refusez cette demande et soumettez-en une nouvelle avec une date à venir.");
         }

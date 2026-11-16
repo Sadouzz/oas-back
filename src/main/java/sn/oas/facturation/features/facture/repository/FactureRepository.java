@@ -6,7 +6,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import sn.oas.facturation.features.facture.data.entity.Facture;
-import sn.oas.facturation.features.facture.data.enums.StatutPaiement;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -67,17 +66,43 @@ public interface FactureRepository extends JpaRepository<Facture, Long>, JpaSpec
     java.util.Optional<Facture> findFactureVisibleParClient(@Param("clientId") Long clientId,
             @Param("factureId") Long factureId);
 
-    @Query("SELECT COALESCE(SUM(f.resteAPayer), 0) FROM Facture f WHERE f.client.id = :clientId")
+    @Query("SELECT COALESCE(SUM(CASE WHEN f.resteAPayer IS NOT NULL THEN f.resteAPayer "
+            + "ELSE COALESCE(f.montantTotal, 0) - COALESCE(f.montantPaye, 0) END), 0) "
+            + "FROM Facture f "
+            + "LEFT JOIN f.client factureClient "
+            + "LEFT JOIN f.ordreReparation ordre "
+            + "LEFT JOIN ordre.client ordreClient "
+            + "LEFT JOIN f.vehicule vehicule "
+            + "LEFT JOIN vehicule.client vehiculeClient "
+            + "LEFT JOIN ordre.vehicule ordreVehicule "
+            + "LEFT JOIN ordreVehicule.client ordreVehiculeClient "
+            + "WHERE COALESCE(factureClient.id, ordreClient.id, ordreVehiculeClient.id, vehiculeClient.id) = :clientId "
+            + "AND (CASE WHEN f.resteAPayer IS NOT NULL THEN f.resteAPayer "
+            + "ELSE COALESCE(f.montantTotal, 0) - COALESCE(f.montantPaye, 0) END) > 0")
     java.math.BigDecimal sumResteAPayerByClientId(@Param("clientId") Long clientId);
+
+    @Query("SELECT DISTINCT f FROM Facture f "
+            + "LEFT JOIN f.client factureClient "
+            + "LEFT JOIN f.ordreReparation ordre "
+            + "LEFT JOIN ordre.client ordreClient "
+            + "LEFT JOIN f.vehicule vehicule "
+            + "LEFT JOIN vehicule.client vehiculeClient "
+            + "LEFT JOIN ordre.vehicule ordreVehicule "
+            + "LEFT JOIN ordreVehicule.client ordreVehiculeClient "
+            + "WHERE COALESCE(factureClient.id, ordreClient.id, ordreVehiculeClient.id, vehiculeClient.id) = :clientId "
+            + "AND (CASE WHEN f.resteAPayer IS NOT NULL THEN f.resteAPayer "
+            + "ELSE COALESCE(f.montantTotal, 0) - COALESCE(f.montantPaye, 0) END) > 0 "
+            + "AND ((f.dateEcheance IS NOT NULL AND f.dateEcheance < :maintenant) "
+            + "OR (f.dateEcheance IS NULL AND :limiteAnciennesFactures IS NOT NULL "
+            + "AND f.dateCreation < :limiteAnciennesFactures)) "
+            + "ORDER BY f.dateCreation ASC")
+    List<Facture> findFacturesImpayeesEnRetard(
+            @Param("clientId") Long clientId,
+            @Param("maintenant") java.time.LocalDateTime maintenant,
+            @Param("limiteAnciennesFactures") java.time.LocalDateTime limiteAnciennesFactures);
 
     @Query("SELECT COALESCE(SUM(f.montantTotal), 0) FROM Facture f WHERE f.client.id = :clientId AND f.dateCreation >= :debut")
     java.math.BigDecimal sumMontantFacturesDepuis(@Param("clientId") Long clientId, @Param("debut") java.time.LocalDateTime debut);
-
-    @Query("SELECT CASE WHEN COUNT(f) > 0 THEN true ELSE false END FROM Facture f WHERE f.client.id = :clientId AND f.resteAPayer > 0 AND f.dateEcheance IS NOT NULL AND f.dateEcheance < :maintenant")
-    boolean existsFactureImpayeeEnRetard(@Param("clientId") Long clientId, @Param("maintenant") java.time.LocalDateTime maintenant);
-
-    @Query("SELECT CASE WHEN COUNT(f) > 0 THEN true ELSE false END FROM Facture f WHERE f.client.id = :clientId AND f.resteAPayer > 0 AND f.dateEcheance IS NULL AND f.dateCreation < :limite")
-    boolean existsFactureLegacyImpayeeEnRetard(@Param("clientId") Long clientId, @Param("limite") java.time.LocalDateTime limite);
 
     java.util.Optional<Facture> findFirstByOrdreReparationId(Long ordreReparationId);
     java.util.Optional<Facture> findFirstByProformaId(Long proformaId);

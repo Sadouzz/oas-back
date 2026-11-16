@@ -71,10 +71,13 @@ public class DemandeDerogationPlafond {
     private BigDecimal plafondSnapshot;
 
     @Column(name = "montant_consomme_snapshot", precision = 15, scale = 2)
-    private BigDecimal montantConsommeSnapshot;
+    private BigDecimal encoursImpayesSnapshot;
 
     @Column(name = "echeance_jours_snapshot")
     private Integer echeanceJoursSnapshot;
+
+    @Column(name = "details_blocage_snapshot", columnDefinition = "TEXT")
+    private String detailsBlocageSnapshot;
 
     @Column(name = "date_demande", nullable = false, updatable = false)
     @CreationTimestamp

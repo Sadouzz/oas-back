@@ -8,6 +8,7 @@ import java.util.List;
 
 public interface RecuService {
     Recu create(RecuRequest request);
+    Recu createPaiementIntegral(Long factureId, String modePaiement);
     List<Recu> getByFacture(Long factureId);
     List<Recu> getClientRecus(Client client);
     List<Recu> getAll();

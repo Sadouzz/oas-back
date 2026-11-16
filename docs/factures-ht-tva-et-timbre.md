@@ -1,4 +1,4 @@
-Auteur : Codex | Date : 2026-11-02 | Action : Décrire le régime HT/TTC des factures et le traitement du timbre
+Auteur : Codex | Date : 2026-11-16 | Action : appliquer le timbre selon le régime TVA de la facture
 
 # Factures HT, TVA et timbre
 
@@ -6,20 +6,22 @@ Auteur : Codex | Date : 2026-11-02 | Action : Décrire le régime HT/TTC des fac
 
 Au moment de créer la facture depuis un BL ou depuis l’OR, l’agent choisit le mode de paiement dans une liste unique. Elle comprend Espèces TTC, Chèque TTC, Espèces HT, Chèque HT, ainsi que les autres moyens disponibles (virement, solde prépayé, Wave, Orange Money, carte et autre).
 
-Le moyen sélectionné détermine le régime et les taxes appliqués à la facture :
+Le choix sélectionné détermine le régime fiscal appliqué à la facture :
 
-- **Espèces TTC** et **Chèque TTC** : TVA calculée selon la configuration fiscale du garage.
-- **Espèces HT** et **Chèque HT** : aucune TVA; le timbre est calculé une fois sur le montant HT et inclus dans le total dû.
-- **Virement, solde prépayé, Wave, Orange Money, carte et autre** : TVA appliquée; pas de timbre espèces ajouté à l’émission.
+- **Espèces TTC** et **Chèque TTC** : TVA calculée selon la configuration fiscale.
+- **Espèces HT** et **Chèque HT** : aucune TVA; le timbre est calculé sur le montant HT et inclus dans le total dû.
+- **Virement, solde prépayé, Wave, Orange Money, carte et autre** : TVA appliquée; aucun timbre n'est ajouté.
 
 Le mode choisi est conservé sur la facture. Les reçus enregistrent le moyen réellement utilisé pour chaque encaissement.
 
 ## Timbre
 
-- Pour une facture **HT**, le timbre configuré est calculé une seule fois sur le montant HT, enregistré sur la facture et inclus dans son total dû. Les paiements partiels consomment ce solde sans recalculer ni ajouter le timbre.
-- Pour une facture **TTC**, le timbre reste calculé à l’encaissement uniquement sur la somme réglée en espèces. Ce timbre s’ajoute au montant remis et ne réduit pas le solde de la facture.
-- Les autres moyens de règlement restent disponibles. Le mode réel de chaque encaissement est conservé sur son reçu, indépendamment du régime fiscal de la facture.
+- Pour une facture **HT**, le timbre configuré est calculé une seule fois sur le montant HT à l'émission et inclus dans le total dû. Les paiements partiels règlent ce solde sans recalculer ni ajouter de timbre.
+- Pour une facture **avec TVA**, aucun timbre n'est appliqué, y compris lors d'un règlement en espèces.
+- Le mode réel de chaque encaissement est conservé sur son reçu, indépendamment du régime fiscal de la facture. Le reçu n'ajoute jamais de timbre.
+- Une **note de prix** n'est jamais soumise au timbre, quel que soit son régime TVA ou son mode de règlement.
+- Un proforma n'ajoute pas de timbre à son estimation; le timbre est inclus uniquement si la facture issue est émise en HT.
 
 ## Historique et affichage
 
-Les factures déjà émises conservent leurs montants. Les nouveaux totaux HT incluent le timbre une fois; les interfaces de détail et le PDF distinguent le montant du timbre du solde à régler. Les bons de livraison affichent leur régime sans présenter un montant HT comme un total TTC.
+Les factures, proformas et reçus déjà enregistrés conservent leurs montants. Les nouveaux totaux HT incluent le timbre une fois; les interfaces et PDFs distinguent ce montant du solde à régler. Les bons de livraison affichent leur régime sans présenter un montant HT comme un total TTC.

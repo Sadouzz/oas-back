@@ -149,7 +149,41 @@ class RendezVousServiceImplTest {
         verify(rendezvousRepository, never()).save(any(RendezVous.class));
         verify(agentNotificationService).notifyRole(
                 eq(sn.oas.facturation.features.user.data.enums.Role.SUPER_AGENT),
-                eq("Dérogation de plafond à examiner"), contains("DK-7788-AA"));
+                eq("Dérogation financière à examiner"), contains("DK-7788-AA"));
+    }
+
+    @Test
+    void uneFactureEchueEmpecheLeRendezVousEtTransmetLaListeAuSuperAgent() {
+        Vehicule vehicule = Vehicule.builder().client(client).immatriculation("DK-7788-AA")
+                .marque("Opel").modele("Corsa").kilometrage(1000.0).actif(true).build();
+        vehicule.setId(77L);
+        Garage garage = Garage.builder().nom("Dakar").localite("Dakar").prefixe("DK").build();
+        garage.setId(3L);
+        String details = "Facture(s) impayée(s) ayant dépassé leur échéance (2) :\n"
+                + "• FAC-301 — échéance le 01/02/2026 — reste dû : 120000 F CFA\n"
+                + "• FAC-302 — échéance le 10/02/2026 — reste dû : 80000 F CFA";
+        when(clientRepository.findByIdForUpdate(4L)).thenReturn(Optional.of(client));
+        when(vehiculeRepository.findById(77L)).thenReturn(Optional.of(vehicule));
+        when(garageRepository.findById(3L)).thenReturn(Optional.of(garage));
+        when(politiqueFinanciereClientService.evaluerReservation(client)).thenReturn(
+                new EvaluationReservation(false, false, true,
+                        details + "\nUne nouvelle demande nécessite une dérogation exceptionnelle d'un Super Agent.",
+                        new java.math.BigDecimal("1000000"), new java.math.BigDecimal("200000"), 30,
+                        java.util.List.of()));
+        when(demandeDerogationRepository.findFirstByClientIdAndStatutOrderByDateDemandeDesc(
+                4L, StatutDemandeDerogationPlafond.EN_ATTENTE)).thenReturn(Optional.empty());
+        when(demandeDerogationRepository.save(any(DemandeDerogationPlafond.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        var result = service.bookRendezVous(client,
+                new RendezVousRequest(LocalDateTime.now().plusDays(1), "Réparation", 77L, 3L), "awa@example.com");
+
+        assertEquals("DEROGATION_EN_ATTENTE", result.type().name());
+        assertEquals(details + "\nUne nouvelle demande nécessite une dérogation exceptionnelle d'un Super Agent.",
+                result.demandeDerogation().detailsBlocageSnapshot());
+        verify(rendezvousRepository, never()).save(any(RendezVous.class));
+        verify(agentNotificationService).notifyRole(eq(sn.oas.facturation.features.user.data.enums.Role.SUPER_AGENT),
+                eq("Dérogation financière à examiner"), contains("FAC-302"));
     }
 
     @Test
@@ -180,7 +214,7 @@ class RendezVousServiceImplTest {
         assertEquals(RendezVousStatus.CONFIRME.name(), result.demandeDerogation().statutRendezVousDemande());
         verify(rendezvousRepository, never()).save(any(RendezVous.class));
         verify(agentNotificationService).notifyRole(eq(sn.oas.facturation.features.user.data.enums.Role.SUPER_AGENT),
-                eq("Dérogation de plafond à examiner"), contains("DK-7788-AA"));
+                eq("Dérogation financière à examiner"), contains("DK-7788-AA"));
     }
 
     @Test
@@ -198,7 +232,6 @@ class RendezVousServiceImplTest {
                 .origine("CLIENT").demandeur("awa@example.com").build();
         when(demandeDerogationRepository.findByIdForUpdate(42L)).thenReturn(Optional.of(demande));
         when(clientRepository.findByIdForUpdate(4L)).thenReturn(Optional.of(client));
-        when(politiqueFinanciereClientService.motifBlocageRetard(4L)).thenReturn(null);
         when(documentNumberGeneratorService.generateNextNumber(garage,
                 sn.oas.facturation.shared.documentNumber.DocumentType.RDV)).thenReturn("RDV-DK-042");
         when(rendezvousRepository.save(any(RendezVous.class))).thenAnswer(invocation -> invocation.getArgument(0));

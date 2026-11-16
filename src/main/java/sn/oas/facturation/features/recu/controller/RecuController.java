@@ -63,6 +63,17 @@ public class RecuController {
         return new ResponseEntity<>(RecuResponse.from(recuService.create(request)), HttpStatus.CREATED);
     }
 
+    @PostMapping("/payer-integral")
+    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
+    @Operation(summary = "Régler intégralement le solde d'une facture et créer le reçu")
+    public ResponseEntity<RecuResponse> registerFullPayment(
+            @RequestParam Long factureId,
+            @RequestParam String methodePaiement) {
+        return new ResponseEntity<>(
+                RecuResponse.from(recuService.createPaiementIntegral(factureId, methodePaiement)),
+                HttpStatus.CREATED);
+    }
+
     @GetMapping("/facture/{factureId}")
     @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
     @Operation(summary = "Récupérer les reçus d'une facture spécifique")

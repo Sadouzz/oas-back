@@ -10,8 +10,6 @@ import sn.oas.facturation.features.client.service.PortefeuilleClientService;
 import sn.oas.facturation.features.facture.data.entity.Facture;
 import sn.oas.facturation.features.facture.data.enums.StatutPaiement;
 import sn.oas.facturation.features.facture.repository.FactureRepository;
-import sn.oas.facturation.features.facture.service.FacturePaymentMode;
-import sn.oas.facturation.features.fiscal.service.FiscalConfigurationService;
 import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation;
 import sn.oas.facturation.features.ordreReparation.repository.OrdreReparationRepository;
@@ -41,7 +39,6 @@ public class RecuServiceImpl implements RecuService {
     private final NotificationService notificationService;
     private final AgentNotificationService agentNotificationService;
     private final PortefeuilleClientService portefeuilleClientService;
-    private final FiscalConfigurationService fiscalConfigurationService;
 
     @Override
     @Transactional
@@ -49,16 +46,55 @@ public class RecuServiceImpl implements RecuService {
         Facture facture = factureRepository.findByIdForPaiement(request.getFactureId())
                 .orElseThrow(() -> new ResourceNotFoundException("Facture introuvable avec l'id : " + request.getFactureId()));
 
+        return enregistrerPaiement(facture, request);
+    }
+
+    @Override
+    @Transactional
+    public Recu createPaiementIntegral(Long factureId, String modePaiement) {
+        Facture facture = factureRepository.findByIdForPaiement(factureId)
+                .orElseThrow(() -> new ResourceNotFoundException("Facture introuvable avec l'id : " + factureId));
+
+        BigDecimal montantPaye = facture.getMontantPaye() == null ? BigDecimal.ZERO : facture.getMontantPaye();
+        if (facture.getMontantTotal() == null) {
+            throw new BadRequestException("Le montant total de la facture est introuvable");
+        }
+        BigDecimal montantRestant = facture.getMontantTotal().subtract(montantPaye);
+        if (montantRestant.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BadRequestException("Cette facture est déjà totalement payée");
+        }
+        // Le total et les paiements déjà enregistrés sont la référence pour ce règlement.
+        facture.setResteAPayer(montantRestant);
+
+        RecuRequest request = RecuRequest.builder()
+                .factureId(factureId)
+                .montant(montantRestant)
+                .modePaiement(modePaiement)
+                .build();
+        return enregistrerPaiement(facture, request);
+    }
+
+    private Recu enregistrerPaiement(Facture facture, RecuRequest request) {
         if (facture.getStatutPaiement() == StatutPaiement.PAYE) {
             throw new BadRequestException("Cette facture est déjà totalement payée");
+        }
+
+        BigDecimal montantPayeActuel = facture.getMontantPaye() == null ? BigDecimal.ZERO : facture.getMontantPaye();
+        BigDecimal resteAPayer = facture.getResteAPayer();
+        if (resteAPayer == null && facture.getMontantTotal() != null) {
+            resteAPayer = facture.getMontantTotal().subtract(montantPayeActuel);
+            facture.setResteAPayer(resteAPayer);
+        }
+        if (resteAPayer == null) {
+            throw new BadRequestException("Le reste à payer de la facture est introuvable");
         }
 
         if (request.getMontant() == null || request.getMontant().compareTo(BigDecimal.ZERO) <= 0) {
             throw new BadRequestException("Le montant doit être supérieur à zéro");
         }
 
-        if (request.getMontant().compareTo(facture.getResteAPayer()) > 0) {
-            throw new BadRequestException("Le montant du reçu dépasse le reste à payer (" + facture.getResteAPayer() + ")");
+        if (request.getMontant().compareTo(resteAPayer) > 0) {
+            throw new BadRequestException("Le montant du reçu dépasse le reste à payer (" + resteAPayer + ")");
         }
 
         String numero = documentNumberGeneratorService.generateNextNumber(DocumentType.RC);
@@ -67,25 +103,13 @@ public class RecuServiceImpl implements RecuService {
                 request.getModePaiement() == null ? "" : request.getModePaiement().trim());
         String modePaiement = request.getModePaiement() == null || request.getModePaiement().isBlank()
                 ? "ESPECE" : request.getModePaiement().trim().toUpperCase(java.util.Locale.ROOT);
-        boolean paiementEnEspeces = "ESPECE".equals(modePaiement);
         if (paiementParSolde && request.getMontant().scale() > 2) {
             throw new BadRequestException("Le montant du paiement doit comporter au maximum deux décimales.");
         }
 
-        BigDecimal tauxTimbreEspeces = facture.getTimbreFiscalRate() != null
-                ? facture.getTimbreFiscalRate()
-                : facture.getProforma() != null && facture.getProforma().getTimbreFiscalRate() != null
-                ? facture.getProforma().getTimbreFiscalRate()
-                : facture.getOrdreReparation() != null && facture.getOrdreReparation().getProforma() != null
-                    && facture.getOrdreReparation().getProforma().getTimbreFiscalRate() != null
-                    ? facture.getOrdreReparation().getProforma().getTimbreFiscalRate()
-                    : fiscalConfigurationService.getCurrent().getTimbreFiscalRate();
-        boolean timbreDejaInclusDansFactureHT = FacturePaymentMode.isHt(facture.getModePaiement())
-                || (Boolean.FALSE.equals(facture.getTvaApplicable())
-                    && facture.getMontantTimbre() != null && facture.getMontantTimbre().signum() > 0);
-        BigDecimal montantTimbre = paiementEnEspeces && !timbreDejaInclusDansFactureHT
-                ? fiscalConfigurationService.calculateRate(request.getMontant(), tauxTimbreEspeces)
-                : BigDecimal.ZERO;
+        // Le régime fiscal est figé sur la facture : un timbre HT est calculé à son émission.
+        // Un encaissement ne doit jamais recalculer ni ajouter un second timbre, quel que soit son mode.
+        BigDecimal montantTimbre = BigDecimal.ZERO;
 
         Recu recu = Recu.builder()
                 .numero(numero)
@@ -102,7 +126,7 @@ public class RecuServiceImpl implements RecuService {
         }
 
         // Update Facture
-        facture.setMontantPaye(facture.getMontantPaye().add(request.getMontant()));
+        facture.setMontantPaye(montantPayeActuel.add(request.getMontant()));
         facture.setResteAPayer(facture.getMontantTotal().subtract(facture.getMontantPaye()));
         boolean vehicleReadyForDelivery = false;
 
@@ -130,8 +154,7 @@ public class RecuServiceImpl implements RecuService {
 
         String statutLibelle = facture.getStatutPaiement() == StatutPaiement.PAYE ? "payée intégralement" : "partiellement payée";
         notificationService.sendNotification(facture.getClient(), "Paiement enregistré",
-                "Le reçu " + recu.getNumero() + " de " + request.getMontant() + " (timbre : " + montantTimbre
-                        + ", total encaissé : " + request.getMontant().add(montantTimbre) + ")"
+                "Le reçu " + recu.getNumero() + " de " + request.getMontant()
                         + " a été enregistré. La facture " + facture.getNumero() + " est " + statutLibelle + ".");
         agentNotificationService.notifyRoleInGarage(Role.AGENT, facture.getGarage(),
                 facture.getStatutPaiement() == StatutPaiement.PAYE ? "Facture payée" : "Paiement partiel reçu",

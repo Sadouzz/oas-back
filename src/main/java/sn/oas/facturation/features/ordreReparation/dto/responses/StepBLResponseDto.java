@@ -54,6 +54,25 @@ public class StepBLResponseDto extends BaseStepResponseDto {
 
     // Rétro-compatibilité Paiement / Facture
     private FactureSummaryDto facture;
+    private boolean hasNoteDePrix;
+    private NoteDePrixSummaryDto noteDePrix;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class NoteDePrixSummaryDto {
+        private Long id;
+        private String numero;
+        private LocalDateTime dateCreation;
+        private String statutPaiement;
+        private String modePaiement;
+        private Double montantTotal;
+        private Double montantPaye;
+        private Double montantTimbrePaye;
+        private Double resteAPayer;
+        private Boolean tvaApplicable;
+    }
 
     @Data
     @Builder
@@ -71,6 +90,8 @@ public class StepBLResponseDto extends BaseStepResponseDto {
         private Boolean tvaApplicable;
         private Long factureId;
         private String factureNumero;
+        private Long noteDePrixId;
+        private String noteDePrixNumero;
     }
 }
 

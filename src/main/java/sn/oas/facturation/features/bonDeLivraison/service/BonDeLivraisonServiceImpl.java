@@ -616,6 +616,11 @@ public class BonDeLivraisonServiceImpl implements BonDeLivraisonService {
             return bl.getFacture();
         }
 
+        if (bl.getNoteDePrix() != null
+                || (ordre != null && noteRepository.findFirstByOrdreReparationId(ordre.getId()).isPresent())) {
+            throw new BadRequestException("Ce bon de livraison est déjà converti en note de prix.");
+        }
+
         if (ordre != null && factureRepository.findFirstByOrdreReparationId(ordre.getId()).isPresent()) {
             throw new BadRequestException("Une facture existe déjà pour cet ordre de réparation.");
         }
@@ -731,15 +736,22 @@ public class BonDeLivraisonServiceImpl implements BonDeLivraisonService {
             return bl.getNoteDePrix();
         }
 
-        String modePaiement = FacturePaymentMode.normalize(request == null ? null : request.getModePaiement());
-        boolean appliquerTVA = FacturePaymentMode.appliquerTva(modePaiement);
-        BigDecimal tauxTimbre = ordre != null && ordre.getProforma() != null && ordre.getProforma().getTimbreFiscalRate() != null
-                ? ordre.getProforma().getTimbreFiscalRate() : fiscalService.getCurrent().getTimbreFiscalRate();
+        if (bl.getFacture() != null
+                || (ordre != null && factureRepository.findFirstByOrdreReparationId(ordre.getId()).isPresent())) {
+            throw new BadRequestException("Ce bon de livraison est déjà converti en facture.");
+        }
+
+        String modeDemande = request == null ? null : request.getModePaiement();
+        boolean modeExplicit = modeDemande != null && !modeDemande.isBlank();
+        String modePaiement = FacturePaymentMode.normalize(modeExplicit
+                ? modeDemande
+                : (Boolean.FALSE.equals(bl.getTvaApplicable()) ? FacturePaymentMode.ESPECE_HT : FacturePaymentMode.ESPECE_TTC));
+        boolean appliquerTVA = modeExplicit
+                ? FacturePaymentMode.appliquerTva(modePaiement)
+                : !Boolean.FALSE.equals(bl.getTvaApplicable());
         var configurationFiscale = fiscalService.getCurrent();
         BigDecimal tva = appliquerTVA ? fiscalService.calculateRate(bl.getMontantHT(), configurationFiscale.getTvaRate()) : BigDecimal.ZERO;
-        BigDecimal timbre = FacturePaymentMode.isHt(modePaiement)
-                ? fiscalService.calculateRate(bl.getMontantHT(), tauxTimbre) : BigDecimal.ZERO;
-        BigDecimal montantTotal = bl.getMontantHT().add(tva).add(timbre);
+        BigDecimal montantTotal = bl.getMontantHT().add(tva);
 
         NoteDePrix note = NoteDePrix.builder()
                 .numero(numberGenerator.generateNextNumber(DocumentType.NP))
@@ -757,7 +769,7 @@ public class BonDeLivraisonServiceImpl implements BonDeLivraisonService {
                 .montantTVA(tva)
                 .montantTotal(montantTotal)
                 .montantPaye(BigDecimal.ZERO)
-                .montantTimbrePaye(timbre)
+                .montantTimbrePaye(BigDecimal.ZERO)
                 .resteAPayer(montantTotal)
                 .statutPaiement(StatutPaiement.NON_PAYE)
                 .modePaiement(modePaiement)

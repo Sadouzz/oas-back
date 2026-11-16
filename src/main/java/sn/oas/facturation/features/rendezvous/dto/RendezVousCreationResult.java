@@ -15,7 +15,7 @@ public record RendezVousCreationResult(
 
     public static RendezVousCreationResult enAttente(DemandeDerogationPlafondResponse demande) {
         return new RendezVousCreationResult(Type.DEROGATION_EN_ATTENTE, null, demande,
-                "Le plafond du client est atteint. La demande a été transmise à un Super Agent ; aucun rendez-vous ne sera créé avant son approbation.");
+                "Une condition financière bloque cette nouvelle demande. Elle a été transmise à un Super Agent ; aucun rendez-vous ne sera créé avant son approbation.");
     }
 
     public static RendezVousCreationResult dejaEnAttente(DemandeDerogationPlafondResponse demande) {

@@ -5,7 +5,7 @@ import java.util.Set;
 
 import sn.oas.facturation.shared.exception.BadRequestException;
 
-/** Invoice payment choices; tax and stamp calculations are derived from this choice. */
+/** Invoice issuance choices; the selected regime determines TVA and the HT stamp at issuance. */
 public final class FacturePaymentMode {
     public static final String ESPECE_TTC = "ESPECE_TTC";
     public static final String CHEQUE_TTC = "CHEQUE_TTC";

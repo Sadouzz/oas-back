@@ -11,6 +11,7 @@ import sn.oas.facturation.features.client.data.enums.TypeClient;
 import sn.oas.facturation.features.client.dto.CompteClientRequest;
 import sn.oas.facturation.features.client.repository.*;
 import sn.oas.facturation.features.facture.repository.FactureRepository;
+import sn.oas.facturation.features.rendezvous.repository.DemandeDerogationPlafondRepository;
 import sn.oas.facturation.features.user.repository.UserRepository;
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -24,6 +25,8 @@ class CompteClientServiceTest {
     @Mock CompteClientRepository compteRepository;
     @Mock MouvementCreditClientRepository mouvementRepository;
     @Mock FactureRepository factureRepository;
+    @Mock PolitiqueFinanciereClientService politiqueFinanciereClientService;
+    @Mock DemandeDerogationPlafondRepository demandeDerogationPlafondRepository;
     @Mock UserRepository userRepository;
     @InjectMocks CompteClientService service;
 
@@ -33,10 +36,12 @@ class CompteClientServiceTest {
         when(clientRepository.findById(22L)).thenReturn(Optional.of(client));
         when(clientRepository.existsByNumeroEntrepriseIgnoreCaseAndIdNot("SN123ABC", 22L)).thenReturn(false);
         when(compteRepository.findByClientId(22L)).thenReturn(Optional.empty());
-        when(factureRepository.sumResteAPayerByClientId(22L)).thenReturn(BigDecimal.ZERO);
+        when(politiqueFinanciereClientService.evaluerReservation(client)).thenReturn(
+                new PolitiqueFinanciereClientService.EvaluationReservation(true, false, false,
+                        null, new BigDecimal("500000"), BigDecimal.ZERO, 30));
+        when(demandeDerogationPlafondRepository.findFirstByClientIdAndStatutOrderByDateDemandeDesc(eq(22L), any()))
+                .thenReturn(Optional.empty());
         when(factureRepository.sumMontantFacturesDepuis(eq(22L), any())).thenReturn(BigDecimal.ZERO);
-        when(factureRepository.existsFactureImpayeeEnRetard(eq(22L), any())).thenReturn(false);
-        when(factureRepository.existsFactureLegacyImpayeeEnRetard(eq(22L), any())).thenReturn(false);
         CompteClientRequest request = new CompteClientRequest("Garage Awa", "sn123abc", 30,
                 new BigDecimal("500000"), "SN-DKR-2020-B-1234", "SN08 0000 0000 0000", true);
 

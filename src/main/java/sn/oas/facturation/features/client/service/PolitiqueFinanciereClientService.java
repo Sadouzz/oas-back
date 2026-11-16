@@ -4,16 +4,19 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import sn.oas.facturation.features.client.data.entity.Client;
+import sn.oas.facturation.features.facture.data.entity.Facture;
 import sn.oas.facturation.features.facture.repository.FactureRepository;
 import sn.oas.facturation.features.client.repository.ClientRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
 /** Règles centralisées. Les agents peuvent poursuivre une vente, mais voient les alertes. */
 @Service @RequiredArgsConstructor
 public class PolitiqueFinanciereClientService {
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private final FactureRepository factureRepository;
     private final ClientRepository clientRepository;
 
@@ -22,15 +25,20 @@ public class PolitiqueFinanciereClientService {
         if (client == null || client.getId() == null) return List.of();
         List<String> avertissements = new ArrayList<>();
         LocalDateTime now = LocalDateTime.now();
-        boolean retard = factureRepository.existsFactureImpayeeEnRetard(client.getId(), now)
-                || (client.getEcheance() != null && client.getEcheance() > 0
-                && factureRepository.existsFactureLegacyImpayeeEnRetard(client.getId(), now.minusDays(client.getEcheance())));
-        if (retard) avertissements.add("Attention : ce client possède au moins une facture échue et impayée.");
-        if (client.getEcheance() != null && client.getEcheance() > 0 && client.getMontantPlafondEcheance() != null) {
-            BigDecimal periode = zero(factureRepository.sumMontantFacturesDepuis(client.getId(), now.minusDays(client.getEcheance())));
-            BigDecimal apres = periode.add(zero(montantProforma));
-            if (apres.compareTo(client.getMontantPlafondEcheance()) >= 0)
-                avertissements.add("Attention : le plafond de facturation sur la période d'échéance sera atteint ou dépassé (" + apres.toPlainString() + " / " + client.getMontantPlafondEcheance().toPlainString() + " F CFA). La création du proforma reste autorisée pour l'agent.");
+        List<Facture> enRetard = facturesEnRetard(client, now);
+        if (!enRetard.isEmpty()) {
+            avertissements.add("Attention : " + enRetard.size()
+                    + " facture(s) impayée(s) ont dépassé leur échéance. La création du proforma reste autorisée pour l'agent.");
+        }
+        BigDecimal plafond = client.getMontantPlafondEcheance();
+        if (plafond != null) {
+            BigDecimal encoursApres = zero(factureRepository.sumResteAPayerByClientId(client.getId()))
+                    .add(zero(montantProforma));
+            if (encoursApres.compareTo(plafond) >= 0) {
+                avertissements.add("Attention : l'encours impayé atteindrait ou dépasserait le plafond après cette opération ("
+                        + encoursApres.toPlainString() + " / " + plafond.toPlainString()
+                        + " F CFA). La création du proforma reste autorisée pour l'agent.");
+            }
         }
         return avertissements;
     }
@@ -48,43 +56,22 @@ public class PolitiqueFinanciereClientService {
         return client == null ? EvaluationReservation.autorisee() : evaluerReservation(client);
     }
 
-    @Transactional(readOnly = true)
-    public String motifBlocageRetard(Long clientId) {
-        Client client = clientRepository.findById(clientId).orElse(null);
-        if (client == null) return null;
-        LocalDateTime now = LocalDateTime.now();
-        boolean retard = factureRepository.existsFactureImpayeeEnRetard(clientId, now)
-                || (client.getEcheance() != null && client.getEcheance() > 0
-                && factureRepository.existsFactureLegacyImpayeeEnRetard(clientId, now.minusDays(client.getEcheance())));
-        return retard ? "Votre compte comporte une facture échue impayée. Contactez OAS pour régulariser votre situation avant de prendre un rendez-vous." : null;
-    }
-
     public EvaluationReservation evaluerReservation(Client client) {
         Long clientId = client.getId();
         LocalDateTime now = LocalDateTime.now();
-        boolean retard = factureRepository.existsFactureImpayeeEnRetard(clientId, now)
-                || (client.getEcheance() != null && client.getEcheance() > 0
-                && factureRepository.existsFactureLegacyImpayeeEnRetard(clientId, now.minusDays(client.getEcheance())));
-        if (retard) {
-            return new EvaluationReservation(false, false, true,
-                    "Votre compte comporte une facture échue impayée. Contactez OAS pour régulariser votre situation avant de prendre un rendez-vous.",
-                    client.getMontantPlafondEcheance(), BigDecimal.ZERO, client.getEcheance());
-        }
-
+        BigDecimal encoursImpayes = zero(factureRepository.sumResteAPayerByClientId(clientId));
         BigDecimal plafond = client.getMontantPlafondEcheance();
         Integer echeance = client.getEcheance();
-        if (plafond == null || echeance == null || echeance <= 0) {
-            return EvaluationReservation.autorisee();
-        }
-
-        BigDecimal montantConsomme = zero(factureRepository.sumMontantFacturesDepuis(
-                clientId, now.minusDays(echeance)));
-        boolean plafondAtteint = montantConsomme.compareTo(plafond) >= 0;
-        String motif = plafondAtteint
-                ? "Le plafond de facturation prévu sur votre période d'échéance est atteint. Une demande de dérogation exceptionnelle peut être soumise à OAS."
-                : null;
-        return new EvaluationReservation(!plafondAtteint, plafondAtteint, false, motif,
-                plafond, montantConsomme, echeance);
+        boolean plafondAtteint = plafond != null && encoursImpayes.compareTo(plafond) >= 0;
+        List<Facture> facturesEnRetard = facturesEnRetard(client, now);
+        boolean factureEchueImpayee = !facturesEnRetard.isEmpty();
+        String motif = construireMotifBlocage(plafondAtteint, factureEchueImpayee,
+                encoursImpayes, plafond, facturesEnRetard, echeance);
+        return new EvaluationReservation(!plafondAtteint && !factureEchueImpayee,
+                plafondAtteint, factureEchueImpayee, motif, plafond, encoursImpayes,
+                echeance, facturesEnRetard.stream().map(f -> new FactureEchueImpayee(
+                        f.getNumero(), f.getDateCreation(), effectiveDueDate(f, echeance),
+                        montantRestant(f))).toList());
     }
 
     public record EvaluationReservation(
@@ -93,15 +80,75 @@ public class PolitiqueFinanciereClientService {
             boolean factureEchueImpayee,
             String motifBlocage,
             BigDecimal plafond,
-            BigDecimal montantConsomme,
-            Integer echeanceJours) {
+            BigDecimal encoursImpayes,
+            Integer echeanceJours,
+            List<FactureEchueImpayee> facturesEchuesImpayees) {
+        public EvaluationReservation(boolean workflowAutorise, boolean plafondAtteint,
+                boolean factureEchueImpayee, String motifBlocage, BigDecimal plafond,
+                BigDecimal encoursImpayes, Integer echeanceJours) {
+            this(workflowAutorise, plafondAtteint, factureEchueImpayee, motifBlocage,
+                    plafond, encoursImpayes, echeanceJours, List.of());
+        }
+
         private static EvaluationReservation autorisee() {
-            return new EvaluationReservation(true, false, false, null, null, BigDecimal.ZERO, null);
+            return new EvaluationReservation(true, false, false, null, null, BigDecimal.ZERO, null, List.of());
         }
 
         public boolean derogationPossible() {
-            return plafondAtteint && !factureEchueImpayee;
+            return !workflowAutorise;
         }
+    }
+
+    public record FactureEchueImpayee(
+            String numero,
+            LocalDateTime dateEmission,
+            LocalDateTime dateEcheance,
+            BigDecimal resteAPayer) {}
+
+    private List<Facture> facturesEnRetard(Client client, LocalDateTime maintenant) {
+        LocalDateTime limiteAnciennesFactures = client.getEcheance() != null && client.getEcheance() > 0
+                ? maintenant.minusDays(client.getEcheance()) : null;
+        return factureRepository.findFacturesImpayeesEnRetard(client.getId(), maintenant, limiteAnciennesFactures);
+    }
+
+    private String construireMotifBlocage(boolean plafondAtteint, boolean factureEchueImpayee,
+            BigDecimal encoursImpayes, BigDecimal plafond, List<Facture> facturesEchues, Integer echeance) {
+        if (!plafondAtteint && !factureEchueImpayee) return null;
+        List<String> motifs = new ArrayList<>();
+        if (plafondAtteint) {
+            motifs.add("L'encours impayé de votre compte atteint ou dépasse le plafond : "
+                    + encoursImpayes.toPlainString() + " / " + plafond.toPlainString() + " F CFA.");
+        }
+        if (factureEchueImpayee) motifs.add(decrireFacturesEnRetard(facturesEchues, echeance));
+        motifs.add("Une nouvelle demande nécessite une dérogation exceptionnelle d'un Super Agent.");
+        return String.join("\n", motifs);
+    }
+
+    private String decrireFacturesEnRetard(List<Facture> factures, Integer echeance) {
+        StringBuilder details = new StringBuilder("Facture(s) impayée(s) ayant dépassé leur échéance (")
+                .append(factures.size()).append(") :");
+        for (Facture facture : factures) {
+            details.append("\n• ").append(facture.getNumero())
+                    .append(" — émise le ").append(formater(facture.getDateCreation()))
+                    .append(", échéance le ").append(formater(effectiveDueDate(facture, echeance)))
+                    .append(" — reste dû : ").append(montantRestant(facture).toPlainString()).append(" F CFA");
+        }
+        return details.toString();
+    }
+
+    private LocalDateTime effectiveDueDate(Facture facture, Integer echeance) {
+        if (facture.getDateEcheance() != null) return facture.getDateEcheance();
+        return facture.getDateCreation() != null && echeance != null && echeance > 0
+                ? facture.getDateCreation().plusDays(echeance) : null;
+    }
+
+    private BigDecimal montantRestant(Facture facture) {
+        if (facture.getResteAPayer() != null) return zero(facture.getResteAPayer());
+        return zero(facture.getMontantTotal()).subtract(zero(facture.getMontantPaye())).max(BigDecimal.ZERO);
+    }
+
+    private String formater(LocalDateTime date) {
+        return date == null ? "date inconnue" : DATE_FORMAT.format(date);
     }
 
     private static BigDecimal zero(BigDecimal value) { return value == null ? BigDecimal.ZERO : value; }

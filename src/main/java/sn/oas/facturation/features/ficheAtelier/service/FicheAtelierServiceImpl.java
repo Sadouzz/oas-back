@@ -82,9 +82,6 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
         // permettre de contourner le plafond ni une demande d'exception déjà en cours.
         if (request.getRendezVousId() == null) {
             var evaluation = politiqueFinanciereClientService.evaluerReservation(client);
-            if (evaluation.factureEchueImpayee()) {
-                throw new BadRequestException(evaluation.motifBlocage());
-            }
             boolean derogationEnAttente = demandeDerogationPlafondRepository
                     .findFirstByClientIdAndStatutOrderByDateDemandeDesc(
                             client.getId(), StatutDemandeDerogationPlafond.EN_ATTENTE)
@@ -92,8 +89,9 @@ public class FicheAtelierServiceImpl implements FicheAtelierService {
             if (derogationEnAttente) {
                 throw new BadRequestException("Une demande de dérogation est déjà en attente. Attendez la décision du Super Agent avant de démarrer une nouvelle réparation.");
             }
-            if (evaluation.plafondAtteint()) {
-                throw new BadRequestException("Le plafond du client est atteint. Aucun nouveau parcours ne peut commencer sans rendez-vous. Créez ou sélectionnez le rendez-vous dans le module Rendez-vous ; la demande sera transmise au Super Agent si une dérogation est nécessaire.");
+            if (!evaluation.workflowAutorise()) {
+                throw new BadRequestException(evaluation.motifBlocage()
+                        + " Commencez par le module Rendez-vous afin que la demande de dérogation puisse être examinée par un Super Agent.");
             }
         }
 

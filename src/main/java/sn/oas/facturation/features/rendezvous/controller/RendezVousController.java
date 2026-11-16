@@ -112,7 +112,7 @@ public class RendezVousController {
 
     @GetMapping("/derogations-plafond/en-attente")
     @PreAuthorize("hasRole('SUPER_AGENT')")
-    @Operation(summary = "Lister les demandes de dérogation de plafond en attente (Super Agent uniquement)")
+    @Operation(summary = "Lister les demandes exceptionnelles de rendez-vous en attente (Super Agent uniquement)")
     public ResponseEntity<Page<DemandeDerogationPlafondResponse>> getPendingQuotaDerogations(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
@@ -121,7 +121,7 @@ public class RendezVousController {
 
     @PostMapping("/derogations-plafond/{id}/approuver")
     @PreAuthorize("hasRole('SUPER_AGENT')")
-    @Operation(summary = "Approuver une demande de dérogation de plafond (Super Agent uniquement)")
+    @Operation(summary = "Approuver une demande exceptionnelle de rendez-vous (Super Agent uniquement)")
     public ResponseEntity<RendezVousResponse> approveQuotaDerogation(
             @PathVariable Long id, @RequestBody DecisionDerogationPlafondRequest request) {
         RendezVous rv = rendezvousService.approveQuotaDerogation(id, currentUsername(), request.motif());

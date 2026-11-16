@@ -18,6 +18,7 @@ import sn.oas.facturation.features.facturation.data.entity.LigneFacturationPiece
 import sn.oas.facturation.features.facturation.dto.LigneFacturationMainDoeuvreRequest;
 import sn.oas.facturation.features.facturation.dto.LigneFacturationPieceRequest;
 import sn.oas.facturation.features.facture.data.entity.Facture;
+import sn.oas.facturation.features.facture.data.enums.StatutPaiement;
 import sn.oas.facturation.features.facture.repository.FactureRepository;
 import sn.oas.facturation.features.facture.service.FactureService;
 import sn.oas.facturation.features.facturation.data.enums.StatutFacturation;
@@ -611,11 +612,11 @@ public class ProformaServiceImpl implements ProformaService {
             if (email != null && !email.isEmpty()) {
                 Long proformaId = saved.getId();
                 String proformaNumero = saved.getNumero();
-                String noticeTimbreEspeces = noticeTimbreEspecesEmail(saved);
+                String noticeTimbreFiscal = noticeTimbreFiscalEmail(saved);
                 mailDeliveryAsyncService.sendEmailWithPdfAttachmentAsync(
                         email,
                         "Votre proposition de travaux · " + proformaNumero,
-                        clientEmailTemplateService.proforma(ownerAtWork.getFirstName(), proformaNumero, noticeTimbreEspeces),
+                        clientEmailTemplateService.proforma(ownerAtWork.getFirstName(), proformaNumero, noticeTimbreFiscal),
                         "proforma_" + proformaNumero + ".pdf",
                         () -> generatePdf(proformaId),
                         true
@@ -670,6 +671,22 @@ public class ProformaServiceImpl implements ProformaService {
         LocalDateTime dateEcheance = clientFacture != null && clientFacture.getEcheance() != null && clientFacture.getEcheance() > 0
                 ? LocalDateTime.now().plusDays(clientFacture.getEcheance()) : null;
 
+        BigDecimal montantHT = proforma.getMontantHT() == null ? BigDecimal.ZERO : proforma.getMontantHT();
+        boolean tvaApplicable = Boolean.TRUE.equals(proforma.getTvaApplicable())
+                || (proforma.getTvaApplicable() == null && proforma.getMontantTVA() != null
+                    && proforma.getMontantTVA().signum() > 0);
+        BigDecimal montantTVA = tvaApplicable && proforma.getMontantTVA() != null
+                ? proforma.getMontantTVA() : BigDecimal.ZERO;
+        BigDecimal tauxTimbre = proforma.getTimbreFiscalRate() != null
+                ? proforma.getTimbreFiscalRate() : fiscalConfigurationService.getCurrent().getTimbreFiscalRate();
+        BigDecimal montantTimbre = tvaApplicable
+                ? BigDecimal.ZERO : fiscalConfigurationService.calculateRate(montantHT, tauxTimbre);
+        BigDecimal montantTTC = montantHT.add(montantTVA);
+        BigDecimal ttcHistoriqueProforma = proforma.calculerMontantTtcAvecTimbre();
+        BigDecimal montantAutre = (proforma.getMontantTotal() == null ? ttcHistoriqueProforma : proforma.getMontantTotal())
+                .subtract(ttcHistoriqueProforma).max(BigDecimal.ZERO);
+        BigDecimal montantTotalFacture = montantTTC.add(montantTimbre).add(montantAutre);
+
         Facture facture = Facture.builder()
                 .numero("FA-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase())
                 .dateCreation(LocalDateTime.now())
@@ -684,14 +701,19 @@ public class ProformaServiceImpl implements ProformaService {
                 .kilometrage(proforma.getKilometrage())
                 .remarque(proforma.getRemarque())
                 .numeroBonDeCommande(proforma.getBonDeCommande() != null ? proforma.getBonDeCommande().getNumero() : null)
-                .montantHT(proforma.getMontantHT())
-                .montantTVA(proforma.getMontantTVA())
-                .tvaApplicable(proforma.getTvaApplicable())
-                .montantTTC(proforma.calculerMontantTtcAvecTimbre())
-                .montantTimbre(proforma.getMontantTimbre())
+                .montantHT(montantHT)
+                .montantTVA(montantTVA)
+                .tvaApplicable(tvaApplicable)
+                .montantTTC(montantTTC)
+                .montantTimbre(montantTimbre)
+                .timbreFiscalRate(tauxTimbre)
                 .tauxRemiseClient(proforma.getTauxRemiseClient())
                 .montantRemiseClient(proforma.getMontantRemiseClient())
-                .montantTotal(proforma.getMontantTotal())
+                .montantAutre(montantAutre)
+                .montantTotal(montantTotalFacture)
+                .montantPaye(BigDecimal.ZERO)
+                .resteAPayer(montantTotalFacture)
+                .statutPaiement(StatutPaiement.NON_PAYE)
                 .dateEcheance(dateEcheance)
                 .lignesFacturationPieces(new ArrayList<>())
                 .lignesFacturationMainDoeuvres(new ArrayList<>())
@@ -926,19 +948,24 @@ public class ProformaServiceImpl implements ProformaService {
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
     }
 
-    private String noticeTimbreEspecesEmail(Proforma proforma) {
+    private String noticeTimbreFiscalEmail(Proforma proforma) {
         BigDecimal rate = proforma.getTimbreFiscalRate();
         if (rate == null) rate = fiscalConfigurationService.getCurrent().getTimbreFiscalRate();
         if (rate == null) rate = BigDecimal.ONE;
-        String message = "Pour tout règlement en espèces, un timbre fiscal de "
-                + rate.stripTrailingZeros().toPlainString()
-                + " % s'applique uniquement à la part réglée en espèces.";
-        if (proforma.getMontantTimbre() != null && proforma.getMontantTimbre().signum() > 0) {
-            message += " Le timbre déjà enregistré sur ce proforma est conservé dans son total.";
-        } else {
-            message += " Ce timbre n'est pas inclus dans le total du proforma.";
-        }
-        return "À noter : " + message;
+        boolean tvaApplicable = Boolean.TRUE.equals(proforma.getTvaApplicable())
+                || (proforma.getTvaApplicable() == null && proforma.getMontantTVA() != null
+                    && proforma.getMontantTVA().signum() > 0);
+        boolean timbreHistorique = proforma.getMontantTimbre() != null
+                && proforma.getMontantTimbre().signum() > 0;
+        String etatDocument = timbreHistorique
+                ? "Le montant de timbre historique déjà enregistré sur ce proforma est conservé dans son total. "
+                : "Aucun timbre n'est ajouté au total de ce proforma. ";
+        String regimeFacture = tvaApplicable
+                ? "La facture émise avec TVA ne portera pas de timbre fiscal."
+                : "Si une facture est émise en HT à partir de ce proforma, le timbre fiscal au taux de "
+                    + rate.stripTrailingZeros().toPlainString()
+                    + " % sera inclus une seule fois dans le total de la facture, dès son émission.";
+        return "À noter : " + etatDocument + regimeFacture;
     }
 
     private void verifierDiagnosticTermineAvantProgression(OrdreReparation ordre) {
