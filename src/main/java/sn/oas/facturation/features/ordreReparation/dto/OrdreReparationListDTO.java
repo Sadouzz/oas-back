@@ -43,8 +43,8 @@ public record OrdreReparationListDTO(
 
                 ClientSummary clientSummary = null;
                 // String clientName = null;
-                if (o.getVehicule() != null && o.getVehicule().getClient() != null) {
-                        var c = o.getVehicule().getClient();
+                if (o.getClient() != null || (o.getVehicule() != null && o.getVehicule().getClient() != null)) {
+                        var c = o.getClient() != null ? o.getClient() : o.getVehicule().getClient();
                         clientSummary = new ClientSummary(
                                         // c.getId(),
                                         c.getFirstName(),

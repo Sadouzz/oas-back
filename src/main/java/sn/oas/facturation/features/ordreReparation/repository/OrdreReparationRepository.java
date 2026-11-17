@@ -74,6 +74,14 @@ public interface OrdreReparationRepository extends JpaRepository<OrdreReparation
     List<OrdreReparation> findClientHistoryForVehicle(@Param("vehicleId") Long vehicleId, @Param("clientId") Long clientId);
     @Query("select o from OrdreReparation o where o.client.id = :clientId or (o.client is null and o.vehicule.client.id = :clientId) order by o.dateCreation desc")
     List<OrdreReparation> findClientHistory(@Param("clientId") Long clientId);
+
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"client", "vehicule", "vehicule.client"})
+    @Query(value = "select o from OrdreReparation o where o.client.id = :clientId "
+            + "or (o.client is null and o.vehicule.client.id = :clientId) "
+            + "order by o.dateCreation desc, o.id desc",
+            countQuery = "select count(o) from OrdreReparation o where o.client.id = :clientId "
+                    + "or (o.client is null and o.vehicule.client.id = :clientId)")
+    Page<OrdreReparation> findClientHistoryPage(@Param("clientId") Long clientId, Pageable pageable);
     OrdreReparation findTopByOrderByIdDesc();
     OrdreReparation findTopByNumeroStartingWithOrderByNumeroDesc(String prefix);
     boolean existsByVehiculeIdAndStatutNotIn(Long vehiculeId, List<StatutOrdreReparation> statuts);

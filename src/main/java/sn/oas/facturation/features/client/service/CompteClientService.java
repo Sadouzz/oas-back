@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
+import java.util.Comparator;
 
 @Service @RequiredArgsConstructor
 public class CompteClientService {
@@ -91,6 +92,51 @@ public class CompteClientService {
                 client.getMontantPlafondEcheance(), encours, periode, evaluation.factureEchueImpayee(),
                 evaluation.workflowAutorise() && !demandeEnAttente, motif,
                 client.getRccm(), client.getRib(), compte == null ? null : compte.getDateCreation());
+    }
+
+    @Transactional(readOnly = true)
+    public SyntheseFinanciereClientResponse lireSynthese(Long clientId) {
+        Client client = clientRepository.findById(clientId)
+                .orElseThrow(() -> new ResourceNotFoundException("Client non trouvé"));
+        var evaluation = politiqueFinanciereClientService.evaluerReservation(client);
+        LocalDateTime maintenant = LocalDateTime.now();
+        Integer echeance = client.getEcheance();
+        LocalDateTime debutEmission = echeance != null && echeance > 0
+                ? maintenant.minusDays(echeance) : maintenant;
+        LocalDateTime finEmission = echeance != null && echeance > 0
+                ? maintenant.plusDays(7).minusDays(echeance) : maintenant;
+        List<FactureEcheanceClientResponse> prochainesEcheances = factureRepository.findProchainesEcheancesImpayees(
+                clientId, maintenant, maintenant.plusDays(7), echeance,
+                debutEmission, finEmission)
+                .stream().map(projection -> {
+                    LocalDateTime dateEcheance = projection.getDateEcheance() != null
+                            ? projection.getDateEcheance()
+                            : projection.getDateEmission() == null || echeance == null || echeance <= 0 ? null
+                                    : projection.getDateEmission().plusDays(echeance);
+                    return new FactureEcheanceClientResponse(projection.getFactureId(), projection.getNumero(),
+                            projection.getDateEmission(), dateEcheance, projection.getResteAPayer(),
+                            projection.getOrdreReparationId(), projection.getNumeroOrdreReparation(),
+                            projection.getImmatriculation(), projection.getMarque(), projection.getModele());
+                }).sorted(Comparator.comparing(FactureEcheanceClientResponse::dateEcheance,
+                        Comparator.nullsLast(Comparator.naturalOrder())))
+                .limit(5).toList();
+        List<FactureEcheanceClientResponse> facturesBloquantes = evaluation.facturesEchuesImpayees().stream()
+                .map(f -> new FactureEcheanceClientResponse(f.factureId(), f.numero(), f.dateEmission(),
+                        f.dateEcheance(), f.resteAPayer(), null, null, null, null, null))
+                .toList();
+        BigDecimal disponible = evaluation.plafond() == null ? null
+                : evaluation.plafond().subtract(evaluation.encoursImpayes()).max(BigDecimal.ZERO);
+        boolean derogationEnAttente = demandeDerogationPlafondRepository
+                .findFirstByClientIdAndStatutOrderByDateDemandeDesc(clientId, StatutDemandeDerogationPlafond.EN_ATTENTE)
+                .isPresent();
+        String motif = derogationEnAttente
+                ? "Une demande de dérogation est en attente de décision par un Super Agent."
+                : evaluation.motifBlocage();
+        return new SyntheseFinanciereClientResponse(clientId, echeance, evaluation.plafond(),
+                evaluation.encoursImpayes(), disponible, evaluation.plafond() != null,
+                evaluation.plafondAtteint(), evaluation.factureEchueImpayee(), derogationEnAttente,
+                evaluation.workflowAutorise() && !derogationEnAttente, motif,
+                facturesBloquantes, prochainesEcheances);
     }
 
     @Transactional

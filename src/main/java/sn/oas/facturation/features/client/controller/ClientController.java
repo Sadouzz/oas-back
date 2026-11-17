@@ -19,6 +19,7 @@ import sn.oas.facturation.features.client.service.ClientService;
 import sn.oas.facturation.features.client.service.CompteClientService;
 import sn.oas.facturation.features.client.dto.CompteClientRequest;
 import sn.oas.facturation.features.client.dto.CompteClientResponse;
+import sn.oas.facturation.features.client.dto.SyntheseFinanciereClientResponse;
 import sn.oas.facturation.features.client.dto.AlimentationPortefeuilleRequest;
 import sn.oas.facturation.features.client.dto.PortefeuilleClientResponse;
 import sn.oas.facturation.features.client.dto.RemiseClientRequest;
@@ -194,6 +195,13 @@ public class ClientController {
     @Operation(summary = "Consulter les conditions financières d'un client")
     public ResponseEntity<CompteClientResponse> getCompteFinancier(@PathVariable Long id) {
         return ResponseEntity.ok(compteClientService.lire(id));
+    }
+
+    @GetMapping("/{id}/synthese-financiere")
+    @org.springframework.security.access.prepost.PreAuthorize("hasAnyAuthority('ROLE_MASTER','MASTER','ROLE_SUPER_AGENT','SUPER_AGENT')")
+    @Operation(summary = "Consulter le plafond, l'encours et les échéances impayées d'un client")
+    public ResponseEntity<SyntheseFinanciereClientResponse> getSyntheseFinanciere(@PathVariable Long id) {
+        return ResponseEntity.ok(compteClientService.lireSynthese(id));
     }
 
     @PutMapping("/{id}/compte-financier")

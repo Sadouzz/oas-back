@@ -70,7 +70,7 @@ public class PolitiqueFinanciereClientService {
         return new EvaluationReservation(!plafondAtteint && !factureEchueImpayee,
                 plafondAtteint, factureEchueImpayee, motif, plafond, encoursImpayes,
                 echeance, facturesEnRetard.stream().map(f -> new FactureEchueImpayee(
-                        f.getNumero(), f.getDateCreation(), effectiveDueDate(f, echeance),
+                        f.getId(), f.getNumero(), f.getDateCreation(), effectiveDueDate(f, echeance),
                         montantRestant(f))).toList());
     }
 
@@ -100,6 +100,7 @@ public class PolitiqueFinanciereClientService {
     }
 
     public record FactureEchueImpayee(
+            Long factureId,
             String numero,
             LocalDateTime dateEmission,
             LocalDateTime dateEcheance,

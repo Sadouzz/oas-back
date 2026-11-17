@@ -77,6 +77,18 @@ public class OrdreReparationController {
                 .stream().map(OrdreReparationListDTO::from).toList());
     }
 
+    @GetMapping("/client/{clientId}/historique")
+    @Operation(summary = "Consulter l'historique paginé des réparations d'un client")
+    public ResponseEntity<Page<OrdreReparationListDTO>> getInterventionsByClientPage(
+            @PathVariable Long clientId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "8") int size) {
+        int pageIndex = Math.max(0, page);
+        int pageSize = Math.max(1, Math.min(size, 50));
+        return ResponseEntity.ok(ordreReparationRepository.findClientHistoryPage(clientId, PageRequest.of(pageIndex, pageSize))
+                .map(OrdreReparationListDTO::from));
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Récupérer une fiche atelier par son ID")
     public ResponseEntity<?> getOrdreReparationById(@PathVariable Long id) {

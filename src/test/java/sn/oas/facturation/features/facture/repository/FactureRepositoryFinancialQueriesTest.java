@@ -24,8 +24,18 @@ class FactureRepositoryFinancialQueriesTest {
         BigDecimal encours = factureRepository.sumResteAPayerByClientId(Long.MAX_VALUE);
         var enRetard = factureRepository.findFacturesImpayeesEnRetard(
                 Long.MAX_VALUE, now, now.minusDays(30));
+        var enRetardSansEcheanceConfiguree = factureRepository.findFacturesImpayeesEnRetard(
+                Long.MAX_VALUE, now, null);
+        var prochainesEcheances = factureRepository.findProchainesEcheancesImpayees(
+                Long.MAX_VALUE, now, now.plusDays(7), 30,
+                now.minusDays(30), now.minusDays(23));
+        var prochainesEcheancesSansEcheanceConfiguree = factureRepository.findProchainesEcheancesImpayees(
+                Long.MAX_VALUE, now, now.plusDays(7), null, now, now);
 
         assertEquals(0, BigDecimal.ZERO.compareTo(encours));
         assertTrue(enRetard.isEmpty());
+        assertTrue(enRetardSansEcheanceConfiguree.isEmpty());
+        assertTrue(prochainesEcheances.isEmpty());
+        assertTrue(prochainesEcheancesSansEcheanceConfiguree.isEmpty());
     }
 }

@@ -93,13 +93,57 @@ public interface FactureRepository extends JpaRepository<Facture, Long>, JpaSpec
             + "AND (CASE WHEN f.resteAPayer IS NOT NULL THEN f.resteAPayer "
             + "ELSE COALESCE(f.montantTotal, 0) - COALESCE(f.montantPaye, 0) END) > 0 "
             + "AND ((f.dateEcheance IS NOT NULL AND f.dateEcheance < :maintenant) "
-            + "OR (f.dateEcheance IS NULL AND :limiteAnciennesFactures IS NOT NULL "
-            + "AND f.dateCreation < :limiteAnciennesFactures)) "
+            + "OR (f.dateEcheance IS NULL "
+            + "AND f.dateCreation < COALESCE(:limiteAnciennesFactures, f.dateCreation))) "
             + "ORDER BY f.dateCreation ASC")
     List<Facture> findFacturesImpayeesEnRetard(
             @Param("clientId") Long clientId,
             @Param("maintenant") java.time.LocalDateTime maintenant,
             @Param("limiteAnciennesFactures") java.time.LocalDateTime limiteAnciennesFactures);
+
+    @Query("SELECT f.id AS factureId, f.numero AS numero, f.dateCreation AS dateEmission, "
+            + "f.dateEcheance AS dateEcheance, "
+            + "CASE WHEN f.resteAPayer IS NOT NULL THEN f.resteAPayer "
+            + "ELSE COALESCE(f.montantTotal, 0) - COALESCE(f.montantPaye, 0) END AS resteAPayer, "
+            + "ordre.id AS ordreReparationId, ordre.numero AS numeroOrdreReparation, "
+            + "COALESCE(vehicule.immatriculation, vehiculeOrdre.immatriculation) AS immatriculation, "
+            + "COALESCE(vehicule.marque, vehiculeOrdre.marque) AS marque, "
+            + "COALESCE(vehicule.modele, vehiculeOrdre.modele) AS modele "
+            + "FROM Facture f "
+            + "LEFT JOIN f.client factureClient "
+            + "LEFT JOIN f.ordreReparation ordre "
+            + "LEFT JOIN ordre.client ordreClient "
+            + "LEFT JOIN f.vehicule vehicule "
+            + "LEFT JOIN vehicule.client vehiculeClient "
+            + "LEFT JOIN ordre.vehicule vehiculeOrdre "
+            + "LEFT JOIN vehiculeOrdre.client vehiculeOrdreClient "
+            + "WHERE COALESCE(factureClient.id, ordreClient.id, vehiculeOrdreClient.id, vehiculeClient.id) = :clientId "
+            + "AND (CASE WHEN f.resteAPayer IS NOT NULL THEN f.resteAPayer "
+            + "ELSE COALESCE(f.montantTotal, 0) - COALESCE(f.montantPaye, 0) END) > 0 "
+            + "AND ((f.dateEcheance IS NOT NULL AND f.dateEcheance >= :maintenant AND f.dateEcheance <= :dansSeptJours) "
+            + "OR (f.dateEcheance IS NULL AND COALESCE(:echeanceJours, 0) > 0 "
+            + "AND f.dateCreation >= :debutEmission AND f.dateCreation <= :finEmission)) "
+            + "ORDER BY COALESCE(f.dateEcheance, f.dateCreation) ASC")
+    List<FactureEcheanceProjection> findProchainesEcheancesImpayees(
+            @Param("clientId") Long clientId,
+            @Param("maintenant") java.time.LocalDateTime maintenant,
+            @Param("dansSeptJours") java.time.LocalDateTime dansSeptJours,
+            @Param("echeanceJours") Integer echeanceJours,
+            @Param("debutEmission") java.time.LocalDateTime debutEmission,
+            @Param("finEmission") java.time.LocalDateTime finEmission);
+
+    interface FactureEcheanceProjection {
+        Long getFactureId();
+        String getNumero();
+        java.time.LocalDateTime getDateEmission();
+        java.time.LocalDateTime getDateEcheance();
+        java.math.BigDecimal getResteAPayer();
+        Long getOrdreReparationId();
+        String getNumeroOrdreReparation();
+        String getImmatriculation();
+        String getMarque();
+        String getModele();
+    }
 
     @Query("SELECT COALESCE(SUM(f.montantTotal), 0) FROM Facture f WHERE f.client.id = :clientId AND f.dateCreation >= :debut")
     java.math.BigDecimal sumMontantFacturesDepuis(@Param("clientId") Long clientId, @Param("debut") java.time.LocalDateTime debut);
