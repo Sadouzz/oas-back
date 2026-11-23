@@ -69,7 +69,6 @@ public class StepBLResponseDto extends BaseStepResponseDto {
         private String modePaiement;
         private Double montantTotal;
         private Double montantPaye;
-        private Double montantTimbrePaye;
         private Double resteAPayer;
         private Boolean tvaApplicable;
     }

@@ -49,16 +49,9 @@ public class NoteDePrix extends FactureHT implements TenantAware {
     @Column(name = "tva_applicable")
     private Boolean tvaApplicable;
 
-    @Column(name = "montant_tva", precision = 15, scale = 2)
-    private BigDecimal montantTVA;
-
     @Column(name = "montant_paye", precision = 15, scale = 2)
     @lombok.Builder.Default
     private BigDecimal montantPaye = BigDecimal.ZERO;
-
-    @Column(name = "montant_timbre_paye", precision = 15, scale = 2, nullable = false)
-    @lombok.Builder.Default
-    private BigDecimal montantTimbrePaye = BigDecimal.ZERO;
 
     @Column(name = "reste_a_payer", precision = 15, scale = 2)
     private BigDecimal resteAPayer;

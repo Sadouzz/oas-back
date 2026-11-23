@@ -745,13 +745,8 @@ public class BonDeLivraisonServiceImpl implements BonDeLivraisonService {
         boolean modeExplicit = modeDemande != null && !modeDemande.isBlank();
         String modePaiement = FacturePaymentMode.normalize(modeExplicit
                 ? modeDemande
-                : (Boolean.FALSE.equals(bl.getTvaApplicable()) ? FacturePaymentMode.ESPECE_HT : FacturePaymentMode.ESPECE_TTC));
-        boolean appliquerTVA = modeExplicit
-                ? FacturePaymentMode.appliquerTva(modePaiement)
-                : !Boolean.FALSE.equals(bl.getTvaApplicable());
-        var configurationFiscale = fiscalService.getCurrent();
-        BigDecimal tva = appliquerTVA ? fiscalService.calculateRate(bl.getMontantHT(), configurationFiscale.getTvaRate()) : BigDecimal.ZERO;
-        BigDecimal montantTotal = bl.getMontantHT().add(tva);
+                : FacturePaymentMode.ESPECE_HT);
+        BigDecimal montantTotal = bl.getMontantHT();
 
         NoteDePrix note = NoteDePrix.builder()
                 .numero(numberGenerator.generateNextNumber(DocumentType.NP))
@@ -764,12 +759,10 @@ public class BonDeLivraisonServiceImpl implements BonDeLivraisonService {
                 .kilometrage(bl.getKilometrage())
                 .remarque(request != null && request.getRemarque() != null ? request.getRemarque() : bl.getRemarque())
                 .statut(StatutFacturation.EN_ATTENTE)
-                .tvaApplicable(appliquerTVA)
+                .tvaApplicable(false)
                 .montantHT(bl.getMontantHT())
-                .montantTVA(tva)
                 .montantTotal(montantTotal)
                 .montantPaye(BigDecimal.ZERO)
-                .montantTimbrePaye(BigDecimal.ZERO)
                 .resteAPayer(montantTotal)
                 .statutPaiement(StatutPaiement.NON_PAYE)
                 .modePaiement(modePaiement)

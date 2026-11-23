@@ -16,11 +16,9 @@ public class NoteDePrixResponse {
     private String numero;
     private LocalDateTime dateCreation;
     private BigDecimal montantHT;
-    private BigDecimal montantTVA;
     private Boolean tvaApplicable;
     private BigDecimal montantTotal;
     private BigDecimal montantPaye;
-    private BigDecimal montantTimbrePaye;
     private BigDecimal montantEncaisse;
     private BigDecimal resteAPayer;
     private String statutPaiement;
@@ -188,13 +186,10 @@ public class NoteDePrixResponse {
                 .numero(note.getNumero())
                 .dateCreation(note.getDateCreation())
                 .montantHT(note.getMontantHT() != null ? note.getMontantHT() : BigDecimal.ZERO)
-                .montantTVA(note.getMontantTVA() != null ? note.getMontantTVA() : BigDecimal.ZERO)
                 .tvaApplicable(note.getTvaApplicable())
                 .montantTotal(note.getMontantTotal() != null ? note.getMontantTotal() : BigDecimal.ZERO)
                 .montantPaye(note.getMontantPaye() != null ? note.getMontantPaye() : BigDecimal.ZERO)
-                .montantTimbrePaye(note.getMontantTimbrePaye() != null ? note.getMontantTimbrePaye() : BigDecimal.ZERO)
-                .montantEncaisse((note.getMontantPaye() != null ? note.getMontantPaye() : BigDecimal.ZERO)
-                        .add(note.getMontantTimbrePaye() != null ? note.getMontantTimbrePaye() : BigDecimal.ZERO))
+                .montantEncaisse(note.getMontantPaye() != null ? note.getMontantPaye() : BigDecimal.ZERO)
                 .resteAPayer(note.getResteAPayer() != null ? note.getResteAPayer() : (note.getMontantTotal() != null ? note.getMontantTotal() : BigDecimal.ZERO))
                 .statutPaiement(note.getStatutPaiement() != null ? note.getStatutPaiement().name() : "NON_PAYE")
                 .modePaiement(note.getModePaiement())

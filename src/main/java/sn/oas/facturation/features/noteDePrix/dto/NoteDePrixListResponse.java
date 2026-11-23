@@ -12,11 +12,9 @@ public record NoteDePrixListResponse(
         String numero,
         LocalDateTime dateCreation,
         BigDecimal montantHT,
-        BigDecimal montantTVA,
         Boolean tvaApplicable,
         BigDecimal montantTotal,
         BigDecimal montantPaye,
-        BigDecimal montantTimbrePaye,
         BigDecimal montantEncaisse,
         BigDecimal resteAPayer,
         String statutPaiement,
@@ -105,13 +103,10 @@ public record NoteDePrixListResponse(
                 .numero(note.getNumero())
                 .dateCreation(note.getDateCreation())
                 .montantHT(note.getMontantHT())
-                .montantTVA(note.getMontantTVA())
                 .tvaApplicable(note.getTvaApplicable())
                 .montantTotal(note.getMontantTotal())
                 .montantPaye(note.getMontantPaye())
-                .montantTimbrePaye(note.getMontantTimbrePaye() != null ? note.getMontantTimbrePaye() : BigDecimal.ZERO)
-                .montantEncaisse((note.getMontantPaye() != null ? note.getMontantPaye() : BigDecimal.ZERO)
-                        .add(note.getMontantTimbrePaye() != null ? note.getMontantTimbrePaye() : BigDecimal.ZERO))
+                .montantEncaisse(note.getMontantPaye() != null ? note.getMontantPaye() : BigDecimal.ZERO)
                 .resteAPayer(note.getResteAPayer())
                 .statutPaiement(note.getStatutPaiement() != null ? note.getStatutPaiement().name() : null)
                 .modePaiement(note.getModePaiement())

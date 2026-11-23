@@ -62,7 +62,6 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
     private final DocumentNumberGeneratorService documentNumberGeneratorService;
     private final PieceMouvementRepository pieceMouvementRepository;
     private final GarageRepository garageRepository;
-    private final sn.oas.facturation.features.fiscal.service.FiscalConfigurationService fiscalConfigurationService;
 
     private Agent getAgentConnecte() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -221,19 +220,11 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
         note.setNumeroBonDeCommande(request.getNumeroBonDeCommande());
         note.setMontantAutre(request.getMontantAutre() != null ? request.getMontantAutre() : BigDecimal.ZERO);
         BigDecimal totalFinal = montantTotalHT.add(note.getMontantAutre());
-        boolean isHt = FacturePaymentMode.isHt(modePaiement);
-        boolean appliquerTVA = !isHt && Boolean.TRUE.equals(request.getAppliquerTVA());
-        BigDecimal montantTVA = appliquerTVA
-                ? fiscalConfigurationService.calculateRate(totalFinal, fiscalConfigurationService.getCurrent().getTvaRate())
-                : BigDecimal.ZERO;
-        note.setTvaApplicable(appliquerTVA);
-        note.setMontantTVA(montantTVA);
+        note.setTvaApplicable(false);
         note.setMontantHT(totalFinal);
-        BigDecimal totalDocument = totalFinal.add(montantTVA);
-        note.setMontantTotal(totalDocument);
+        note.setMontantTotal(totalFinal);
         note.setMontantPaye(BigDecimal.ZERO);
-        note.setMontantTimbrePaye(BigDecimal.ZERO);
-        note.setResteAPayer(totalDocument);
+        note.setResteAPayer(totalFinal);
         note.setStatutPaiement(StatutPaiement.NON_PAYE);
 
         NoteDePrix saved = noteDePrixRepository.save(note);
@@ -350,9 +341,8 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
         if (request.getModePaiement() != null) {
             note.setModePaiement(normaliserModePaiementNote(request.getModePaiement()));
         }
-        if (request.getAppliquerTVA() != null) note.setTvaApplicable(request.getAppliquerTVA());
         boolean recalculerMontants = request.getLignesPieces() != null || request.getLignesMainDoeuvres() != null
-                || request.getMontantAutre() != null || request.getAppliquerTVA() != null
+                || request.getMontantAutre() != null
                 || (request.getModePaiement() != null && request.getMontantPaye() == null);
         if (recalculerMontants) {
             BigDecimal piecesSum = note.getLignesFacturationPieces().stream()
@@ -362,19 +352,13 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
                     .map(l -> BigDecimal.valueOf((long) (l.getTarifHoraire() != null ? l.getTarifHoraire() : 0) * (l.getNbreHeure() != null ? l.getNbreHeure() : 0)))
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
             BigDecimal totalHT = piecesSum.add(moSum).add(note.getMontantAutre() != null ? note.getMontantAutre() : BigDecimal.ZERO);
-            boolean isHt = FacturePaymentMode.isHt(note.getModePaiement());
-            boolean appliquerTVA = !isHt && Boolean.TRUE.equals(note.getTvaApplicable());
-            BigDecimal montantTVA = appliquerTVA
-                    ? fiscalConfigurationService.calculateRate(totalHT, fiscalConfigurationService.getCurrent().getTvaRate())
-                    : BigDecimal.ZERO;
-            BigDecimal totalDocument = totalHT.add(montantTVA);
+            note.setTvaApplicable(false);
             note.setMontantHT(totalHT);
-            note.setMontantTVA(montantTVA);
-            note.setMontantTotal(totalDocument);
+            note.setMontantTotal(totalHT);
             BigDecimal paye = note.getMontantPaye() != null ? note.getMontantPaye() : BigDecimal.ZERO;
-            BigDecimal reste = totalDocument.subtract(paye).max(BigDecimal.ZERO);
+            BigDecimal reste = totalHT.subtract(paye).max(BigDecimal.ZERO);
             note.setResteAPayer(reste);
-            if (reste.compareTo(BigDecimal.ZERO) == 0 && totalDocument.compareTo(BigDecimal.ZERO) > 0) {
+            if (reste.compareTo(BigDecimal.ZERO) == 0 && totalHT.compareTo(BigDecimal.ZERO) > 0) {
                 note.setStatutPaiement(StatutPaiement.PAYE);
             } else if (paye.compareTo(BigDecimal.ZERO) > 0) {
                 note.setStatutPaiement(StatutPaiement.PARTIEL);

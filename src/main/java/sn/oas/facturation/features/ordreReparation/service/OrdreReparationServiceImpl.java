@@ -2174,7 +2174,6 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
                     .modePaiement(noteDePrix.getModePaiement())
                     .montantTotal(noteDePrix.getMontantTotal() != null ? noteDePrix.getMontantTotal().doubleValue() : 0.0)
                     .montantPaye(noteDePrix.getMontantPaye() != null ? noteDePrix.getMontantPaye().doubleValue() : 0.0)
-                    .montantTimbrePaye(noteDePrix.getMontantTimbrePaye() != null ? noteDePrix.getMontantTimbrePaye().doubleValue() : 0.0)
                     .resteAPayer(noteDePrix.getResteAPayer() != null ? noteDePrix.getResteAPayer().doubleValue()
                             : noteDePrix.getMontantTotal() != null ? noteDePrix.getMontantTotal().doubleValue() : 0.0)
                     .tvaApplicable(noteDePrix.getTvaApplicable())
