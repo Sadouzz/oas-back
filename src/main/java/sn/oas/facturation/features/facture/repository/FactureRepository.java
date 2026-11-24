@@ -169,4 +169,25 @@ public interface FactureRepository extends JpaRepository<Facture, Long>, JpaSpec
     List<Facture> findHistoriqueBetween(
             @Param("debut") java.time.LocalDateTime debut,
             @Param("finExclusive") java.time.LocalDateTime finExclusive);
+
+    Page<Facture> findByDateCreationGreaterThanEqualAndDateCreationLessThanOrderByDateCreationDescIdDesc(
+            java.time.LocalDateTime debut,
+            java.time.LocalDateTime finExclusive,
+            Pageable pageable);
+
+    List<Facture> findByDateCreationGreaterThanEqualAndDateCreationLessThanOrderByDateCreationDescIdDesc(
+            java.time.LocalDateTime debut,
+            java.time.LocalDateTime finExclusive);
+
+    @Query("SELECT COALESCE(SUM(f.montantTVA), 0) FROM Facture f "
+            + "WHERE f.dateCreation >= :debut AND f.dateCreation < :finExclusive")
+    java.math.BigDecimal sumMontantTvaBetween(
+            @Param("debut") java.time.LocalDateTime debut,
+            @Param("finExclusive") java.time.LocalDateTime finExclusive);
+
+    @Query("SELECT COALESCE(SUM(f.montantTimbre), 0) FROM Facture f "
+            + "WHERE f.dateCreation >= :debut AND f.dateCreation < :finExclusive")
+    java.math.BigDecimal sumMontantTimbreBetween(
+            @Param("debut") java.time.LocalDateTime debut,
+            @Param("finExclusive") java.time.LocalDateTime finExclusive);
 }

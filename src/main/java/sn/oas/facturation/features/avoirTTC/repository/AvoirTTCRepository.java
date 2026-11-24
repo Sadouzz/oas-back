@@ -87,4 +87,25 @@ public interface AvoirTTCRepository extends JpaRepository<AvoirTTC, Long> {
     List<AvoirTTC> findHistoriqueBetween(
             @Param("debut") java.time.LocalDateTime debut,
             @Param("finExclusive") java.time.LocalDateTime finExclusive);
+
+    org.springframework.data.domain.Page<AvoirTTC> findByDateCreationGreaterThanEqualAndDateCreationLessThanOrderByDateCreationDescIdDesc(
+            java.time.LocalDateTime debut,
+            java.time.LocalDateTime finExclusive,
+            org.springframework.data.domain.Pageable pageable);
+
+    List<AvoirTTC> findByDateCreationGreaterThanEqualAndDateCreationLessThanOrderByDateCreationDescIdDesc(
+            java.time.LocalDateTime debut,
+            java.time.LocalDateTime finExclusive);
+
+    @Query("SELECT COALESCE(SUM(a.montantTVA), 0) FROM AvoirTTC a "
+            + "WHERE a.dateCreation >= :debut AND a.dateCreation < :finExclusive")
+    java.math.BigDecimal sumMontantTvaBetween(
+            @Param("debut") java.time.LocalDateTime debut,
+            @Param("finExclusive") java.time.LocalDateTime finExclusive);
+
+    @Query("SELECT COALESCE(SUM(a.montantTimbre), 0) FROM AvoirTTC a "
+            + "WHERE a.dateCreation >= :debut AND a.dateCreation < :finExclusive")
+    java.math.BigDecimal sumMontantTimbreBetween(
+            @Param("debut") java.time.LocalDateTime debut,
+            @Param("finExclusive") java.time.LocalDateTime finExclusive);
 }
