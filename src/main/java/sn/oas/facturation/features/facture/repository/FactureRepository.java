@@ -155,4 +155,18 @@ public interface FactureRepository extends JpaRepository<Facture, Long>, JpaSpec
             + "WHERE f.vehicule.id = :vehiculeId OR o.vehicule.id = :vehiculeId "
             + "ORDER BY f.dateCreation DESC, f.id DESC")
     List<Facture> findHistoriqueByVehiculeId(@Param("vehiculeId") Long vehiculeId);
+
+    @Query("SELECT DISTINCT f FROM Facture f "
+            + "LEFT JOIN FETCH f.client c "
+            + "LEFT JOIN FETCH f.vehicule v "
+            + "LEFT JOIN FETCH v.client vc "
+            + "LEFT JOIN FETCH f.ordreReparation o "
+            + "LEFT JOIN FETCH o.client oc "
+            + "LEFT JOIN FETCH o.vehicule ov "
+            + "LEFT JOIN FETCH ov.client ovc "
+            + "WHERE f.dateCreation >= :debut AND f.dateCreation < :finExclusive "
+            + "ORDER BY f.dateCreation DESC, f.id DESC")
+    List<Facture> findHistoriqueBetween(
+            @Param("debut") java.time.LocalDateTime debut,
+            @Param("finExclusive") java.time.LocalDateTime finExclusive);
 }

@@ -75,4 +75,18 @@ public interface NoteDePrixRepository extends JpaRepository<NoteDePrix, Long>, J
             + "WHERE n.vehicule.id = :vehiculeId OR o.vehicule.id = :vehiculeId "
             + "ORDER BY n.dateCreation DESC, n.id DESC")
     List<NoteDePrix> findHistoriqueByVehiculeId(@Param("vehiculeId") Long vehiculeId);
+
+    @Query("SELECT DISTINCT n FROM NoteDePrix n "
+            + "LEFT JOIN FETCH n.client c "
+            + "LEFT JOIN FETCH n.vehicule v "
+            + "LEFT JOIN FETCH v.client vc "
+            + "LEFT JOIN FETCH n.ordreReparation o "
+            + "LEFT JOIN FETCH o.client oc "
+            + "LEFT JOIN FETCH o.vehicule ov "
+            + "LEFT JOIN FETCH ov.client ovc "
+            + "WHERE n.dateCreation >= :debut AND n.dateCreation < :finExclusive "
+            + "ORDER BY n.dateCreation DESC, n.id DESC")
+    List<NoteDePrix> findHistoriqueBetween(
+            @Param("debut") java.time.LocalDateTime debut,
+            @Param("finExclusive") java.time.LocalDateTime finExclusive);
 }

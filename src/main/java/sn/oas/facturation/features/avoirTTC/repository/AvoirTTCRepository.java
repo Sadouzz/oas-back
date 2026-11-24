@@ -73,4 +73,18 @@ public interface AvoirTTCRepository extends JpaRepository<AvoirTTC, Long> {
     org.springframework.data.domain.Page<AvoirTTC> searchAvoirsTTC(@Param("keyword") String keyword, org.springframework.data.domain.Pageable pageable);
 
     List<AvoirTTC> findTop5ByOrderByDateCreationDesc();
+
+    @Query("SELECT DISTINCT a FROM AvoirTTC a "
+            + "LEFT JOIN FETCH a.client c "
+            + "LEFT JOIN FETCH a.vehicule v "
+            + "LEFT JOIN FETCH v.client vc "
+            + "LEFT JOIN FETCH a.ordreReparation o "
+            + "LEFT JOIN FETCH o.client oc "
+            + "LEFT JOIN FETCH o.vehicule ov "
+            + "LEFT JOIN FETCH ov.client ovc "
+            + "WHERE a.dateCreation >= :debut AND a.dateCreation < :finExclusive "
+            + "ORDER BY a.dateCreation DESC, a.id DESC")
+    List<AvoirTTC> findHistoriqueBetween(
+            @Param("debut") java.time.LocalDateTime debut,
+            @Param("finExclusive") java.time.LocalDateTime finExclusive);
 }

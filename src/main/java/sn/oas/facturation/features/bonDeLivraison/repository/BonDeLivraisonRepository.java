@@ -75,4 +75,24 @@ public interface BonDeLivraisonRepository extends JpaRepository<BonDeLivraison, 
             + "WHERE b.vehicule.id = :vehiculeId OR o.vehicule.id = :vehiculeId "
             + "ORDER BY b.dateCreation DESC, b.id DESC")
     java.util.List<BonDeLivraison> findHistoriqueByVehiculeId(@Param("vehiculeId") Long vehiculeId);
+
+    @Query("SELECT DISTINCT b FROM BonDeLivraison b "
+            + "LEFT JOIN FETCH b.client c "
+            + "LEFT JOIN FETCH b.vehicule v "
+            + "LEFT JOIN FETCH v.client vc "
+            + "LEFT JOIN FETCH b.ordreReparation o "
+            + "LEFT JOIN FETCH o.client oc "
+            + "LEFT JOIN FETCH o.vehicule ov "
+            + "LEFT JOIN FETCH ov.client ovc "
+            + "LEFT JOIN FETCH b.ordreTravail ot "
+            + "LEFT JOIN FETCH ot.client otc "
+            + "LEFT JOIN FETCH ot.vehicule otv "
+            + "LEFT JOIN FETCH otv.client otvc "
+            + "LEFT JOIN FETCH b.facture "
+            + "LEFT JOIN FETCH b.noteDePrix "
+            + "WHERE b.dateCreation >= :debut AND b.dateCreation < :finExclusive "
+            + "ORDER BY b.dateCreation DESC, b.id DESC")
+    java.util.List<BonDeLivraison> findHistoriqueBetween(
+            @Param("debut") java.time.LocalDateTime debut,
+            @Param("finExclusive") java.time.LocalDateTime finExclusive);
 }
