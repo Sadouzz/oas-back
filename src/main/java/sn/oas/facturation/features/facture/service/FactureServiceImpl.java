@@ -408,6 +408,14 @@ public class FactureServiceImpl implements FactureService {
         facture.setStatutPaiement(StatutPaiement.NON_PAYE);
         facture = factureRepository.save(facture);
 
+        if (ordreReparation != null && (ordreReparation.getStatut() == null
+                || ordreReparation.getStatut().getEtape() < StatutOrdreReparation.FACTURATION.getEtape()
+                || ordreReparation.getStatut() == StatutOrdreReparation.PRET_A_LIVRER)) {
+            ordreReparation.setStatut(StatutOrdreReparation.FACTURATION);
+            ordreReparation.setUpdatedAt(LocalDateTime.now());
+            ordreReparationRepository.save(ordreReparation);
+        }
+
         // Mouvement de stock : La facture diminue le stock réel (SORTIE RÉELLE)
         for (LigneFacturationPiece lfp : facture.getLignesFacturationPieces()) {
             if (lfp.getPiece() != null) {

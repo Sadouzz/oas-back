@@ -228,6 +228,13 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
         note.setStatutPaiement(StatutPaiement.NON_PAYE);
 
         NoteDePrix saved = noteDePrixRepository.save(note);
+        if (fiche != null && (fiche.getStatut() == null
+                || fiche.getStatut().getEtape() < sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation.FACTURATION.getEtape()
+                || fiche.getStatut() == sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation.PRET_A_LIVRER)) {
+            fiche.setStatut(sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation.FACTURATION);
+            fiche.setUpdatedAt(java.time.LocalDateTime.now());
+            ordreReparationRepository.save(fiche);
+        }
         // Mouvement de stock : La Note de prix diminue le stock réel (SORTIE RÉELLE)
         for (LigneFacturationPiece lfp : saved.getLignesFacturationPieces()) {
             if (lfp.getPiece() != null && lfp.getPiece() instanceof PDP pdp) {

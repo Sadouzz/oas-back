@@ -551,11 +551,7 @@ public class BonDeLivraisonServiceImpl implements BonDeLivraisonService {
                     || !bl.getId().equals(factureExistante.getBonDeLivraison().getId())) {
                 throw new BadRequestException("Une facture existe déjà pour cet ordre, mais elle n'est pas issue de son bon de livraison.");
             }
-            if (ordre.getStatut() == null || ordre.getStatut().getEtape() < StatutOrdreReparation.FACTURATION.getEtape()) {
-                ordre.setStatut(StatutOrdreReparation.FACTURATION);
-                ordre.setUpdatedAt(LocalDateTime.now());
-                orRepository.save(ordre);
-            }
+            passerOrdreEnFacturation(ordre);
             return factureExistante;
         }
 
@@ -608,11 +604,7 @@ public class BonDeLivraisonServiceImpl implements BonDeLivraisonService {
         }
 
         if (bl.getFacture() != null) {
-            if (ordre != null && (ordre.getStatut() == null || ordre.getStatut().getEtape() < StatutOrdreReparation.FACTURATION.getEtape())) {
-                ordre.setStatut(StatutOrdreReparation.FACTURATION);
-                ordre.setUpdatedAt(LocalDateTime.now());
-                orRepository.save(ordre);
-            }
+            passerOrdreEnFacturation(ordre);
             return bl.getFacture();
         }
 
@@ -681,11 +673,7 @@ public class BonDeLivraisonServiceImpl implements BonDeLivraisonService {
             }
         }
         if (ordre != null) {
-            if (ordre.getStatut() == null || ordre.getStatut().getEtape() < StatutOrdreReparation.FACTURATION.getEtape()) {
-                ordre.setStatut(StatutOrdreReparation.FACTURATION);
-                ordre.setUpdatedAt(LocalDateTime.now());
-                orRepository.save(ordre);
-            }
+            passerOrdreEnFacturation(ordre);
             if (ordre.getProforma() != null) {
                 ordre.getProforma().setStatut(StatutFacturation.CONVERTIE);
             }
@@ -728,11 +716,7 @@ public class BonDeLivraisonServiceImpl implements BonDeLivraisonService {
         }
 
         if (bl.getNoteDePrix() != null) {
-            if (ordre != null && (ordre.getStatut() == null || ordre.getStatut().getEtape() < StatutOrdreReparation.FACTURATION.getEtape())) {
-                ordre.setStatut(StatutOrdreReparation.FACTURATION);
-                ordre.setUpdatedAt(LocalDateTime.now());
-                orRepository.save(ordre);
-            }
+            passerOrdreEnFacturation(ordre);
             return bl.getNoteDePrix();
         }
 
@@ -773,11 +757,7 @@ public class BonDeLivraisonServiceImpl implements BonDeLivraisonService {
         for (var row : copyMo(bl, note)) note.getLignesFacturationMainDoeuvres().add(row);
 
         if (ordre != null) {
-            if (ordre.getStatut() == null || ordre.getStatut().getEtape() < StatutOrdreReparation.FACTURATION.getEtape()) {
-                ordre.setStatut(StatutOrdreReparation.FACTURATION);
-                ordre.setUpdatedAt(LocalDateTime.now());
-                orRepository.save(ordre);
-            }
+            passerOrdreEnFacturation(ordre);
             if (ordre.getProforma() != null) {
                 ordre.getProforma().setStatut(StatutFacturation.CONVERTIE);
             }
@@ -838,6 +818,17 @@ public class BonDeLivraisonServiceImpl implements BonDeLivraisonService {
                 .tauxRemise(nz(l.getTauxRemise()))
                 .dateHeureSaisie(l.getDateHeureSaisie())
                 .build()).toList();
+    }
+
+    private void passerOrdreEnFacturation(OrdreReparation ordre) {
+        if (ordre == null) return;
+        if (ordre.getStatut() == null
+                || ordre.getStatut().getEtape() < StatutOrdreReparation.FACTURATION.getEtape()
+                || ordre.getStatut() == StatutOrdreReparation.PRET_A_LIVRER) {
+            ordre.setStatut(StatutOrdreReparation.FACTURATION);
+            ordre.setUpdatedAt(LocalDateTime.now());
+            orRepository.save(ordre);
+        }
     }
 
     private BonDeLivraison find(Long id) {
