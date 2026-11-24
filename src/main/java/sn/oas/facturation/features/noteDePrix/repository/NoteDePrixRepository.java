@@ -70,4 +70,9 @@ public interface NoteDePrixRepository extends JpaRepository<NoteDePrix, Long>, J
     java.util.Optional<NoteDePrix> findByBonDeLivraisonId(Long bonDeLivraisonId);
 
     List<NoteDePrix> findTop5ByOrderByDateCreationDesc();
+
+    @Query("SELECT DISTINCT n FROM NoteDePrix n LEFT JOIN n.ordreReparation o "
+            + "WHERE n.vehicule.id = :vehiculeId OR o.vehicule.id = :vehiculeId "
+            + "ORDER BY n.dateCreation DESC, n.id DESC")
+    List<NoteDePrix> findHistoriqueByVehiculeId(@Param("vehiculeId") Long vehiculeId);
 }

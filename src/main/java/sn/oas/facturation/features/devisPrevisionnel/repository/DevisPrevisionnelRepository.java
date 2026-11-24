@@ -24,6 +24,8 @@ public interface DevisPrevisionnelRepository extends JpaRepository<DevisPrevisio
 
     List<DevisPrevisionnel> findByVehiculeId(Long vehiculeId);
 
+    List<DevisPrevisionnel> findByVehiculeIdOrderByDateCreationDesc(Long vehiculeId);
+
     List<DevisPrevisionnel> findByVehiculeIdOrderByUpdatedAtDesc(Long vehiculeId);
 
     Optional<DevisPrevisionnel> findByFicheAtelierId(Long ficheAtelierId);

@@ -70,4 +70,9 @@ public interface BonDeLivraisonRepository extends JpaRepository<BonDeLivraison, 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT b FROM BonDeLivraison b WHERE b.id = :id")
     Optional<BonDeLivraison> findByIdForConversion(@Param("id") Long id);
+
+    @Query("SELECT DISTINCT b FROM BonDeLivraison b LEFT JOIN b.ordreReparation o "
+            + "WHERE b.vehicule.id = :vehiculeId OR o.vehicule.id = :vehiculeId "
+            + "ORDER BY b.dateCreation DESC, b.id DESC")
+    java.util.List<BonDeLivraison> findHistoriqueByVehiculeId(@Param("vehiculeId") Long vehiculeId);
 }

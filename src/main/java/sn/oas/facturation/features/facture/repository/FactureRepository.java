@@ -150,4 +150,9 @@ public interface FactureRepository extends JpaRepository<Facture, Long>, JpaSpec
 
     java.util.Optional<Facture> findFirstByOrdreReparationId(Long ordreReparationId);
     java.util.Optional<Facture> findFirstByProformaId(Long proformaId);
+
+    @Query("SELECT DISTINCT f FROM Facture f LEFT JOIN f.ordreReparation o "
+            + "WHERE f.vehicule.id = :vehiculeId OR o.vehicule.id = :vehiculeId "
+            + "ORDER BY f.dateCreation DESC, f.id DESC")
+    List<Facture> findHistoriqueByVehiculeId(@Param("vehiculeId") Long vehiculeId);
 }

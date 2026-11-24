@@ -1,6 +1,7 @@
 package sn.oas.facturation.features.vehicule.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 
@@ -8,6 +9,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,10 +18,14 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.client.service.ClientService;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
+import sn.oas.facturation.features.vehicule.data.enums.TypeHistoriqueVehicule;
+import sn.oas.facturation.features.vehicule.dto.VehiculeHistoriqueResponseDto;
 import sn.oas.facturation.features.vehicule.dto.VehiculeListResponse;
 import sn.oas.facturation.features.vehicule.dto.VehiculeRequest;
+import sn.oas.facturation.features.vehicule.service.VehiculeHistoriqueService;
 import sn.oas.facturation.features.vehicule.service.VehiculeService;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -29,6 +35,7 @@ import java.util.List;
 public class VehiculeController {
 
     private final VehiculeService vehiculeService;
+    private final VehiculeHistoriqueService vehiculeHistoriqueService;
     private final ClientService clientService;
 
     @GetMapping
@@ -58,6 +65,36 @@ public class VehiculeController {
     @Operation(summary = "Récupérer un véhicule par son ID")
     public ResponseEntity<Vehicule> getVehiculeById(@PathVariable Long id) {
         return ResponseEntity.ok(vehiculeService.getVehiculeById(id));
+    }
+
+    @GetMapping("/{id}/historique")
+    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
+    @Operation(
+            summary = "Récupérer l'historique complet d'un véhicule",
+            description = "Agrège les OR, OT, factures, notes de prix, bons de sortie, bons de livraison, devis prévisionnels et rendez-vous du véhicule avec KPIs et filtrage/pagination optionnels.")
+    public ResponseEntity<VehiculeHistoriqueResponseDto> getHistorique(
+            @Parameter(description = "Identifiant du véhicule") @PathVariable Long id,
+            @Parameter(description = "Filtrer par type d'opération (OR, OT, FACTURE, NOTE_PRIX, BS, BL, DEVIS, RDV ou ALL)")
+            @RequestParam(required = false) String type,
+            @Parameter(description = "Mot-clé (numéro, description, statut, méta, OR, agent)")
+            @RequestParam(required = false) String keyword,
+            @Parameter(description = "Date de début (YYYY-MM-DD)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateDebut,
+            @Parameter(description = "Date de fin (YYYY-MM-DD)")
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFin,
+            @Parameter(description = "Numéro de page (0-based, optionnel)")
+            @RequestParam(required = false) Integer page,
+            @Parameter(description = "Taille de page (optionnel)")
+            @RequestParam(required = false) Integer size) {
+        TypeHistoriqueVehicule typeEnum = null;
+        if (type != null && !type.isBlank() && !"ALL".equalsIgnoreCase(type.trim())) {
+            try {
+                typeEnum = TypeHistoriqueVehicule.valueOf(type.trim().toUpperCase(java.util.Locale.ROOT));
+            } catch (IllegalArgumentException ex) {
+                throw new sn.oas.facturation.shared.exception.BadRequestException("Type d'historique invalide : " + type);
+            }
+        }
+        return ResponseEntity.ok(vehiculeHistoriqueService.getHistorique(id, typeEnum, keyword, dateDebut, dateFin, page, size));
     }
 
     @PostMapping({"", "/create"})

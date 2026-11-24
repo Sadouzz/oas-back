@@ -77,6 +77,11 @@ public interface BonDeSortieRepository extends JpaRepository<BonDeSortie, Long> 
     List<BonDeSortie> findByVehiculeIdOrderByDateDesc(Long vehiculeId);
     Page<BonDeSortie> findByVehiculeId(Long vehiculeId, Pageable pageable);
 
+    @Query("SELECT DISTINCT b FROM BonDeSortie b LEFT JOIN b.ordreReparation o "
+            + "WHERE b.vehicule.id = :vehiculeId OR o.vehicule.id = :vehiculeId "
+            + "ORDER BY b.date DESC, b.id DESC")
+    List<BonDeSortie> findHistoriqueByVehiculeId(@Param("vehiculeId") Long vehiculeId);
+
     Page<BonDeSortie> findByOrdreTravailId(Long ordreTravailId, Pageable pageable);
     Page<BonDeSortie> findByOrdreReparationId(Long ordreReparationId, Pageable pageable);
 

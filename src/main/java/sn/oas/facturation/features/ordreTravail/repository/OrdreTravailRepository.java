@@ -32,6 +32,11 @@ public interface OrdreTravailRepository extends JpaRepository<OrdreTravail, Long
 
     List<OrdreTravail> findByVehiculeIdOrderByCreatedAtDesc(Long vehiculeId);
 
+    @Query("SELECT DISTINCT ot FROM OrdreTravail ot LEFT JOIN ot.ordreReparation o "
+            + "WHERE ot.vehicule.id = :vehiculeId OR o.vehicule.id = :vehiculeId "
+            + "ORDER BY ot.createdAt DESC, ot.id DESC")
+    List<OrdreTravail> findHistoriqueByVehiculeId(@Param("vehiculeId") Long vehiculeId);
+
     @Query("SELECT ot FROM OrdreTravail ot " +
            "LEFT JOIN ot.client c " +
            "LEFT JOIN ot.vehicule v " +
