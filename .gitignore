@@ -60,3 +60,18 @@ src/main/java/sn/oas/facturation/seed/DemoStockSeeder.java
 src/main/java/sn/oas/facturation/seed/DemoAtelierSeeder.java
 src/main/java/sn/oas/facturation/seed/DemoFacturationSeeder.java
 src/main/java/sn/oas/facturation/seed/DemoMarketplaceSeeder.java
+
+# Clés et identifiants locaux
+.pgpass
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# Exports locaux de bases; les scripts de migration .sql restent versionnés
+facturation_oasdb.sql
+*.sql.gz
+*.dump
+*.backup
