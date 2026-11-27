@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import sn.oas.facturation.features.client.data.enums.TypeMouvementPortefeuille;
 import sn.oas.facturation.features.facture.data.entity.Facture;
-import sn.oas.facturation.features.recu.data.entity.Recu;
+import sn.oas.facturation.features.recu.data.entity.RecuFacture;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -42,7 +42,7 @@ public class MouvementPortefeuilleClient {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "recu_id", updatable = false)
-    private Recu recu;
+    private RecuFacture recu;
 
     @Column(name = "source_mouvement_legacy_id", unique = true, updatable = false)
     private Long sourceMouvementLegacyId;

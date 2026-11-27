@@ -17,7 +17,7 @@ import sn.oas.facturation.features.client.repository.MouvementPortefeuilleClient
 import sn.oas.facturation.features.client.repository.PortefeuilleClientRepository;
 import sn.oas.facturation.features.garage.data.entity.Garage;
 import sn.oas.facturation.features.facture.data.entity.Facture;
-import sn.oas.facturation.features.recu.data.entity.Recu;
+import sn.oas.facturation.features.recu.data.entity.RecuFacture;
 import sn.oas.facturation.features.user.repository.UserRepository;
 import sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService;
 import sn.oas.facturation.shared.exception.ResourceNotFoundException;
@@ -78,7 +78,7 @@ public class PortefeuilleClientService {
     }
 
     @Transactional
-    public void debiterPourFacture(Facture facture, Recu recu, BigDecimal montant) {
+    public void debiterPourFacture(Facture facture, RecuFacture recu, BigDecimal montant) {
         if (facture == null || facture.getClient() == null || facture.getGarage() == null) {
             throw new IllegalArgumentException("La facture doit être rattachée à un client pour utiliser le solde prépayé.");
         }
@@ -97,6 +97,28 @@ public class PortefeuilleClientService {
                 .montant(montantNormalise)
                 .modePaiement(MODE_PAIEMENT)
                 .commentaire("Paiement de la facture " + facture.getNumero())
+                .acteurId(getActeurConnecteId())
+                .facture(facture)
+                .recu(recu)
+                .build());
+    }
+
+    /** Rend au solde prépayé le montant d'un paiement de facture annulé. */
+    @Transactional
+    public void recrediterPaiementAnnule(Facture facture, RecuFacture recu, BigDecimal montant) {
+        if (facture == null || facture.getClient() == null || facture.getGarage() == null) {
+            throw new IllegalArgumentException("La facture doit être rattachée à un client pour recréditer le solde prépayé.");
+        }
+        PortefeuilleClient portefeuille = getOrCreateForUpdate(facture.getClient(), facture.getGarage());
+        BigDecimal montantNormalise = montant.setScale(2, RoundingMode.HALF_UP);
+        portefeuille.setSolde(portefeuille.getSolde().add(montantNormalise));
+        portefeuilleRepository.save(portefeuille);
+        mouvementRepository.save(MouvementPortefeuilleClient.builder()
+                .portefeuille(portefeuille)
+                .type(TypeMouvementPortefeuille.ANNULATION_PAIEMENT)
+                .montant(montantNormalise)
+                .modePaiement(MODE_PAIEMENT)
+                .commentaire("Annulation du reçu " + recu.getNumero() + " de la facture " + facture.getNumero())
                 .acteurId(getActeurConnecteId())
                 .facture(facture)
                 .recu(recu)

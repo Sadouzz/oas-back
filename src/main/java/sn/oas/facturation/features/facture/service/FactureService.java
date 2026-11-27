@@ -11,6 +11,9 @@ import java.util.List;
 
 public interface FactureService {
     Facture getById(Long id);
+
+    /** Valide une facture entièrement payée (une seule fois). */
+    Facture valider(Long id);
     Page<Facture> getAll(int page, int size);
     Page<Facture> getAllFiltered(
             String keyword,

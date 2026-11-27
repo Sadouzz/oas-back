@@ -34,6 +34,12 @@ public class NoteDePrixController {
         return ResponseEntity.ok(NoteDePrixResponse.from(noteDePrixService.updateNoteDePrix(id, request)));
     }
 
+    @PostMapping("/{id}/valider")
+    @Operation(summary = "Valider une note de prix entièrement payée")
+    public ResponseEntity<NoteDePrixResponse> valider(@PathVariable Long id) {
+        return ResponseEntity.ok(NoteDePrixResponse.from(noteDePrixService.valider(id)));
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Récupérer une note de prix par son ID")
     public ResponseEntity<NoteDePrixResponse> getNoteDePrixById(@PathVariable Long id) {

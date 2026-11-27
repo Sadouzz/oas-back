@@ -1,6 +1,6 @@
 package sn.oas.facturation.features.recu.dto;
 
-import sn.oas.facturation.features.recu.data.entity.Recu;
+import sn.oas.facturation.features.recu.data.entity.RecuFacture;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,22 +12,23 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class RecuResponse {
+public class RecuFactureResponse {
     private Long id;
     private String numero;
     private Long factureId;
     private BigDecimal montant;
     private BigDecimal montantTimbre;
     private BigDecimal montantEncaisse;
-    private String modePaiement;
     // private String remarque;
     private LocalDateTime datePaiement;
+    private boolean annule;
+    private LocalDateTime dateAnnulation;
 
     private String clientNom;
     private String numeroFacture;
     private String numeroOrdreReparation;
 
-    public static RecuResponse from(Recu r) {
+    public static RecuFactureResponse from(RecuFacture r) {
         if (r == null) return null;
         String clientNom = null;
         String numeroFacture = null;
@@ -45,7 +46,7 @@ public class RecuResponse {
             }
         }
 
-        return RecuResponse.builder()
+        return RecuFactureResponse.builder()
                 .id(r.getId())
                 .numero(r.getNumero())
                 .factureId(factureId)
@@ -55,9 +56,10 @@ public class RecuResponse {
                 .montant(r.getMontant())
                 .montantTimbre(r.getMontantTimbre() == null ? BigDecimal.ZERO : r.getMontantTimbre())
                 .montantEncaisse(r.getMontant().add(r.getMontantTimbre() == null ? BigDecimal.ZERO : r.getMontantTimbre()))
-                .modePaiement(r.getModePaiement())
                 // .remarque(r.getRemarque())
                 .datePaiement(r.getDatePaiement())
+                .annule(r.isAnnule())
+                .dateAnnulation(r.getDateAnnulation())
                 .build();
     }
 }

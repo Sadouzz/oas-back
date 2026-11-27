@@ -66,6 +66,24 @@ public interface NoteDePrixRepository extends JpaRepository<NoteDePrix, Long>, J
             "LOWER(o.numero) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<NoteDePrix> searchNotesDePrix(@Param("keyword") String keyword);
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT n FROM NoteDePrix n WHERE n.id = :id")
+    java.util.Optional<NoteDePrix> findByIdForPaiement(@Param("id") Long id);
+
+    @Query("SELECT DISTINCT n FROM NoteDePrix n "
+            + "LEFT JOIN n.client noteClient "
+            + "LEFT JOIN n.ordreReparation ordre "
+            + "LEFT JOIN ordre.client ordreClient "
+            + "LEFT JOIN n.vehicule vehicule "
+            + "LEFT JOIN vehicule.client vehiculeClient "
+            + "LEFT JOIN ordre.vehicule ordreVehicule "
+            + "LEFT JOIN ordreVehicule.client ordreVehiculeClient "
+            + "WHERE COALESCE(noteClient.id, ordreClient.id, ordreVehiculeClient.id, vehiculeClient.id) = :clientId "
+            + "AND (CASE WHEN n.resteAPayer IS NOT NULL THEN n.resteAPayer "
+            + "ELSE COALESCE(n.montantTotal, 0) - COALESCE(n.montantPaye, 0) END) > 0 "
+            + "ORDER BY n.dateCreation ASC, n.id ASC")
+    List<NoteDePrix> findNotesImpayeesByClientId(@Param("clientId") Long clientId);
+
     java.util.Optional<NoteDePrix> findFirstByOrdreReparationId(Long ordreReparationId);
     java.util.Optional<NoteDePrix> findByBonDeLivraisonId(Long bonDeLivraisonId);
 

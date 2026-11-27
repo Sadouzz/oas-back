@@ -30,7 +30,7 @@ La réservation créée depuis l'espace client est refusée côté serveur lorsq
 - `PUT /api/clients/{id}/remise` : configure la remise individuelle de 0 à 100 %; réservé à MASTER et SUPER_AGENT.
 - `GET /api/clients/{id}/portefeuille-prepaye` : renvoie le solde et les 100 derniers mouvements dans le garage courant.
 - `POST /api/clients/{id}/portefeuille-prepaye/alimentations` : enregistre un versement dans le garage courant et ajoute une ligne d'audit.
-- `POST /api/recus/payer` avec `methodePaiement=SOLDE_PREPAYE` : paie explicitement tout ou partie d'une facture et débite le portefeuille du garage de cette facture.
+- `POST /api/recus/{numeroRecu}/versements` avec `modePaiement=SOLDE_PREPAYE` : paie explicitement tout ou partie des factures impayées du client, des plus anciennes aux plus récentes, et débite le portefeuille du garage de chaque facture (voir `recu-client.md`).
 - `DELETE /api/clients/{id}/compte-financier` : désactive le compte sans effacer l'historique ni les conditions d'échéance.
 
 ## Retrait du plafond d'encours

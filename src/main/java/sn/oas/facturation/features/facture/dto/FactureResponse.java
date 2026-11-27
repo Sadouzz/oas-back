@@ -5,7 +5,7 @@ import lombok.Data;
 import sn.oas.facturation.features.facturation.dto.LigneFacturationMainDoeuvreResponse;
 import sn.oas.facturation.features.facturation.dto.LigneFacturationPieceResponse;
 import sn.oas.facturation.features.facture.data.enums.StatutPaiement;
-import sn.oas.facturation.features.recu.dto.RecuResponse;
+import sn.oas.facturation.features.recu.dto.RecuFactureResponse;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -33,6 +33,7 @@ public class FactureResponse {
     private BigDecimal montantPaye;
     private BigDecimal resteAPayer;
     private StatutPaiement statutPaiement;
+    private LocalDateTime dateValidation;
 
     private Long agentId;
     private String agentNom;
@@ -60,7 +61,7 @@ public class FactureResponse {
 
     private List<LigneFacturationPieceResponse> lignesPieces;
     private List<LigneFacturationMainDoeuvreResponse> lignesMainDoeuvres;
-    private List<RecuResponse> recus;
+    private List<RecuFactureResponse> recus;
 
     public static FactureResponse from(sn.oas.facturation.features.facture.data.entity.Facture f) {
         if (f == null) return null;
@@ -91,6 +92,7 @@ public class FactureResponse {
                 .montantPaye(f.getMontantPaye())
                 .resteAPayer(f.getResteAPayer())
                 .statutPaiement(f.getStatutPaiement())
+                .dateValidation(f.getDateValidation())
                 .agentId(f.getAgent() != null ? f.getAgent().getId() : null)
                 .agentNom(f.getAgent() != null ? (f.getAgent().getFirstName() + " " + f.getAgent().getLastName()).trim() : null)
                 .remarque(f.getRemarque())
@@ -185,7 +187,7 @@ public class FactureResponse {
                         })
                         .toList())
                 .recus(f.getRecus() == null ? List.of() : f.getRecus().stream()
-                        .map(RecuResponse::from)
+                        .map(RecuFactureResponse::from)
                         .toList())
                 .build();
     }

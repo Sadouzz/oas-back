@@ -402,6 +402,21 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
     }
 
     @Override
+    @Transactional
+    public NoteDePrix valider(Long id) {
+        NoteDePrix note = getNoteDePrix(id);
+        if (note.getDateValidation() != null) {
+            throw new BadRequestException("La note de prix " + note.getNumero() + " est déjà validée.");
+        }
+        if (note.getStatutPaiement() != sn.oas.facturation.features.facture.data.enums.StatutPaiement.PAYE) {
+            throw new BadRequestException("La note de prix " + note.getNumero()
+                    + " n'est pas encore entièrement payée : réglez-la depuis le reçu du client avant de la valider.");
+        }
+        note.setDateValidation(java.time.LocalDateTime.now());
+        return noteDePrixRepository.save(note);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public NoteDePrix getNoteDePrix(Long id) {
         return noteDePrixRepository.findById(id)
@@ -555,11 +570,17 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
 
             if (statut != null && !statut.isBlank()) {
                 String st = statut.trim().toUpperCase();
+                // Un document soldé par le reçu reste « en cours » tant que l'agent ne l'a pas validé.
                 if ("PAYE".equals(st)) {
                     predicates.add(cb.equal(root.get("statutPaiement"), sn.oas.facturation.features.facture.data.enums.StatutPaiement.PAYE));
+                    predicates.add(cb.isNotNull(root.get("dateValidation")));
                 } else if ("EN_COURS".equals(st)) {
                     predicates.add(cb.or(root.get("statutPaiement").isNull(),
-                            cb.notEqual(root.get("statutPaiement"), sn.oas.facturation.features.facture.data.enums.StatutPaiement.PAYE)));
+                            cb.notEqual(root.get("statutPaiement"), sn.oas.facturation.features.facture.data.enums.StatutPaiement.PAYE),
+                            cb.isNull(root.get("dateValidation"))));
+                } else if ("A_VALIDER".equals(st)) {
+                    predicates.add(cb.equal(root.get("statutPaiement"), sn.oas.facturation.features.facture.data.enums.StatutPaiement.PAYE));
+                    predicates.add(cb.isNull(root.get("dateValidation")));
                 } else if ("NON_PAYE".equals(st)) {
                     predicates.add(cb.equal(root.get("statutPaiement"), sn.oas.facturation.features.facture.data.enums.StatutPaiement.NON_PAYE));
                 } else if ("PARTIEL".equals(st)) {

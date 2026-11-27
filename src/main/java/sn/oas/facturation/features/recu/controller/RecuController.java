@@ -2,82 +2,99 @@ package sn.oas.facturation.features.recu.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 import org.springframework.security.access.prepost.PreAuthorize;
-
-import sn.oas.facturation.features.client.data.entity.Client;
-import sn.oas.facturation.features.client.service.ClientService;
-import sn.oas.facturation.features.recu.dto.RecuRequest;
-import sn.oas.facturation.features.recu.dto.RecuResponse;
+import org.springframework.web.bind.annotation.*;
+import sn.oas.facturation.features.recu.dto.RecuDetailResponse;
+import sn.oas.facturation.features.recu.dto.RecuListItemResponse;
+import sn.oas.facturation.features.recu.dto.VersementClientRequest;
 import sn.oas.facturation.features.recu.service.RecuService;
-
-import java.math.BigDecimal;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/recus")
 @RequiredArgsConstructor
-@Tag(name = "Reçus", description = "API pour la gestion des reçus de paiement de facture")
+@PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
+@Tag(name = "Reçus", description = "Reçus clients : reçus en cours, reçus payés, versements")
 public class RecuController {
 
     private final RecuService recuService;
-    private final ClientService clientService;
 
-    @GetMapping
-    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
-    @Operation(summary = "Lister tous les reçus de paiement")
-    public ResponseEntity<List<RecuResponse>> getAllRecus() {
-        return ResponseEntity.ok(recuService.getAll().stream().map(RecuResponse::from).toList());
+    @GetMapping("/en-cours")
+    @Operation(summary = "Lister les reçus en cours (recherche par numéro de reçu ou par numéro client)")
+    public ResponseEntity<Page<RecuListItemResponse>> getRecusEnCours(
+            @RequestParam(required = false) String numeroRecu,
+            @RequestParam(required = false) String numeroClient,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(recuService.getRecusEnCours(numeroRecu, numeroClient, page, size));
     }
 
-    @GetMapping("/me")
-    @PreAuthorize("hasAnyRole('CLIENT')")
-    @Operation(summary = "Lister l'historique des reçus du client connecté")
-    public ResponseEntity<List<RecuResponse>> getClientRecus() {
-        Client client = clientService.getClientConnecte();
-        return ResponseEntity.ok(recuService.getClientRecus(client).stream().map(RecuResponse::from).toList());
+    @GetMapping("/payes")
+    @Operation(summary = "Lister les reçus payés (recherche par numéro de reçu ou par numéro client)")
+    public ResponseEntity<Page<RecuListItemResponse>> getRecusPayes(
+            @RequestParam(required = false) String numeroRecu,
+            @RequestParam(required = false) String numeroClient,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(recuService.getRecusPayes(numeroRecu, numeroClient, page, size));
     }
 
-    @PostMapping
-    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
-    @Operation(summary = "Créer un nouveau reçu pour une facture")
-    public ResponseEntity<RecuResponse> create(@RequestBody RecuRequest request) {
-        return new ResponseEntity<>(RecuResponse.from(recuService.create(request)), HttpStatus.CREATED);
+    @PostMapping("/client/{clientId}")
+    @Operation(summary = "Ouvrir le reçu en cours d'un client, ou le mettre à jour s'il existe déjà")
+    public ResponseEntity<RecuDetailResponse> ouvrirRecu(@PathVariable Long clientId) {
+        return ResponseEntity.ok(recuService.ouvrirRecu(clientId));
     }
 
-    @PostMapping("/payer")
-    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
-    @Operation(summary = "Enregistrer un paiement (total ou partiel) pour une facture")
-    public ResponseEntity<RecuResponse> registerPayment(
-            @RequestParam Long factureId,
-            @RequestParam(required = false) BigDecimal montant,
-            @RequestParam String methodePaiement) {
-        RecuRequest request = RecuRequest.builder()
-                .factureId(factureId)
-                .montant(montant)
-                .modePaiement(methodePaiement)
-                .build();
-        return new ResponseEntity<>(RecuResponse.from(recuService.create(request)), HttpStatus.CREATED);
+    @GetMapping("/{id}")
+    @Operation(summary = "Afficher un reçu : documents, totaux et versements")
+    public ResponseEntity<RecuDetailResponse> getRecu(@PathVariable Long id) {
+        return ResponseEntity.ok(recuService.getRecu(id));
     }
 
-    @PostMapping("/payer-integral")
-    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
-    @Operation(summary = "Régler intégralement le solde d'une facture et créer le reçu")
-    public ResponseEntity<RecuResponse> registerFullPayment(
-            @RequestParam Long factureId,
-            @RequestParam String methodePaiement) {
-        return new ResponseEntity<>(
-                RecuResponse.from(recuService.createPaiementIntegral(factureId, methodePaiement)),
-                HttpStatus.CREATED);
+    @PostMapping("/{id}/versements")
+    @Operation(summary = "Enregistrer un versement, réparti sur les documents impayés les plus anciens")
+    public ResponseEntity<RecuDetailResponse> enregistrerVersement(
+            @PathVariable Long id,
+            @Valid @RequestBody VersementClientRequest request) {
+        return new ResponseEntity<>(recuService.enregistrerVersement(id, request), HttpStatus.CREATED);
     }
 
-    @GetMapping("/facture/{factureId}")
-    @PreAuthorize("hasAnyRole('AGENT', 'SUPER_AGENT', 'MASTER', 'CHEF_ATELIER', 'AGENT_MAGASIN')")
-    @Operation(summary = "Récupérer les reçus d'une facture spécifique")
-    public ResponseEntity<List<RecuResponse>> getByFacture(@PathVariable Long factureId) {
-        return ResponseEntity.ok(recuService.getByFacture(factureId).stream().map(RecuResponse::from).toList());
+    @DeleteMapping("/{id}/versements/{versementId}")
+    @Operation(summary = "Annuler un versement : les documents, le solde prépayé et le reçu sont remis à jour")
+    public ResponseEntity<RecuDetailResponse> annulerVersement(
+            @PathVariable Long id,
+            @PathVariable Long versementId) {
+        return ResponseEntity.ok(recuService.annulerVersement(id, versementId));
+    }
+
+    @GetMapping("/{id}/pdf")
+    @Operation(summary = "Imprimer le reçu (layoutKey : AVEC_ENTETE ou SANS_ENTETE)")
+    public ResponseEntity<byte[]> genererPdf(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "AVEC_ENTETE") String layoutKey) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDisposition(ContentDisposition.inline().filename("Recu_" + id + ".pdf").build());
+        return new ResponseEntity<>(recuService.genererPdf(id, layoutKey), headers, HttpStatus.OK);
+    }
+
+    @PostMapping("/{id}/valider")
+    @Operation(summary = "Valider un reçu payé")
+    public ResponseEntity<RecuDetailResponse> valider(@PathVariable Long id) {
+        return ResponseEntity.ok(recuService.valider(id));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Supprimer un reçu en cours sans versement")
+    public ResponseEntity<Void> supprimer(@PathVariable Long id) {
+        recuService.supprimer(id);
+        return ResponseEntity.noContent().build();
     }
 }

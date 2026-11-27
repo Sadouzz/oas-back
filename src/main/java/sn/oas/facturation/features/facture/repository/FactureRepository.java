@@ -145,6 +145,20 @@ public interface FactureRepository extends JpaRepository<Facture, Long>, JpaSpec
         String getModele();
     }
 
+    @Query("SELECT DISTINCT f FROM Facture f "
+            + "LEFT JOIN f.client factureClient "
+            + "LEFT JOIN f.ordreReparation ordre "
+            + "LEFT JOIN ordre.client ordreClient "
+            + "LEFT JOIN f.vehicule vehicule "
+            + "LEFT JOIN vehicule.client vehiculeClient "
+            + "LEFT JOIN ordre.vehicule ordreVehicule "
+            + "LEFT JOIN ordreVehicule.client ordreVehiculeClient "
+            + "WHERE COALESCE(factureClient.id, ordreClient.id, ordreVehiculeClient.id, vehiculeClient.id) = :clientId "
+            + "AND (CASE WHEN f.resteAPayer IS NOT NULL THEN f.resteAPayer "
+            + "ELSE COALESCE(f.montantTotal, 0) - COALESCE(f.montantPaye, 0) END) > 0 "
+            + "ORDER BY f.dateCreation ASC, f.id ASC")
+    List<Facture> findFacturesImpayeesByClientId(@Param("clientId") Long clientId);
+
     @Query("SELECT COALESCE(SUM(f.montantTotal), 0) FROM Facture f WHERE f.client.id = :clientId AND f.dateCreation >= :debut")
     java.math.BigDecimal sumMontantFacturesDepuis(@Param("clientId") Long clientId, @Param("debut") java.time.LocalDateTime debut);
 

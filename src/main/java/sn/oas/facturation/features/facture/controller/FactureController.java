@@ -42,6 +42,12 @@ public class FactureController {
         return ResponseEntity.ok(FactureResponse.from(factureService.getById(id)));
     }
 
+    @PostMapping("/{id}/valider")
+    @Operation(summary = "Valider une facture entièrement payée")
+    public ResponseEntity<FactureResponse> valider(@PathVariable Long id) {
+        return ResponseEntity.ok(FactureResponse.from(factureService.valider(id)));
+    }
+
     @GetMapping
     @Operation(summary = "Récupérer toutes les factures ou rechercher avec filtres et pagination")
     public ResponseEntity<Page<FactureListResponse>> getAll(

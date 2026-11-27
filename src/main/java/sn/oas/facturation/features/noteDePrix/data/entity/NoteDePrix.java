@@ -63,4 +63,8 @@ public class NoteDePrix extends FactureHT implements TenantAware {
 
     @Column(name = "mode_paiement")
     private String modePaiement;
+
+    /** Validation de l'agent une fois le document entièrement payé ; null tant qu'il n'est pas validé. */
+    @Column(name = "date_validation")
+    private java.time.LocalDateTime dateValidation;
 }

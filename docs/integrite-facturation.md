@@ -18,7 +18,7 @@ Un proforma non converti et non réglé peut être modifié depuis cette étape,
 
 ## Autorisations financières
 
-La création et la consultation générale des reçus ainsi que la gestion des avoirs HT/TTC sont réservées aux rôles d'exploitation autorisés. Un client peut consulter uniquement l'historique de ses reçus via `/api/recus/me`. L'ajout de crédits sur un compte client reste réservé au Master et au Super Agent.
+La création et la consultation générale des reçus ainsi que la gestion des avoirs HT/TTC sont réservées aux rôles d'exploitation autorisés. Les clients n'ont plus de route de consultation de leurs reçus depuis la refonte du module reçu (voir `recu-client.md`). L'ajout de crédits sur un compte client reste réservé au Master et au Super Agent.
 
 ## Migration
 

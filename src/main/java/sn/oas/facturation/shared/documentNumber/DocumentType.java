@@ -8,7 +8,8 @@ public enum DocumentType {
     BC,  // Bon de Commande
     BR,  // Bon de Réception
     BL,  // Bon de Livraison client
-    RC,  // Reçu
+    RC,  // Reçu d'encaissement d'une facture
+    RE,  // Reçu client (regroupe les versements d'un client)
     AH,  // Avoir HT
     AT,  // Avoir TTC
     NP,  // Note de Prix

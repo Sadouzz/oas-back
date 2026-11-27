@@ -22,6 +22,7 @@ public class NoteDePrixResponse {
     private BigDecimal montantEncaisse;
     private BigDecimal resteAPayer;
     private String statutPaiement;
+    private java.time.LocalDateTime dateValidation;
     private String modePaiement;
     private String numeroBonDeCommande;
     private BigDecimal montantAutre;
@@ -192,6 +193,7 @@ public class NoteDePrixResponse {
                 .montantEncaisse(note.getMontantPaye() != null ? note.getMontantPaye() : BigDecimal.ZERO)
                 .resteAPayer(note.getResteAPayer() != null ? note.getResteAPayer() : (note.getMontantTotal() != null ? note.getMontantTotal() : BigDecimal.ZERO))
                 .statutPaiement(note.getStatutPaiement() != null ? note.getStatutPaiement().name() : "NON_PAYE")
+                .dateValidation(note.getDateValidation())
                 .modePaiement(note.getModePaiement())
                 .numeroBonDeCommande(note.getNumeroBonDeCommande())
                 .montantAutre(note.getMontantAutre() != null ? note.getMontantAutre() : BigDecimal.ZERO)

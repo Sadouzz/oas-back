@@ -9,7 +9,7 @@ import lombok.experimental.SuperBuilder;
 import sn.oas.facturation.features.client.data.entity.Client;
 import sn.oas.facturation.features.facturation.data.entity.FactureTTC;
 import sn.oas.facturation.features.facture.data.enums.StatutPaiement;
-import sn.oas.facturation.features.recu.data.entity.Recu;
+import sn.oas.facturation.features.recu.data.entity.RecuFacture;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
 import sn.oas.facturation.features.pdfTemplate.data.entity.PdfTemplate;
 import sn.oas.facturation.features.proforma.data.entity.Proforma;
@@ -82,7 +82,11 @@ public class Facture extends FactureTTC {
     @lombok.Builder.Default
     private StatutPaiement statutPaiement = StatutPaiement.NON_PAYE;
 
+    /** Validation de l'agent une fois le document entièrement payé ; null tant qu'il n'est pas validé. */
+    @Column(name = "date_validation")
+    private java.time.LocalDateTime dateValidation;
+
     @OneToMany(mappedBy = "facture", cascade = CascadeType.ALL, orphanRemoval = true)
     @lombok.Builder.Default
-    private java.util.List<Recu> recus = new java.util.ArrayList<>();
+    private java.util.List<RecuFacture> recus = new java.util.ArrayList<>();
 }

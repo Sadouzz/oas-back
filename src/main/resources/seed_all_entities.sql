@@ -471,12 +471,12 @@ ON CONFLICT (id) DO NOTHING;
 SELECT setval(pg_get_serial_sequence('lignes_facturation_main_doeuvre', 'id'), GREATEST((SELECT MAX(id) FROM lignes_facturation_main_doeuvre), 20));
 
 -- 25. RECUS
-INSERT INTO recus (id, numero, facture_id, montant, mode_paiement, date_paiement, remarque, garage_id)
+INSERT INTO recus_facture (id, numero, facture_id, montant, date_paiement, remarque, garage_id)
 VALUES
-  (1, 'RC-2026-0001', 106, 649000.0, 'CHEQUE', NOW() - INTERVAL '8 days', 'Chèque CBAO n°849302 réglant la facture FC-2026-0001', 1),
-  (2, 'RC-2026-0002', 107, 30000.0, 'ESPECE', NOW() - INTERVAL '1 day', 'Acompte en espèces reçu au comptoir par Aissatou Ba', 1)
+  (1, 'RC-2026-0001', 106, 649000.0, NOW() - INTERVAL '8 days', 'Chèque CBAO n°849302 réglant la facture FC-2026-0001', 1),
+  (2, 'RC-2026-0002', 107, 30000.0, NOW() - INTERVAL '1 day', 'Acompte en espèces reçu au comptoir par Aissatou Ba', 1)
 ON CONFLICT (id) DO NOTHING;
-SELECT setval(pg_get_serial_sequence('recus', 'id'), GREATEST((SELECT MAX(id) FROM recus), 10));
+SELECT setval(pg_get_serial_sequence('recus_facture', 'id'), GREATEST((SELECT MAX(id) FROM recus_facture), 10));
 
 -- 26. CONFIGURATION FISCALE ET PORTEFEUILLES PRÉPAYÉS DE DÉMONSTRATION
 INSERT INTO fiscal_configuration (

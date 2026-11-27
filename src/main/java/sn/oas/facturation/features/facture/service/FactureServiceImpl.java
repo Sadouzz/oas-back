@@ -474,6 +474,21 @@ public class FactureServiceImpl implements FactureService {
     }
 
     @Override
+    @Transactional
+    public Facture valider(Long id) {
+        Facture facture = getById(id);
+        if (facture.getDateValidation() != null) {
+            throw new BadRequestException("La facture " + facture.getNumero() + " est déjà validée.");
+        }
+        if (facture.getStatutPaiement() != sn.oas.facturation.features.facture.data.enums.StatutPaiement.PAYE) {
+            throw new BadRequestException("La facture " + facture.getNumero()
+                    + " n'est pas encore entièrement payée : réglez-la depuis le reçu du client avant de la valider.");
+        }
+        facture.setDateValidation(java.time.LocalDateTime.now());
+        return factureRepository.save(facture);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public Facture getById(Long id) {
         return factureRepository.findById(id)
@@ -653,11 +668,17 @@ public class FactureServiceImpl implements FactureService {
 
             if (statut != null && !statut.isBlank()) {
                 String st = statut.trim().toUpperCase();
+                // Un document soldé par le reçu reste « en cours » tant que l'agent ne l'a pas validé.
                 if ("PAYE".equals(st)) {
                     predicates.add(cb.equal(root.get("statutPaiement"), StatutPaiement.PAYE));
+                    predicates.add(cb.isNotNull(root.get("dateValidation")));
                 } else if ("EN_COURS".equals(st)) {
                     predicates.add(cb.or(root.get("statutPaiement").isNull(),
-                            cb.notEqual(root.get("statutPaiement"), StatutPaiement.PAYE)));
+                            cb.notEqual(root.get("statutPaiement"), StatutPaiement.PAYE),
+                            cb.isNull(root.get("dateValidation"))));
+                } else if ("A_VALIDER".equals(st)) {
+                    predicates.add(cb.equal(root.get("statutPaiement"), StatutPaiement.PAYE));
+                    predicates.add(cb.isNull(root.get("dateValidation")));
                 } else if ("NON_PAYE".equals(st)) {
                     predicates.add(cb.equal(root.get("statutPaiement"), StatutPaiement.NON_PAYE));
                 } else if ("PARTIEL".equals(st)) {

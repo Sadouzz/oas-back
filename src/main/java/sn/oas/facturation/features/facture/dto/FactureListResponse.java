@@ -28,6 +28,7 @@ public record FactureListResponse(
         BigDecimal montantPaye,
         BigDecimal resteAPayer,
         StatutPaiement statutPaiement,
+        LocalDateTime dateValidation,
         Long agentId,
         String agentNom,
         String remarque,
@@ -79,6 +80,7 @@ public record FactureListResponse(
                 .montantPaye(f.getMontantPaye())
                 .resteAPayer(f.getResteAPayer())
                 .statutPaiement(f.getStatutPaiement())
+                .dateValidation(f.getDateValidation())
                 .agentId(f.getAgent() != null ? f.getAgent().getId() : null)
                 .agentNom(f.getAgent() != null ? (f.getAgent().getFirstName() + " " + f.getAgent().getLastName()).trim() : null)
                 .remarque(f.getRemarque())

@@ -10,6 +10,9 @@ public interface NoteDePrixService {
     NoteDePrix createNoteDePrix(NoteDePrixRequest request);
     NoteDePrix updateNoteDePrix(Long id, NoteDePrixRequest request);
     NoteDePrix getNoteDePrix(Long id);
+
+    /** Valide une note de prix entièrement payée (une seule fois). */
+    NoteDePrix valider(Long id);
     List<NoteDePrix> getAllNotesDePrix();
     Page<NoteDePrix> getAllNotesDePrix(int page, int size);
     Page<NoteDePrix> getAllFiltered(

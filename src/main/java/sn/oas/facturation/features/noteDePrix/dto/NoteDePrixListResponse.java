@@ -18,6 +18,7 @@ public record NoteDePrixListResponse(
         BigDecimal montantEncaisse,
         BigDecimal resteAPayer,
         String statutPaiement,
+        java.time.LocalDateTime dateValidation,
         String modePaiement,
         String numeroBonDeCommande,
         BigDecimal montantAutre,
@@ -109,6 +110,7 @@ public record NoteDePrixListResponse(
                 .montantEncaisse(note.getMontantPaye() != null ? note.getMontantPaye() : BigDecimal.ZERO)
                 .resteAPayer(note.getResteAPayer())
                 .statutPaiement(note.getStatutPaiement() != null ? note.getStatutPaiement().name() : null)
+                .dateValidation(note.getDateValidation())
                 .modePaiement(note.getModePaiement())
                 .numeroBonDeCommande(note.getNumeroBonDeCommande())
                 .montantAutre(note.getMontantAutre())
