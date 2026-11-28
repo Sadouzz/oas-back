@@ -1604,12 +1604,16 @@ public class OrdreReparationServiceImpl implements OrdreReparationService {
             vDto.setMarque(ordre.getVehicule().getMarque());
             vDto.setModele(ordre.getVehicule().getModele());
             vDto.setKilometrage(ordre.getVehicule().getKilometrage() != null ? ordre.getVehicule().getKilometrage().intValue() : 0);
-            if (ordre.getVehicule().getClient() != null) {
+            Client clientProforma = ordre.getProforma() != null ? ordre.getProforma().getClient() : null;
+            if (clientProforma == null) clientProforma = ordre.getClient();
+            if (clientProforma == null) clientProforma = ordre.getVehicule().getClient();
+            if (clientProforma != null) {
                 ClientHeaderDto cDto = new ClientHeaderDto();
-                cDto.setId(ordre.getVehicule().getClient().getId());
-                cDto.setFirstName(ordre.getVehicule().getClient().getFirstName());
-                cDto.setLastName(ordre.getVehicule().getClient().getLastName());
-                cDto.setPhone(ordre.getVehicule().getClient().getPhone());
+                cDto.setId(clientProforma.getId());
+                cDto.setFirstName(clientProforma.getFirstName());
+                cDto.setLastName(clientProforma.getLastName());
+                cDto.setPhone(clientProforma.getPhone());
+                cDto.setEmail(clientProforma.getEmail());
                 vDto.setClient(cDto);
             }
             dto.setVehicule(vDto);

@@ -18,6 +18,10 @@ import sn.oas.facturation.features.main_doeuvre.repository.MainDoeuvreRepository
 import sn.oas.facturation.features.piecedetache.data.entity.PieceMouvement;
 import sn.oas.facturation.features.piecedetache.data.enums.TypeMouvement;
 import sn.oas.facturation.features.noteDePrix.data.entity.NoteDePrix;
+import sn.oas.facturation.features.noteDePrix.data.entity.PaiementNoteDePrix;
+import sn.oas.facturation.features.noteDePrix.dto.PaiementNoteDePrixRequest;
+import sn.oas.facturation.features.noteDePrix.dto.PaiementNoteDePrixResponse;
+import sn.oas.facturation.features.noteDePrix.repository.PaiementNoteDePrixRepository;
 import sn.oas.facturation.features.noteDePrix.dto.NoteDePrixRequest;
 import sn.oas.facturation.features.noteDePrix.repository.NoteDePrixRepository;
 import sn.oas.facturation.features.piecedetache.data.entity.PDP;
@@ -37,6 +41,7 @@ import sn.oas.facturation.features.user.data.entity.Agent;
 import sn.oas.facturation.features.user.data.entity.User;
 import sn.oas.facturation.features.facture.service.FacturePaymentMode;
 import sn.oas.facturation.shared.exception.BadRequestException;
+import sn.oas.facturation.features.client.service.PortefeuilleClientService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -62,6 +67,8 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
     private final DocumentNumberGeneratorService documentNumberGeneratorService;
     private final PieceMouvementRepository pieceMouvementRepository;
     private final GarageRepository garageRepository;
+    private final PaiementNoteDePrixRepository paiementNoteDePrixRepository;
+    private final PortefeuilleClientService portefeuilleClientService;
 
     private Agent getAgentConnecte() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -270,7 +277,7 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
     @Override
     @Transactional
     public NoteDePrix updateNoteDePrix(Long id, NoteDePrixRequest request) {
-        NoteDePrix note = noteDePrixRepository.findById(id)
+        NoteDePrix note = noteDePrixRepository.findByIdForPaiement(id)
                 .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Note de prix non trouvée avec l'id : " + id));
 
         if (request.getOrdreReparationId() != null) {
@@ -294,7 +301,11 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
         } else if (note.getVehicule() != null) {
             sn.oas.facturation.features.vehicule.service.VehiculeActivationPolicy.requireActive(note.getVehicule());
         }
-        if (request.getModePaiement() != null) {
+        boolean reglementParSolde = PortefeuilleClientService.MODE_PAIEMENT.equalsIgnoreCase(request.getModePaiement());
+        if (reglementParSolde && request.getMontantPaye() == null) {
+            throw new BadRequestException("Le mode solde prépayé doit être transmis avec un paiement.");
+        }
+        if (request.getModePaiement() != null && !reglementParSolde) {
             note.setModePaiement(request.getModePaiement());
         }
         if (request.getNumeroBonDeCommande() != null) {
@@ -345,12 +356,12 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
         }
 
         // Recalculate totals when note content or its tax regime changes, not for a payment-only update.
-        if (request.getModePaiement() != null) {
+        if (request.getModePaiement() != null && !reglementParSolde) {
             note.setModePaiement(normaliserModePaiementNote(request.getModePaiement()));
         }
         boolean recalculerMontants = request.getLignesPieces() != null || request.getLignesMainDoeuvres() != null
                 || request.getMontantAutre() != null
-                || (request.getModePaiement() != null && request.getMontantPaye() == null);
+                || (request.getModePaiement() != null && request.getMontantPaye() == null && !reglementParSolde);
         if (recalculerMontants) {
             BigDecimal piecesSum = note.getLignesFacturationPieces().stream()
                     .map(l -> BigDecimal.valueOf((long) (l.getPrix() != null ? l.getPrix() : 0) * (l.getQuantite() != null ? l.getQuantite() : 0)))
@@ -385,6 +396,16 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
                 throw new sn.oas.facturation.shared.exception.BadRequestException(
                         "Le montant payé dépasse le total de la note de prix.");
             }
+            if (nouveauMontantPaye.compareTo(montantPayeActuel) > 0) {
+                BigDecimal tranche = nouveauMontantPaye.subtract(montantPayeActuel);
+                String modeTranche = request.getModePaiement() == null
+                        ? note.getModePaiement() : normaliserModePaiementReglement(request.getModePaiement());
+                PaiementNoteDePrix paiement = creerTranchePaiement(note, tranche, modeTranche);
+                if (PortefeuilleClientService.MODE_PAIEMENT.equals(modeTranche)) {
+                    portefeuilleClientService.debiterPourNoteDePrix(note, paiement, tranche);
+                }
+                if (request.getModePaiement() != null) note.setModePaiement(modeTranche);
+            }
             note.setMontantPaye(request.getMontantPaye());
             BigDecimal total = note.getMontantTotal() != null ? note.getMontantTotal() : BigDecimal.ZERO;
             BigDecimal reste = total.subtract(request.getMontantPaye()).max(BigDecimal.ZERO);
@@ -399,6 +420,75 @@ public class NoteDePrixServiceImpl implements NoteDePrixService {
         }
 
         return noteDePrixRepository.save(note);
+    }
+
+    @Override
+    @Transactional
+    public PaiementNoteDePrixResponse enregistrerPaiement(Long id, PaiementNoteDePrixRequest request) {
+        if (request == null || request.montant() == null || request.montant().signum() <= 0
+                || request.montant().scale() > 2 || request.montant().precision() > 15) {
+            throw new BadRequestException("Le paiement doit être un montant positif valide (maximum 2 décimales).");
+        }
+        NoteDePrix note = noteDePrixRepository.findByIdForPaiement(id)
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Note de prix non trouvée avec l'id : " + id));
+        BigDecimal montantPayeActuel = note.getMontantPaye() == null ? BigDecimal.ZERO : note.getMontantPaye();
+        BigDecimal reste = note.getMontantTotal() == null ? BigDecimal.ZERO : note.getMontantTotal().subtract(montantPayeActuel);
+        if (reste.signum() <= 0) throw new BadRequestException("Cette note de prix est déjà totalement payée.");
+        if (request.montant().compareTo(reste) > 0) {
+            throw new BadRequestException("Le montant dépasse le reste à payer (" + reste + " FCFA).");
+        }
+
+        String mode = normaliserModePaiementReglement(request.modePaiement());
+        PaiementNoteDePrix paiement = creerTranchePaiement(note, request.montant(), mode);
+        if (PortefeuilleClientService.MODE_PAIEMENT.equals(mode)) {
+            portefeuilleClientService.debiterPourNoteDePrix(note, paiement, request.montant());
+        }
+
+        BigDecimal nouveauMontantPaye = montantPayeActuel.add(request.montant());
+        BigDecimal nouveauReste = (note.getMontantTotal() == null ? BigDecimal.ZERO : note.getMontantTotal())
+                .subtract(nouveauMontantPaye).max(BigDecimal.ZERO);
+        note.setMontantPaye(nouveauMontantPaye);
+        note.setResteAPayer(nouveauReste);
+        note.setModePaiement(mode);
+        note.setStatutPaiement(nouveauReste.signum() == 0 ? StatutPaiement.PAYE : StatutPaiement.PARTIEL);
+        noteDePrixRepository.save(note);
+        return PaiementNoteDePrixResponse.from(paiement);
+    }
+
+    private PaiementNoteDePrix creerTranchePaiement(NoteDePrix note, BigDecimal montant, String mode) {
+        Agent agent = getAgentConnecte();
+        Garage garage = note.getGarage();
+        if (garage == null && note.getOrdreReparation() != null) {
+            garage = note.getOrdreReparation().getGarage();
+        }
+        if (garage == null) garage = getGarageConnecte(agent);
+        if (garage == null) {
+            throw new BadRequestException("Impossible d'enregistrer le paiement : aucun garage n'est associé à cette note de prix.");
+        }
+        if (note.getGarage() == null) note.setGarage(garage);
+        return paiementNoteDePrixRepository.save(PaiementNoteDePrix.builder()
+                .noteDePrix(note)
+                .garage(garage)
+                .montant(montant)
+                .modePaiement(mode)
+                .acteurId(agent == null ? null : agent.getId())
+                .build());
+    }
+
+    private String normaliserModePaiementReglement(String modePaiement) {
+        String mode = modePaiement == null || modePaiement.isBlank()
+                ? "ESPECE" : modePaiement.trim().toUpperCase(java.util.Locale.ROOT);
+        if (PortefeuilleClientService.MODE_PAIEMENT.equals(mode)) return mode;
+        return normaliserModePaiementNote(mode);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PaiementNoteDePrixResponse> getPaiements(Long id) {
+        noteDePrixRepository.findById(id)
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.ResourceNotFoundException("Note de prix non trouvée avec l'id : " + id));
+        return paiementNoteDePrixRepository.findByNoteDePrixIdOrderByDatePaiementDescIdDesc(id).stream()
+                .map(PaiementNoteDePrixResponse::from).toList();
     }
 
     @Override

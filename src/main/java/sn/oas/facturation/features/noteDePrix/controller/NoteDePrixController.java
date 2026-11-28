@@ -11,8 +11,11 @@ import java.time.LocalDate;
 import sn.oas.facturation.features.noteDePrix.dto.NoteDePrixListResponse;
 import sn.oas.facturation.features.noteDePrix.dto.NoteDePrixRequest;
 import sn.oas.facturation.features.noteDePrix.dto.NoteDePrixResponse;
+import sn.oas.facturation.features.noteDePrix.dto.PaiementNoteDePrixRequest;
+import sn.oas.facturation.features.noteDePrix.dto.PaiementNoteDePrixResponse;
 import sn.oas.facturation.features.noteDePrix.service.NoteDePrixService;
 
+import java.util.List;
 
 @RestController
 @RequestMapping({"/api/notes-prix", "/api/notes-de-prix"})
@@ -32,6 +35,20 @@ public class NoteDePrixController {
     @Operation(summary = "Mettre à jour une note de prix")
     public ResponseEntity<NoteDePrixResponse> updateNoteDePrix(@PathVariable Long id, @RequestBody NoteDePrixRequest request) {
         return ResponseEntity.ok(NoteDePrixResponse.from(noteDePrixService.updateNoteDePrix(id, request)));
+    }
+
+    @PostMapping("/{id}/paiements")
+    @Operation(summary = "Enregistrer un paiement total ou partiel d'une note de prix")
+    public ResponseEntity<PaiementNoteDePrixResponse> enregistrerPaiement(
+            @PathVariable Long id, @RequestBody PaiementNoteDePrixRequest request) {
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
+                .body(noteDePrixService.enregistrerPaiement(id, request));
+    }
+
+    @GetMapping("/{id}/paiements")
+    @Operation(summary = "Lister les paiements d'une note de prix")
+    public ResponseEntity<List<PaiementNoteDePrixResponse>> getPaiements(@PathVariable Long id) {
+        return ResponseEntity.ok(noteDePrixService.getPaiements(id));
     }
 
     @GetMapping("/{id}")

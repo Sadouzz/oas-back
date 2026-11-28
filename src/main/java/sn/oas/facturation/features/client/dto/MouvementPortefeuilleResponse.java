@@ -8,13 +8,17 @@ import java.time.LocalDateTime;
 public record MouvementPortefeuilleResponse(
         Long id, TypeMouvementPortefeuille type, BigDecimal montant, String modePaiement,
         String commentaire, Long factureId, String factureNumero, Long recuId, String recuNumero,
-        Long acteurId, LocalDateTime dateCreation) {
+        Long noteDePrixId, String noteDePrixNumero, Long paiementNoteDePrixId, Long acteurId, LocalDateTime dateCreation) {
 
     public static MouvementPortefeuilleResponse from(MouvementPortefeuilleClient m) {
         return new MouvementPortefeuilleResponse(m.getId(), m.getType(), m.getMontant(), m.getModePaiement(),
                 m.getCommentaire(), m.getFacture() == null ? null : m.getFacture().getId(),
                 m.getFacture() == null ? null : m.getFacture().getNumero(),
                 m.getRecu() == null ? null : m.getRecu().getId(),
-                m.getRecu() == null ? null : m.getRecu().getNumero(), m.getActeurId(), m.getDateCreation());
+                m.getRecu() == null ? null : m.getRecu().getNumero(),
+                m.getNoteDePrix() == null ? null : m.getNoteDePrix().getId(),
+                m.getNoteDePrix() == null ? null : m.getNoteDePrix().getNumero(),
+                m.getPaiementNoteDePrix() == null ? null : m.getPaiementNoteDePrix().getId(),
+                m.getActeurId(), m.getDateCreation());
     }
 }

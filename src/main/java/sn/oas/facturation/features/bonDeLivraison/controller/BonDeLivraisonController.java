@@ -53,8 +53,9 @@ public class BonDeLivraisonController {
     public Page<BonDeLivraisonResponse> list(
             @Parameter(description = "Numéro de page (0 par défaut)") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Nombre d'éléments par page (10 par défaut)") @RequestParam(defaultValue = "10") int size,
-            @Parameter(description = "Mot-clé de recherche (numéro, client, immatriculation)") @RequestParam(required = false) String keyword) {
-        return service.list(page, size, keyword);
+            @Parameter(description = "Mot-clé de recherche (numéro, client, immatriculation)") @RequestParam(required = false) String keyword,
+            @Parameter(description = "État de conversion : A_CONVERTIR ou CONVERTI") @RequestParam(required = false) String conversionStatus) {
+        return service.list(page, size, keyword, conversionStatus);
     }
 
     @Operation(summary = "Obtenir un bon de livraison par ID", description = "Retourne le détail complet d'un bon de livraison incluant ses lignes de pièces et de main-d'œuvre.")

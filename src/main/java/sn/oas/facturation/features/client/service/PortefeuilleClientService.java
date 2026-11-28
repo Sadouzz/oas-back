@@ -18,6 +18,8 @@ import sn.oas.facturation.features.client.repository.PortefeuilleClientRepositor
 import sn.oas.facturation.features.garage.data.entity.Garage;
 import sn.oas.facturation.features.facture.data.entity.Facture;
 import sn.oas.facturation.features.recu.data.entity.Recu;
+import sn.oas.facturation.features.noteDePrix.data.entity.NoteDePrix;
+import sn.oas.facturation.features.noteDePrix.data.entity.PaiementNoteDePrix;
 import sn.oas.facturation.features.user.repository.UserRepository;
 import sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService;
 import sn.oas.facturation.shared.exception.ResourceNotFoundException;
@@ -101,6 +103,43 @@ public class PortefeuilleClientService {
                 .facture(facture)
                 .recu(recu)
                 .build());
+    }
+
+    @Transactional
+    public void debiterPourNoteDePrix(NoteDePrix note, PaiementNoteDePrix paiement, BigDecimal montant) {
+        Client client = clientPourNote(note);
+        Garage garage = note.getGarage() == null ? documentNumberGeneratorService.getCurrentGarage() : note.getGarage();
+        if (client == null || garage == null) {
+            throw new IllegalArgumentException("La note de prix doit être rattachée à un client et à un garage pour utiliser le solde prépayé.");
+        }
+        PortefeuilleClient portefeuille = portefeuilleRepository.findByClientIdForUpdate(client.getId(), garage.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Ce client ne possède pas de solde prépayé disponible."));
+        BigDecimal montantNormalise = montant.setScale(2, RoundingMode.HALF_UP);
+        if (portefeuille.getSolde().compareTo(montantNormalise) < 0) {
+            throw new IllegalArgumentException("Le solde prépayé est insuffisant. Solde disponible : "
+                    + portefeuille.getSolde().toPlainString() + " F CFA.");
+        }
+        portefeuille.setSolde(portefeuille.getSolde().subtract(montantNormalise));
+        portefeuilleRepository.save(portefeuille);
+        mouvementRepository.save(MouvementPortefeuilleClient.builder()
+                .portefeuille(portefeuille)
+                .type(TypeMouvementPortefeuille.PAIEMENT_NOTE_DE_PRIX)
+                .montant(montantNormalise)
+                .modePaiement(MODE_PAIEMENT)
+                .commentaire("Paiement de la note de prix " + note.getNumero())
+                .acteurId(getActeurConnecteId())
+                .noteDePrix(note)
+                .paiementNoteDePrix(paiement)
+                .build());
+    }
+
+    private Client clientPourNote(NoteDePrix note) {
+        if (note.getClient() != null) return note.getClient();
+        if (note.getOrdreReparation() != null) {
+            if (note.getOrdreReparation().getClient() != null) return note.getOrdreReparation().getClient();
+            if (note.getOrdreReparation().getVehicule() != null) return note.getOrdreReparation().getVehicule().getClient();
+        }
+        return note.getVehicule() == null ? null : note.getVehicule().getClient();
     }
 
     private PortefeuilleClient getOrCreateForUpdate(Client client, Garage garage) {

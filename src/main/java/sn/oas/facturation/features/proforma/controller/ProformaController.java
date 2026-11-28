@@ -19,6 +19,10 @@ import sn.oas.facturation.features.proforma.dto.ProformaDetailsResponseDto;
 import sn.oas.facturation.features.proforma.dto.ProformaListResponse;
 import sn.oas.facturation.features.proforma.dto.ProformaResponse;
 import sn.oas.facturation.features.proforma.dto.ProformaUpdateRequest;
+import sn.oas.facturation.features.proforma.dto.ProformaEmailSendRequest;
+import sn.oas.facturation.features.proforma.dto.ProformaEmailSendResponse;
+import sn.oas.facturation.features.proforma.dto.ProformaEmailDecisionInfoResponse;
+import sn.oas.facturation.features.proforma.dto.ProformaEmailDecisionResponse;
 import sn.oas.facturation.features.proforma.service.ProformaService;
 import sn.oas.facturation.shared.exception.ForbiddenException;
 import sn.oas.facturation.shared.exception.BadRequestException;
@@ -57,6 +61,25 @@ public class ProformaController {
     @Operation(summary = "Valider les prix par le chef d'atelier et rendre le proforma visible/envoyé au client")
     public ResponseEntity<ProformaResponse> validerEnvoi(@PathVariable Long id) {
         return ResponseEntity.ok(ProformaResponse.from(proformaService.validerEnvoi(id)));
+    }
+
+    @PostMapping("/{id}/email-decision")
+    @Operation(summary = "Envoyer par e-mail un proforma avec les choix d'acceptation et de refus")
+    public ResponseEntity<ProformaEmailSendResponse> envoyerParEmailAvecDecision(
+            @PathVariable Long id, @Valid @RequestBody ProformaEmailSendRequest request) {
+        return ResponseEntity.ok(proformaService.envoyerParEmailAvecDecision(id, request.email()));
+    }
+
+    @GetMapping("/email-decision/{token}")
+    @Operation(summary = "Afficher les informations minimales d'une décision client par e-mail")
+    public ResponseEntity<ProformaEmailDecisionInfoResponse> getEmailDecisionInfo(@PathVariable String token) {
+        return ResponseEntity.ok(proformaService.getEmailDecisionInfo(token));
+    }
+
+    @PostMapping("/email-decision/{token}")
+    @Operation(summary = "Enregistrer le choix du client depuis un lien de décision par e-mail")
+    public ResponseEntity<ProformaEmailDecisionResponse> repondreParEmail(@PathVariable String token) {
+        return ResponseEntity.ok(proformaService.repondreParEmail(token));
     }
 
     /*

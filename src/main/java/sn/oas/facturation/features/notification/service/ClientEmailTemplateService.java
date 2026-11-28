@@ -65,6 +65,48 @@ public class ClientEmailTemplateService {
         );
     }
 
+    public String proformaAvecDecision(String prenom, String numero, String acceptUrl, String rejectUrl) {
+        return render(
+                "DOCUMENT À CONSULTER",
+                "Votre proposition de travaux est prête",
+                "Nous vous transmettons le proforma associé à votre véhicule. Le document PDF joint détaille les travaux prévus et leur montant. Il s'agit d'une proposition en attente de votre décision.",
+                prenom,
+                List.of(new Detail("Référence du proforma", numero)),
+                "Votre décision",
+                "Après avoir consulté le document, indiquez si vous acceptez ou refusez cette proposition. Votre choix sera transmis à votre atelier.",
+                "Le proforma est joint à ce message. Les liens de décision sont valables pendant 7 jours.",
+                """
+                <table role="presentation" cellpadding="0" cellspacing="0" style="margin:24px 0 8px;border-collapse:collapse">
+                  <tr>
+                    <td bgcolor="#16803c" style="border-radius:6px;text-align:center">
+                      <a href="{{ACCEPT_URL}}" style="display:inline-block;padding:13px 20px;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700">Accepter le proforma</a>
+                    </td>
+                    <td width="12" style="font-size:0">&nbsp;</td>
+                    <td bgcolor="#b42318" style="border-radius:6px;text-align:center">
+                      <a href="{{REJECT_URL}}" style="display:inline-block;padding:13px 20px;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700">Refuser le proforma</a>
+                    </td>
+                  </tr>
+                </table>
+                """.replace("{{ACCEPT_URL}}", escape(acceptUrl)).replace("{{REJECT_URL}}", escape(rejectUrl))
+        );
+    }
+
+    public String proformaDecisionConfirmee(String prenom, String numero, boolean accepted) {
+        String decision = accepted ? "accepté" : "refusé";
+        return render(
+                "CONFIRMATION DE VOTRE DÉCISION",
+                "Votre choix a bien été enregistré",
+                "Nous vous confirmons que le proforma " + numero + " a été " + decision + " conformément à votre choix.",
+                prenom,
+                List.of(new Detail("Référence du proforma", numero), new Detail("Votre décision", accepted ? "Accepté" : "Refusé")),
+                accepted ? "Prochaine étape" : "Suite de votre demande",
+                accepted
+                        ? "Votre atelier a été informé de votre accord et peut poursuivre le traitement de votre dossier."
+                        : "Votre atelier a été informé de votre refus et pourra revenir vers vous si nécessaire.",
+                "Merci d'avoir répondu à la proposition d'Orient Auto Service."
+        );
+    }
+
     public String factureDepuisProforma(String prenom, String numeroProforma, String numeroFacture) {
         return render(
                 "DOCUMENT DE FACTURATION",
@@ -158,6 +200,12 @@ public class ClientEmailTemplateService {
 
     private String render(String eyebrow, String title, String intro, String prenom,
                           List<Detail> details, String sectionTitle, String sectionBody, String footerNote) {
+        return render(eyebrow, title, intro, prenom, details, sectionTitle, sectionBody, footerNote, "");
+    }
+
+    private String render(String eyebrow, String title, String intro, String prenom,
+                          List<Detail> details, String sectionTitle, String sectionBody, String footerNote,
+                          String actionsBlock) {
         StringBuilder rows = new StringBuilder();
         for (Detail detail : details) {
             rows.append("<tr><td style=\"padding:13px 16px;border-bottom:1px solid #e7ecf3;color:#6c7c93;font-size:12px;letter-spacing:.04em;text-transform:uppercase;width:42%;\">")
@@ -192,7 +240,13 @@ public class ClientEmailTemplateService {
                         <tr><td style="height:5px;background:#ef1a1a;font-size:0;line-height:0">&nbsp;</td></tr>
                         <tr><td class="email-brand" style="padding:24px 34px;background:#0c2742;color:#ffffff">
                           <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-                            <td width="58" valign="middle"><div style="width:50px;height:50px;padding:3px;box-sizing:border-box;border:1px solid #ef1a1a;border-radius:50%;background:#ffffff"><img src="cid:oasLogo" width="44" height="44" alt="Logo Orient Auto Service" style="display:block;width:44px;height:44px;border:0;border-radius:50%"></div></td>
+                            <td width="64" valign="middle" align="left">
+                              <table role="presentation" width="56" height="56" cellpadding="0" cellspacing="0" bgcolor="#ffffff" style="width:56px;height:56px;border:1px solid #ef1a1a;border-collapse:separate;border-radius:28px">
+                                <tr><td align="center" valign="middle" bgcolor="#ffffff" style="background:#ffffff;border-radius:28px">
+                                  <img src="cid:oasLogo" width="48" height="48" alt="Logo Orient Auto Service" style="display:block;width:48px;height:48px;border:0;outline:none;text-decoration:none">
+                                </td></tr>
+                              </table>
+                            </td>
                             <td valign="middle" style="padding-left:12px"><div style="color:#ffffff;font-size:14px;font-weight:700;letter-spacing:.12em">ORIENT AUTO SERVICE</div><div style="margin-top:4px;color:#b8c7d5;font-size:11px;letter-spacing:.04em">L’ENTRETIEN DE VOTRE VÉHICULE, EN TOUTE CONFIANCE</div></td>
                           </tr></table>
                         </td></tr>
@@ -202,6 +256,7 @@ public class ClientEmailTemplateService {
                           <p style="margin:0 0 18px;color:#14233b;font-size:15px;line-height:1.75">{{INTRO}}</p>
                           <p style="margin:0;color:#14233b;font-size:15px;line-height:1.65">{{GREETING}}</p>
                           {{DETAILS}}
+                          {{ACTIONS}}
                           <div style="margin:26px 0 0;padding:20px 22px;border-left:3px solid #ef1a1a;border-radius:0 10px 10px 0;background:#fde2e2">
                             <div style="margin:0 0 8px;color:#13355c;font-size:14px;font-weight:700">{{SECTION_TITLE}}</div>
                             <div style="color:#3c4d66;font-size:14px;line-height:1.7">{{SECTION_BODY}}</div>
@@ -224,6 +279,7 @@ public class ClientEmailTemplateService {
                 .replace("{{INTRO}}", escape(intro))
                 .replace("{{GREETING}}", greeting)
                 .replace("{{DETAILS}}", detailsBlock)
+                .replace("{{ACTIONS}}", actionsBlock)
                 .replace("{{SECTION_TITLE}}", escape(sectionTitle))
                 .replace("{{SECTION_BODY}}", escape(sectionBody))
                 .replace("{{FOOTER_NOTE}}", escape(footerNote));

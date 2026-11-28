@@ -16,7 +16,7 @@ import java.util.List;
 
 public interface BonDeLivraisonService {
 
-    Page<BonDeLivraisonResponse> list(int page, int size, String keyword);
+    Page<BonDeLivraisonResponse> list(int page, int size, String keyword, String conversionStatus);
 
     BonDeLivraisonResponse get(Long id);
 

@@ -14,6 +14,10 @@ import java.util.List;
 @Repository
 public interface NoteDePrixRepository extends JpaRepository<NoteDePrix, Long>, JpaSpecificationExecutor<NoteDePrix> {
 
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT n FROM NoteDePrix n WHERE n.id = :id")
+    java.util.Optional<NoteDePrix> findByIdForPaiement(@Param("id") Long id);
+
     @Query(value = "SELECT n FROM NoteDePrix n " +
             "LEFT JOIN n.client c " +
             "LEFT JOIN n.vehicule v " +

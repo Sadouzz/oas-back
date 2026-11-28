@@ -2,6 +2,8 @@ package sn.oas.facturation.features.proforma.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import io.jsonwebtoken.Claims;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -31,6 +33,9 @@ import sn.oas.facturation.features.piecedetache.service.CataloguePiecePricingPol
 import sn.oas.facturation.features.proforma.data.entity.Proforma;
 import sn.oas.facturation.features.proforma.dto.ProformaCreateRequest;
 import sn.oas.facturation.features.proforma.dto.ProformaUpdateRequest;
+import sn.oas.facturation.features.proforma.dto.ProformaEmailSendResponse;
+import sn.oas.facturation.features.proforma.dto.ProformaEmailDecisionInfoResponse;
+import sn.oas.facturation.features.proforma.dto.ProformaEmailDecisionResponse;
 import sn.oas.facturation.features.proforma.repository.ProformaRepository;
 import sn.oas.facturation.features.user.data.enums.Role;
 import sn.oas.facturation.features.vehicule.data.entity.Vehicule;
@@ -39,6 +44,7 @@ import sn.oas.facturation.features.ordreReparation.data.entity.OrdreReparation;
 import sn.oas.facturation.features.ordreReparation.repository.OrdreReparationRepository;
 import sn.oas.facturation.features.ordreReparation.data.enums.StatutOrdreReparation;
 import sn.oas.facturation.features.notification.service.AgentNotificationService;
+import sn.oas.facturation.security.JwtUtil;
 import sn.oas.facturation.features.notification.service.EmailService;
 import sn.oas.facturation.shared.documentNumber.DocumentNumberGeneratorService;
 import sn.oas.facturation.shared.exception.ResourceNotFoundException;
@@ -55,6 +61,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.stream.Collectors;
 
 @Service
@@ -81,6 +89,9 @@ public class ProformaServiceImpl implements ProformaService {
     private final ProformaGenerator proformaGenerator;
     private final sn.oas.facturation.features.fiscal.service.FiscalConfigurationService fiscalConfigurationService;
     private final CataloguePiecePricingPolicy cataloguePiecePricingPolicy;
+    private final JwtUtil jwtUtil;
+    @Value("${app.frontend-url:http://localhost:4200}")
+    private String frontendUrl;
     @Override
     @Transactional
     public Proforma create(ProformaCreateRequest request) {
@@ -500,6 +511,7 @@ public class ProformaServiceImpl implements ProformaService {
         // Toute modification invalide l'accord précédent : le client doit recevoir et valider la nouvelle version.
         proforma.setStatut(StatutFacturation.EN_ATTENTE);
         proforma.setVisibleClient(false);
+        proforma.setEmailDecisionTokenIssuedAtMillis(null);
         proforma.setDateModification(LocalDateTime.now());
 
         return proformaRepository.save(proforma);
@@ -626,6 +638,132 @@ public class ProformaServiceImpl implements ProformaService {
 
         return saved;
     }
+
+    @Override
+    @Transactional
+    public ProformaEmailSendResponse envoyerParEmailAvecDecision(Long id, String emailSaisi) {
+        Proforma proforma = proformaRepository.findByIdForFactureConversion(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Proforma non trouvé avec l'id : " + id));
+        if (proforma.getStatut() == StatutFacturation.ACCEPTE
+                || proforma.getStatut() == StatutFacturation.CONVERTIE
+                || proforma.getStatut() == StatutFacturation.PAYEE
+                || proforma.getStatut() == StatutFacturation.PARTIELLEMENT_PAYEE) {
+            throw new sn.oas.facturation.shared.exception.BadRequestException(
+                    "Un proforma déjà accepté ou facturé ne peut plus être envoyé pour décision.");
+        }
+
+        Client client = resolveProformaClient(proforma);
+        if (client == null || client.getEmail() == null || client.getEmail().isBlank()) {
+            throw new sn.oas.facturation.shared.exception.BadRequestException(
+                    "Aucune adresse e-mail n'est enregistrée pour le client de ce proforma.");
+        }
+        String emailClient = client.getEmail().trim();
+        if (emailSaisi == null || !emailClient.equalsIgnoreCase(emailSaisi.trim())) {
+            throw new sn.oas.facturation.shared.exception.BadRequestException(
+                    "L'adresse doit correspondre à celle enregistrée dans la fiche du client.");
+        }
+
+        if (proforma.getStatut() == StatutFacturation.REJETE) {
+            proforma.setStatut(StatutFacturation.EN_ATTENTE);
+        }
+        proforma.setVisibleClient(true);
+        long previousIssuedAt = proforma.getEmailDecisionTokenIssuedAtMillis() == null
+                ? 0L : proforma.getEmailDecisionTokenIssuedAtMillis();
+        long issuedAtMillis = Math.max(System.currentTimeMillis(), previousIssuedAt + 1L);
+        proforma.setEmailDecisionTokenIssuedAtMillis(issuedAtMillis);
+        Proforma saved = proformaRepository.save(proforma);
+
+        String acceptToken = jwtUtil.generateProformaEmailActionToken(
+                saved.getId(), client.getId(), emailClient, "ACCEPTER", issuedAtMillis);
+        String rejectToken = jwtUtil.generateProformaEmailActionToken(
+                saved.getId(), client.getId(), emailClient, "REFUSER", issuedAtMillis);
+        String baseUrl = frontendUrl.replaceAll("/+$", "");
+        String acceptUrl = baseUrl + "/proforma-decision?token=" + URLEncoder.encode(acceptToken, StandardCharsets.UTF_8);
+        String rejectUrl = baseUrl + "/proforma-decision?token=" + URLEncoder.encode(rejectToken, StandardCharsets.UTF_8);
+        String html = clientEmailTemplateService.proformaAvecDecision(
+                client.getFirstName(), saved.getNumero(), acceptUrl, rejectUrl);
+        String numeroFichier = (saved.getNumero() == null ? id.toString() : saved.getNumero())
+                .replaceAll("[^A-Za-z0-9._-]", "_");
+
+        String sujet = "Votre proposition de travaux · " + saved.getNumero();
+        String nomFichier = "proforma_" + numeroFichier + ".pdf";
+        try {
+            byte[] pdf = generatePdf(id);
+            if (pdf == null || pdf.length == 0) {
+                throw new IllegalStateException("Le PDF du proforma n'a pas pu être généré.");
+            }
+            emailService.sendHtmlEmailWithAttachmentSync(
+                    emailClient, sujet, html, nomFichier, pdf, "application/pdf");
+        } catch (Exception exception) {
+            log.error("Échec de l'envoi du proforma {} par e-mail à {}", saved.getNumero(), emailClient, exception);
+            throw new IllegalStateException(
+                    "Le serveur de messagerie n'a pas accepté l'e-mail. Le proforma n'a pas été déclaré envoyé; réessayez.");
+        }
+        return new ProformaEmailSendResponse(emailClient, Boolean.TRUE.equals(saved.getVisibleClient()));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ProformaEmailDecisionInfoResponse getEmailDecisionInfo(String token) {
+        DecisionTokenClaims decision = parseDecisionToken(token);
+        Proforma proforma = proformaRepository.findById(decision.proformaId())
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.BadRequestException(
+                        "Ce lien de décision n'est plus valide."));
+        validateDecisionTokenForProforma(decision, proforma);
+        return new ProformaEmailDecisionInfoResponse(
+                proforma.getNumero(), decision.action(), proforma.getMontantTotal());
+    }
+
+    @Override
+    @Transactional
+    public ProformaEmailDecisionResponse repondreParEmail(String token) {
+        DecisionTokenClaims decision = parseDecisionToken(token);
+        Proforma proforma = proformaRepository.findByIdForFactureConversion(decision.proformaId())
+                .orElseThrow(() -> new sn.oas.facturation.shared.exception.BadRequestException(
+                        "Ce lien de décision n'est plus valide."));
+        Client client = validateDecisionTokenForProforma(decision, proforma);
+
+        if ("ACCEPTER".equals(decision.action())) {
+            clientValider(client, proforma.getId());
+            return new ProformaEmailDecisionResponse("ACCEPTE", "Votre accord a été enregistré.");
+        }
+        clientRefuser(client, proforma.getId());
+        return new ProformaEmailDecisionResponse("REJETE", "Votre refus a été enregistré.");
+    }
+
+    private DecisionTokenClaims parseDecisionToken(String token) {
+        try {
+            Claims claims = jwtUtil.parseProformaEmailActionToken(token);
+            Long proformaId = Long.valueOf(String.valueOf(claims.get("proforma_id")));
+            Long clientId = Long.valueOf(String.valueOf(claims.get("client_id")));
+            String issuedAt = String.valueOf(claims.get("issued_at_ms"));
+            String action = claims.get("action", String.class);
+            if (!("ACCEPTER".equals(action) || "REFUSER".equals(action))) {
+                throw new IllegalArgumentException("Invalid action");
+            }
+            return new DecisionTokenClaims(proformaId, clientId, claims.getSubject(), action, Long.parseLong(issuedAt));
+        } catch (Exception exception) {
+            throw new sn.oas.facturation.shared.exception.BadRequestException(
+                    "Ce lien de décision est invalide ou a expiré.");
+        }
+    }
+
+    private Client validateDecisionTokenForProforma(DecisionTokenClaims decision, Proforma proforma) {
+        Client client = resolveProformaClient(proforma);
+        boolean issuedByLatestEmail = proforma.getEmailDecisionTokenIssuedAtMillis() != null
+                && proforma.getEmailDecisionTokenIssuedAtMillis().equals(decision.issuedAtMillis());
+        boolean recipientStillOwnsProforma = client != null && client.getId().equals(decision.clientId())
+                && client.getEmail() != null && client.getEmail().trim().equalsIgnoreCase(decision.email());
+        boolean pending = proforma.getStatut() == null || proforma.getStatut() == StatutFacturation.EN_ATTENTE;
+        if (!issuedByLatestEmail || !recipientStillOwnsProforma || !Boolean.TRUE.equals(proforma.getVisibleClient())
+                || !pending) {
+            throw new sn.oas.facturation.shared.exception.BadRequestException(
+                    "Ce lien de décision n'est plus valide. Contactez votre atelier pour obtenir un nouveau proforma.");
+        }
+        return client;
+    }
+
+    private record DecisionTokenClaims(Long proformaId, Long clientId, String email, String action, long issuedAtMillis) { }
 
     @Override
     @Transactional(readOnly = true)
@@ -814,6 +952,7 @@ public class ProformaServiceImpl implements ProformaService {
         if (statusChanged) {
             agentNotificationService.notifyRoleInGarage(Role.CHEF_ATELIER, proforma.getGarage(),
                 "Proforma Validé", "Le proforma " + proforma.getNumero() + " a été validé par le client.");
+            envoyerConfirmationDecisionAuClient(client, proforma, true);
         }
 
         return proformaRepository.save(proforma);
@@ -840,6 +979,7 @@ public class ProformaServiceImpl implements ProformaService {
             String message = "Le proforma " + saved.getNumero() + " a été refusé par le client.";
             agentNotificationService.notifyRoleInGarage(Role.CHEF_ATELIER, saved.getGarage(), "Proforma refusé", message);
             agentNotificationService.notifyRoleInGarage(Role.AGENT, saved.getGarage(), "Proforma refusé par le client", message);
+            envoyerConfirmationDecisionAuClient(client, saved, false);
         }
         return saved;
     }
@@ -857,6 +997,16 @@ public class ProformaServiceImpl implements ProformaService {
         if (!Boolean.TRUE.equals(proforma.getVisibleClient())) {
             throw new sn.oas.facturation.shared.exception.BadRequestException("Ce proforma n'est pas encore disponible.");
         }
+    }
+
+    private void envoyerConfirmationDecisionAuClient(Client client, Proforma proforma, boolean accepted) {
+        if (client == null || client.getEmail() == null || client.getEmail().isBlank()) return;
+        String subject = accepted
+                ? "Confirmation d'acceptation du proforma " + proforma.getNumero()
+                : "Confirmation de refus du proforma " + proforma.getNumero();
+        emailService.sendHtmlEmail(client.getEmail(), subject,
+                clientEmailTemplateService.proformaDecisionConfirmee(
+                        client.getFirstName(), proforma.getNumero(), accepted));
     }
 
     private int tauxRemiseApplicable(Client client) {

@@ -7,6 +7,9 @@ import sn.oas.facturation.features.facture.data.entity.Facture;
 import sn.oas.facturation.features.proforma.data.entity.Proforma;
 import sn.oas.facturation.features.proforma.dto.ProformaCreateRequest;
 import sn.oas.facturation.features.proforma.dto.ProformaUpdateRequest;
+import sn.oas.facturation.features.proforma.dto.ProformaEmailSendResponse;
+import sn.oas.facturation.features.proforma.dto.ProformaEmailDecisionInfoResponse;
+import sn.oas.facturation.features.proforma.dto.ProformaEmailDecisionResponse;
 
 import java.util.List;
 
@@ -24,6 +27,9 @@ public interface ProformaService {
 
     Proforma valider(Long id);
     Proforma validerEnvoi(Long id);
+    ProformaEmailSendResponse envoyerParEmailAvecDecision(Long id, String email);
+    ProformaEmailDecisionInfoResponse getEmailDecisionInfo(String token);
+    ProformaEmailDecisionResponse repondreParEmail(String token);
     byte[] generatePdf(Long id);
     byte[] generatePdf(Long id, String layoutKey);
     Facture convertToFacture(Long id);

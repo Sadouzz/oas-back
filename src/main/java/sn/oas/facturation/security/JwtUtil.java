@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.UUID;
 
 @Slf4j
 @Component
@@ -46,6 +47,31 @@ public class JwtUtil {
                 .expiration(new Date(System.currentTimeMillis() + jwtRefreshExpirationMs))
                 .signWith(key)
                 .compact();
+    }
+
+    public String generateProformaEmailActionToken(Long proformaId, Long clientId, String email,
+                                                    String action, long issuedAtMillis) {
+        long expirationMillis = issuedAtMillis + 7L * 24 * 60 * 60 * 1000;
+        return Jwts.builder()
+                .subject(email)
+                .claim("token_type", "proforma_email_action")
+                .claim("proforma_id", proformaId)
+                .claim("client_id", clientId)
+                .claim("action", action)
+                .claim("issued_at_ms", Long.toString(issuedAtMillis))
+                .id(UUID.randomUUID().toString())
+                .issuedAt(new Date(issuedAtMillis))
+                .expiration(new Date(expirationMillis))
+                .signWith(key)
+                .compact();
+    }
+
+    public Claims parseProformaEmailActionToken(String token) {
+        Claims claims = Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
+        if (!"proforma_email_action".equals(claims.get("token_type", String.class))) {
+            throw new IllegalArgumentException("Invalid proforma email action token type");
+        }
+        return claims;
     }
     // Get username from JWT token
     public String getUsernameFromToken(String token) {

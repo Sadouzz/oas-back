@@ -18,4 +18,6 @@ L'agent peut aussi choisir explicitement de passer à la livraison sans encaisse
 
 ## Encaissements partiels
 
-L'action d'encaissement depuis la liste des factures conserve la possibilité d'enregistrer un paiement partiel. La validation intégrale de l'étape OR, elle, règle toujours tout le solde restant en une seule opération.
+L'action d'encaissement depuis la liste des factures conserve la possibilité d'enregistrer un paiement partiel. Le formulaire affiche les reçus antérieurs et permet d'appliquer directement le solde prépayé disponible, dans la limite du reste dû.
+
+Pour les notes de prix, chaque nouveau règlement est enregistré comme une tranche distincte dans `paiements_notes_de_prix`. L'historique de ces tranches est visible dans les formulaires d'encaissement, y compris depuis l'étape Paiement de l'OR. Le bouton de paiement par solde prépayé applique `min(solde disponible, reste à payer)`; la note, le mouvement du portefeuille et la tranche sont mis à jour dans une transaction. Les anciens montants cumulés restent consultables, mais leur date et leur mode ne peuvent pas être reconstruits.

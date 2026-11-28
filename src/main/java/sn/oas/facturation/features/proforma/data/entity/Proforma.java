@@ -52,6 +52,10 @@ public class Proforma extends FactureTTC {
     @Builder.Default
     private Boolean visibleClient = false;
 
+    /** Invalide les anciens liens d'acceptation/refus lors d'un nouvel envoi ou d'une modification. */
+    @Column(name = "email_decision_token_issued_at")
+    private Long emailDecisionTokenIssuedAtMillis;
+
     @OneToMany(mappedBy = "proforma", fetch = FetchType.LAZY)
     @JsonIgnoreProperties({"proforma", "hibernateLazyInitializer", "handler"})
     @ToString.Exclude

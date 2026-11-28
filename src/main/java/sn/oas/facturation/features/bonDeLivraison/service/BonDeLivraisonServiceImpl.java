@@ -104,11 +104,16 @@ public class BonDeLivraisonServiceImpl implements BonDeLivraisonService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<BonDeLivraisonResponse> list(int page, int size, String keyword) {
+    public Page<BonDeLivraisonResponse> list(int page, int size, String keyword, String conversionStatus) {
         Pageable pageable = PageRequest.of(Math.max(0, page), Math.min(Math.max(1, size), 100), Sort.by("id").descending());
-        Page<BonDeLivraisonListRow> results = keyword == null || keyword.isBlank()
-                ? repository.findListRows(pageable)
-                : repository.searchListRows(keyword.trim(), pageable);
+        Boolean converted = switch (conversionStatus == null ? "" : conversionStatus.trim().toUpperCase(java.util.Locale.ROOT)) {
+            case "" -> null;
+            case "A_CONVERTIR" -> false;
+            case "CONVERTI" -> true;
+            default -> throw new BadRequestException("Filtre de conversion invalide. Valeurs autorisées : A_CONVERTIR, CONVERTI.");
+        };
+        Page<BonDeLivraisonListRow> results = repository.findListRows(
+                keyword == null || keyword.isBlank() ? null : keyword.trim(), converted, pageable);
         List<Long> bonIds = results.getContent().stream().map(BonDeLivraisonListRow::id).toList();
         Map<Long, List<BonDeLivraisonSortieReference>> references = bonIds.isEmpty()
                 ? Map.of()

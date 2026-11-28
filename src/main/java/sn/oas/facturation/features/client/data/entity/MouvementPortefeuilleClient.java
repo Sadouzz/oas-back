@@ -5,6 +5,8 @@ import lombok.*;
 import sn.oas.facturation.features.client.data.enums.TypeMouvementPortefeuille;
 import sn.oas.facturation.features.facture.data.entity.Facture;
 import sn.oas.facturation.features.recu.data.entity.Recu;
+import sn.oas.facturation.features.noteDePrix.data.entity.NoteDePrix;
+import sn.oas.facturation.features.noteDePrix.data.entity.PaiementNoteDePrix;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -43,6 +45,14 @@ public class MouvementPortefeuilleClient {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "recu_id", updatable = false)
     private Recu recu;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "note_de_prix_id", updatable = false)
+    private NoteDePrix noteDePrix;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "paiement_note_de_prix_id", updatable = false)
+    private PaiementNoteDePrix paiementNoteDePrix;
 
     @Column(name = "source_mouvement_legacy_id", unique = true, updatable = false)
     private Long sourceMouvementLegacyId;

@@ -103,6 +103,8 @@ public class WebSecurityConfig {
                         .hasAnyAuthority("CLIENT", "ROLE_CLIENT")
                         .requestMatchers("/api/ordres-reparation/me")
                         .hasAnyAuthority("CLIENT", "ROLE_CLIENT")
+                        .requestMatchers("/api/proformas/email-decision/**")
+                        .permitAll()
                         .requestMatchers("/api/factures/me", "/api/factures/me/**",
                                 "/api/proformas/me", "/api/proformas/me/**",
                                 "/api/recus/me", "/api/recus/me/**",

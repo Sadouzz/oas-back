@@ -10,7 +10,9 @@ Le compte entreprise conserve l'identité légale, le statut et les conditions d
 
 La remise est un réglage propre au client, quel que soit son type. Elle conserve le calcul existant sur le montant net des pièces après remises de ligne, et sa valeur appliquée est figée sur le proforma/facture selon le flux habituel. Elle n'est plus désactivée par le retrait du statut fidèle ni par la désactivation du compte entreprise.
 
-Le solde prépayé représente l'argent déjà confié au garage. Il est propre au couple client/garage et journalise les versements et paiements. Il n'est jamais appliqué automatiquement. Un agent peut choisir explicitement ce mode lors du paiement d'une facture, en totalité ou en partie; le solde est débité dans la même transaction que le reçu, avec contrôle de concurrence et de montant disponible. Il n'est pas proposé pour les notes de prix.
+Le solde prépayé représente l'argent déjà confié au garage. Il est propre au couple client/garage et journalise les versements et paiements. Il n'est jamais appliqué automatiquement. Un agent peut choisir explicitement ce mode lors du paiement d'une facture ou d'une note de prix, en totalité ou en partie; le montant appliqué est limité au plus petit du solde disponible et du reste à payer. Le débit est validé dans la même transaction que le reçu de facture ou l'écriture de paiement de note, avec verrouillage et contrôle du solde.
+
+Les paiements d'une note de prix sont enregistrés tranche par tranche dans `paiements_notes_de_prix`, avec leur montant, mode, date et agent. Les paiements historiques antérieurs à ce registre ne comportent qu'un cumul sur la note : l'interface affiche ce montant comme antérieur non détaillé, sans inventer de date ni de mode.
 
 Les anciens crédits étaient rattachés à un compte client, sans garage associé et sans être dépensables. La reprise SQL copie leur solde et journal uniquement si un seul garage est actif. En contexte multi-garage, les anciennes valeurs restent conservées dans leurs tables et ne sont pas attribuées arbitrairement à un garage.
 
@@ -31,10 +33,12 @@ La réservation créée depuis l'espace client est refusée côté serveur lorsq
 - `GET /api/clients/{id}/portefeuille-prepaye` : renvoie le solde et les 100 derniers mouvements dans le garage courant.
 - `POST /api/clients/{id}/portefeuille-prepaye/alimentations` : enregistre un versement dans le garage courant et ajoute une ligne d'audit.
 - `POST /api/recus/payer` avec `methodePaiement=SOLDE_PREPAYE` : paie explicitement tout ou partie d'une facture et débite le portefeuille du garage de cette facture.
+- `POST /api/notes-de-prix/{id}/paiements` avec `{ montant, modePaiement }` : enregistre une tranche, met à jour le reste à payer et, si `modePaiement=SOLDE_PREPAYE`, débite le portefeuille du garage.
+- `GET /api/notes-de-prix/{id}/paiements` : renvoie les tranches de paiement détaillées de la note, de la plus récente à la plus ancienne.
 - `DELETE /api/clients/{id}/compte-financier` : désactive le compte sans effacer l'historique ni les conditions d'échéance.
 
 ## Retrait du plafond d'encours
 
 Le champ `clients.montant_plafond` n'est plus exposé ni utilisé par le code applicatif. Les bases existantes peuvent encore conserver cette colonne, car Hibernate `ddl-auto: update` ne supprime pas les colonnes retirées des entités. Après sauvegarde et revue des données, l'opération SQL de retrait est fournie dans `src/main/resources/db/manual/20261016_drop_montant_plafond.sql`; elle supprime les anciennes valeurs de plafond d'encours.
 
-Les nouvelles colonnes et tables sont ajoutées par le mécanisme Hibernate `ddl-auto: update` déjà utilisé par les profils de l'application. Aucune donnée métier existante n'est réinitialisée.
+Les nouvelles colonnes et tables sont ajoutées par le mécanisme Hibernate `ddl-auto: update` déjà utilisé par les profils de l'application. Le registre de paiements des notes et les liens de mouvements de portefeuille vers une note sont additifs. Aucune donnée métier existante n'est réinitialisée.

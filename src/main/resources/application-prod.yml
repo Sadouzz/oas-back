@@ -30,6 +30,7 @@ spring:
             trust: "*"
 
 app:
+  frontend-url: ${APP_FRONTEND_URL:https://oas-senegal.com}
   cookie:
     secure: ${COOKIE_SECURE:true}
     same-site: ${COOKIE_SAME_SITE:None}

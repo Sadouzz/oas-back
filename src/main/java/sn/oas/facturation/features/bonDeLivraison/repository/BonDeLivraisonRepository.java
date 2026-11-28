@@ -24,29 +24,25 @@ public interface BonDeLivraisonRepository extends JpaRepository<BonDeLivraison, 
             "v.id, v.immatriculation, b.tvaApplicable, b.montantHT, b.montantTVA, b.montantTTC, b.remarque, " +
             "f.id, f.numero, n.id, n.numero) " +
             "FROM BonDeLivraison b LEFT JOIN b.ordreReparation o LEFT JOIN b.client c LEFT JOIN b.vehicule v " +
-            "LEFT JOIN b.facture f LEFT JOIN b.noteDePrix n",
-            countQuery = "SELECT COUNT(b) FROM BonDeLivraison b")
-    Page<BonDeLivraisonListRow> findListRows(Pageable pageable);
-
-    @Query(value = "SELECT new sn.oas.facturation.features.bonDeLivraison.dto.BonDeLivraisonListRow(" +
-            "b.id, b.numero, b.dateCreation, o.id, o.numero, c.id, " +
-            "CONCAT(COALESCE(c.firstName, ''), CONCAT(' ', COALESCE(c.lastName, ''))), " +
-            "v.id, v.immatriculation, b.tvaApplicable, b.montantHT, b.montantTVA, b.montantTTC, b.remarque, " +
-            "f.id, f.numero, n.id, n.numero) " +
-            "FROM BonDeLivraison b LEFT JOIN b.ordreReparation o LEFT JOIN b.client c LEFT JOIN b.vehicule v " +
             "LEFT JOIN b.facture f LEFT JOIN b.noteDePrix n WHERE " +
-            "LOWER(b.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "(:keyword IS NULL OR :keyword = '' OR LOWER(b.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(o.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(c.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
             "LOWER(c.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-            "LOWER(v.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%'))",
-            countQuery = "SELECT COUNT(DISTINCT b) FROM BonDeLivraison b LEFT JOIN b.ordreReparation o LEFT JOIN b.client c LEFT JOIN b.vehicule v WHERE " +
-                    "LOWER(b.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
+            "LOWER(v.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
+            "(:converted IS NULL OR (:converted = true AND (f.id IS NOT NULL OR n.id IS NOT NULL)) OR " +
+            "(:converted = false AND f.id IS NULL AND n.id IS NULL))",
+            countQuery = "SELECT COUNT(DISTINCT b) FROM BonDeLivraison b LEFT JOIN b.ordreReparation o LEFT JOIN b.client c LEFT JOIN b.vehicule v " +
+                    "LEFT JOIN b.facture f LEFT JOIN b.noteDePrix n WHERE " +
+                    "(:keyword IS NULL OR :keyword = '' OR LOWER(b.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
                     "LOWER(o.numero) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
                     "LOWER(c.firstName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
                     "LOWER(c.lastName) LIKE LOWER(CONCAT('%', :keyword, '%')) OR " +
-                    "LOWER(v.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%'))")
-    Page<BonDeLivraisonListRow> searchListRows(@Param("keyword") String keyword, Pageable pageable);
+                    "LOWER(v.immatriculation) LIKE LOWER(CONCAT('%', :keyword, '%'))) AND " +
+                    "(:converted IS NULL OR (:converted = true AND (f.id IS NOT NULL OR n.id IS NOT NULL)) OR " +
+                    "(:converted = false AND f.id IS NULL AND n.id IS NULL))")
+    Page<BonDeLivraisonListRow> findListRows(@Param("keyword") String keyword,
+            @Param("converted") Boolean converted, Pageable pageable);
 
     @Query("SELECT new sn.oas.facturation.features.bonDeLivraison.dto.BonDeLivraisonSortieReference(" +
             "b.id, bs.id, bs.reference) FROM BonDeLivraison b JOIN b.bonsDeSortie bs " +

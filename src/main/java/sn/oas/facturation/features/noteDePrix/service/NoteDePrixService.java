@@ -3,12 +3,16 @@ package sn.oas.facturation.features.noteDePrix.service;
 import org.springframework.data.domain.Page;
 import sn.oas.facturation.features.noteDePrix.data.entity.NoteDePrix;
 import sn.oas.facturation.features.noteDePrix.dto.NoteDePrixRequest;
+import sn.oas.facturation.features.noteDePrix.dto.PaiementNoteDePrixRequest;
+import sn.oas.facturation.features.noteDePrix.dto.PaiementNoteDePrixResponse;
 
 import java.util.List;
 
 public interface NoteDePrixService {
     NoteDePrix createNoteDePrix(NoteDePrixRequest request);
     NoteDePrix updateNoteDePrix(Long id, NoteDePrixRequest request);
+    PaiementNoteDePrixResponse enregistrerPaiement(Long id, PaiementNoteDePrixRequest request);
+    List<PaiementNoteDePrixResponse> getPaiements(Long id);
     NoteDePrix getNoteDePrix(Long id);
     List<NoteDePrix> getAllNotesDePrix();
     Page<NoteDePrix> getAllNotesDePrix(int page, int size);

@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.FileSystemResource;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -23,12 +24,15 @@ public class EmailServiceImpl implements EmailService {
     private final JavaMailSender javaMailSender;
     private final ClientEmailTemplateService clientEmailTemplateService;
 
+    @Value("${spring.mail.username:}")
+    private String fromAddress;
+
     @Async
     @Override
     public void sendSimpleEmail(String to, String subject, String text) {
         try {
             MimeMessage message = javaMailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            MimeMessageHelper helper = createHelper(message);
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(text, clientEmailTemplateService.notification(subject, text));
@@ -45,7 +49,7 @@ public class EmailServiceImpl implements EmailService {
     public void sendHtmlEmail(String to, String subject, String htmlBody) {
         try {
             MimeMessage message = javaMailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            MimeMessageHelper helper = createHelper(message);
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(htmlBody, true);
@@ -62,10 +66,11 @@ public class EmailServiceImpl implements EmailService {
     public void sendEmailWithAttachment(String to, String subject, String text, String attachmentName, File attachment) {
         try {
             MimeMessage message = javaMailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true);
+            MimeMessageHelper helper = createHelper(message);
             helper.setTo(to);
             helper.setSubject(subject);
-            helper.setText(text);
+            helper.setText(text, clientEmailTemplateService.notification(subject, text));
+            addOasLogo(helper);
             
             FileSystemResource file = new FileSystemResource(attachment);
             helper.addAttachment(attachmentName, file);
@@ -89,12 +94,26 @@ public class EmailServiceImpl implements EmailService {
         sendAttachmentEmail(to, subject, htmlBody, attachmentName, attachmentData, mimeType, true);
     }
 
+    @Override
+    public void sendHtmlEmailWithAttachmentSync(String to, String subject, String htmlBody, String attachmentName,
+                                                byte[] attachmentData, String mimeType) throws MessagingException {
+        MimeMessage message = javaMailSender.createMimeMessage();
+        MimeMessageHelper helper = createHelper(message);
+        helper.setTo(to);
+        helper.setSubject(subject);
+        helper.setText(htmlBody, true);
+        addOasLogo(helper);
+        helper.addAttachment(attachmentName, new ByteArrayResource(attachmentData), mimeType);
+        javaMailSender.send(message);
+        log.info("Email HTML avec pièce jointe envoyé et accepté par SMTP pour {}", to);
+    }
+
     @Async
     @Override
     public void sendHtmlEmailWithAttachments(String to, String subject, String htmlBody, List<EmailAttachment> attachments) {
         try {
             MimeMessage message = javaMailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            MimeMessageHelper helper = createHelper(message);
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(htmlBody, true);
@@ -112,11 +131,15 @@ public class EmailServiceImpl implements EmailService {
     private void sendAttachmentEmail(String to, String subject, String body, String attachmentName, byte[] attachmentData, String mimeType, boolean html) {
         try {
             MimeMessage message = javaMailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            MimeMessageHelper helper = createHelper(message);
             helper.setTo(to);
             helper.setSubject(subject);
-            helper.setText(body, html);
-            if (html) addOasLogo(helper);
+            if (html) {
+                helper.setText(body, true);
+            } else {
+                helper.setText(body, clientEmailTemplateService.notification(subject, body));
+            }
+            addOasLogo(helper);
             
             ByteArrayResource resource = new ByteArrayResource(attachmentData);
             helper.addAttachment(attachmentName, resource, mimeType);
@@ -130,5 +153,14 @@ public class EmailServiceImpl implements EmailService {
 
     private void addOasLogo(MimeMessageHelper helper) throws MessagingException {
         helper.addInline("oasLogo", new ClassPathResource("branding/oas-logo.png"), "image/png");
+    }
+
+    private MimeMessageHelper createHelper(MimeMessage message) throws MessagingException {
+        MimeMessageHelper helper = new MimeMessageHelper(
+                message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED, "UTF-8");
+        if (fromAddress != null && !fromAddress.isBlank()) {
+            helper.setFrom(fromAddress.trim());
+        }
+        return helper;
     }
 }
